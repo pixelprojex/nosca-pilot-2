@@ -9,7 +9,11 @@ deep ones do:
          lower: plaster, never baby pink) — a glyph tile's face, a face
          with no picture, what is chosen
   ledge  lightness 0.865 — what the pale stands on
-  cloth  lightness 0.76 — what the colour is on a dark page
+  cloth  lightness 0.76 — what the colour is on a dark page, and the
+         face of a function key; the blues, the violets and the reds
+         (hue 200° and round to 30°) at 0.78 with their chroma capped,
+         because at the family's full cloth chroma they read as baby
+         blue, lilac and pink on a key (the class study, 23 November)
 
 Run it after changing a colour:  python3 scripts/club-palette.py
 It prints the CLUB_PALE table to paste into src/Nosca.jsx and writes the
@@ -105,6 +109,22 @@ def mix(a, b, k):
 
 ON_CLOTH = 0.45    # the word and the glyph on a cloth-filled key: the deep colour this far toward black
 CLOTH_LEDGE = 0.5  # the ledge under a cloth-filled key: the cloth this far toward its ink (the deep colour; the gold's deeper gold)
+CLOTH_QUIET = (0.78, 0.036, 0.055)  # a blue's, a violet's and a red's cloth: its lightness, its chroma's ceiling, the brick's (Call off) ceiling
+# the roles each sport gives its colours (green is the lead), as CLUB_SETS in src/Nosca.jsx has them — change the two
+# together. With the cloth capped, two blues (or two reds) of one sport can come to the same key: the check below
+# measures the plus sheet's eight keys of every sport and stops the script if two are closer than SEPARATE.
+ROLES = ("green", "teal", "blue", "orange", "purple", "wine", "brand")
+SETS = {
+    "brand": ("bottle", "olive", "navy", "saddle", "plum", "claret", "bottle"),
+    "golf": ("fairway", "olive", "navy", "saddle", "plum", "claret", "bottle"),
+    "tennis": ("court", "lawn", "navy", "rust", "aubergine", "claret", "bottle"),
+    "rowing": ("river", "court", "indigo", "saddle", "plum", "claret", "bottle"),
+    "squash": ("sienna", "petrol", "navy", "saddle", "plum", "claret", "bottle"),
+    "padel": ("aubergine", "petrol", "navy", "rust", "plum", "claret", "bottle"),
+    "equestrian": ("claret", "fairway", "navy", "saddle", "aubergine", "chestnut", "bottle"),
+}
+PLUS = ("green", "blue", "gold", "purple", "teal", "brand", "red", "orange")  # Register, Capture, Tip, Drills, Add player, New group, Call off, Competition
+SEPARATE = 0.019  # the least distance (OKLab) between two of a sport's keys of different colours
 
 
 def lighter(name, deep):
@@ -112,12 +132,34 @@ def lighter(name, deep):
     warm = h < 60 or h > 335
     pale = fit(0.93, clamp(0.36 * C, 0.008, 0.024 if warm else 0.032), h)
     ledge = fit(0.865, clamp(0.5 * C, 0.012, 0.036 if warm else 0.045), h)
-    cloth = fit(0.76, clamp(0.8 * C, 0.03, 0.07), h)
+    cool_or_red = h >= 200 or h < 30
+    if cool_or_red:
+        cloth = fit(CLOTH_QUIET[0], min(clamp(0.8 * C, 0.03, 0.07), CLOTH_QUIET[2] if name == "brick" else CLOTH_QUIET[1]), h)
+    else:
+        cloth = fit(0.76, clamp(0.8 * C, 0.03, 0.07), h)
     ink = fit(GOLD_INK[0], GOLD_INK[1], h) if name == "gold" else deep
     return pale, ledge, cloth, ink
 
 
+def oklab(hexs):
+    L, C, h = srgb_to_oklch(hexs)
+    return L, C * math.cos(math.radians(h)), C * math.sin(math.radians(h))
+
+
+def separation():
+    """every sport's plus sheet: the two keys of different colours that sit closest"""
+    out = {}
+    for sport, s in SETS.items():
+        roles = dict(zip(ROLES, s), gold="gold", red="brick")
+        cloth = {r: lighter(roles[r], CLUB[roles[r]])[2] for r in PLUS}
+        out[sport] = min((math.dist(oklab(cloth[a]), oklab(cloth[b])), a, b)
+                         for i, a in enumerate(PLUS) for b in PLUS[i + 1:] if roles[a] != roles[b])
+    return out
+
+
 def main():
+    for sport, (d, a, b) in separation().items():
+        assert d >= SEPARATE, (sport, "two of its keys sit too close", a, b, round(d, 3))
     rows, css = [], [":root{"]
     line = "  "
     for name, deep in CLUB.items():
@@ -139,6 +181,7 @@ def main():
     print("\n".join(rows))
     print("};")
     print(f'// the gold\'s ink on its pale: {lighter("gold", CLUB["gold"])[3]}')
+    print("// the closest two keys of each sport: " + ", ".join(f"{k} {d:.3f} ({a}/{b})" for k, (d, a, b) in separation().items()))
     out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "website", "src", "css", "palette.css")
     if os.path.isdir(os.path.dirname(out)):
         with open(out, "w") as f:

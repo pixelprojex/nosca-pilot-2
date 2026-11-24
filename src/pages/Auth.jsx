@@ -4,7 +4,7 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/AuthContext";
 import {
   ThemeCtx, NEUTRAL, BRAND, SPORTS, tr, ui, display, TYPE, R, DANGER, STEADY, useT,
-  hapticSuccess, hapticWarn, haptic, openAbout, Mark, Frame, SignupShell, Choice, Headline, Sub, Field, Button,
+  hapticSuccess, hapticWarn, haptic, openAbout, Mark, Frame, SignupShell, Choice, Headline, Sub, Field, Button, FOIL,
   CodeBoxes, DobBox, PickSport,
 } from "../Nosca";
 
@@ -108,10 +108,17 @@ function Landing({ invite, onCreate, onSignIn }) {
     <ThemeCtx.Provider value={NEUTRAL}>
       <div className="flex flex-col" style={{ height: "100dvh", background: NEUTRAL.page }}>
         <div className="flex-1 flex flex-col items-center justify-center">
-          <span style={{ animation: "fadeUp 700ms cubic-bezier(.22,1,.36,1) both" }}><Mark size={40} /></span>
+          {/* THE CARD'S BACK (24 November): the mark in the card's gold foil
+              over the name, and a fine rule of the same gold under it, as the
+              business card's white side carries them — the front door is the
+              card in the hand. The name stays the ink: gold words on white
+              would read 2.4:1 (FOIL is for a mark and a line on white, never a word) */}
+          <span data-foil="" style={{ animation: "fadeUp 700ms cubic-bezier(.22,1,.36,1) both" }}><Mark size={40} color={FOIL} /></span>
           <span className="mt-5" style={{ fontFamily: display, fontSize: 13,
                          letterSpacing: "0.42em", paddingLeft: "0.42em", color: NEUTRAL.ink,
                          animation: "fadeUp 700ms cubic-bezier(.22,1,.36,1) 90ms both" }}>{BRAND}</span>
+          <span aria-hidden="true" data-foil-rule="" className="mt-5" style={{ width: 56, height: 1, background: FOIL,
+                         animation: "fadeUp 700ms cubic-bezier(.22,1,.36,1) 150ms both" }} />
         </div>
         <div className="px-7" style={{ paddingBottom: "max(34px, env(safe-area-inset-bottom, 34px))",
                                         animation: "fadeUp 640ms cubic-bezier(.22,1,.36,1) 200ms both" }}>

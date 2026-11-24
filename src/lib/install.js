@@ -55,6 +55,13 @@ export function isIos() {
   return navigator.platform === "MacIntel" && typeof navigator.maxTouchPoints === "number" && navigator.maxTouchPoints > 1;
 }
 
+/* An iPad, whatever its user agent claims: the guide's row names it as one. */
+export function isIpad() {
+  if (!hasWindow()) return false;
+  if (/iPad/.test(ua())) return true;
+  return navigator.platform === "MacIntel" && typeof navigator.maxTouchPoints === "number" && navigator.maxTouchPoints > 1;
+}
+
 /* Opened from a Home Screen (or a Dock) rather than in a browser tab. */
 export function isStandalone() {
   if (!hasWindow()) return false;
@@ -85,9 +92,11 @@ export function browserOf() {
   return "other";
 }
 
-/* The iOS version, for the steps that moved in iOS 26 (Share went into the
-   ⋯ menu). Safari freezes the OS in its user agent at 18_6 from iOS 26 on,
-   so its own Version/ is read first; another browser's OS number after. */
+/* The iOS version, for the steps that moved: in iOS 26 Share went behind
+   the three dots beside the address bar, and in iOS 27 into the Page Menu,
+   the three lines at its left. Safari freezes the OS in its user agent at
+   18_6 from iOS 26 on, so its own Version/ is read first; another
+   browser's OS number after. */
 export function iosMajor() {
   if (!isIos()) return null;
   const s = ua();

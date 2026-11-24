@@ -5,7 +5,7 @@ import { joinLink, shareOrCopy, copyText } from "./lib/share";
 import { MAX_UPLOAD_MB, avatarUrl, registerKey, localDate } from "./lib/useNoscaData";
 import { useDownloads, fmtBytes } from "./lib/useDownloads";
 import { pushSupport, subscribePush, unsubscribePush, currentSubscription } from "./lib/push";
-import { canPromptInstall, onInstallPromptChange, promptInstall, isStandalone, platformOf, browserOf, iosMajor } from "./lib/install";
+import { canPromptInstall, onInstallPromptChange, promptInstall, isStandalone, platformOf, browserOf, iosMajor, isIpad } from "./lib/install";
 import { supabase } from "./lib/supabase";
 import { Mark, BrandLoader, RING_L, RING_R, RING_LEN, BRAND as BRAND_COLOUR, BRAND_PAPER } from "./lib/brandmark.jsx";
 /* THE LIST'S OWN RULES, shared with the pages that render without
@@ -52,12 +52,9 @@ import {
   ChevronLeft, ChevronRight, Check, Play, Pause, Plus, Minus, X, Mic, Square, Home,
   Calendar, CalendarDays, MessageCircle, Send, Users, User, ArrowRight, QrCode, Share2,
   Delete, Lock, Mail, Camera, Video as VideoIcon, Image as ImageIcon, ChevronDown, Search, Bell, FileText,
-  HelpCircle, LogOut, Trash2, ShieldCheck, ExternalLink, Tag, Phone, Paperclip, Clock,
+  Trash2, ShieldCheck, ExternalLink, Tag, Phone, Paperclip, Clock,
   ListChecks, Download, Palette, Eye, Minimize2, Lightbulb, Volume2, VolumeX, UserPlus, Pencil, MoveUpRight, Undo2, Circle, Ruler,
-  Edit3, Trophy, Star, CalendarX, CloudRain, Copy, Settings2, BellOff, Columns2, ArrowLeftRight, WifiOff, TrendingUp, Grid3X3, Film, Repeat,
-  Share, Ellipsis, EllipsisVertical, Menu, MonitorDown, SquarePlus,
-  Plane, RefreshCw, Info, Globe, Smartphone, Link2, Compass, LayoutGrid, Vibrate, Accessibility, ClipboardCheck, BarChart3, Hourglass,
-  GraduationCap, AppWindow, Copyright, AlarmClock } from "lucide-react";
+  Edit3, Trophy, Star, CalendarX, CloudRain, Copy, Columns2, ArrowLeftRight, WifiOff, Grid3X3, Film, Repeat } from "lucide-react";
 
 /* ==================================================================
    BRAND · NOSCA — an anglicised spelling of the Irish nascadh, linking
@@ -499,14 +496,14 @@ export const CLUB = { fairway: "#285937", olive: "#4F5B29", bottle: "#123C30", l
 const CLUB_PALE = {
   fairway: ["#DBEEDF", "#C1DAC6", "#94BD9E"], olive: ["#E5EBD7", "#CFD7BC", "#ABB78D"],
   bottle: ["#DCECE6", "#C3D8D0", "#98BAAE"], lawn: ["#E0ECDC", "#C8D8C2", "#A0BA98"],
-  court: ["#D7EDEC", "#BBDAD8", "#8ABCBA"], petrol: ["#D9ECF1", "#BED8DF", "#91B9C5"],
-  river: ["#DBEAFA", "#C1D5EC", "#95B4D8"], navy: ["#DFE9F7", "#C7D4E7", "#9EB3D0"],
-  steel: ["#DFE9F2", "#C6D5E0", "#9EB4C6"], aubergine: ["#EDE3F9", "#D9CCEA", "#BBA7D4"],
-  indigo: ["#E4E6FA", "#CDD0EC", "#A9AED7"], plum: ["#F3E2ED", "#E2CBDA", "#C9A4BD"],
-  claret: ["#F7E2E4", "#E9C9CC", "#DA9FA6"], sienna: ["#F6E4DA", "#E7CCBE", "#D6A589"],
+  court: ["#D7EDEC", "#BBDAD8", "#8ABCBA"], petrol: ["#D9ECF1", "#BED8DF", "#9EBEC7"],
+  river: ["#DBEAFA", "#C1D5EC", "#A7BACE"], navy: ["#DFE9F7", "#C7D4E7", "#A9B9CF"],
+  steel: ["#DFE9F2", "#C6D5E0", "#A4BBCD"], aubergine: ["#EDE3F9", "#D9CCEA", "#BDB2CA"],
+  indigo: ["#E4E6FA", "#CDD0EC", "#B2B5CF"], plum: ["#F3E2ED", "#E2CBDA", "#C8AFBF"],
+  claret: ["#F7E2E4", "#E9C9CC", "#CDAEB1"], sienna: ["#F6E4DA", "#E7CCBE", "#D6A589"],
   rust: ["#F7E3DC", "#E8CCC1", "#D8A38E"], saddle: ["#F3E5D9", "#E2CFBE", "#C8AB91"],
   chestnut: ["#F4E4DC", "#E3CEC2", "#CAA998"], gold: ["#F0E7D0", "#DED2B2", "#C3AF7E"],
-  slate: ["#E3E9EC", "#CBD4D9", "#9FB5C1"], brick: ["#F8E2DF", "#EACAC6", "#DAA198"],
+  slate: ["#E3E9EC", "#CBD4D9", "#A5BBC7"], brick: ["#F8E2DF", "#EACAC6", "#D9ABA4"],
 };
 const PALE_BY_HEX = Object.fromEntries(Object.keys(CLUB).map((k) => [CLUB[k].toUpperCase(), CLUB_PALE[k]]));
 /* A FUNCTION HAS A HUE, AND A SPORT SAYS WHICH COLOUR THAT IS. `HUE`
@@ -527,11 +524,21 @@ export const CLUB_SETS = {
   brand:      clubSet("bottle",    "olive",   "navy",  "saddle", "plum",      "claret",   "bottle"),
   golf:       clubSet("fairway",   "olive",   "navy",  "saddle", "plum",      "claret",   "bottle"),
   tennis:     clubSet("court",     "lawn",    "navy",  "rust",   "aubergine", "claret",   "bottle"),
-  rowing:     clubSet("river",     "petrol",  "steel", "saddle", "plum",      "claret",   "navy"),
+  rowing:     clubSet("river",     "court",   "indigo", "saddle", "plum",      "claret",   "bottle"),
   squash:     clubSet("sienna",    "petrol",  "navy",  "saddle", "plum",      "claret",   "bottle"),
-  padel:      clubSet("aubergine", "petrol",  "navy",  "rust",   "indigo",    "claret",   "bottle"),
-  equestrian: clubSet("claret",    "fairway", "navy",  "saddle", "plum",      "chestnut", "bottle"),
+  padel:      clubSet("aubergine", "petrol",  "navy",  "rust",   "plum",      "claret",   "bottle"),
+  equestrian: clubSet("claret",    "fairway", "navy",  "saddle", "aubergine", "chestnut", "bottle"),
 };
+/* NO TWO KEYS OF A SPORT THE SAME COLOUR (24 November). The cool and red
+   hues' cloth tones are capped (scripts/club-palette.py: baby blue, lilac
+   and pink were the class study's tell), and a capped blue meets the next
+   blue: rowing's Register (river) and Capture (steel) came to one grey-blue,
+   padel's Register (aubergine) and Drills (indigo) to one lilac. So the
+   sport whose lead is a blue takes its blue (Capture) from indigo, its teal
+   from court and its brand from the bottle as every other sport does; a
+   purple lead takes plum for Drills, a red lead aubergine. The script holds
+   the same table (SETS) and refuses to run if two of a sport's eight plus
+   keys of different colours sit closer than SEPARATE — change the two together. */
 /* the colour a role takes in this sport. The lead is whatever the theme's
    accent is (a coach's own branding moves it), so a green thing and the
    one action are always one colour. A hex handed in is itself. */
@@ -540,12 +547,34 @@ export const hueOf = (t, hue) => {
   const k = hue.slice(2);
   return k === "green" ? t.accent : ((t.club || CLUB_SETS.brand)[k] || t.accent);
 };
+/* a colour's relative luminance (WCAG), and the contrast of two colours */
+const lumOf = (c) => {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(c || "")); if (!m) return 1;
+  const [r, g, b] = [0, 2, 4].map((i) => { const v = parseInt(m[1].slice(i, i + 2), 16) / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+const contrastOf = (a, b) => { const [x, y] = [lumOf(a), lumOf(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
 /* what is drawn on a colour: white, or the ink on the card's gold */
 export const onHue = (c) => {
   const m = /^#?([0-9a-f]{6})$/i.exec(String(c || "")); if (!m) return "#FFFFFF";
-  const [r, g, b] = [0, 2, 4].map((i) => { const v = parseInt(m[1].slice(i, i + 2), 16) / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.3 ? "#2B2410" : "#FFFFFF";
+  return lumOf(c) > 0.3 ? "#2B2410" : "#FFFFFF";
 };
+/* GOLD AS FOIL (24 November, the class study). The founder, 23 November:
+   "I love the gold elements on the business card … bring that into the
+   app slightly … not overdoing it". On the card the gold is a foil — a
+   line, a few words, the pinstripes in a corner — on its deep ground,
+   never a fill. So, rationed, and in these places only: FOIL, the card's
+   own gold, as an ornament on a deep colour (the pinstripe wedge in the
+   corner of the day's one coloured card, the ring round the Logged
+   burst's tick); FOIL_LIGHT for words on a lead (the coloured card's
+   eyebrow and chevron: 4.65:1 on squash's sienna, the lowest of the
+   leads, and a coach's own colour that would carry it under 4.5 keeps
+   white — `foilOn`); on white, the mark and one fine rule on the sign-in
+   landing, as the card's back carries them (a logo and a line, never a
+   word: gold words on white read 2.4:1), and otherwise only STAR and the
+   gold's ink. Never a key's face, never words on white. */
+export const FOIL = "#C2A24C", FOIL_LIGHT = "#E6D08A";
+export const foilOn = (ground, fallback = "#FFFFFF") => (contrastOf(FOIL_LIGHT, ground) >= 4.5 ? FOIL_LIGHT : fallback);
 /* a star on the white page: the card's gold a step deeper, 3:1 and over */
 export const STAR = "#9A7B2B";
 /* a colour's lighter relations: [pale, the pale's ledge, the cloth tone].
@@ -655,6 +684,17 @@ export const SEL = (t) => {
   return KEYS_TINTED ? { face: cloth, ring: clothLip(t.accent), lip: clothLip(t.accent), fg: onCloth(t.accent) }
     : { face: pale, ring: cloth, lip: cloth, fg: MIX(t.accent, "#000000", 0.08) };
 };
+/* A RED QUIET KEY (24 November, the class study): what calls off, cancels
+   or removes, where it is not the one confirm, is the brick's own pale on
+   the pale's ledge with the word in the brick — it was the sport's pale
+   with a red word on it, a mint key saying a red thing. One look, from
+   `Button`'s dangerQuiet to every red key drawn by hand (`redKey`). */
+export const RED_KEY = (t) => {
+  if (darkPage(t)) return { face: TINT(t), ring: KEY_RING(t), lip: TINT_LIP(t), fg: DANGER };
+  const [pale, ledge] = lightsOf(DANGER);
+  return { face: pale, ring: ledge, lip: MIX(ledge, DANGER, 0.12), fg: DANGER };
+};
+export const redKey = (t) => { const k = RED_KEY(t); return { background: k.face, border: `${EDGE_W}px solid ${k.ring}`, "--key-lip": k.lip, color: k.fg }; };
 /* a row of a list chosen from (a reason on Cancel, Call off, End or
    Decline): the list's white card at rest, Duolingo's chosen answer once
    picked — the sport's colour faint on the face, its ring and ledge (the
@@ -2909,7 +2949,7 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                     <button key={h} data-tour="agenda-mine" data-lit={lit ? "1" : undefined} onClick={() => { haptic(7); soft(); onMine(day); }}
                             className="w-full flex items-center gap-3 px-4 text-left active:opacity-50" style={{ minHeight: 56, ...line, ...litStyle }}>
                       {inner}
-                      <ChevronRight size={lit ? 16 : 14} color={lit ? t.onAccent : t.trace || t.faint} strokeWidth={lit ? 2.2 : 2} />
+                      <ChevronRight size={lit ? 16 : 14} color={lit ? foilOn(t.accent, t.onAccent) : t.trace || t.faint} strokeWidth={lit ? 2.2 : 2} />
                     </button>
                   );
                   return mineRow;
@@ -3714,8 +3754,11 @@ function PublishedBurst({ lesson, tally, onAskRating, onLogNext, remaining = 0, 
                   animation: waits ? "fadeIn 320ms ease both" : "celebFade 1900ms ease backwards" }}>
       <div className="w-full flex flex-col items-center" style={{ gridRow: 2 }}>
         <span className="rounded-full flex items-center justify-center shrink-0"
+              /* a fine ring of the card's foil set in from the disc's edge, as
+                 a medal's rim — the gold's one moment in the log (FOIL) */
+              data-foil=""
               style={{ width: 94, height: 94, background: t.accent,
-                       boxShadow: lipOf(LIP(t.accent), 4),
+                       boxShadow: `inset 0 0 0 5px ${t.accent}, inset 0 0 0 6.5px ${FOIL}, ${lipOf(LIP(t.accent), 4)}`,
                        animation: "stampIn 620ms cubic-bezier(.34,1.56,.64,1) both" }}>
           <Check size={42} color={t.onAccent} strokeWidth={2.1} />
         </span>
@@ -4253,8 +4296,8 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
                                      fontFamily: ui, fontSize: 12, fontWeight: 600, color: t.ink }}>{tr("No end")}</button>}
                     {/* End asks why, lists the lessons it booked and takes the password — the End sheet */}
                     <button data-tour="recur-end" onClick={() => { haptic(9); onEnd(x); }} className="px-3 n-key"
-                            style={{ minHeight: 40, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`,
-                                     fontFamily: ui, fontSize: 12, fontWeight: 600, color: DANGER }}>{tr("End")}</button>
+                            style={{ minHeight: 40, borderRadius: R.control, ...redKey(t),
+                                     fontFamily: ui, fontSize: 12, fontWeight: 600 }}>{tr("End")}</button>
                   </div>
                 </>
               )}
@@ -5861,13 +5904,13 @@ function DownloadSheetBody({ lesson, onOpen, onUpdate, onShare, onRemove, onCanc
             {/* a progress fill is the sport's colour */}
             <div style={{ height: "100%", width: `${Math.max(2, pct)}%`, background: t.accent, borderRadius: 3, transition: "width 220ms linear" }} />
           </div>
-          <button onClick={onCancel} className="w-full mt-4 n-key" style={{ ...quiet, color: DANGER }}>{tr("Cancel")}</button>
+          <button onClick={onCancel} className="w-full mt-4 n-key" style={{ ...quiet, ...redKey(t) }}>{tr("Cancel")}</button>
         </div>
       )}
       {status === "failed" && (
         <div className="mt-5">
           <Button onClick={onRetry}>{tr("Retry")}</Button>
-          <button onClick={onRemove} className="w-full mt-2.5 n-key" style={{ ...quiet, color: DANGER }}>{tr("Remove")}</button>
+          <button onClick={onRemove} className="w-full mt-2.5 n-key" style={{ ...quiet, ...redKey(t) }}>{tr("Remove")}</button>
         </div>
       )}
       {status === "saved" && (
@@ -5877,7 +5920,7 @@ function DownloadSheetBody({ lesson, onOpen, onUpdate, onShare, onRemove, onCanc
             <button onClick={onUpdate} className="flex-1 n-key" style={quiet}>{tr("Update")}</button>
             <button onClick={onShare} className="flex-1 n-key" style={quiet}>{tr("Share as a file")}</button>
           </div>
-          <button onClick={onRemove} className="w-full mt-2.5 n-key" style={{ ...quiet, color: DANGER }}>{tr("Remove")}</button>
+          <button onClick={onRemove} className="w-full mt-2.5 n-key" style={{ ...quiet, ...redKey(t) }}>{tr("Remove")}</button>
         </div>
       )}
     </div>
@@ -7307,7 +7350,7 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
                  name={first(k.name)} faceName={k.name} src={avatarUrl(k.avatarPath)} subTone={nx ? "ink" : "faint"}
                  sub={nx ? `${fmtDay(nx.date)} · ${nx.time}` : k.coachId ? tr("Nothing booked") : tr("No coach yet")}
                  /* what is undone, never a total: the lessons live on the child's own screen */
-                 value={todo > 0 ? `${todo} ${todo === 1 ? tr("drill") : tr("drills")}` : null} chevron />
+                 value={todo > 0 ? `${todo} ${todo === 1 ? tr("drill") : tr("drills")}` : null} chevron={lit ? foilOn(t.accent, t.onAccent) : true} />
     );
     return lit ? <OnAccent>{row}</OnAccent> : row;
   };
@@ -7458,19 +7501,20 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
               ))}
             </div>
             {/* A DOOR IS A ROW, NEVER A BUTTON: the rest of the lessons and the
-                child's Progress are HomeRows, each a box of its own with its
-                glyph on its square, the count as a value and the chevron — as
-                All lessons and Progress are on the player's file and All
-                drills on the Drills tab. They were two white keys, 46 tall on
-                the control's corner under the 52-tall Book · Message pair */}
+                child's Progress are HomeRows, each a box of its own — the
+                word, the count as a value and the chevron, no glyph (23
+                November) — as All lessons and Progress are on the player's
+                file and All drills on the Drills tab. They were two white
+                keys, 46 tall on the control's corner under the 52-tall Book ·
+                Message pair */}
             {(mine.length > shown.length || onProgress) && (
               <div className="nsc-list mb-7">
                 {mine.length > shown.length && (
                   <HomeRow boxed tour="kid-all-lessons" label={tr("All lessons")} value={String(mine.length)}
-                           icon={<IconSq Icon={Film} bg={HUE.brand} />} onPress={() => onAllLessons && onAllLessons()} />
+                           onPress={() => onAllLessons && onAllLessons()} />
                 )}
                 {onProgress && (
-                  <HomeRow boxed tour="kid-progress" label={tr("Progress")} icon={<IconSq Icon={TrendingUp} bg={HUE.green} />} onPress={onProgress} />
+                  <HomeRow boxed tour="kid-progress" label={tr("Progress")} onPress={onProgress} />
                 )}
               </div>
             )}
@@ -7977,12 +8021,7 @@ function RescheduleOffer({ lesson, slots, duration, onPick, close }) {
   const [sel, setSel] = useState(null);
   return (
     <>
-      <div className="flex items-center gap-3 mb-4">
-        <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 40, height: 40, background: t.wash }}>
-          <CloudRain size={18} color={t.sub} strokeWidth={2} />
-        </span>
-        <h2 style={{ fontFamily: display, fontSize: 22, letterSpacing: "-0.025em", color: t.ink }}>{tr("Called off for weather")}</h2>
-      </div>
+      <h2 className="mb-4" style={{ fontFamily: display, fontSize: 22, letterSpacing: "-0.025em", color: t.ink }}>{tr("Called off for weather")}</h2>
       <p className="mb-6" style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.6, color: t.sub }}>
         {lesson} {tr("won't go ahead. Pick a new time that suits you.")}
       </p>
@@ -8092,8 +8131,8 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
               {/* the diary passes onCancel (the Why sheet); an older caller onNoShow —
                   the button took only the second, so the diary's Cancel did nothing */}
               <button data-tour="block-cancel" onClick={() => { hapticWarn(); const act = onCancel || onNoShow; act && act(item); }} className="px-4 n-key"
-                      style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`,
-                               fontFamily: ui, fontSize: 15, fontWeight: 600, color: DANGER }}>{tr("Cancel")}</button>
+                      style={{ minHeight: 46, borderRadius: R.control, ...redKey(t),
+                               fontFamily: ui, fontSize: 15, fontWeight: 600 }}>{tr("Cancel")}</button>
               <button onClick={() => { haptic(8); push("player:" + item.who); }} className="flex-1 n-key"
                       style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`,
                                fontFamily: ui, fontSize: 15, fontWeight: 600, color: t.ink }}>{tr("Profile")}</button>
@@ -8614,7 +8653,7 @@ function Toast({ msg }) {
     </div>
   );
 }
-function Segmented({ options, value, onChange, tour }) {
+function Segmented({ options, value, onChange, tour, tall = false }) {
   const t = useT();
   const idx = Math.max(0, options.indexOf(value));
   const n = options.length || 1;
@@ -8632,8 +8671,9 @@ function Segmented({ options, value, onChange, tour }) {
         const on = value === o;
         return (
           <button key={o} aria-pressed={on} aria-label={o} onClick={() => { haptic(6); onChange(o); }} className="relative flex-1 rounded-lg"
-                  style={{ minHeight: 34, paddingBottom: 2, background: "transparent", transition: `color ${MOTION.move}ms`,
-                           fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: on ? t.ink : t.sub }}>{o}</button>
+                  /* `tall`: 44 to a finger, where the control is the only way to another answer (the install guide's Change) */
+                  style={{ minHeight: tall ? 44 : 34, paddingBottom: 2, background: "transparent", transition: `color ${MOTION.move}ms`,
+                           fontFamily: ui, fontSize: tall ? 14 : 13.5, fontWeight: 600, color: on ? t.ink : t.sub }}>{o}</button>
         );
       })}
     </div>
@@ -8917,7 +8957,7 @@ export function Button({ children, onClick, tone = "accent", disabled, tour }) {
     ink:    { background: t.accent, color: t.onAccent, border: "none", lip: LIP(t.accent) },
     quiet:  { background: TINT(t), color: t.ink, border: `${EDGE_W}px solid ${KEY_RING(t)}`, lip: TINT_LIP(t) },
     danger: { background: DANGER, color: "#fff", border: "none", lip: LIP(DANGER) },
-    dangerQuiet: { background: TINT(t), color: DANGER, border: `${EDGE_W}px solid ${KEY_RING(t)}`, lip: TINT_LIP(t) },
+    dangerQuiet: (() => { const k = RED_KEY(t); return { background: k.face, color: k.fg, border: `${EDGE_W}px solid ${k.ring}`, lip: k.lip }; })(),
   }[tone];
   /* not yet live: a flat stone with the word in the faint grey — the
      accent at a third of its strength read as a faded, broken button */
@@ -9025,9 +9065,12 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
      "I do want fulfilled buttons throughout. I don't want just tiny
      circles and tiny icons." What calls off is the brick's. */
   const fill = quietTile && Icon && (hue || redWord) ? fillOf(t, redWord ? HUE.red : hue) : null;
-  const bg = fill ? fill.face : tone === "accent" ? t.accent : tone === "danger" ? DANGER : on ? sel.face : TINT(t);
+  /* a red word key with no glyph to fill is the red quiet key, as Button's is */
+  const red = redWord && !fill ? RED_KEY(t) : null;
+  const bg = fill ? fill.face : tone === "accent" ? t.accent : tone === "danger" ? DANGER : on ? sel.face : red ? red.face : TINT(t);
   const fg = fill ? fill.fg : tone === "accent" ? t.onAccent : tone === "danger" ? "#fff" : on ? sel.fg : redWord ? DANGER : t.ink;
-  const lipC = fill ? fill.lip : tone === "accent" ? LIP(t.accent) : tone === "danger" ? LIP(DANGER) : on ? sel.lip : calm ? SOFT_LIP(t) : TINT_LIP(t);
+  const lipC = fill ? fill.lip : tone === "accent" ? LIP(t.accent) : tone === "danger" ? LIP(DANGER) : on ? sel.lip : red ? red.lip : calm ? SOFT_LIP(t) : TINT_LIP(t);
+  const quietRing = red ? red.ring : KEY_RING(t);
   /* the second kind keeps the sport's edge as its outline, 3:1 and over */
   const ring = "";
   const enter = `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`;
@@ -9064,11 +9107,16 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
               className={`relative w-full flex text-left ${stacked ? "flex-col items-start justify-between" : "items-center"}`}
               data-fill={fill ? "" : undefined}
               style={{ minHeight: h, gap: stacked ? 10 : 12, padding: stacked ? "14px 14px 13px" : "0 16px", borderRadius: R.surface, background: bg,
-                       boxShadow: p.rest, border: `${EDGE_W}px solid ${fill ? "transparent" : quietTile ? KEY_RING(t) : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`, animation: enter,
+                       boxShadow: p.rest, border: `${EDGE_W}px solid ${fill ? "transparent" : quietTile ? quietRing : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`, animation: enter,
                        transition: `background ${MOTION.settle}ms, box-shadow 140ms ease-out, transform 140ms ease-out` }}>
         <Icon size={fill ? 24 : 22} color={fg} strokeWidth={fill ? 2 : quietTile || calm ? 1.8 : 2} className="shrink-0" />
-        <span className={wrap ? "min-w-0" : "min-w-0 max-w-full truncate"}
-              style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, letterSpacing: "-0.01em", lineHeight: 1.2, color: fg }}>{label}</span>
+        {/* NOTHING IS CUT AT 320: where the glyph and the word share a line
+            (the roster's Add player · New group) the word takes a second
+            line at its space before an ellipsis — two across at 320 the
+            keys read "Add pl…" and "New g…" */}
+        <span className={wrap ? "min-w-0" : stacked ? "min-w-0 max-w-full truncate" : "min-w-0"}
+              style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, letterSpacing: "-0.01em", lineHeight: 1.2, color: fg,
+                       ...(!wrap && !stacked ? { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" } : null) }}>{label}</span>
         {badge}
       </button>
     );
@@ -9085,7 +9133,7 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
               style={{ gap: 7, paddingTop: 2, animation: enter, WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}>
         <span data-face="" data-lip="" data-fill={fill ? "" : undefined} data-rest={rest} data-dn={down} data-by={lip} className="relative flex items-center justify-center rounded-full"
               style={{ width: `min(${f}px, 100%)`, aspectRatio: "1 / 1", background: bg, boxShadow: rest,
-                       border: `${EDGE_W}px solid ${fill ? "transparent" : quietTile ? KEY_RING(t) : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`,
+                       border: `${EDGE_W}px solid ${fill ? "transparent" : quietTile ? quietRing : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`,
                        transition: `background ${MOTION.settle}ms` }}>
           {/* a function's key carries its glyph in the hue's own ink on its filled face */}
           <Icon size={Math.round(f * 0.4)} color={fg} strokeWidth={fill ? 2.1 : quietTile || calm ? 1.8 : 2} />
@@ -9106,7 +9154,7 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
             {...p.handlers}
             className={`relative w-full flex items-center justify-center ${block && Icon ? "gap-2.5" : "flex-col gap-1.5"}`}
             style={{ minHeight: h, borderRadius: R.surface, background: bg, boxShadow: p.rest,
-                     border: `${EDGE_W}px solid ${quietTile ? KEY_RING(t) : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`, animation: enter,
+                     border: `${EDGE_W}px solid ${quietTile ? quietRing : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`, animation: enter,
                      transition: `background ${MOTION.settle}ms, box-shadow 140ms ease-out, transform 140ms ease-out` }}>
       {/* A tile does not need a glyph to be a tile. Where the word is
           the whole meaning — the focus of a lesson, a sub-area — an
@@ -9160,14 +9208,22 @@ const TileGrid = ({ children, cols = 3, stagger = 22 }) => (
    was five of these stacked down the player's home: a page of labels. */
 /* `boxed`: inside a .nsc-list the box is the edge, so the row draws no
    foot rule of its own (the peek's All lessons) */
-const HomeRow = ({ label, value, tone, onPress, tour, boxed = false, icon = null }) => {
+/* A ROW OF WORDS CARRIES NO ICON (23 November). For two days every door
+   led with a glyph on a coloured tile — Film beside "All lessons", a
+   chart beside "Progress" — and the founder: "I don't want you to have
+   the icons in the settings, as it makes it look very tacky, and a lot
+   of the icons throughout could just be gotten rid of." The word says
+   what the row is; the row is the label on the box's own inset, the
+   value in the sub grey, the chevron. `danger` is the one row told apart
+   by colour (the Diary's call-off): the red is in its word, where it was
+   in its tile. */
+const HomeRow = ({ label, value, tone, onPress, tour, boxed = false, danger = false }) => {
   const t = useT();
   return (
-    <button data-tour={tour} onClick={() => { haptic(8); soft(); onPress && onPress(); }}
+    <button data-tour={tour} data-row-door="" onClick={() => { haptic(8); soft(); onPress && onPress(); }}
             className={`w-full flex items-center gap-3.5 text-left ${boxed ? "" : "active:opacity-50"}`}
             style={{ minHeight: 60, borderBottom: boxed ? undefined : RULE.hair(t.ink) }}>
-      {icon}
-      <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
+      <span data-row-label="" className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: danger ? DANGER : t.ink }}>{label}</span>
       <span className="shrink-0 truncate" style={{ ...TYPE.body, color: tone || t.sub, maxWidth: "55%" }}>{value}</span>
       <ChevronRight size={15} color={t.trace || t.faint} />
     </button>
@@ -9449,17 +9505,30 @@ function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", s
       {/* the pair of words on the right: a line of its own under the name
           when the row cannot hold both (ml-auto keeps it on the right) */}
       {actions && <span className="shrink-0 flex items-stretch gap-1 ml-auto" style={{ minHeight: 44 }}>{actions}</span>}
-      {chevron && <ChevronRight size={15} color={t.trace || t.faint} />}
+      {/* a chevron handed a colour takes it: the lit row's is the card's light foil */}
+      {chevron && <ChevronRight size={15} color={typeof chevron === "string" ? chevron : t.trace || t.faint} />}
     </Tag>
   );
 }
-function Row({ label, sub, value, valueColor, checked, onToggle, radio, last, chevron, dot, icon, danger, right, tour }) {
+/* `icon` is a FACE, or the value itself drawn (a colour's swatch) — never
+   a glyph beside words that already say it: a row of words carries no
+   icon (23 November; every Settings row led with a glyph on a coloured
+   tile for two days, and the founder found it "very tacky"). The label
+   sits on the row's own inset, the value in the sub grey on the right,
+   the chevron after it. */
+/* THE VALUE IS NEVER CUT. It sits on the label's line, at the right; where
+   the row cannot hold both (a span of days at 320, a long address) the
+   value takes the line under the label, whole — the row's own way of
+   giving, as a person row's actions drop under the name. It was cut at
+   58% of the row ("Mon 23 Nov · 9…" on Version at 320). `wrap` lets a
+   label that is a sentence take a second line rather than an ellipsis. */
+function Row({ label, sub, value, valueColor, checked, onToggle, radio, last, chevron, dot, icon, danger, right, tour, wrap = false }) {
   const t = useT();
   const Tag = onToggle ? "button" : "div";
   return (
-    <Tag data-tour={tour} onClick={onToggle ? () => { haptic(6); onToggle(); } : undefined}
+    <Tag data-tour={tour} data-row="" onClick={onToggle ? () => { haptic(6); onToggle(); } : undefined}
          className={`w-full flex items-center gap-3.5 px-5 text-left ${onToggle ? "active:opacity-50" : ""}`}
-         style={{ minHeight: 56, borderBottom: last ? "none" : `1px solid ${t.hair}`,
+         style={{ minHeight: 56, paddingTop: 6, paddingBottom: 6, borderBottom: last ? "none" : `1px solid ${t.hair}`,
                   transition: "transform 130ms cubic-bezier(.22,1,.36,1)" }}>
       {icon}
       {/* a tick box for a row that is a choice; never on a red row (the
@@ -9472,14 +9541,18 @@ function Row({ label, sub, value, valueColor, checked, onToggle, radio, last, ch
         </span>
       )}
       <span className="flex-1 min-w-0">
-        <span className="flex items-center gap-2">
-          <span className="truncate" style={{ ...TYPE.body, color: danger ? DANGER : t.ink }}>{label}</span>
-          {/* the unread dot in the sport's colour, as everywhere since 21 November */}
-          {dot && <span className="rounded-full shrink-0" style={{ width: 7, height: 7, background: t.accent }} />}
+        {/* one line while both fit — the label left, the value right — and
+            the value on a line of its own under the label where they do not */}
+        <span className="flex flex-wrap items-baseline justify-between" style={{ columnGap: 14 }}>
+          <span className="flex items-center gap-2 min-w-0" style={{ maxWidth: "100%" }}>
+            <span data-row-label="" className={wrap ? "" : "truncate"} style={{ ...TYPE.body, color: danger ? DANGER : t.ink, ...(wrap ? { lineHeight: 1.3 } : null) }}>{label}</span>
+            {/* the unread dot in the sport's colour, as everywhere since 21 November */}
+            {dot && <span className="rounded-full shrink-0" style={{ width: 7, height: 7, background: t.accent }} />}
+          </span>
+          {value && <span data-row-value="" className="min-w-0" style={{ ...TYPE.body, color: valueColor || t.sub, maxWidth: "100%", overflowWrap: "anywhere" }}>{value}</span>}
         </span>
         {sub && <span className="block truncate mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{sub}</span>}
       </span>
-      {value && <span className="shrink-0 truncate" style={{ ...TYPE.body, color: valueColor || t.faint, maxWidth: "58%" }}>{value}</span>}
       {right}
       {chevron && <ChevronRight size={17} color={t.trace || t.faint} />}
       {checked && icon && <Check size={18} color={STEADY} strokeWidth={2.1} />}
@@ -9558,63 +9631,19 @@ const faceTone = (t, name) => {
   const c = set[h % set.length];
   return darkPage(t) ? { bg: c, ring: LIP(c), fg: clothOf(c) } : { bg: clothOf(c), ring: null, fg: onCloth(c) };
 };
-/* SETTINGS AS iOS LAYS IT OUT, IN NOSCA'S COLOURS: every row leads with
-   its own coloured square, so a row is found by colour before it is read
-   (21 November; the rows carried no glyph for a long time, "Settings rows
-   carry no glyph at all") — the squares in the app's own palette (HUE) */
-/* a glyph of its own a row: Default view and Opens on, Reviews and Review
-   prompt, Terms and Licences, Reminder and Notifications, Setup and
-   Walkthrough each shared one; and a coach's Lessons as a player (or
-   Lessons you've taken) had no square, its label 44px left of every
-   other */
-const SETTINGS_GLYPHS = {
-  "Default view": [LayoutGrid, HUE.purple], "Opens on": [AppWindow, HUE.teal], "Reminder": [AlarmClock, HUE.wine],
-  "Reviews": [Star, HUE.gold], "Review prompt": [Send, HUE.gold], "Paperwork": [FileText, HUE.slate],
-  "Requests": [UserPlus, HUE.blue], "Hours": [Clock, HUE.green], "Away": [Plane, HUE.blue],
-  "Roster & groups": [Users, HUE.brand], "Shortcuts": [Grid3X3, HUE.teal], "Drills": [ListChecks, HUE.purple],
-  "Lesson logs": [Film, HUE.brand], "Downloads": [Download, HUE.blue], "Calendar": [CalendarDays, HUE.wine],
-  "Branding": [Palette, HUE.purple], "Invite code": [QrCode, HUE.teal], "This month": [BarChart3, HUE.teal],
-  "Family": [Home, HUE.green], "Your coach": [User, HUE.blue], "Coaches & profiles": [User, HUE.blue],
-  "Notifications": [Bell, HUE.wine], "Data & permissions": [ShieldCheck, HUE.slate], "Photo": [Camera, HUE.slate],
-  "Personal details": [User, HUE.slate], "Your sporting record": [Trophy, HUE.gold], "Connections": [Link2, HUE.brand],
-  "Walkthrough": [Compass, HUE.green], "Add to Home Screen": [Smartphone, HUE.blue], "Attendance": [ClipboardCheck, HUE.green],
-  "Register": [ClipboardCheck, HUE.green], "Contact us": [Mail, HUE.blue], "Terms": [FileText, HUE.slate],
-  "Privacy": [Lock, HUE.slate], "Licences": [Copyright, HUE.slate], "Version": [Info, HUE.slate], "About Nosca": [Globe, HUE.brand], "Sync": [RefreshCw, HUE.green],
-  "Sound": [Volume2, HUE.wine], "Haptics": [Vibrate, HUE.purple], "Reduce motion": [Accessibility, HUE.blue],
-  "Sign out": [LogOut, HUE.slate], "Delete account": [Trash2, HUE.red], "Password": [Lock, HUE.slate],
-  "Set yourself up": [Settings2, HUE.teal], "Setup": [Settings2, HUE.teal],
-  "Lessons as a player": [GraduationCap, HUE.orange], "Lessons you've taken": [GraduationCap, HUE.orange],
-};
-const settingsGlyph = (label) => { const g = SETTINGS_GLYPHS[label]; return g ? <IconSq Icon={g[0]} bg={g[1]} size={30} /> : null; };
-/* THE GLYPH TILE, NOSCA'S TWIST ON iOS's SQUARE: one of the app's own
-   colours, the glyph in white, a softer corner than Apple's, and standing
-   on a two-point ledge of its own colour made deeper — the same 3D the
-   keys and the cards stand on, so even the smallest coloured thing in the
-   app is a Nosca object, not a copy of Settings */
-/* the tile takes its role's colour in this sport (`hueOf`), the glyph
-   white, or the ink on the card's gold. For an evening every tile was
-   the sport's one colour, and the founder: "I do want variation in
-   colors. I don't want all the same green." */
-/* A TILE LEADING A ROW IS ITS ROLE'S LIGHT COLOUR (23 November): the
-   cloth tone as the face, the hue's own ink as the glyph, a ledge of the
-   same hue. It was the full deep colour with a white glyph (twenty of
-   them down Settings read "dark and heavy", the founder's words), then
-   for a morning the pale at lightness 0.93, which read as nothing ("tiny
-   icons"). `deep` keeps the full colour with a white glyph for the one
-   place a tile is itself the signal. On a dark page the tile is the deep
-   colour and the glyph its cloth tone. */
-const IconSq = ({ Icon, bg, size = 30, deep = false }) => {
-  const t = useT();
-  const c = hueOf(t, bg);
-  const dark = darkPage(t);
-  const f = deep || dark ? { face: c, fg: dark ? clothOf(c) : onHue(c), lip: LIP(c) } : fillOf(t, bg);
-  return (
-    <span aria-hidden="true" className="inline-flex items-center justify-center shrink-0" data-tile-hue={c}
-          style={{ width: size, height: size, borderRadius: Math.round(size * 0.32), background: f.face, boxShadow: `0 2px 0 ${f.lip}` }}>
-      <Icon size={Math.round(size * 0.56)} color={f.fg} strokeWidth={2.2} />
-    </span>
-  );
-};
+/* NO GLYPH LEADS A ROW OF WORDS (23 November). From 21 November every
+   Settings row, every door (All lessons, Progress, All drills), the home's
+   Actions, the switcher's rows and the player file's foot led with a
+   glyph on a coloured tile (`IconSq`, a table of forty named
+   `SETTINGS_GLYPHS`) — first the full deep colour, then the pale, then the
+   cloth tone. The founder, 23 November: "I don't want you to have the
+   icons in the settings, as it makes it look very tacky, and a lot of the
+   icons throughout could just be gotten rid of … completely simplify it …
+   more classy, more professional." The tile and the table are gone: a row
+   is its label on the row's own inset, its value in the sub grey, its
+   chevron. An icon stays only where it IS the control — the tab bar, the
+   header, a filled key, a tick, a chevron, the download disc — or a face
+   (and the bell's kind badge on one). */
 const Avatar = ({ name, size = 44, group, tint, src, bg, fg }) => {
   const t = useT();
   const faces = useContext(FaceCtx);
@@ -10678,25 +10707,26 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
       )}
 
       <Card tour="family-rows">
-        {/* every row leads with its glyph on the app's own coloured square,
-            as Settings' rows do — they were bare grey glyphs beside a
-            Settings row with none */}
+        {/* the word and the chevron, no glyph (23 November): each row led
+            with a glyph on a coloured square for two days, bare grey glyphs
+            before that — a row of words carries no icon, and the faces
+            above are the only pictures on the sheet */}
         {/* A coach's groups live on the coach's own preferences, which
             a player cannot read, so this row led somewhere that was
             always empty on a real account. It is the harness's until
             a player's groups are something the database can answer. */}
         {!live && (
-          <Row label={tr("Your groups")} sub={tr("Sessions you train with others")} chevron icon={<IconSq Icon={Users} bg={HUE.brand} />}
+          <Row label={tr("Your groups")} sub={tr("Sessions you train with others")} chevron
                onToggle={() => { close(); onViewGroups && onViewGroups(); }} />
         )}
         {/* it opens the next step, so it carries the chevron Photos, Family, Progress and Settings do */}
-        {!(live && hasCoach) && <Row label={tr("Add a coach")} chevron icon={<IconSq Icon={UserPlus} bg={HUE.blue} />} onToggle={() => setStage(live ? "code" : "sport")} />}
-        <Row label={tr("Photos")}  chevron icon={settingsGlyph("Photo")} onToggle={() => { close(); setTimeout(() => onPhoto && onPhoto(), 220); }} />
-        <Row label={tr("Family")} chevron last={!onSettings && !onProgress} icon={settingsGlyph("Family")} onToggle={() => { close(); onFamily && onFamily(); }} />
+        {!(live && hasCoach) && <Row label={tr("Add a coach")} chevron onToggle={() => setStage(live ? "code" : "sport")} />}
+        <Row label={tr("Photos")}  chevron onToggle={() => { close(); setTimeout(() => onPhoto && onPhoto(), 220); }} />
+        <Row label={tr("Family")} chevron last={!onSettings && !onProgress} onToggle={() => { close(); onFamily && onFamily(); }} />
         {/* the journey so far, read off the lessons — the player's own
             Progress, the same screen the coach has on their file */}
-        {onProgress && <Row label={tr("Progress")} tour="sheet-progress" last={!onSettings} chevron icon={<IconSq Icon={TrendingUp} bg={HUE.green} />} onToggle={() => { close(); onProgress(); }} />}
-        {onSettings && <Row label={tr("Settings")} tour="sheet-settings" last chevron icon={<IconSq Icon={Settings2} bg={HUE.slate} />} onToggle={() => { close(); onSettings(); }} />}
+        {onProgress && <Row label={tr("Progress")} tour="sheet-progress" last={!onSettings} chevron onToggle={() => { close(); onProgress(); }} />}
+        {onSettings && <Row label={tr("Settings")} tour="sheet-settings" last chevron onToggle={() => { close(); onSettings(); }} />}
       </Card>
     </>
   );
@@ -11356,7 +11386,8 @@ function LessonStage({ item, onAnnotate, onCompare, onStudy }) {
   if (item.type === "audio") {
     return (
       <div className="flex flex-col items-center justify-center gap-4 px-6" style={{ borderRadius: 16, height: 150, background: t.wash }}>
-        <span className="flex items-center gap-2" style={{ ...TYPE.eyebrow, color: t.sub }}><Mic size={13} color={t.sub} strokeWidth={2} />{tr("Voice note")}</span>
+        {/* the words alone: a 13px microphone led them, beside a label that says Voice note (23 November) */}
+        <span style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Voice note")}</span>
         <audio key={item.url} src={item.url} controls preload="metadata" className="w-full" style={{ maxWidth: 320 }} />
       </div>
     );
@@ -13219,6 +13250,32 @@ const accentCard = (t, last = false) => {
   const p = press3d(LIP(t.accent), LIP_H, LIP_PRESS);
   return { style: { background: t.accent, "--edge": t.accent, borderRadius: 16, boxShadow: p.rest, marginBottom: last ? LIP_H - 2 : 10 + LIP_H }, handlers: p.handlers };
 };
+/* THE CARD'S CORNER: the business card's pinstripe wedge, in the top-right
+   corner of the day's one coloured card — the stripes at the card's 45°,
+   8 apart, a hairline of the foil at a third of its strength, inside the
+   triangle the card's own wedge draws (its edge from the top-left of the
+   corner to the foot of the right side, at the card's own slope),
+   clipped by the card's corner. 66 by 46, so the wedge keeps to the
+   corner and never reaches Register, whose right edge stands 16 in from
+   the card's (at 96 by 64 it ran over the key's top at 360 and 375 —
+   narrow.cjs (c3), (c4)); and it is drawn behind the card's words and
+   keys whatever the layout. Ornament only: it takes no tap and says
+   nothing to a screen reader. */
+const FOIL_W = 66, FOIL_H = 46;
+const FOIL_STRIPES = (() => {
+  const m = FOIL_H / FOIL_W, step = 8 * Math.SQRT2, f = (n) => Number(n.toFixed(2)), out = [];
+  for (let c = step / 2; c < FOIL_W + FOIL_H; c += step) {
+    const x0 = c / (1 + m), x1 = Math.min(c, FOIL_W);
+    if (x0 < x1) out.push(`M${f(x0)} ${f(m * x0)}L${f(x1)} ${f(c - x1)}`);
+  }
+  return out.join("");
+})();
+const CardFoil = () => (
+  <svg aria-hidden="true" data-foil="" width={FOIL_W} height={FOIL_H} viewBox={`0 0 ${FOIL_W} ${FOIL_H}`} className="absolute"
+       style={{ top: 0, right: 0, pointerEvents: "none", zIndex: 0 }}>
+    <path d={FOIL_STRIPES} stroke={FOIL} strokeOpacity="0.34" strokeWidth="1" fill="none" />
+  </svg>
+);
 /* a face on the colour keeps a white ring, so a green disc on golf's green reads */
 const RingedFace = ({ children }) => (
   <span className="shrink-0 inline-flex rounded-full" style={{ boxShadow: "0 0 0 2px #FFFFFF" }}>{children}</span>
@@ -13226,10 +13283,12 @@ const RingedFace = ({ children }) => (
 function NextCard({ l, live, until, avatar, onPeek, onRegister }) {
   const t = useT();
   const fg = t.onAccent;
+  /* the eyebrow and the chevron in the card's light foil (FOIL); the time and the name stay white */
+  const foil = foilOn(t.accent, fg);
   const grp = l.kind && l.kind.startsWith("Group");
   const content = (
     <span className="block min-w-0">
-      <span className="block" style={{ ...TYPE.eyebrow, color: fg }}>{live ? tr("Now") : until || tr("Next")}</span>
+      <span className="block" data-foil-word="" style={{ ...TYPE.eyebrow, color: foil }}>{live ? tr("Now") : until || tr("Next")}</span>
       <span className="block" style={{ fontFamily: display, fontSize: 28, lineHeight: 1.12, letterSpacing: "-0.02em", fontWeight: 700, color: fg, ...FIG, whiteSpace: "nowrap", marginTop: 2 }}>{l.time}</span>
       <span className="flex items-center gap-2.5" style={{ marginTop: 10 }}>
         <RingedFace>{grp
@@ -13249,7 +13308,7 @@ function NextCard({ l, live, until, avatar, onPeek, onRegister }) {
        squeezed to its longest word beside the key, "Cian Murphy" on two
        lines and a long name on three at 320. Alone on its line the body
        shrinks to the card and the name wraps at its spaces. */
-    <div className="w-full flex flex-wrap items-center gap-x-3.5 gap-y-3" style={{ paddingTop: 14, paddingBottom: 16 }}>
+    <div className="w-full flex flex-wrap items-center gap-x-3.5 gap-y-3" style={{ paddingTop: 14, paddingBottom: 16, position: "relative", zIndex: 1 }}>
       <button data-card-body="" onClick={() => { haptic(7); soft(); onPeek(l); }} className="text-left" style={{ flex: "1 1 auto", minWidth: 0, maxWidth: "100%" }}>{content}</button>
       <button data-tour="day-register" onClick={() => { hapticCommit(); soft(); onRegister(l); }} className="shrink-0 ml-auto px-4 n-key"
               style={{ "--key-lip": LIP(t.accent), minHeight: 44, borderRadius: R.control, background: "#FFFFFF",
@@ -13257,9 +13316,9 @@ function NextCard({ l, live, until, avatar, onPeek, onRegister }) {
     </div>
   );
   return (
-    <button onClick={() => { haptic(7); soft(); onPeek(l); }} className="w-full flex items-center gap-3.5 text-left" style={{ paddingTop: 14, paddingBottom: 16 }}>
+    <button onClick={() => { haptic(7); soft(); onPeek(l); }} className="w-full flex items-center gap-3.5 text-left" style={{ paddingTop: 14, paddingBottom: 16, position: "relative", zIndex: 1 }}>
       <span className="flex-1 min-w-0">{content}</span>
-      <ChevronRight size={18} color={fg} strokeWidth={2.2} />
+      <ChevronRight size={18} color={foil} strokeWidth={2.2} />
     </button>
   );
 }
@@ -13627,7 +13686,9 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
               if (l === marked) {
                 const card = accentCard(t, i === todayRows.length - 1);
                 return (
-                  <div key={l.id || `t${i}`} data-tour="today-next" data-next-card={variant === "now" ? "now" : "next"} {...card.handlers} style={card.style}>
+                  <div key={l.id || `t${i}`} data-tour="today-next" data-next-card={variant === "now" ? "now" : "next"} {...card.handlers}
+                       style={{ ...card.style, position: "relative", overflow: "hidden" }}>
+                    <CardFoil />
                     <OnAccent>
                       <NextCard l={l} live={l === liveNow} until={l === liveNow ? null : untilText(l.hoursUntil ?? 1) || null} avatar={avatarFor(l)}
                                 onPeek={(x) => onPeek && onPeek(x)} onRegister={(x) => onRegister && onRegister(x)} />
@@ -13681,15 +13742,15 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
         {(() => {
           const jobs = [
             /* a clip a player sent and the coach has not looked at yet */
-            toReview.length > 0 && { glyph: [VideoIcon, HUE.purple], key: "review", tour: "today-review", label: tr("To review"), n: toReview.length,
+            toReview.length > 0 && { key: "review", tour: "today-review", label: tr("To review"), n: toReview.length,
               go: () => onReview && onReview() },
-            toLog.length > 0 && { glyph: [Pencil, HUE.orange], key: "write", tour: "today-writeup", label: tr("To log"), n: toLog.length,
+            toLog.length > 0 && { key: "write", tour: "today-writeup", label: tr("To log"), n: toLog.length,
               go: () => (onWriteUp ? onWriteUp() : push("unlogged")) },
-            (requests || []).length > 0 && { glyph: [UserPlus, HUE.blue], key: "join", tour: "today-requests", label: tr("Join requests"), n: requests.length,
+            (requests || []).length > 0 && { key: "join", tour: "today-requests", label: tr("Join requests"), n: requests.length,
               go: () => push("requests") },
-            unread > 0 && { glyph: [MessageCircle, HUE.green], key: "msg", label: tr("Messages"), n: unread, go: () => go("messages") },
-            drifting > 0 && { glyph: [Hourglass, HUE.wine], key: "drift", label: tr("Drifting"), n: drifting, go: () => push("atrisk") },
-            events.length > 0 && { glyph: [Trophy, HUE.gold], key: "event", label: tr("Competitions"), n: events.length, go: () => push("events") },
+            unread > 0 && { key: "msg", label: tr("Messages"), n: unread, go: () => go("messages") },
+            drifting > 0 && { key: "drift", label: tr("Drifting"), n: drifting, go: () => push("atrisk") },
+            events.length > 0 && { key: "event", label: tr("Competitions"), n: events.length, go: () => push("events") },
           ].filter(Boolean);
           if (!asks.length && !jobs.length) return null;
           /* the kinds of thing here */
@@ -13729,9 +13790,9 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
                              <TextBtn quiet color={t.faint} onClick={() => { haptic(9); onDecline && onDecline(r); }}>{tr("Decline")}</TextBtn>
                            </>} />
               ))}
+              {/* the kind and its count, no glyph: the word says which (23 November) */}
               {shownJobs.map((j) => (
-                <HomeRow boxed key={j.key} tour={j.tour} label={j.label} value={String(j.n)} onPress={j.go}
-                         icon={j.glyph ? <IconSq Icon={j.glyph[0]} bg={j.glyph[1]} /> : null} />
+                <HomeRow boxed key={j.key} tour={j.tour} label={j.label} value={String(j.n)} onPress={j.go} />
               ))}
             </Ruled>
           </>);
@@ -13741,8 +13802,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
             its own row, on its own */}
         {lessonCount > 0 && (
           <Ruled style={{ marginBottom: SPACE.section }}>
-            <HomeRow boxed tour="today-archive" label={tr("All lessons")} value={String(lessonCount)} onPress={() => push("archive")}
-                     icon={<IconSq Icon={Film} bg={HUE.brand} />} />
+            <HomeRow boxed tour="today-archive" label={tr("All lessons")} value={String(lessonCount)} onPress={() => push("archive")} />
           </Ruled>
         )}
 
@@ -14352,7 +14412,6 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                   <p className="text-center py-8" style={{ ...TYPE.body, color: t.faint }}>{searching ? `${tr("Nobody called")} “${q.trim()}”` : tr("No players yet")}</p>
                   {onAddPlayer && (
                     <button onClick={() => { haptic(8); onAddPlayer(); }} className="w-full flex items-center gap-3.5 text-left active:opacity-50" style={{ minHeight: 56, borderTop: hair, borderBottom: hair }}>
-                      <UserPlus size={17} color={t.ink} strokeWidth={1.7} />
                       <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Add a player")}</span>
                       <ChevronRight size={16} color={t.trace || t.faint} />
                     </button>
@@ -14722,30 +14781,33 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
               of faces with a glyph in a disc the size of an avatar, so
               it read as a third player called All lessons. It is a box
               of its own under the players, as on the coach's home. */}
+          {/* the door every All lessons is — the home's own HomeRow, 60 tall,
+              the count in the sub grey (it was drawn here by hand at 56 with
+              the count a step fainter) */}
           {lessonCount > 0 && (
             <div className="nsc-list" style={{ marginTop: SPACE.block }}>
-              <button data-tour="roster-archive" onClick={() => { haptic(7); soft(); push("archive"); }}
-                      className="w-full flex items-center gap-3 text-left active:opacity-50"
-                      style={{ minHeight: 56 }}>
-                <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{tr("All lessons")}</span>
-                <span className="shrink-0" style={{ ...TYPE.body, color: t.faint }}>{lessonCount}</span>
-                <ChevronRight size={15} color={t.trace || t.faint} />
-              </button>
+              <HomeRow boxed tour="roster-archive" label={tr("All lessons")} value={String(lessonCount)} onPress={() => push("archive")} />
             </div>
           )}
-        </>) : (
+        </>) : (<>
           <div className="nsc-list">
             {groups.map((g) => row(g.id, "roster-group", () => { haptic(6); push("group:" + g.name); }, <Avatar name={g.name} size={PERSON_FACE} group />, g.name,
                 /* the members still on the roster — the picker's count and the
                    page's list, one number on all three; never a nought */
                 [countOf(membersOnRoster(g, all).length, nouns || "players"), `${(DAY_NAMES[g.day] || String(g.day || "")).slice(0, 3)} ${g.time}`].filter((x) => x.trim()).join(" · ")))}
-            {/* the one New group sheet, under the one name: it opened a second
-                sheet of chips headed the same, and read "Create a group" */}
-            {row("new", "roster-newgroup", () => { hapticCommit(); sheet("newGroup"); },
-                <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: PERSON_FACE, height: PERSON_FACE, background: t.wash }}><Plus size={17} color={t.sub} strokeWidth={2} /></span>,
-                tr("New group"), null)}
           </div>
-        )}
+          {/* the one New group sheet, under the one name: it opened a second
+              sheet of chips headed the same, and read "Create a group" */}
+          {/* NEW GROUP IS A ROUTE, NOT A GROUP (23 November). It sat in the
+              column of groups with a plus in a disc the size of a face, so it
+              read as one more group called New group — All lessons' mistake
+              in the other half. A row of words carries no icon: it is a door
+              in a box of its own under the groups, the word and the chevron,
+              as All lessons is under the players. */}
+          <div className="nsc-list" style={{ marginTop: SPACE.block }}>
+            <HomeRow boxed tour="roster-newgroup" label={tr("New group")} onPress={() => sheet("newGroup")} />
+          </div>
+        </>)}
       </div>
     </Screen>
   );
@@ -15150,7 +15212,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               lessons is on the home and the roster — it was a button */}
           {past.length > 0 && (
             <div className="nsc-list" style={{ marginBottom: SPACE.block }}>
-              <HomeRow boxed tour="player-all-lessons" label={tr("All lessons")} value={String(live ? f.done : past.length)} icon={<IconSq Icon={Film} bg={HUE.brand} />}
+              <HomeRow boxed tour="player-all-lessons" label={tr("All lessons")} value={String(live ? f.done : past.length)}
                        onPress={() => { onAllLessons ? onAllLessons() : push("history:" + (r.id || name)); }} />
             </div>
           )}
@@ -15177,14 +15239,16 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               ...(onNote ? [[tr("Notes"), onNote, note ? String(note).split("\n")[0] : null]] : []),
               [tr("Recurring lessons"), () => onRecurring(name), seriesFor ? `${DAY_NAMES[seriesFor.day].slice(0, 3)} ${seriesFor.time}` : null],
               ...(live ? [] : [[sportTool ? sportTool.label : tr("Sport record"), () => push("tool"), null]])].map(([lbl, act, val]) => (
-              <button key={lbl} data-tour={lbl === tr("Progress") ? "player-progress" : lbl === tr("Notes") ? "player-notes" : undefined} onClick={() => { haptic(6); soft(); act(); }} className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-                      style={{ minHeight: 56 }}>
-                {lbl === tr("Progress") ? <IconSq Icon={TrendingUp} bg={HUE.green} /> : lbl === tr("Notes") ? <IconSq Icon={Pencil} bg={HUE.orange} />
-                  : lbl === tr("Recurring lessons") ? <IconSq Icon={Repeat} bg={HUE.blue} /> : <IconSq Icon={Trophy} bg={HUE.gold} />}
-                <span className="shrink-0" style={{ ...TYPE.body, color: t.ink }}>{lbl}</span>
+              /* the word, its value, the chevron — no glyph (23 November) — and
+                 the door's own 60, as All lessons above them (they stood 56 with
+                 a tile each: a chart, a pencil, a loop, a trophy). The word never
+                 gives way; a long note's first line is cut beside it */
+              <button key={lbl} data-row-door="" data-tour={lbl === tr("Progress") ? "player-progress" : lbl === tr("Notes") ? "player-notes" : lbl === tr("Recurring lessons") ? "player-recurring" : undefined} onClick={() => { haptic(6); soft(); act(); }} className="w-full flex items-center gap-3.5 text-left active:opacity-50"
+                      style={{ minHeight: 60 }}>
+                <span data-row-label="" className="shrink-0" style={{ ...TYPE.body, color: t.ink }}>{lbl}</span>
                 {val && <span className="flex-1 min-w-0 truncate text-right" style={{ ...TYPE.body, color: t.sub }}>{val}</span>}
                 {!val && <span className="flex-1" />}
-                <ChevronRight size={14} color={t.trace || t.faint} />
+                <ChevronRight size={15} color={t.trace || t.faint} />
               </button>
             ))}
           </div>
@@ -15277,12 +15341,12 @@ function FilterRow({ options, value, onChange, label, last, plain, inset = false
   return (
     <div style={{ borderBottom: last && !plain ? hair : "none" }}>
       {/* inset, it is a Settings row standing in a list of its own (the
-          Drills tab's Reminder): its glyph, the label in ink and the value
-          grey, as Settings draws the same row; a filter reads the other way */}
+          Drills tab's Reminder): the label in ink on the row's inset and the
+          value grey, no glyph, as Settings draws the same row (23 November);
+          a filter reads the other way */}
       <button onClick={() => { haptic(6); setOpen(!open); }} className={`w-full flex items-center ${inset ? "gap-3.5" : "gap-3"} text-left active:opacity-50 ${inset ? "" : "px-6"}`}
               style={{ minHeight: inset ? 56 : 52, borderTop: plain ? "none" : hair, ...(inset ? { paddingLeft: 16, paddingRight: 16 } : {}) }}>
-        {inset && settingsGlyph(label)}
-        <span className="shrink-0" style={{ ...TYPE.body, color: inset ? t.ink : t.sub }}>{label}</span>
+        <span data-row-label="" className="shrink-0" style={{ ...TYPE.body, color: inset ? t.ink : t.sub }}>{label}</span>
         <span data-filter-value="" className="flex-1 min-w-0 text-right"
               style={{ ...TYPE.body, fontWeight: inset ? 400 : 600, color: inset ? t.sub : t.ink, overflowWrap: "break-word",
                        ...(facts ? { marginRight: `-${SEP_HANG}`, clipPath: `inset(0 ${SEP_HANG} 0 0)` } : null) }}>
@@ -15301,8 +15365,7 @@ function FilterRow({ options, value, onChange, label, last, plain, inset = false
             <button key={o} aria-pressed={value === o} onClick={() => { haptic(5); onChange(o); setOpen(false); }}
                     className={`w-full flex items-center ${inset ? "gap-3.5" : "gap-3"} text-left active:opacity-50 ${inset ? "" : "px-6"}`}
                     style={{ minHeight: inset ? 50 : 46, borderTop: hair, ...(inset ? { paddingLeft: 16, paddingRight: 16, background: t.surface } : {}) }}>
-              {inset && settingsGlyph(label) && <span className="shrink-0" style={{ width: 30 }} />}
-              <span className="flex-1 min-w-0" style={{ ...TYPE.body, fontWeight: value === o ? 600 : 400, color: t.ink, overflowWrap: "break-word" }}>{o}</span>
+              <span data-row-option="" className="flex-1 min-w-0" style={{ ...TYPE.body, fontWeight: value === o ? 600 : 400, color: t.ink, overflowWrap: "break-word" }}>{o}</span>
               {value === o && <Check size={14} color={t.accent} strokeWidth={2.4} className="shrink-0" />}
             </button>
           ))}
@@ -16165,7 +16228,6 @@ function ImportRoster({ close, say, noun, nouns, code }) {
         <button onClick={() => { haptic(8); pickContacts(); }}
                 className="w-full flex items-center gap-3.5 px-5 n-key"
                 style={{ minHeight: 56, borderRadius: R.surface, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}>
-          <Users size={17} color={t.sub} strokeWidth={1.6} />
           <span className="flex-1 text-left" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{tr("Pick from Contacts")}</span>
           <ChevronRight size={15} color={t.trace || t.faint} />
         </button>
@@ -16396,7 +16458,7 @@ function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder, onLo
               words, under the list */}
           {onAll && (
             <div className="px-6 pt-3"><div className="nsc-list">
-              <HomeRow boxed tour="drills-all" label={tr("All drills")} value={String(items.length)} onPress={onAll} icon={<IconSq Icon={ListChecks} bg={HUE.purple} />} />
+              <HomeRow boxed tour="drills-all" label={tr("All drills")} value={String(items.length)} onPress={onAll} />
             </div></div>
           )}
         </>
@@ -16502,12 +16564,11 @@ function CoachPractice({ items, sheet, push, right, live, roster, drills, onRemo
     <Screen title={tr("Drills")} right={right}>
       <div className="px-6 mb-6">
         <button onClick={() => { haptic(10); sheet(); }} className="w-full p-5 flex items-center gap-4 text-left n-key" style={{ borderRadius: R.surface, border: `${EDGE_W}px solid ${KEY_RING(t)}`, position: "relative", zIndex: 1, borderLeft: `2px solid ${t.accent}` }}>
-          <ListChecks size={19} color={t.accent} strokeWidth={1.6} />
           <span className="flex-1"><span className="block" style={{ fontFamily: display, fontSize: 20, color: t.ink }}>{tr("Set drills")}</span><span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{tr("Choose who, and what they practise")}</span></span>
           <ChevronRight size={17} color={t.trace || t.faint} />
         </button>
       </div>
-      <div className="px-6 mb-6"><Card><Row label={tr("Drill library")} sub={tr("Your reusable drills")} chevron last icon={<ListChecks size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => push("library")} /></Card></div>
+      <div className="px-6 mb-6"><Card><Row label={tr("Drill library")} sub={tr("Your reusable drills")} chevron last onToggle={() => push("library")} /></Card></div>
       <Eyebrow>{tr("This week")}</Eyebrow>
       <div className="px-6 pb-2">{live && rows.length === 0 ? (<EmptyLine>{tr("No one on your roster yet")}</EmptyLine>) : <Card>{rows.map((r, i) => { const none = r.total === 0; const isOpen = live && open === r.id; return (
         <div key={r.id}>
@@ -16855,10 +16916,10 @@ function AwayLine({ role, name, booked = 0, onEdit }) {
   if (role === "coach") return (
     /* the column's own box — the list's white card on its line and
        ledge, as the lesson boxes under it (21 November; it was the wash
-       at 8px) — its glyph Settings' Away, its line in the label grey */
+       at 8px) — the word and its line in the label grey, no plane on a
+       tile beside them (23 November: a row of words carries no icon) */
     <div className="nsc-list mb-4">
       <div data-tour="cal-away" className="flex items-center gap-3.5" style={{ minHeight: 62 }}>
-        <IconSq Icon={Plane} bg={HUE.blue} />
         <span className="flex-1 min-w-0">
           <span className="block" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{tr("Away")}</span>
           <span className="block truncate" style={{ ...TYPE.small, color: t.sub }}>{booked ? `${booked} ${booked === 1 ? tr("lesson still booked") : tr("lessons still booked")}` : tr("Nothing offered")}</span>
@@ -17275,8 +17336,8 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                           coach is told with the reason; Reschedule says that much on
                           its own. The harness keeps the one-tap cancel. */}
                       <button data-tour="day-cancel" onClick={() => { haptic(8); if (live && onCancelWithReason && myDay.id) { onCancelWithReason({ ...myDay, label: [forName, `${myDay.date ? fmtIsoDay(myDay.date) : dayLabel} · ${myDay.time}`].filter(Boolean).join(" · ") }); return; } onCancel(myDay); say("Cancelled"); }} className="flex-1 n-key"
-                              style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`,
-                                       fontFamily: ui, fontSize: 15, fontWeight: 600, color: DANGER }}>{tr("Cancel")}</button>
+                              style={{ minHeight: 46, borderRadius: R.control, ...redKey(t),
+                                       fontFamily: ui, fontSize: 15, fontWeight: 600 }}>{tr("Cancel")}</button>
                       {/* a real account asks for the lesson to move — one write, a
                           request at the new time; a project without the function, and
                           the harness, keep the cancel and "Pick a new time" */}
@@ -17312,18 +17373,15 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
 
             {booked.length > 0 && (
               <div className="nsc-list mb-4">
-              <button data-tour="cal-weather" onClick={() => { haptic(9); onWeatherDay && onWeatherDay({ m: mo.idx, d: sel }); }}
-                      className="w-full flex items-center gap-3.5"
-                      style={{ minHeight: 58 }}>
-                {/* a calendar with an X on the plus's red square: a coach calls
-                    off for a closed course as often as for rain. The list's white
-                    card, sinking under the finger (21 November; the wash at 8px) */}
-                <IconSq Icon={CalendarX} bg={HUE.red} />
-                <span className="flex-1 text-left" style={{ ...TYPE.body, color: t.ink }}>
-                  {mo.idx === T.m && sel === T.d ? tr("Call today off") : `${tr("Call off")} ${DAY_NAMES[dowOf(mo.idx, sel, cx)].slice(0, 3)} ${sel}`}
-                </span>
-                <ChevronRight size={16} color={t.trace || t.faint} />
-              </button>
+                {/* THE RED IS IN THE WORD (23 November). The row led with a
+                    calendar-and-X on a red tile and read in ink, so the tile
+                    alone said it takes lessons away; a row of words carries no
+                    icon now, and a row told apart by its tile's colour is told
+                    by its word's — the family's red, as the plus sheet's Call
+                    off and the peek's are. The list's white card, a door's 60,
+                    sinking under the finger. */}
+                <HomeRow boxed danger tour="cal-weather" onPress={() => onWeatherDay && onWeatherDay({ m: mo.idx, d: sel })}
+                         label={mo.idx === T.m && sel === T.d ? tr("Call today off") : `${tr("Call off")} ${DAY_NAMES[dowOf(mo.idx, sel, cx)].slice(0, 3)} ${sel}`} />
               </div>
             )}
 
@@ -17980,7 +18038,6 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
     </div>
   );
   const age = f.dob ? (() => { const b = localDate(f.dob), n = new Date(); let a = n.getFullYear() - b.getFullYear(); if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) a--; return isNaN(a) ? null : a; })() : null;
-  const I = ({ C, danger }) => <C size={17} color={danger ? DANGER : t.sub} strokeWidth={1.6} />;
 
   return (
     <SwipeBack onBack={pop}>
@@ -18071,9 +18128,11 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
               sign-in, your password, leaving, and going for good. */}
           <Eyebrow>{tr("Sign-in")}</Eyebrow>
           <Card className="mb-6" tour="profile-account">
-            {account && account.email && <Row label={tr("Email")} value={account.email} icon={<I C={Mail} />} />}
-            <Row label={tr("Change password")} chevron icon={<I C={Lock} />} onToggle={onChangePassword} />
-            <Row tour="profile-delete" label={tr("Delete account")} sub={tr("Everything, permanently")} danger last icon={<I C={Trash2} danger />} onToggle={onDelete} />
+            {/* the words alone (23 November): an envelope, a padlock and a red
+                bin led these three, and the red word is enough */}
+            {account && account.email && <Row label={tr("Email")} value={account.email} />}
+            <Row label={tr("Change password")} chevron onToggle={onChangePassword} />
+            <Row tour="profile-delete" label={tr("Delete account")} sub={tr("Everything, permanently")} danger last onToggle={onDelete} />
           </Card>
           <div style={{ height: 26 }} />
         </div>
@@ -18092,19 +18151,20 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
      Every row in Settings is one of three shapes and this is the second
      of them. */
   const [openPick, setOpenPick] = useKept("pick", null);
-  const choice = (id, label, value, options, onPick, Ico) => {
+  const choice = (id, label, value, options, onPick) => {
     const cur = options.find((o) => o.id === value) || options[0];
     const isOpen = openPick === id;
     return (
       <div>
         {/* the head is a row of the group like any other: 56 tall, 16 in
             and Row's 17px chevron — it stood 6 taller and 2 further left
-            than the rows round it */}
-        <button onClick={() => { haptic(6); setOpenPick(isOpen ? null : id); }}
+            than the rows round it. No glyph leads it (23 November), so the
+            options under it start where its label does: they sat 44 further
+            in behind a spacer the width of the tile */}
+        <button onClick={() => { haptic(6); setOpenPick(isOpen ? null : id); }} data-row=""
                 className="w-full flex items-center gap-3.5 text-left active:opacity-50" style={{ minHeight: 56, paddingLeft: 16, paddingRight: 16 }}>
-          {settingsGlyph(label) || (Ico && <I C={Ico} />)}
-          <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
-          <span className="shrink-0 truncate" style={{ ...TYPE.body, color: t.sub, maxWidth: "50%" }}>{cur && cur.label}</span>
+          <span data-row-label="" className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
+          <span data-row-value="" className="shrink-0 truncate" style={{ ...TYPE.body, color: t.sub, maxWidth: "50%" }}>{cur && cur.label}</span>
           <ChevronRight size={17} color={t.trace || t.faint} style={{ transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 200ms" }} />
         </button>
         {isOpen && (
@@ -18113,8 +18173,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
               <button key={o.id} aria-pressed={value === o.id} onClick={() => { haptic(6); onPick(o.id); setOpenPick(null); }}
                       className="w-full flex items-center gap-3.5 text-left active:opacity-50"
                       style={{ minHeight: 50, paddingLeft: 16, paddingRight: 16, borderTop: `1px solid ${t.hair}` }}>
-                {(settingsGlyph(label) || Ico) && <span className="shrink-0" style={{ width: settingsGlyph(label) ? 30 : 17 }} />}
-                <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: value === o.id ? 600 : 400, color: t.ink }}>{o.label}</span>
+                <span data-row-option="" className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: value === o.id ? 600 : 400, color: t.ink }}>{o.label}</span>
                 {value === o.id && <Check size={15} color={t.accent} strokeWidth={2.4} />}
               </button>
             ))}
@@ -18125,12 +18184,11 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
   };
   const setPref = (k, v) => setPrefs && setPrefs((p) => ({ ...p, [k]: v }));
   const sub = role === "coach" ? (brandName ? `${cfg.label} coach · ${brandName}` : `${cfg.label} coach`) : (conn?.coach ? `${cfg.label} · ${conn.coach}` : cfg.label);
-  const I = ({ C }) => <C size={17} color={t.sub} strokeWidth={1.6} />;
 
   /* Every setting is a row in a group, so the list can be searched and
-     nothing here is drawn twice. A row is { label, sub, value, icon,
-     onTap, right, tour, keys } — `keys` are words someone might type
-     for it that are not in its label. */
+     nothing here is drawn twice. A row is { label, sub, value, onTap,
+     right, tour, keys, danger } — `keys` are words someone might type
+     for it that are not in its label. No row carries a glyph. */
   const T = (on, set, extra) => <Toggle on={on} onChange={(v) => { set(v); extra && extra(v); }} />;
   const groups = [
     role === "coach" ? { title: tr("Coaching"), tour: "settings-coaching", rows: [
@@ -18173,13 +18231,15 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
       { label: tr("Lesson logs"), tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["export", "file", "save"] },
       live && { label: tr("Downloads"), sub: downloadsSub || null, tour: "settings-downloads", onTap: () => push("saved:downloads"), keys: ["download", "offline", "saved", "phone", "storage"] },
       live && onCalendar && calendarSub && { label: tr("Calendar"), sub: calendarSub, tour: "settings-calendar", onTap: () => onCalendar(), keys: ["ical", "ics", "export", "google", "apple", "outlook", "sync", "diary", "events", "bookings", "add", "phone"] },
-      !live && { label: tr("Subscription"), sub: tr("Free — your coach's plan covers you"), icon: ShieldCheck },
+      !live && { label: tr("Subscription"), sub: tr("Free — your coach's plan covers you") },
     ] },
     { title: tr("App"), tour: "settings-appearance", rows: [
       live && (startOptions || []).length > 1 && { label: tr("Opens on"), keys: ["start", "home", "first screen"],
         /* SETTINGS ROWS CARRY NO GLYPH. Two of forty did — a tick on
            Take attendance and a house on Opens on — which is the sort
-           of thing you only notice as a wobble in a straight line. */
+           of thing you only notice as a wobble in a straight line.
+           (Every row carried one on a coloured tile from 21 to 23
+           November; the founder found it tacky and they are gone.) */
         custom: choice("startOn", tr("Opens on"), startOn || "auto", startOptions, setStartOn) },
       { label: L.sound, right: T(soundState, setSoundState, (v) => { setSoundOn(v); if (v) chime(); }), keys: ["tones", "audio", "mute"] },
       { label: L.haptics, right: T(hapticsOn, setHapticsOn, setHapticsEnabled), keys: ["vibrate", "vibration", "feedback", "tap"] },
@@ -18264,13 +18324,16 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
             <div className="px-6 mb-6" data-tour={g.tour}><div className="nsc-group" data-group="">
               {g.rows.map((r, i) => r.custom
                 ? <div key={r.label} className="nsc-flush" data-tour={r.tour}>{r.custom}</div>
-                : <Row key={r.label} tour={r.tour} label={r.label} sub={r.sub} value={r.value} danger={r.danger} chevron={!!r.onTap && !r.right}
+                /* LABEL · VALUE · CHEVRON, and nothing leading it (23 November).
+                   What a row holds — the family's name, the coach, the days
+                   away, the address — is its value, in the sub grey on the
+                   right, where List and 8:00 am and the invite code already
+                   stood: it was a small line under the label on half the rows
+                   and a value on the right on the other half. A red row
+                   (Delete account) is told by its red word, where it was told
+                   by a bin on a red tile. */
+                : <Row key={r.label} tour={r.tour} label={r.label} value={r.value || r.sub || undefined} danger={r.danger} chevron={!!r.onTap && !r.right}
                        last={i === g.rows.length - 1} right={r.right}
-                       /* Every row leads with its glyph on its coloured tile
-                          (SETTINGS_GLYPHS, 21 November). A red row the table
-                          has not named still carries the bin, on the app's own
-                          red — never Apple's system red */
-                       icon={settingsGlyph(r.label) || (r.danger ? <IconSq Icon={Trash2} bg={HUE.red} /> : undefined)}
                        onToggle={r.onTap} />)}
             </div></div>
           </React.Fragment>
@@ -18326,7 +18389,7 @@ function Details({ role, pop, say, me, onSave, onChangePassword }) {
             <p className="px-2 mb-5" style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.6, color: t.faint }}>{tr("Signed in as")} {me.email}</p>
           )}
           {role === "player" && (<p className="px-2 mb-5" style={{ fontFamily: ui, fontSize: 12, lineHeight: 1.6, color: t.faint }}>Handicap and WTN now live under your stats — tap "Edit stats" on your home screen.</p>)}
-          {onChangePassword && <Card><Row label={tr("Change password")} chevron last icon={<Lock size={17} color={t.sub} strokeWidth={1.6} />} onToggle={onChangePassword} /></Card>}
+          {onChangePassword && <Card><Row label={tr("Change password")} chevron last onToggle={onChangePassword} /></Card>}
         </div>
       </Screen>
     </SwipeBack>
@@ -18376,9 +18439,9 @@ function Notifications({ role, pop, pushOn, setPushOn, live, notify, setNotify, 
     <SwipeBack onBack={pop}>
       <Screen title={tr("Notifications")} onBack={pop}>
         <div className="px-6 mb-2 mt-2"><Card tour="notif-push">
-          <Row label={tr("Tell me even when Nosca is closed")} sub={subscribed ? tr("On for this device") : why ? null : tr("Push notifications")}
-               last right={<Toggle on={subscribed} onChange={(v) => { if (!why || subscribed) flip(v); else { hapticWarn(); say && say(why); } }} />}
-               icon={subscribed ? <Bell size={17} color={t.accent} strokeWidth={1.8} /> : <BellOff size={17} color={t.sub} strokeWidth={1.6} />} />
+          <Row wrap label={tr("Tell me even when Nosca is closed")} sub={subscribed ? tr("On for this device") : why ? null : tr("Push notifications")}
+               /* the switch says whether it is on: a bell, struck through when off, said it a second time */
+               last right={<Toggle on={subscribed} onChange={(v) => { if (!why || subscribed) flip(v); else { hapticWarn(); say && say(why); } }} />} />
         </Card></div>
         {why && !subscribed && <p className="px-8 mb-6" style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.6, color: t.faint }}>{why}</p>}
         {!why && <div style={{ height: 22 }} />}
@@ -18431,87 +18494,412 @@ function Notifications({ role, pop, pushOn, setPushOn, live, notify, setNotify, 
 }
 /* ADD TO HOME SCREEN
 
-   The way onto the phone, for anyone still in a browser tab. Three sets
-   of steps — iPhone (an iPad too), Android, Computer — on the app's
-   Segmented, opened on the one this device is (`platformOf`), each step
-   a row of the phone's own words with the phone's own glyph where one
-   helps (the Share square, the three dots, the three lines). Where the
-   browser offers to install (Chrome and Edge fire `beforeinstallprompt`,
-   caught in lib/install.js) the guide leads with one button, Install
-   Nosca, which opens the browser's own sheet; Safari never offers, so an
-   iPhone always reads the steps. Reached three ways: /install, the page
-   the business card's second QR code opens, for anyone, signed in or
-   not (pages/Install.jsx); Settings › Add to Home Screen, a row that
-   is not there once the app is on a Home Screen; and the arrival
-   screen's quiet line after sign-up (`nosca.install.now`). An iPhone
-   signs in once more inside the installed app — iOS gives a Home
-   Screen app its own storage — and the last step says so. */
+   The way onto the phone, for anyone still in a browser tab — and, at
+   /install, the first thing anyone sees of Nosca after the business
+   card. The founder, 23 November: "it's a bit anticlimactic. It's a bit
+   confusing. There's too much text, too much going on … it says tap the
+   three dots, but it's not three dots, it's three lines stacked on top
+   of each other if they're on Safari." So:
+
+   · ONLY THIS DEVICE'S STEPS. The device is read (`platformOf`,
+     `browserOf`, `iosMajor`) and that one set is shown. Every other
+     device sits behind one quiet row, "iPhone · iOS 27 — Change"
+     (`install-device`), which unfolds the platform and the version on
+     the app's Segmented (`install-platform`, `install-version`) with
+     where to look the version up. Two Segmenteds and a hint over the
+     steps was the clutter.
+   · A STEP IS A NUMERAL, A FEW WORDS AND A PICTURE of the thing to tap,
+     drawn here in one line (INS_GLYPHS, the Ins* pieces) — the thing to
+     tap is the white key with the ring round it, what stands beside it
+     is drawn faint. No symbol is ever typed into a sentence. Every tap
+     is a step. STEP ONE NAMES THE CONTROL THAT VERSION OF SAFARI SHOWS
+     BY DEFAULT — the three lines on iOS 27, the three dots on iOS 26,
+     read off Safari's own Version/ — and draws Share beside it, for the
+     Bottom and Top tab layouts, which carry Share on the toolbar; its
+     second line says that Share goes straight to step 3, because the
+     share sheet is already open (a sentence that said "three dots" to
+     an iOS 27 phone showing three lines is the mistake the founder was
+     handed; "Tap one of these" over both, for a round, then told the
+     person who tapped Share to tap Share again). A picture that only
+     repeats its words in a key (Samsung's Home screen and Add, a
+     computer's Install) stands on a slim panel.
+   · TRUE, BY VERSION (read on 24 November 2026; Apple's own pages could
+     not be opened from the build machine, so each line stands on the
+     search engine's reading of them and on two independent how-tos).
+     Safari has moved Share twice.
+     – iOS 18 and earlier: Share in the toolbar at the foot, then Add to
+       Home Screen down the list, then Add.
+     – iOS 26, Compact (the default): the More button, three dots at the
+       right of the address bar, then Share (MacRumors' how-to: "Tap the
+       three dots to the right of the Safari address bar. In the pop-up
+       menu, tap Share"; 9to5Mac: the address bar sits between Back and
+       the dots). The button at the LEFT of the bar there is the Page
+       Menu, a rectangle over two lines; no source says it leads to
+       Share, so it is not relied on and this set never says "lines".
+       Bottom and Top layouts keep Share on the toolbar (iDownloadBlog,
+       Tom's Guide), so it is drawn beside.
+     – iOS 27, Compact: the dots became a Tabs button and Share went into
+       the Page Menu, three lines at the left of the address bar (Cult of
+       Mac, "Safari in iOS 27": "The More menu on the right has been
+       replaced with a Tabs button … tap the Page menu on the left of the
+       address bar, or tap and hold the address bar"; MacStories' review:
+       "the bottom-right button is no longer a generic ellipsis menu – it
+       opens your tabs"; Apple's iPhone User Guide, "Turn a website into
+       an app in Safari on iPhone", as search engines quote it: "Tap the
+       Page Menu button, then tap Share. If your Tabs layout is set to
+       Bottom or Top, tap the Share button"; and the founder's own iPhone,
+       "three lines stacked on top of each other"). An iOS 27 iPhone read
+       "three dots" for two months.
+     – 26 and 27: the share sheet shows a short row of round actions and
+       keeps Add to Home Screen behind the last, View More, a chevron
+       (pwa-install issue 158; philfung/add-to-homescreen's iOS 26 and 27
+       assets). One 26.4 simulator report names the last "More" with no
+       icon described; it is said in the picture's alt and not drawn.
+       Then Add, with Open as Web App on, the default from iOS 26
+       (iDownloadBlog, citing WebKit).
+     – Chrome on Android: the menu row is "Install and create shortcut"
+       from Chrome 150 (Android Authority, July 2026) and "Add to Home
+       screen" before; both drawn. Samsung Internet: the three lines
+       bottom right, Add page to, Home screen, Add (Samsung's developer
+       hub). A computer: the install icon in the address bar; Safari on a
+       Mac: File › Add to Dock.
+     `installSubFor` picks by Safari's own Version/; another browser on an
+     iPhone reaches Add to Home Screen through its own Share, so it reads
+     the Share set under its own name: Chrome's Share at the right of its
+     address bar (Google's Chrome Help: "To the right of the address bar,
+     tap Share"), Edge's and Firefox's the Share key alone — never
+     Safari's toolbar under another browser's name. An app's own browser
+     (a link opened inside a messaging or social app: WebKit with no
+     Safari, Chrome, Edge or Firefox in its user agent) cannot add to the
+     Home Screen at all, and says no version it cannot know: its one step
+     is to open the page in Safari, where the right steps follow.
+   · ONE GUIDE, TWO DRESSES. `dress="card"` is /install's (the card's
+     gold for the numerals, the thread and the ring; pages/Install.jsx
+     lays the card over it); the default is the app's own page, with the
+     sport's colour for the ring. The pictures and the words are the same.
+
+   Where the browser offers to install (Chrome and Edge fire
+   `beforeinstallprompt`, caught in lib/install.js) the guide leads with
+   one button, Install Nosca, which opens the browser's own sheet, the
+   steps under it as "Or by hand"; Safari never offers. Reached three
+   ways: /install (pages/Install.jsx); Settings › Add to Home Screen, a
+   row that is not there once the app is on a Home Screen; and the
+   arrival screen's quiet line after sign-up (`nosca.install.now`). An
+   iPhone signs in once more inside the installed app — iOS gives a Home
+   Screen app its own storage — and its last step says so; on the card's
+   page, read by people with no account yet, it says "Sign up or sign in
+   there". */
 const INSTALL_TABS = ["iPhone", "Android", "Computer"];
 const INSTALL_TAB = { iphone: "iPhone", android: "Android", computer: "Computer" };
 /* the second choice under each platform: what actually changes the taps */
 const INSTALL_SUBS = {
-  iPhone: ["iOS 26", "iOS 18 or earlier"],
+  iPhone: ["iOS 27", "iOS 26", "Earlier"],
   Android: ["Chrome", "Samsung"],
   Computer: ["Chrome or Edge", "Safari"],
 };
+/* what the quiet row calls a choice whose key is too short to stand alone */
+/* Samsung's own browser is "Samsung Internet" on older Galaxies and "Samsung Browser" from version 29: the row says Samsung */
+const INSTALL_SUB_NAME = { Earlier: "iOS 18 or earlier" };
+/* Chrome, Edge and Firefox on an iPhone: the Share set, under the browser's own name */
+const INSTALL_IOS_BROWSER = { chrome: "Chrome", edge: "Edge", firefox: "Firefox" };
 const INSTALL_HINT = {
-  iPhone: "Not sure? Settings › General › About › iOS Version",
-  Android: "Samsung phones open links in Samsung Internet unless Chrome was chosen",
+  iPhone: "Settings › General › About › iOS Version",
+  Android: "Samsung: the browser a Galaxy comes with",
   Computer: null,
 };
 const installSubFor = (tab, browser) => {
-  if (tab === "iPhone") { const v = iosMajor(); return v && v < 26 ? "iOS 18 or earlier" : "iOS 26"; }
+  if (tab === "iPhone") {
+    /* Chrome, Edge and Firefox on an iPhone carry Add to Home Screen under their own Share */
+    if (INSTALL_IOS_BROWSER[browser]) return "Earlier";
+    const v = iosMajor(); return !v || v >= 27 ? "iOS 27" : v >= 26 ? "iOS 26" : "Earlier";
+  }
   if (tab === "Android") return browser === "samsung" ? "Samsung" : "Chrome";
   return browser === "safari" ? "Safari" : "Chrome or Edge";
 };
-const OPEN_STEP = { text: tr("Open Nosca from your Home Screen"), sub: tr("Sign in there once — it keeps you signed in after that") };
-function installSteps(sub) {
-  if (sub === "iOS 26") return [
-    { icon: Ellipsis, text: tr("Tap ⋯ beside the address bar"), sub: tr("Three dots — three lines (☰) on some layouts") },
-    { icon: Share, text: tr("Tap Share"), sub: tr("The square with an arrow") },
-    { icon: SquarePlus, text: tr("Tap Add to Home Screen"), sub: tr("Tap View More or scroll down if it isn't showing") },
-    { text: tr("Leave Open as Web App on, then tap Add") },
-    OPEN_STEP,
+/* the card's gold where it is read as a word or a figure on white:
+   4.76:1 (STAR, 4.0:1, is a glyph's and a ring's; the foil's own gold,
+   2.5:1, is a line's) */
+export const INSTALL_GOLD = "#8E6E26";
+/* the guide's own motion: each step rises in its turn. `backwards`, so
+   the step's own style is what remains; under Reduce Motion nothing
+   waits its turn either (the app's .calm rule ends a duration, not a
+   delay). */
+export const INSTALL_CSS = `
+@keyframes insRise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.calm .ins, .calm .ins *, .calm.ins, .calm.ins * { animation-delay: 0s !important; }
+@media (prefers-reduced-motion: reduce){ .ins, .ins * { animation-delay: 0s !important; } }
+`;
+
+/* ---- the glyphs, drawn in the page's own line: 24 square, round ---- */
+const INS_GLYPHS = {
+  /* Safari's Share: the open square with the arrow leaving it */
+  share: "M8.6 9.4H7.4A2.4 2.4 0 0 0 5 11.8v6.3a2.4 2.4 0 0 0 2.4 2.4h9.2a2.4 2.4 0 0 0 2.4-2.4v-6.3a2.4 2.4 0 0 0-2.4-2.4h-1.2M12 14.4V3.2M8.5 6.6 12 3.1l3.5 3.5",
+  lines: "M5 7.2h14M5 12h14M5 16.8h14",
+  plusSquare: "M8.2 4.5h7.6a3.7 3.7 0 0 1 3.7 3.7v7.6a3.7 3.7 0 0 1-3.7 3.7H8.2a3.7 3.7 0 0 1-3.7-3.7V8.2a3.7 3.7 0 0 1 3.7-3.7ZM12 8.6v6.8M8.6 12h6.8",
+  chevDown: "M6.5 9.5 12 15l5.5-5.5",
+  back: "M14.5 5.5 8 12l6.5 6.5",
+  fwd: "M9.5 5.5 16 12l-6.5 6.5",
+  tabs: "M9.2 8V7a2.5 2.5 0 0 1 2.5-2.5h5.8A2.5 2.5 0 0 1 20 7v5.8a2.5 2.5 0 0 1-2.5 2.5h-1M6.5 8.6h7.1a2.5 2.5 0 0 1 2.5 2.5V18a2.5 2.5 0 0 1-2.5 2.5H6.5A2.5 2.5 0 0 1 4 18v-6.9a2.5 2.5 0 0 1 2.5-2.5Z",
+  book: "M12 6.7C10.3 5.5 8 5 4.5 5v12.3c3.5 0 5.8.5 7.5 1.7 1.7-1.2 4-1.7 7.5-1.7V5c-3.5 0-5.8.5-7.5 1.7Zm0 0V19",
+  /* Chrome's install mark in the address bar: a screen with an arrow coming down into it */
+  monitorDown: "M5.5 4.5h13a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2ZM8.5 20h7M12 16.5V20M12 7.2v5M9.6 9.9l2.4 2.4 2.4-2.4",
+  /* Edge's: three squares and a plus */
+  appsPlus: "M5.2 4.5h3.6a.7.7 0 0 1 .7.7v3.6a.7.7 0 0 1-.7.7H5.2a.7.7 0 0 1-.7-.7V5.2a.7.7 0 0 1 .7-.7ZM5.2 14.5h3.6a.7.7 0 0 1 .7.7v3.6a.7.7 0 0 1-.7.7H5.2a.7.7 0 0 1-.7-.7v-3.6a.7.7 0 0 1 .7-.7ZM15.2 14.5h3.6a.7.7 0 0 1 .7.7v3.6a.7.7 0 0 1-.7.7h-3.6a.7.7 0 0 1-.7-.7v-3.6a.7.7 0 0 1 .7-.7ZM17 4v6M14 7h6",
+  /* Safari's own: a compass */
+  compass: "M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17ZM15.4 8.6l-1.9 4.9-4.9 1.9 1.9-4.9 4.9-1.9Z",
+  plus: "M12 5.5v13M5.5 12h13",
+  cross: "M7 7l10 10M17 7 7 17",
+};
+function InsGlyph({ name, size = 26, color, sw = 1.9 }) {
+  const box = { width: size, height: size, viewBox: "0 0 24 24", "aria-hidden": "true", focusable: "false", "data-glyph": name, style: { display: "block", flexShrink: 0 } };
+  if (name === "dots" || name === "dotsV") {
+    const at = [5.2, 12, 18.8];
+    return <svg {...box}>{at.map((p) => <circle key={p} cx={name === "dots" ? p : 12} cy={name === "dots" ? 12 : p} r={1.75} fill={color} />)}</svg>;
+  }
+  return <svg {...box} fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"><path d={INS_GLYPHS[name]} /></svg>;
+}
+/* THE THING TO TAP: a white key with the ring round it, on a ledge of
+   the ring's own colour made pale — the app's key, so the one thing in
+   the picture that is pressed looks pressable. A glyph alone is 52
+   square (the glyph 28); with a word it is a row of the phone's menu. */
+const INS_PAD = 10;   // the picture's own air, left and right
+const insWord = (t) => ({ fontFamily: ui, fontSize: 15, lineHeight: 1.2, fontWeight: 600, letterSpacing: "-0.01em", color: t.ink });
+function InsTap({ p, glyph, label, trail, round, size = 52, h }) {
+  const { t, hi } = p;
+  const tall = h || (label ? 48 : size);
+  return (
+    /* a word is never cut: a long row takes a second line on a narrow phone before it leaves its picture */
+    <span data-ins-tap="" className={`inline-flex items-center justify-center ${label ? "min-w-0" : "shrink-0"}`}
+          style={{ minWidth: label ? 0 : size, minHeight: tall, maxWidth: "100%", padding: label ? (round ? "6px 18px" : "6px 12px") : 0, gap: 8, borderRadius: round ? 999 : 14,
+                   background: "#FFFFFF", boxShadow: `0 0 0 2px ${hi}, 0 5px 0 ${MIX("#FFFFFF", hi, 0.32)}` }}>
+      {glyph && <InsGlyph name={glyph} size={label ? 20 : Math.round(size * 0.54)} color={t.ink} sw={label ? 2 : 1.8} />}
+      {label && <span style={insWord(t)}>{label}</span>}
+      {trail && <InsGlyph name={trail} size={20} color={t.ink} sw={2} />}
+    </span>
+  );
+}
+/* what stands beside it, faint: a glyph, a word, the address in its bar */
+const InsGhost = ({ p, glyph, size = 24 }) => <InsGlyph name={glyph} size={size} color={p.t.trace} sw={1.8} />;
+const InsFaint = ({ p, children }) => <span style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.2, fontWeight: 500, color: p.t.faint, whiteSpace: "nowrap" }}>{children}</span>;
+const InsOr = ({ p }) => <span style={{ fontFamily: ui, fontSize: 13, lineHeight: 1, color: p.t.sub, padding: "0 2px" }}>{tr("or")}</span>;
+/* the address bar: a white capsule on the app's grey line with the
+   address as a soft bar in it; `lead` and `trail` are what sits at its
+   ends. It takes the room the picture has left, so nothing is cut. */
+function InsBar({ p, lead, trail, max = 150, run }) {
+  /* `run`: the bar runs on past the picture's left edge and only its end
+     is shown — what is tapped stands at, or just past, the end of it */
+  const shape = run
+    ? { marginLeft: -INS_PAD, minWidth: trail ? 96 : 48, borderRadius: "0 999px 999px 0", border: "1.5px solid #E2E2E7", borderLeft: "none" }
+    : { maxWidth: max, minWidth: lead || trail ? 96 : 56, borderRadius: 999, boxShadow: "inset 0 0 0 1.5px #E2E2E7" };
+  return (
+    <span data-ins-bar="" className="inline-flex items-center min-w-0" style={{ flex: "1 1 0", height: 52, padding: 4, gap: 8, background: "#FFFFFF", boxSizing: "border-box", ...shape }}>
+      {lead}
+      <span className="flex-1 min-w-0" style={{ height: 6, borderRadius: 3, background: "#D9D9DE", margin: run ? `0 ${trail ? 4 : 14}px 0 ${INS_PAD}px` : lead ? "0 12px 0 2px" : trail ? "0 2px 0 12px" : "0 14px" }} />
+      {trail}
+    </span>
+  );
+}
+/* a small key inside the bar: the ring, no ledge (the bar is its ground) */
+const InsInBar = ({ p, glyph }) => (
+  <span data-ins-tap="" className="inline-flex items-center justify-center shrink-0" style={{ width: 44, height: 44, borderRadius: 999, background: "#FFFFFF", boxShadow: `0 0 0 2px ${p.hi}` }}>
+    <InsGlyph name={glyph} size={26} color={p.t.ink} sw={1.9} />
+  </span>
+);
+/* a sheet of the phone's, small: white on the grey line */
+const InsSheet = ({ children }) => (
+  <span className="flex flex-col w-full" style={{ maxWidth: 280, padding: "10px 12px 8px", gap: 8, borderRadius: 16, background: "#FFFFFF", boxShadow: "inset 0 0 0 1.5px #E2E2E7" }}>{children}</span>
+);
+/* the app on a Home Screen: the icon as the phone draws it, its name under it */
+function InsAppIcon({ p, size = 60 }) {
+  return (
+    <span className="inline-flex flex-col items-center" style={{ gap: 6 }}>
+      {/* the very picture iOS and Android put on the Home Screen (public/icons, made by scripts/icons.mjs), in the phone's own corner —
+          a mark drawn here stood four fifths the size of the real one, and thinner */}
+      <span data-ins-tap="" className="inline-flex items-center justify-center overflow-hidden" style={{ width: size, height: size, borderRadius: size * 0.225, background: BRAND_COLOUR, boxShadow: `0 0 0 2px #FFFFFF, 0 0 0 4px ${p.hi}` }}>
+        <img src="/icons/apple-touch-icon.png" alt="" width={size} height={size} draggable={false} style={{ display: "block", width: size, height: size }} />
+      </span>
+      <span style={{ fontFamily: ui, fontSize: 13, lineHeight: 1.2, fontWeight: 500, color: p.t.ink }}>Nosca</span>
+    </span>
+  );
+}
+/* a round action of the share sheet: a disc with its glyph and its name
+   under it; with no glyph, one of the faint ones that stand before it */
+function InsRound({ p, glyph, label }) {
+  const { t, hi } = p;
+  return (
+    <span className="inline-flex flex-col items-center shrink-0" style={{ gap: 7 }}>
+      <span {...(glyph ? { "data-ins-tap": "" } : { "aria-hidden": "true" })} className="inline-flex items-center justify-center"
+            style={{ width: 46, height: 46, borderRadius: 23, ...(glyph ? { background: "#FFFFFF", boxShadow: `0 0 0 2px ${hi}, 0 4px 0 ${MIX("#FFFFFF", hi, 0.32)}` } : { background: "#E2E2E7" }) }}>
+        {glyph && <InsGlyph name={glyph} size={24} color={t.ink} sw={2} />}
+      </span>
+      {label
+        ? <span style={{ ...insWord(t), fontSize: 12, whiteSpace: "nowrap" }}>{label}</span>
+        : <span aria-hidden="true" style={{ width: 24, height: 5, borderRadius: 3, background: "#D9D9DE", marginTop: 5 }} />}
+    </span>
+  );
+}
+/* a row of a Home Screen: Nosca among the others, which are drawn faint */
+function InsHome({ p }) {
+  const other = { flex: "0 0 48px", width: 48, height: 48, marginTop: 2, borderRadius: "23%", background: "#E2E2E7" };
+  return (
+    <span className="flex items-start justify-center w-full" style={{ gap: 12, padding: "4px 2px 0" }}>
+      <span aria-hidden="true" style={other} />
+      <InsAppIcon p={p} size={52} />
+      <span aria-hidden="true" style={other} />
+    </span>
+  );
+}
+/* THE STEPS. `text` is the few words, `sub` a second line only where a
+   picture cannot say it, `alt` what the picture shows for somebody who
+   cannot see it, `pic` the drawing. Where a phone may show either of
+   two controls the words name neither — "Tap one of these" — and the
+   picture draws both. */
+const INS_OPEN = (ios, card) => ({
+  /* iOS gives a Home Screen app its own storage, so an iPhone signs in once more there; Android's shares the browser's.
+     The card's page is read by people with no account yet. */
+  text: ios ? tr("Tap Nosca on the Home Screen") : tr("Tap Nosca on the Home screen"), sub: ios ? (card ? tr("Sign up or sign in there") : tr("Sign in there once")) : null,
+  alt: tr("The Nosca icon, among the others on the Home Screen"),
+  pic: (p) => <InsHome p={p} />,
+});
+const INS_SHARE_ROW = { text: tr("Tap Share"), alt: tr("Share, in the menu"), pic: (p) => <InsTap p={p} glyph="share" label="Share" /> };
+/* the share sheet's row of round actions ends on View More, a chevron (one 26.4 report names it More: the alt says so, nothing else is drawn) */
+const INS_VIEW_MORE = {
+  text: tr("Tap View More"), alt: tr("View More, the last of the round buttons: a chevron pointing down. On some iPhones it reads More."),
+  pic: (p) => (
+    <span className="flex items-start justify-center" style={{ gap: 10 }}>
+      <InsRound p={p} /><InsRound p={p} /><InsRound p={p} glyph="chevDown" label="View More" />
+    </span>
+  ),
+};
+const INS_ADD_ROW = { text: tr("Tap Add to Home Screen"), sub: tr("Scroll down the list"), alt: tr("Add to Home Screen, a square with a plus"), pic: (p) => <InsTap p={p} glyph="plusSquare" label="Add to Home Screen" /> };
+const INS_ADD_WEBAPP = {
+  text: tr("Tap Add"), sub: tr("Leave Open as Web App on"),
+  alt: tr("Add, top right. Open as Web App is switched on."),
+  pic: (p) => (
+    <InsSheet>
+      <span className="flex items-center justify-between">
+        <InsGhost p={p} glyph="cross" size={22} />
+        <InsTap p={p} label="Add" round h={40} />
+      </span>
+      <span className="flex items-center justify-between" style={{ minHeight: 36, gap: 10 }}>
+        <span style={{ ...insWord(p.t), fontWeight: 500, fontSize: 14 }}>Open as Web App</span>
+        <span aria-hidden="true" className="relative shrink-0" style={{ width: 42, height: 26, borderRadius: 13, background: p.t.accent }}>
+          <span className="absolute" style={{ right: 2, top: 2, width: 22, height: 22, borderRadius: 11, background: "#FFFFFF" }} />
+        </span>
+      </span>
+    </InsSheet>
+  ),
+};
+/* step one of iOS 26 and 27: the control that version shows by default, named and drawn, and Share beside it for the Bottom and Top layouts */
+const INS_SAFARI_FIRST = (text, alt, pic) => ({ text, sub: tr("Or Share, then go to step 3"), alt, pic });
+/* an app's own browser cannot add to the Home Screen: open the page in Safari, where the steps follow */
+const INS_IN_APP = [{ text: tr("Open this page in Safari"), sub: tr("From this app's menu"), alt: tr("Safari, a compass"), pic: (p) => <InsTap p={p} glyph="compass" label="Safari" /> }];
+function installSteps(sub, { iosBrowser = null, inApp = false, card = false } = {}) {
+  if (inApp) return INS_IN_APP;
+  if (sub === "iOS 27") return [
+    INS_SAFARI_FIRST(tr("Tap the three lines"), tr("Three lines at the left of the address bar. Or Share, the square with an arrow, where the toolbar shows it."),
+      (p) => <><InsBar p={p} lead={<InsInBar p={p} glyph="lines" />} /><InsOr p={p} /><InsTap p={p} glyph="share" /></>),
+    INS_SHARE_ROW, INS_VIEW_MORE, INS_ADD_ROW, INS_ADD_WEBAPP, INS_OPEN(true, card),
   ];
-  if (sub === "iOS 18 or earlier") return [
-    { icon: Share, text: tr("Tap Share"), sub: tr("The square with an arrow, in the bar at the foot of Safari — top right on an iPad") },
-    { icon: SquarePlus, text: tr("Scroll down, tap Add to Home Screen") },
-    { text: tr("Tap Add, top right") },
-    OPEN_STEP,
+  if (sub === "iOS 26") return [
+    INS_SAFARI_FIRST(tr("Tap the three dots"), tr("Three dots at the right of the address bar. Or Share, the square with an arrow, where the toolbar shows it."),
+      (p) => <><InsBar p={p} run /><InsTap p={p} glyph="dots" round /><InsOr p={p} /><InsTap p={p} glyph="share" /></>),
+    INS_SHARE_ROW, INS_VIEW_MORE, INS_ADD_ROW, INS_ADD_WEBAPP, INS_OPEN(true, card),
+  ];
+  if (sub === "Earlier") return [
+    /* Chrome on an iPhone keeps Share at the right of its address bar; Edge and Firefox in their menus: never Safari's toolbar under their names */
+    iosBrowser === "Chrome"
+      ? { text: tr("Tap Share"), alt: tr("Share, at the right of the address bar"), pic: (p) => <InsBar p={p} run trail={<InsInBar p={p} glyph="share" />} /> }
+      : iosBrowser
+        ? { text: tr("Tap Share"), alt: tr("Share, the square with an arrow"), pic: (p) => <InsTap p={p} glyph="share" /> }
+        : { text: tr("Tap Share"), alt: tr("Share, the square with an arrow, in the middle of Safari's toolbar"),
+            pic: (p) => <span className="flex items-center justify-between w-full" style={{ maxWidth: 280, padding: "0 6px" }}><InsGhost p={p} glyph="back" /><InsGhost p={p} glyph="fwd" /><InsTap p={p} glyph="share" /><InsGhost p={p} glyph="book" /><InsGhost p={p} glyph="tabs" /></span> },
+    { text: tr("Tap Add to Home Screen"), sub: tr("Scroll down the list"), alt: tr("Add to Home Screen, a square with a plus"), pic: (p) => <InsTap p={p} label="Add to Home Screen" trail="plusSquare" /> },
+    { text: tr("Tap Add"), alt: tr("Add, top right"),
+      pic: (p) => <InsSheet><span className="flex items-center justify-between" style={{ paddingLeft: 4 }}><InsFaint p={p}>Cancel</InsFaint><InsTap p={p} label="Add" round h={40} /></span></InsSheet> },
+    INS_OPEN(true, card),
   ];
   if (sub === "Samsung") return [
-    { icon: Menu, text: tr("Tap ☰ at the foot of the screen"), sub: tr("Three lines, bottom right") },
-    { text: tr("Tap Add page to") },
-    { text: tr("Tap Home screen") },
-    { text: tr("Tap Add") },
-    OPEN_STEP,
+    { text: tr("Tap the three lines"), alt: tr("Three lines, bottom right"),
+      pic: (p) => <span className="flex items-center justify-between w-full" style={{ maxWidth: 280, padding: "0 6px" }}><InsGhost p={p} glyph="back" /><InsGhost p={p} glyph="fwd" /><InsGhost p={p} glyph="tabs" /><InsTap p={p} glyph="lines" /></span> },
+    { text: tr("Tap Add page to"), alt: tr("Add page to, with a plus"), pic: (p) => <InsTap p={p} glyph="plus" label="Add page to" /> },
+    { text: tr("Tap Home screen"), alt: tr("Home screen, in the list"), slim: true, pic: (p) => <InsTap p={p} label="Home screen" /> },
+    { text: tr("Tap Add"), alt: tr("Add"), slim: true, pic: (p) => <InsTap p={p} label="Add" round /> },
+    INS_OPEN(false),
   ];
   if (sub === "Chrome") return [
-    { icon: EllipsisVertical, text: tr("Tap ⋮ beside the address bar"), sub: tr("Three dots, top right") },
-    { icon: SquarePlus, text: tr("Tap Add to home screen"), sub: tr("Called Install app on some phones") },
-    { text: tr("Tap Install"), sub: tr("If asked, choose Install rather than Create shortcut") },
-    OPEN_STEP,
+    { text: tr("Tap the three dots"), alt: tr("Three dots, top right, beside the address bar"),
+      pic: (p) => <><InsBar p={p} run /><InsTap p={p} glyph="dotsV" /></> },
+    /* Chrome 150 (July 2026) renamed the row; a phone not yet updated keeps the old name */
+    { text: tr("Tap one of these"), alt: tr("Install and create shortcut, in the menu. On an older Chrome it reads Add to Home screen."),
+      pic: (p) => <span className="flex flex-col items-center" style={{ gap: 9 }}><InsTap p={p} label="Install and create shortcut" /><InsOr p={p} /><InsTap p={p} label="Add to Home screen" /></span> },
+    { text: tr("Tap Install"), alt: tr("Install, not Create shortcut"),
+      pic: (p) => <span className="flex flex-wrap items-center justify-center" style={{ gap: "14px 14px" }}><InsTap p={p} label="Install" round /><InsFaint p={p}>Create shortcut</InsFaint></span> },
+    INS_OPEN(false),
   ];
   if (sub === "Safari") return [
-    { text: tr("Open the File menu"), sub: tr("Safari 17 or later, on a Mac") },
-    { text: tr("Choose Add to Dock") },
-    { text: tr("Click Add") },
+    { text: tr("Open the File menu"), alt: tr("File, in the menu bar. Or Share, the square with an arrow, in the toolbar."),
+      pic: (p) => <><span className="flex items-center" style={{ gap: 12 }}><InsTap p={p} label="File" h={40} /><InsFaint p={p}>Edit</InsFaint></span><InsOr p={p} /><InsTap p={p} glyph="share" /></> },
+    { text: tr("Choose Add to Dock"), alt: tr("Add to Dock, in the menu"), slim: true, pic: (p) => <InsTap p={p} label="Add to Dock…" /> },
+    { text: tr("Click Add"), alt: tr("Add"), slim: true, pic: (p) => <InsTap p={p} label="Add" round /> },
   ];
   return [
-    { icon: MonitorDown, text: tr("Click the install icon"), sub: tr("At the right of the address bar — or the menu, then Install Nosca") },
-    { text: tr("Click Install") },
+    { text: tr("Click the install icon"), alt: tr("At the right of the address bar: a screen with an arrow in Chrome, three squares and a plus in Edge"),
+      pic: (p) => <><InsBar p={p} run trail={<InsInBar p={p} glyph="monitorDown" />} /><InsOr p={p} /><InsTap p={p} glyph="appsPlus" /></> },
+    { text: tr("Click Install"), alt: tr("Install"), slim: true, pic: (p) => <InsTap p={p} label="Install" round /> },
   ];
 }
-export function InstallGuide({ tour = "install" }) {
+/* the steps, drawn: a numeral in a ring, the words, the picture on the
+   wash, and a fine thread from each numeral to the next */
+function InstallSteps({ steps, dress, tour, wait = 0 }) {
+  const t = useT();
+  const card = dress === "card";
+  const p = { t, hi: card ? STAR : t.accent };
+  const figure = card ? INSTALL_GOLD : t.ink, ring = card ? CLUB.gold : LINE_STRONG, thread = card ? MIX("#FFFFFF", CLUB.gold, 0.55) : t.hair;
+  return (
+    <ol data-tour={`${tour}-steps`} style={{ listStyle: "none", margin: 0, padding: 0 }}>
+      {steps.map((st, i) => {
+        const last = i === steps.length - 1;
+        return (
+          <li key={`${st.text}:${i}`} data-ins-step="" className="relative flex" style={{ gap: 14, paddingBottom: last ? 0 : 24, animation: `insRise 520ms ${MOTION.curve} ${wait + i * 70}ms backwards` }}>
+            {!last && <span aria-hidden="true" className="absolute" style={{ left: 13.5, top: 34, bottom: 6, width: 1, background: thread }} />}
+            <span data-ins-num="" className="flex items-center justify-center shrink-0" style={{ width: 28, height: 28, borderRadius: 14, boxShadow: `inset 0 0 0 1.5px ${ring}`, fontFamily: ui, fontSize: 14, lineHeight: 1, fontWeight: 700, color: figure }}>{i + 1}</span>
+            <div className="flex-1 min-w-0">
+              <p data-ins-text="" className="flex items-center" style={{ ...TYPE.heading, color: t.ink, minHeight: 28 }}>{st.text}</p>
+              {st.sub && <p style={{ ...TYPE.small, color: t.sub, marginTop: 1, textWrap: "balance" }}>{st.sub}</p>}
+              {/* a picture that only repeats its words in a key stands on a slim panel */}
+              <div role="img" aria-label={st.alt} data-ins-pic="" className="flex items-center justify-center"
+                   style={{ marginTop: 10, minHeight: st.slim ? 0 : 86, padding: st.slim ? `10px ${INS_PAD}px 15px` : `14px ${INS_PAD}px 19px`, gap: 10, borderRadius: 16, background: t.wash }}>
+                {st.pic(p)}
+              </div>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+export function InstallGuide({ tour = "install", dress = "app", wait = 0, onDone }) {
   const t = useT();
   const browser = browserOf();
-  const [tab, setTabRaw] = useState(() => INSTALL_TAB[platformOf()] || "Computer");
-  const [sub, setSub] = useState(() => installSubFor(INSTALL_TAB[platformOf()] || "Computer", browser));
-  const setTab = (x) => { setTabRaw(x); setSub(installSubFor(x, x === INSTALL_TAB[platformOf()] ? browser : "")); };
+  const mine = INSTALL_TAB[platformOf()] || "Computer";
+  const [tab, setTabRaw] = useState(mine);
+  const [sub, setSubRaw] = useState(() => installSubFor(mine, browser));
+  /* `own`: these are still this device's own steps, read off it — so another browser's name, or an app's own browser, may stand
+     in for the version; a version picked by hand is that version's steps */
+  const [own, setOwn] = useState(true);
+  const setTab = (x) => { setTabRaw(x); setOwn(x === mine); setSubRaw(installSubFor(x, x === mine ? browser : "")); };
+  const setSub = (x) => { setOwn(false); setSubRaw(x); };
+  const [choose, setChoose] = useState(false);
   const [offer, setOffer] = useState(canPromptInstall);
   const [done, setDone] = useState(isStandalone);
   const [note, setNote] = useState("");
+  /* the steps wait for the page's arrival once; a change of device is at once */
+  const [arrived, setArrived] = useState(wait === 0);
+  useEffect(() => { if (arrived) return undefined; const x = setTimeout(() => setArrived(true), wait + 900); return () => clearTimeout(x); }, [arrived, wait]);
   useEffect(() => onInstallPromptChange((on) => setOffer(on)), []);
+  /* the page that holds the guide takes its title off once there is nothing left to do */
+  useEffect(() => { if (done && onDone) onDone(); }, [done]);
   const install = async () => {
     haptic(10);
     const r = await promptInstall();
@@ -18519,38 +18907,60 @@ export function InstallGuide({ tour = "install" }) {
     else if (r === "dismissed") setNote(tr("Not installed"));
     else setNote(tr("Couldn't open the install sheet"));
   };
-  if (done) return <p data-tour={`${tour}-done`} style={{ ...TYPE.body, color: t.ink }}>{tr("Nosca is on your Home Screen")}</p>;
+  const card = dress === "card";
+  /* a computer has no Home Screen */
+  const landed = tab === "Computer" ? tr("Nosca is installed") : tr("Nosca is on your Home Screen");
+  if (done) return card ? (
+    /* the card's page: the icon that landed, and the one line, under the card */
+    <div data-tour={tour} className="ins flex flex-col items-center text-center" style={{ gap: 14, paddingTop: 4 }}>
+      <style>{INSTALL_CSS}</style>
+      <span aria-hidden="true"><InsAppIcon p={{ t, hi: "transparent" }} size={64} /></span>
+      <p data-tour={`${tour}-done`} style={{ ...TYPE.title, color: t.ink, textWrap: "balance" }}>{landed}</p>
+    </div>
+  ) : (
+    <div data-tour={tour} className="ins flex items-center" style={{ gap: 16, marginTop: SPACE.row }}>
+      <style>{INSTALL_CSS}</style>
+      <span aria-hidden="true"><InsAppIcon p={{ t, hi: "transparent" }} size={56} /></span>
+      <p data-tour={`${tour}-done`} className="flex-1 min-w-0" style={{ ...TYPE.heading, color: t.ink }}>{landed}</p>
+    </div>
+  );
   const button = offer && tab !== "iPhone";
-  const steps = installSteps(sub);
+  const onIphone = own && tab === "iPhone" && mine === "iPhone";
+  const iosBrowser = onIphone ? INSTALL_IOS_BROWSER[browser] || null : null;
+  const inApp = onIphone && browser === "other";
+  const steps = installSteps(sub, { iosBrowser, inApp, card });
+  /* the row names the device as it is: an iPad is not an iPhone */
+  const tabName = tab === "iPhone" && mine === "iPhone" && isIpad() ? "iPad" : tab;
+  const subName = inApp ? tr("In an app") : iosBrowser || INSTALL_SUB_NAME[sub] || sub;
   return (
-    <div data-tour={tour}>
-      <p style={{ ...TYPE.lede, color: t.sub, marginBottom: SPACE.block }}>{tr("Nosca opens full screen from your Home Screen, with notifications.")}</p>
-      <Segmented options={INSTALL_TABS} value={tab} onChange={setTab} tour={`${tour}-platform`} />
-      <div style={{ marginTop: SPACE.tight }}>
-        <Segmented options={INSTALL_SUBS[tab]} value={sub} onChange={setSub} tour={`${tour}-version`} />
-      </div>
-      {INSTALL_HINT[tab] && <p data-tour={`${tour}-hint`} style={{ ...TYPE.caption, color: t.sub, marginTop: SPACE.tight }}>{tr(INSTALL_HINT[tab])}</p>}
-      {button && (
-        <div style={{ marginTop: SPACE.block }}>
-          <Button tone="accent" onClick={install} tour={`${tour}-now`}>{tr("Install Nosca")}</Button>
-          {note && <p className="text-center" role="status" style={{ ...TYPE.caption, color: DANGER, marginTop: SPACE.tight }}>{note}</p>}
-          <p className="text-center" style={{ ...TYPE.caption, color: t.sub, marginTop: SPACE.tight }}>{tr("Or by hand")}</p>
+    <div data-tour={tour} className="ins">
+      <style>{INSTALL_CSS}</style>
+      {/* which device these steps are for, and the one way to another */}
+      <button data-tour={`${tour}-device`} aria-expanded={choose} onClick={() => { haptic(6); setChoose(!choose); }}
+              className="w-full flex items-center justify-between text-left active:opacity-60" style={{ minHeight: 48, gap: 12 }}>
+        {/* each half kept whole: a narrow phone breaks the row at the dot, never inside a name */}
+        <span className="min-w-0" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}><span style={{ whiteSpace: "nowrap" }}>{tabName}</span> <span style={{ whiteSpace: "nowrap" }}>· {subName}</span></span>
+        <span className="shrink-0" style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, color: card ? INSTALL_GOLD : t.accent }}>{choose ? tr("Done") : tr("Change")}</span>
+      </button>
+      {choose && (
+        <div data-tour={`${tour}-choices`} style={{ paddingTop: 4, paddingBottom: SPACE.tight }}>
+          <Segmented tall options={INSTALL_TABS} value={tab} onChange={setTab} tour={`${tour}-platform`} />
+          <div style={{ marginTop: SPACE.tight }}>
+            <Segmented tall options={INSTALL_SUBS[tab]} value={sub} onChange={setSub} tour={`${tour}-version`} />
+          </div>
+          {INSTALL_HINT[tab] && <p data-tour={`${tour}-hint`} style={{ ...TYPE.caption, color: t.sub, marginTop: SPACE.tight }}>{tr(INSTALL_HINT[tab])}</p>}
         </div>
       )}
-      <div className="nsc-list" data-tour={`${tour}-steps`} style={{ marginTop: button ? SPACE.tight : SPACE.block }}>
-        {steps.map((st, i) => {
-          const Glyph = st.icon;
-          return (
-            <div key={st.text} className="flex items-start gap-3.5" style={{ padding: "14px 16px", minHeight: 56 }}>
-              <span style={{ ...TYPE.body, fontWeight: 600, color: t.ink, width: 16, flexShrink: 0 }}>{i + 1}</span>
-              {Glyph ? <Glyph size={18} strokeWidth={1.8} color={t.ink} style={{ flexShrink: 0, marginTop: 2 }} aria-hidden="true" /> : null}
-              <span className="min-w-0 flex-1">
-                <span className="block" style={{ ...TYPE.body, color: t.ink }}>{st.text}</span>
-                {st.sub && <span className="block" style={{ ...TYPE.caption, color: t.sub, marginTop: 2 }}>{st.sub}</span>}
-              </span>
-            </div>
-          );
-        })}
+      {/* the note outlives the button: a dismissed sheet takes the offer away on the same render that says so */}
+      {(button || note) && (
+        <div style={{ marginTop: SPACE.tight }}>
+          {button && <Button tone="accent" onClick={install} tour={`${tour}-now`}>{tr("Install Nosca")}</Button>}
+          {note && <p className="text-center" role="status" style={{ ...TYPE.caption, color: DANGER, marginTop: SPACE.tight }}>{note}</p>}
+          {button && <p className="text-center" style={{ ...TYPE.caption, color: t.sub, marginTop: SPACE.tight }}>{tr("Or by hand")}</p>}
+        </div>
+      )}
+      <div style={{ marginTop: SPACE.row }}>
+        <InstallSteps steps={steps} dress={dress} tour={tour} wait={arrived ? 0 : wait} />
       </div>
     </div>
   );
@@ -18589,8 +18999,8 @@ function Support({ pop, say, live }) {
         <div className="px-6 pb-2">
           {!live && (<><Eyebrow>{tr("Common questions")}</Eyebrow><Card className="mb-6">{faqs.map((f, i) => <Row key={f} label={f} chevron last={i === faqs.length - 1} onToggle={() => {}} />)}</Card></>)}
           <Eyebrow>{tr("Get in touch")}</Eyebrow><Card>
-            <Row label={tr("Email support")} sub={live ? SUPPORT_EMAIL : "help@nosca.app"} chevron icon={<Mail size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => (live ? mail(`${BRAND}: ${tr("a question")}`) : say("Opens your mail app"))} />
-            <Row label={tr("Report a problem")} chevron last icon={<HelpCircle size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => (live ? mail(`${BRAND}: ${tr("a problem")}`) : say("Thanks — we'll look into it"))} />
+            <Row label={tr("Email support")} sub={live ? SUPPORT_EMAIL : "help@nosca.app"} chevron onToggle={() => (live ? mail(`${BRAND}: ${tr("a question")}`) : say("Opens your mail app"))} />
+            <Row label={tr("Report a problem")} chevron last onToggle={() => (live ? mail(`${BRAND}: ${tr("a problem")}`) : say("Thanks — we'll look into it"))} />
           </Card>
         </div>
       </Screen>
@@ -18721,11 +19131,14 @@ function SearchScreen({ role, cfg, library, tips, pop, go, push, lessons: given,
           {/* nothing until there is a term: the field is the whole screen */}
           {!term ? null : total === 0 ? (<EmptyLine className="px-6">Nothing matching “{q}”</EmptyLine>
           ) : (<>
-            {lessons.length > 0 && (<><Eyebrow>{tr("Lessons")}</Eyebrow><div className="px-6 mb-6"><Card>{lessons.map((l, i) => (<Row key={l.id} label={l.focus} sub={[`${l.d} ${l.m}`, (l.subs || []).join(", ")].filter(Boolean).join(" · ")} chevron icon={<FileText size={17} color={t.sub} strokeWidth={1.6} />} last={i === lessons.length - 1} onToggle={() => push(role === "coach" ? `clesson:${l.id}:${l.who}` : `lesson:${l.id}`)} />))}</Card></div></>)}
-            {tipHits.length > 0 && (<><Eyebrow>{tr("Tips")}</Eyebrow><div className="px-6 mb-6"><Card>{tipHits.map((x, i) => (<Row key={x.id} label={x.title} sub={x.body} chevron icon={<Lightbulb size={17} color={t.sub} strokeWidth={1.6} />} last={i === tipHits.length - 1} onToggle={() => push("tips")} />))}</Card></div></>)}
-            {drills.length > 0 && (<><Eyebrow>{tr("Drills")}</Eyebrow><div className="px-6 mb-6"><Card>{drills.map((d, i) => (<Row key={d.t} label={d.t} sub={d.d || null} chevron icon={<ListChecks size={17} color={t.sub} strokeWidth={1.6} />} last={i === drills.length - 1} onToggle={() => go("practice")} />))}</Card></div></>)}
+            {/* the heading says the kind, so no row repeats it as a grey glyph
+                (a page, a bulb, a list, a bubble — 23 November); a person is
+                their face, in Players and in Messages alike */}
+            {lessons.length > 0 && (<><Eyebrow>{tr("Lessons")}</Eyebrow><div className="px-6 mb-6"><Card>{lessons.map((l, i) => (<Row key={l.id} label={l.focus} sub={[`${l.d} ${l.m}`, (l.subs || []).join(", ")].filter(Boolean).join(" · ")} chevron last={i === lessons.length - 1} onToggle={() => push(role === "coach" ? `clesson:${l.id}:${l.who}` : `lesson:${l.id}`)} />))}</Card></div></>)}
+            {tipHits.length > 0 && (<><Eyebrow>{tr("Tips")}</Eyebrow><div className="px-6 mb-6"><Card>{tipHits.map((x, i) => (<Row key={x.id} label={x.title} sub={x.body} chevron last={i === tipHits.length - 1} onToggle={() => push("tips")} />))}</Card></div></>)}
+            {drills.length > 0 && (<><Eyebrow>{tr("Drills")}</Eyebrow><div className="px-6 mb-6"><Card>{drills.map((d, i) => (<Row key={d.t} label={d.t} sub={d.d || null} chevron last={i === drills.length - 1} onToggle={() => go("practice")} />))}</Card></div></>)}
             {people.length > 0 && (<><Eyebrow>{tr("Players")}</Eyebrow><div className="px-6 mb-6"><Card>{people.map((r, i) => (<Row key={r.id || r.name} label={r.name} sub={`${r.lessons} ${r.lessons === 1 ? tr("lesson") : tr("lessons")}${r.since ? ` · ${tr("since")} ${r.since}` : ""}`} chevron icon={<Avatar name={r.name} size={38} />} last={i === people.length - 1} onToggle={() => push("player:" + (r.id || r.name))} />))}</Card></div></>)}
-            {msgs.length > 0 && (<><Eyebrow>{tr("Messages")}</Eyebrow><div className="px-6 pb-4"><Card>{msgs.map((c, i) => (<Row key={c.id || c.name} label={c.name} sub={c.text} chevron icon={<MessageCircle size={17} color={t.sub} strokeWidth={1.6} />} last={i === msgs.length - 1} onToggle={() => push("thread:" + (c.id || c.name))} />))}</Card></div></>)}
+            {msgs.length > 0 && (<><Eyebrow>{tr("Messages")}</Eyebrow><div className="px-6 pb-4"><Card>{msgs.map((c, i) => (<Row key={c.id || c.name} label={c.name} sub={c.text} chevron icon={<Avatar name={c.name} size={38} />} last={i === msgs.length - 1} onToggle={() => push("thread:" + (c.id || c.name))} />))}</Card></div></>)}
           </>)}
         </div>
       </div>
@@ -19159,12 +19572,9 @@ function LessonDeleteBody({ lesson, mediaCount = 0, onConfirm, say, close }) {
   const [err, setErr] = useState("");
   return (
     <>
-      <div className="flex items-center gap-3 mb-4">
-        <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 40, height: 40, background: `${DANGER}14` }}>
-          <Trash2 size={18} color={DANGER} strokeWidth={2} />
-        </span>
-        <h2 style={{ ...TYPE.title, color: t.ink }}>{tr("Delete this lesson")}</h2>
-      </div>
+      {/* the sheet's title, as every sheet's is: a red bin on a disc led it,
+          beside words that already say Delete (23 November) */}
+      <h2 className="mb-4" style={{ ...TYPE.title, color: t.ink }}>{tr("Delete this lesson")}</h2>
       <p className="mb-5" style={{ ...TYPE.body, lineHeight: 1.6, color: t.sub }}>
         {lesson.focus} · {lesson.who} · {lesson.d} {lesson.m}.
         {mediaCount > 0 ? ` ${mediaCount} ${mediaCount === 1 ? tr("file goes with it") : tr("files go with it")}.` : ""}
@@ -22130,7 +22540,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                          onRemove={kind === "downloads" ? (l) => downloads.remove(l.id) : null}
                          foot={kind === "downloads" && nSaved > 1 ? (
                            <button onClick={() => { hapticWarn(); downloads.removeAll(); }} className="w-full mb-6 n-key"
-                                   style={{ minHeight: 46, borderRadius: R.control, background: TINT(theme), border: `${EDGE_W}px solid ${KEY_RING(theme)}`, ...TYPE.small, fontWeight: 600, color: DANGER }}>{tr("Remove all")}</button>
+                                   style={{ minHeight: 46, borderRadius: R.control, ...redKey(theme), ...TYPE.small, fontWeight: 600 }}>{tr("Remove all")}</button>
                          ) : null}
                          pop={pop} push={push} say={say} />;
   } else if (screen === "groups") {

@@ -917,6 +917,35 @@ const fillCode = async (page, code, from = 0) => { await codeBoxes(page).nth(fro
 /* the bell's badge — never the transparent span that widens its hit area */
 const bellCount = async (page) => { const b = page.locator('[aria-label="Alerts"] span:not([aria-hidden="true"])'); return (await b.count()) ? Number(norm(await b.first().innerText())) : 0; };
 
+/* A ROW OF WORDS CARRIES NO ICON (23 November). What a suite reads off a
+   row of words — a Settings row, a door (All lessons, Progress), a row of
+   the switcher: every glyph in it (a chevron, a tick; never a picture of
+   what the words already say), how far the label starts from the row's
+   own inset (`lead`: 0 when nothing stands before it), that inset, the
+   row's height, its word's colour and its value's. `sel` is the row or a
+   wrapper round it (a row that unfolds carries its tour on the wrapper);
+   `nth` picks among several. */
+const rowLead = (page, sel, nth = 0) => page.evaluate(([sel, nth]) => {
+  const hit = [...document.querySelectorAll(sel)].filter((e) => e.getBoundingClientRect().height > 0)[nth]; if (!hit) return null;
+  const row = hit.matches("button, [data-row]") ? hit : (hit.querySelector("[data-row], button") || hit);
+  const r = row.getBoundingClientRect(), cs = getComputedStyle(row);
+  const lab = row.querySelector("[data-row-label]"), val = row.querySelector("[data-row-value], [data-filter-value]");
+  const lr = lab ? lab.getBoundingClientRect() : null, vr = val ? val.getBoundingClientRect() : null;
+  const inset = parseFloat(cs.borderLeftWidth) + parseFloat(cs.paddingLeft);
+  /* the first thing drawn in the row, left to right: the label's own text, or something standing before it */
+  const before = lab ? [...row.querySelectorAll("*")].filter((e) => e !== lab && !e.contains(lab) && !lab.contains(e) && e.getBoundingClientRect().width > 0 && e.getBoundingClientRect().right <= lr.left + 0.5 && e.getBoundingClientRect().height > 0).length : null;
+  return { label: lab ? lab.textContent.trim() : null, lead: lr ? Math.round(lr.left - r.left - inset) : null, inset: Math.round(parseFloat(cs.paddingLeft)), before,
+           glyphs: [...row.querySelectorAll("svg")].map((s) => String(s.getAttribute("class") || "").replace(/^lucide /, "").replace(/^lucide-/, "").split(" ")[0]),
+           h: Math.round(r.height), color: lab ? getComputedStyle(lab).color : null, size: lab ? getComputedStyle(lab).fontSize : null,
+           value: val ? val.textContent.trim() : null, valueColor: val ? getComputedStyle(val).color : null,
+           valueRight: vr ? Math.round(r.right - parseFloat(cs.borderRightWidth) - parseFloat(cs.paddingRight) - vr.right) : null,
+           valueLine: vr && lr ? (Math.abs((vr.top + vr.bottom) / 2 - (lr.top + lr.bottom) / 2) < 6 ? "beside" : vr.top >= lr.bottom - 2 ? "under" : "other") : null,
+           valueCut: val ? val.scrollWidth > val.clientWidth + 1 : false, labelCut: lab ? lab.scrollWidth > lab.clientWidth + 1 : false,
+           tag: row.tagName, boxed: !!row.parentElement && row.parentElement.classList.contains("nsc-list") };
+}, [sel, nth]);
+/* a row of words and nothing but its chevron (or a tick, or nothing): the label first on the row's inset */
+const plainRow = (o, { glyphs = ["chevron-right"] } = {}) => !!o && o.lead === 0 && o.before === 0 && JSON.stringify(o.glyphs) === JSON.stringify(glyphs);
+
 /* PASS / FAIL lines and a summary; every script exits 0 so the lines are read, not the code */
 function checker(label) {
   const results = [];
@@ -934,5 +963,5 @@ module.exports = {
   SB, ROOT, b64u, uuid, code6, pad, ymd, MON, MP4, WEBM, PNG, yearsOld, juniorRow,
   emptyDb, addUser, addProfile, addFamily, addLesson, addMedia, addAttendee, addRequest, addNotification, addBooking, addRecurring, addDrill, addMessage, setPrefs, weekOf,
   session, signupTrigger, notify, groupMembers, scopeFor, lessonsView, attach, startServer, stopServer,
-  norm, rootText, rootEmpty, SPLASH_MS, settle, injectSession, tap, byText, click, back, codeBoxes, fillCode, bellCount, checker, SEEDED,
+  norm, rootText, rootEmpty, SPLASH_MS, settle, injectSession, tap, byText, click, back, codeBoxes, fillCode, bellCount, rowLead, plainRow, checker, SEEDED,
 };

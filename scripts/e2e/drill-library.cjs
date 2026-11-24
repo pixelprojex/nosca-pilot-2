@@ -76,6 +76,13 @@ const { check, results, summary } = M.checker("drill-library");
       check("(b) the unticked rows are what is to do, with no subtitle repeating them, and the door under the list counts every drill ever set", undone0 === 2 && !/\bto do\b/.test(t0) && /All drills\s*9/.test(t0), `${undone0} · ${t0.slice(0, 160)}`);
       check("(c) the Reminder row sits at the foot, reading eight in the morning", (await page.locator('[data-tour="drills-reminder"]').count()) === 1 && /Reminder 8:00 am/.test(M.norm(await page.locator('[data-tour="drills-reminder"]').innerText())), M.norm(await page.locator('[data-tour="drills-reminder"]').innerText().catch(() => "none")));
       await shot("01-drills-tab");
+      /* 23 November: a row of words carries no icon. The door and the Reminder under the drills are the word on the
+         box's 16 inset, its value in the sub grey and the chevron — a list glyph on a purple tile led All drills and an
+         alarm clock on a wine one the Reminder for two days — All drills a door's 60 tall, the Reminder Settings' own 56 */
+      const [dAll, dRem] = [await M.rowLead(page, '[data-tour="drills-all"]'), await M.rowLead(page, '[data-tour="drills-reminder"]')];
+      check("(c2) All drills and the Reminder lead with their word — no glyph before either, a chevron after — on one left edge, 60 and 56 tall, the Reminder's hour in the sub grey",
+        M.plainRow(dAll) && dAll.h === 60 && dAll.inset === 16 && dAll.label === "All drills" && M.plainRow(dRem) && dRem.h === 56 && dRem.inset === 16 && dRem.label === "Reminder" && dRem.value === "8:00 am" && dRem.valueColor === "rgb(95, 95, 101)",
+        JSON.stringify({ dAll, dRem }));
 
       /* a drill ticked from an older set stays on the tab for the sitting */
       await page.locator(".nsc-list button[aria-pressed]", { hasText: "Ladder drill" }).first().click(); await page.waitForTimeout(1200);

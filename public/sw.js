@@ -60,12 +60,16 @@ const offlinePage = () => new Response(
   { headers: { "content-type": "text/html; charset=utf-8" }, status: 503 }
 );
 
-/* what is kept: the shell of the current build, or any build still cached */
-const fromShell = async (req) => {
-  const hit = await caches.match(req);
-  if (hit) return hit;
-  return null;
-};
+/* what is kept: the shell of the current build, or any build still cached.
+   Vary is ignored: the copy was fetched by the worker, with none of the
+   headers a page's own request carries (a module script's carries its
+   Origin), and a server that varies on one of them never matched it —
+   Vite's preview varies on Origin, so with no network the app's script
+   and stylesheet failed and the app opened on a white page (downloads.cjs
+   (p), 24 November). Netlify varies on Accept-Encoding today; a header it
+   adds tomorrow must not take the plane mode with it. The shell's files
+   are keyed by their hashed paths, so a copy can never be the wrong one. */
+const fromShell = async (req) => (await caches.match(req, { ignoreVary: true })) || null;
 
 self.addEventListener("fetch", (event) => {
   const req = event.request;

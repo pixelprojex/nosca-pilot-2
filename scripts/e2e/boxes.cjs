@@ -161,6 +161,10 @@ const metaOf = (page, title) => page.evaluate((title) => {
     const sRgb = (c) => { const m = String(c).match(/rgba?\(([^)]+)\)/); return m ? m[1].split(",").slice(0, 3).map((x) => +x) : [255, 255, 255]; };
     const sRatio = (a, b) => { const [x, y] = [sLum(a), sLum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
     const isStone = (os) => os.length > 0 && Object.values(KEYS).some((KEY) => os.every((o) => o.bg === KEY.face && o.ring === KEY.ring && o.inline === "1.5px" && o.shadow.includes(KEY.lip) && sRatio(sRgb(o.fg), sRgb(o.bg)) >= 4.5));
+    /* A RED QUIET KEY (24 November): what cancels or ends, where it is not the one confirm, is the brick's own pale
+       ringed in the pale's ledge on a ledge a step toward the brick, the word in the brick — in every sport alike */
+    const RED_KEY = { face: "rgb(248, 226, 223)", ring: "rgb(234, 202, 198)", lip: "rgb(224, 184, 179)", fg: "rgb(154, 50, 42)" };
+    const isRed = (os) => os.length > 0 && os.every((o) => o.bg === RED_KEY.face && o.ring === RED_KEY.ring && o.inline === "1.5px" && o.shadow.includes(RED_KEY.lip) && o.fg === RED_KEY.fg && sRatio(sRgb(o.fg), sRgb(o.bg)) >= 4.5);
     const toldK = (os) => os.map((o) => `${o.label}: ${o.bg} ring ${o.ring} ${o.inline} · ${o.shadow.slice(0, 40)}`).join(" | ");
   const boot = async (role, d = db, at = "08:00") => {
     const u = Object.values(d.users).find((x) => x.id === IDS[role]);
@@ -204,7 +208,8 @@ const metaOf = (page, title) => page.evaluate((title) => {
          right as well, from the days of the hairline list */
       const inset = await page.evaluate(() => {
         const box = (el) => el.getBoundingClientRect();
-        const ends = (b) => Math.round(box(b).right - Math.max(...[...b.querySelectorAll("svg, span, button")].filter((x) => x.tagName === "svg" || !x.children.length).map((x) => box(x).right)));
+        /* the row's own content: the coloured card's foil wedge (24 November) is an ornament in the corner, not content */
+        const ends = (b) => Math.round(box(b).right - Math.max(...[...b.querySelectorAll("svg, span, button")].filter((x) => !x.closest("[data-foil]")).filter((x) => x.tagName === "svg" || !x.children.length).map((x) => box(x).right)));
         const next = document.querySelector('[data-tour="today-nextday"]');
         const rows = [...document.querySelectorAll('[data-scroll="screen"] .nsc-list > *')].filter((b) => box(b).width > 0)
           .map((b) => [b, [...b.querySelectorAll("span")].find((s) => !s.children.length && /^\d{1,2}:\d{2} [ap]m$/.test(s.textContent.trim()))]).filter(([, s]) => s)
@@ -291,10 +296,22 @@ const metaOf = (page, title) => page.evaluate((title) => {
       });
       await shot("05-roster");
       check("(f) the roster's players carry no rule inside their boxes, and All lessons is a box of its own under them", fine(ros) && !!own && own.apart && own.list && own.kids === 1, `${said(ros)} · ${JSON.stringify(own)}`);
+      /* 23 November: the door every All lessons is — the word on the box's 16 inset, the count in the sub grey, the
+         chevron, 60 tall, and no glyph (it was drawn here by hand at 56, the count a step fainter) */
+      const rosAll = await M.rowLead(page, '[data-tour="roster-archive"]');
+      check("(f1) the roster's All lessons is the home's own door: the word, the count in the sub grey, the chevron, 60 tall, no glyph before the word",
+        M.plainRow(rosAll) && rosAll.h === 60 && rosAll.inset === 16 && rosAll.label === "All lessons" && /All lessons\s*\d+$/.test(M.norm(await page.locator('[data-tour="roster-archive"]').innerText())), JSON.stringify(rosAll));
       await page.locator('[data-scroll="screen"] button', { hasText: /^Groups$/ }).first().click(); await page.waitForTimeout(700);
       const grp = await audit(page, '[data-scroll="screen"]', EDGE.golf);
       const gr = await holder(page, '[data-tour="roster-group"]');
       check("(f2) the Groups half is boxed rows, New group among them", fine(grp) && !!gr && /nsc-list/.test(gr.parent) && (await page.locator('[data-tour="roster-newgroup"]').count()) === 1, `${said(grp)} · ${JSON.stringify(gr)}`);
+      /* NEW GROUP IS A ROUTE, NOT A GROUP (23 November): it sat in the column of groups with a plus in a disc the size
+         of a face, a third "group"; it is a door in a box of its own under them — the word and the chevron */
+      const ng = await M.rowLead(page, '[data-tour="roster-newgroup"]');
+      const ngOwn = await page.evaluate(() => { const a = document.querySelector('[data-tour="roster-newgroup"]'), g = document.querySelector('[data-tour="roster-group"]');
+        return a && g ? { apart: a.parentElement !== g.parentElement, kids: a.parentElement.children.length, under: a.getBoundingClientRect().top > g.getBoundingClientRect().bottom, person: a.hasAttribute("data-person-row"), disc: !!a.querySelector("span.rounded-full") } : null; });
+      check("(f3) New group is a door in a box of its own under the groups — the word on the box's inset and the chevron, 60 tall, no plus in a disc, never one more row of the groups' column",
+        M.plainRow(ng) && ng.boxed && ng.h === 60 && ng.label === "New group" && !!ngOwn && ngOwn.apart && ngOwn.kids === 1 && ngOwn.under && !ngOwn.person && !ngOwn.disc, `${JSON.stringify(ng)} · ${JSON.stringify(ngOwn)}`);
       await page.locator('[data-scroll="screen"] button', { hasText: /^Players$/ }).first().click(); await page.waitForTimeout(600);
 
       /* the player file: the tip centred, the foot boxed, the lessons with no rule inside */
@@ -308,6 +325,13 @@ const metaOf = (page, title) => page.evaluate((title) => {
       });
       await shot("06-player-file");
       check("(g) the player file's lessons, tip and foot rows are boxed, with no rule inside a box", fine(file) && !!pp && /nsc-list/.test(pp.parent) && file.boxes >= 6, `${said(file)} · ${JSON.stringify(pp)}`);
+      /* 23 November: a row of words carries no icon. The file's doors — All lessons, then Progress · Notes · Recurring
+         lessons — are the word on the box's 16 inset and the chevron, 60 tall each (the foot rows stood 56 with a tile
+         a row: a film strip, a chart, a pencil, a loop) */
+      const doors = [];
+      for (const sel of ['[data-tour="player-all-lessons"]', '[data-tour="player-progress"]', '[data-tour="player-notes"]', '[data-tour="player-recurring"]']) doors.push(await M.rowLead(page, sel));
+      check("(g1) the player file's doors lead with their word: All lessons · Progress · Notes · Recurring lessons, no glyph before any, the chevron after, 60 tall on one left edge",
+        doors.every((d) => M.plainRow(d) && d.h === 60 && d.inset === 16 && d.boxed) && doors.map((d) => d.label).join(" · ") === "All lessons · Progress · Notes · Recurring lessons", JSON.stringify(doors.map((d) => d && `${d.label} lead ${d.lead} before ${d.before} [${d.glyphs}] h${d.h}`)));
       check("(g2) the tip's label and its words sit on one centre line, in the middle of the box", !!tip && Math.abs(tip.label - tip.value) <= 2 && Math.abs(tip.label - tip.box) <= 2, JSON.stringify(tip));
       await M.back(page);
       /* a player with no lessons: the empty line is a line, not a box */
@@ -405,8 +429,17 @@ const metaOf = (page, title) => page.evaluate((title) => {
       const { ctx, page, text, shot } = await boot("parent");
       /* the switcher of a parent with no coach of her own: Add a coach opens the next step */
       await tap(page, '[data-tour="profile-pill"]', 900);
-      const addCoach = await page.evaluate(() => { const b = [...document.querySelectorAll("[data-sheet] button")].find((x) => x.textContent.trim() === "Add a coach"); return b ? { chevron: !!b.querySelector("svg.lucide-chevron-right"), square: !!b.querySelector("svg.lucide-user-plus") } : null; });
-      check("(n0) the switcher's Add a coach carries the chevron, as Photos, Family, Progress and Settings beside it do — it opens the next step", !!addCoach && addCoach.chevron && addCoach.square, JSON.stringify(addCoach));
+      /* 23 November: a row of words carries no icon — the switcher's rows are the word and the chevron (each led with a
+         glyph on a coloured square from 21 November: a person-and-plus, a camera, a house, a chart, a cog), the word on
+         the card's own inset, where the faces above it start, every row 56 tall */
+      const sw = [];
+      for (let i = 0; i < await page.locator('[data-sheet] [data-tour="family-rows"] > [data-row]').count(); i++) sw.push(await M.rowLead(page, '[data-sheet] [data-tour="family-rows"] > [data-row]', i));
+      const edges = await page.evaluate(() => { const f = document.querySelector("[data-sheet] [data-row] > span.rounded-full"), l = document.querySelector('[data-sheet] [data-tour="family-rows"] [data-row-label]'); return { face: f ? Math.round(f.getBoundingClientRect().left) : null, word: l ? Math.round(l.getBoundingClientRect().left) : null }; });
+      const addCoach = sw.find((x) => x && x.label === "Add a coach");
+      check("(n0) the switcher's Add a coach carries the chevron, as Photos, Family, Progress and Settings beside it do — it opens the next step", !!addCoach && addCoach.glyphs.includes("chevron-right"), JSON.stringify(addCoach));
+      check("(n0b) no row of the switcher leads with a glyph: Add a coach · Photos · Family · Progress · Settings are the word on the card's inset and the chevron, 56 tall, on the faces' own left edge",
+        sw.length === 5 && sw.map((x) => x.label).join(" · ") === "Add a coach · Photos · Family · Progress · Settings" && sw.every((x) => M.plainRow(x) && x.h === 56 && x.color === "rgb(28, 28, 30)") && edges.face != null && edges.face === edges.word,
+        JSON.stringify({ rows: sw.map((x) => x && `${x.label} lead ${x.lead} before ${x.before} [${x.glyphs}] h${x.h}`), edges }));
       await closeSheet(page);
       await tap(page, '[aria-label="Family"]', 900);
       await page.locator("button", { hasText: "Saoirse" }).first().click(); await page.waitForTimeout(1000);
@@ -421,15 +454,14 @@ const metaOf = (page, title) => page.evaluate((title) => {
       const kidKeys = await keysIn(page, '[data-scroll="screen"]', /^Message coach$/);
       check("(n2) Message coach is the white key — the white face on its grey ledge, never the old hairline", kidKeys.length === 1 && isStone(kidKeys), `${JSON.stringify(outlines)} · ${toldK(kidKeys)}`);
       /* A DOOR IS A ROW, NEVER A BUTTON (22 November): the child's Progress is a HomeRow in a
-         box of its own — its glyph on golf's green square, the chevron — as Progress is on the
-         player's file; it was a 46-tall white key on the control's corner */
-      const door = await page.evaluate(() => {
-        const b = document.querySelector('[data-scroll="screen"] [data-tour="kid-progress"]'); if (!b) return null;
-        const sq = [...b.querySelectorAll("span")].find((s) => s.querySelector("svg.lucide-trending-up"));
-        return { boxed: !!b.parentElement && b.parentElement.classList.contains("nsc-list"), key: b.classList.contains("n-key"), h: Math.round(b.getBoundingClientRect().height),
-                 square: sq ? getComputedStyle(sq).backgroundColor : null, chevron: !!b.querySelector("svg.lucide-chevron-right"), label: b.textContent.trim() };
-      });
-      check("(n5) the child's Progress is a door — a row in a box of its own with its glyph on the sport's light square and the chevron, never a key", !!door && door.boxed && !door.key && door.h >= 56 && door.square === "rgb(148, 189, 158)" && door.chevron && door.label === "Progress", JSON.stringify(door));
+         box of its own — the word and the chevron — as Progress is on the player's file; it
+         was a 46-tall white key on the control's corner. 23 November: a row of words carries
+         no icon, so the door leads with its word on the box's 16 inset (it led with a chart on
+         golf's light green square), 60 tall, as every door is */
+      const door = await M.rowLead(page, '[data-scroll="screen"] [data-tour="kid-progress"]');
+      const doorKey = await page.evaluate(() => { const b = document.querySelector('[data-scroll="screen"] [data-tour="kid-progress"]'); return b ? b.classList.contains("n-key") : null; });
+      check("(n5) the child's Progress is a door — a row in a box of its own, the word on the box's inset and the chevron, no glyph before it, 60 tall, never a key",
+        !!door && door.boxed && doorKey === false && door.h === 60 && M.plainRow(door) && door.inset === 16 && door.label === "Progress" && door.color === "rgb(28, 28, 30)", JSON.stringify(door));
       check("(n3) the child's lessons read the app's one day form", days.length === 2 && days.every((d) => DAY_FORM.test(d)) && days[0] === nice(dayFrom(-9)), JSON.stringify(days));
       /* Next, Drills and the lessons under them: one value column down the page */
       const vcol = await page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] .nsc-list > :not([data-tour]) > span:first-child')]
@@ -554,16 +586,16 @@ const metaOf = (page, title) => page.evaluate((title) => {
         const dec = await meet(page, "[data-sheet]", "decline sheet");
         await shot("13-decline-sheet");
         const decK = await keysIn(page, "[data-sheet]", /^Just decline$/);
-        check("(s2) Just decline, the quiet Button, is the white key — the white face on its ledge, its red word 4.5:1",
-          decK.length === 1 && isStone(decK), toldK(decK));
+        check("(s2) Just decline, the red quiet Button, is the red quiet key — the brick's pale on its ledge, its red word 4.5:1 (it was the sport's pale with a red word)",
+          decK.length === 1 && isRed(decK), toldK(decK));
         await closeSheet(page);
         await tap(page, '[aria-label="Diary"]', 1000); await toList(page);
         await tap(page, '[data-tour="cal-recurring"]', 1000);
         const man = await meet(page, '[data-scroll="screen"]', "recurring manager");
         await shot("13-manager-end");
         const end = await keysIn(page, '[data-scroll="screen"]', /^End$/);
-        check("(s3) the manager's End is the white key on the control's corner, 40 tall — not a hairline pill",
-          isStone(end) && end.every((o) => o.radius === "10px" && o.h >= 40), toldK(end) + ` ${JSON.stringify(end.map((o) => [o.radius, o.h]))}`);
+        check("(s3) the manager's End is the red quiet key on the control's corner, 40 tall — not a hairline pill",
+          isRed(end) && end.every((o) => o.radius === "10px" && o.h >= 40), toldK(end) + ` ${JSON.stringify(end.map((o) => [o.radius, o.h]))}`);
         await tap(page, '[aria-label="Today"]', 900); await toSettings(page);
         await tap(page, '[data-tour="settings-library"]', 1000);
         /* the bin sits inside a drill's unfolded row */

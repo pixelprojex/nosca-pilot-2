@@ -39,7 +39,7 @@ const HAIRLINE = "rgb(235, 235, 240)";
    tone with the hue's ink since the 23rd, when every key was filled (it was the lead at a tenth and at 55%
    over white, then for a morning its pale) */
 const ACCENT = { golf: "#285937", equestrian: "#6B2935" };
-const CLOTH = { golf: "#94BD9E", equestrian: "#DA9FA6" };
+const CLOTH = { golf: "#94BD9E", equestrian: "#CDAEB1" };   // claret's cloth capped with the reds and blues on 24 November (#DA9FA6 before)
 const mixRgb = (a, b, k) => { const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); const x = p(a), y = p(b); return `rgb(${x.map((v, i) => Math.round(v + (y[i] - v) * k)).join(", ")})`; };
 const SEL = (sport) => ({ face: mixRgb(CLOTH[sport], "#000000", 0), ring: mixRgb(CLOTH[sport], ACCENT[sport], 0.5), fg: mixRgb(ACCENT[sport], "#000000", 0.45) });
 const GROUP = "rgb(110, 90, 147)";
@@ -141,8 +141,14 @@ const lum = (c) => { const v = String(c).match(/[\d.]+/g); if (!v) return 1; con
       await shot("02-coach-block-open");
       check("(c3) …and opened, its Length reads 60m", !!opened && opened.len === "60", JSON.stringify(opened));
       check("(c5) …with nothing inside it on the hairline", !!opened && opened.onHair === 0, JSON.stringify(opened));
-      const weather = await page.evaluate(() => { const b = document.querySelector('[data-tour="cal-weather"]'); if (!b) return null; const s = getComputedStyle(b); const svg = b.querySelector("svg"); return { bg: s.backgroundColor, border: s.borderTopColor, bw: parseFloat(s.borderTopWidth), radius: s.borderTopLeftRadius, cls: svg ? svg.getAttribute("class") : "" }; });
-      check("(c6) the call-off row is the list's white card at 14px, with the calendar-and-X glyph — never the rain", !!weather && weather.bg === CARD && weather.border === EDGE.golf && weather.radius === "14px" && /calendar-x/.test(weather.cls) && !/cloud-rain/.test(weather.cls), JSON.stringify(weather));
+      const weather = await page.evaluate(() => { const b = document.querySelector('[data-tour="cal-weather"]'); if (!b) return null; const s = getComputedStyle(b); return { bg: s.backgroundColor, border: s.borderTopColor, bw: parseFloat(s.borderTopWidth), radius: s.borderTopLeftRadius, cls: [...b.querySelectorAll("svg")].map((x) => x.getAttribute("class")).join(" ") }; });
+      /* 23 November: a row of words carries no icon, and a row that was told apart only by its tile's colour is told by
+         its word's — the calendar-and-X on the red tile is gone and the word is the family's red (#9A322A) on the box's
+         16 inset, the chevron after it, a door's 60 tall. Never the rain: a coach calls off for a closed course as often */
+      const calloff = await M.rowLead(page, '[data-tour="cal-weather"]');
+      check("(c6) the call-off row is the list's white card at 14px: the word in the family's red on the box's inset and the chevron, no glyph before it — never the rain, never a tile",
+        !!weather && weather.bg === CARD && weather.border === EDGE.golf && weather.radius === "14px" && !/cloud-rain|calendar-x/.test(weather.cls)
+        && M.plainRow(calloff) && calloff.inset === 16 && calloff.h === 60 && calloff.color === "rgb(154, 50, 42)" && /^Call (today off|off (Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{1,2})$/.test(calloff.label), `${JSON.stringify(weather)} · ${JSON.stringify(calloff)}`);
       /* (w2) Call off, from that row */
       await tap(page, '[data-tour="cal-weather"]', 1000);
       await reasonChecks(page, "w2", "calloff-why", "Weather", "golf"); await shot("03-calloff-why");
