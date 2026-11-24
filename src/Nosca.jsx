@@ -2784,7 +2784,7 @@ function DrillTimer({ seconds, onDone }) {
    between them, running as far forward as they want to look. */
 function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, monthIdx,
                      onOpen, onEditDay, onBookInto, onRecurring, push, juvenile, now, away = null,
-                     mine = [], coachName = null, onMine = null }) {
+                     mine = [], coachName = null, onMine = null, onAccept = null, onDecline = null }) {
   const t = useT();
   /* the tree's own calendar — the real months for a real account, the
      harness's fixed summer otherwise */
@@ -2988,6 +2988,31 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                   );
                   return mineRow;
                 }
+
+                /* A REQUEST IN ITS HOUR (24 November): the time, the whole name,
+                   Requested and the player's note on the grey line, and Accept ·
+                   Decline as Today's request row carries them — the same
+                   handlers, the decline sheet with them. The hour is held: no
+                   plus, and the day's free hours leave it out. Beside the name
+                   while the name keeps its 120 (a long one wrapped inside its
+                   words in less); a line of their own under it, on the right,
+                   where it cannot, as Accept · Decline do on every person row */
+                if (bk && isCoach && bk.status === "requested") return (
+                  <div key={h} data-tour="agenda-ask" data-ask={bk.id || ""} className="w-full flex flex-wrap items-center gap-x-3 px-4"
+                       style={{ minHeight: 56, paddingTop: 6, paddingBottom: 6, ...line }}>
+                    <Rail tone={t.ink} style={TIME_LEAD}>{h}</Rail>
+                    <span className="min-w-0 py-1.5" style={{ flex: "1 1 120px" }}>
+                      <span data-name="" className="block" style={{ ...TYPE.body, fontWeight: 600, color: t.ink, lineHeight: 1.2, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{bk.who}</span>
+                      <span data-tour="agenda-ask-line" className="block" style={{ ...TYPE.small, color: t.sub, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{[tr("Requested"), bk.note].filter(Boolean).join(" · ")}</span>
+                    </span>
+                    {(onAccept || onDecline) && (
+                      <span className="shrink-0 flex items-stretch gap-1 ml-auto" style={{ minHeight: 44 }}>
+                        {onAccept && <TextBtn quiet tour="agenda-accept" color={t.accent} onClick={() => { hapticCommit(); onAccept(bk); }}>{tr("Accept")}</TextBtn>}
+                        {onDecline && <TextBtn quiet tour="agenda-decline" color={t.faint} onClick={() => { haptic(9); onDecline(bk); }}>{tr("Decline")}</TextBtn>}
+                      </span>
+                    )}
+                  </div>
+                );
 
                 if (bk && isCoach) return (
                   <button key={h} data-tour="agenda-row" onClick={() => { haptic(7); soft(); onOpen(day, bk); }}
@@ -8254,6 +8279,44 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
           </div>
         </div>
       )}
+    </Tile>
+  );
+}
+
+/* A REQUEST IN ITS HOUR, ON THE COACH'S CALENDAR VIEW (24 November). It
+   is drawn among the day's lessons in time order, the list's white card
+   as theirs is: the face and the whole name, the time and Requested on
+   the grey line, the player's note under it in their words — then
+   Decline · Accept as the box's foot, the keys every box of the Calendar
+   view ends on (Today's request row carries the same two as words). Both
+   are the quiet key, Accept's word in the sport's colour: a day can hold
+   several requests, and a screen holds one deep key. Accept is Today's
+   own accept, Decline Today's decline sheet. */
+function AskBlock({ item, duration, delay = 0, onAccept, onDecline }) {
+  const t = useT();
+  const len = item.duration || duration;
+  const key = { minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, fontFamily: ui, fontSize: 15, fontWeight: 600 };
+  return (
+    <Tile tour="cal-ask" delay={delay} className="mb-3" style={{ overflow: "hidden", borderRadius: 14, boxShadow: `0 2px 0 ${EDGE(t)}` }}>
+      <div data-ask={item.id || ""} className="px-5 py-4">
+        <div className="flex items-center gap-3.5">
+          <Avatar name={item.who} size={42} />
+          <span className="flex-1 min-w-0">
+            <span data-name="" className="block" style={{ ...TYPE.heading, color: t.ink, overflowWrap: "break-word" }}>{item.who}</span>
+            {/* two facts, each kept whole: the dot rides with the second */}
+            <span className="block mt-1" style={{ ...TYPE.small, color: t.faint }}>
+              <span data-block-time className="whitespace-nowrap">{span(item.time, len)}</span> <span data-ask-state className="whitespace-nowrap">· {tr("Requested")}</span>
+            </span>
+          </span>
+        </div>
+        {item.note && <p data-tour="cal-ask-note" className="mt-3" style={{ ...TYPE.small, color: t.sub, overflowWrap: "break-word" }}>{item.note}</p>}
+        {(onAccept || onDecline) && (
+          <div className="flex gap-2.5 mt-4">
+            {onDecline && <button data-tour="cal-decline" onClick={() => { haptic(9); onDecline(item); }} className="flex-1 n-key" style={{ ...key, color: t.ink }}>{tr("Decline")}</button>}
+            {onAccept && <button data-tour="cal-accept" onClick={() => { hapticCommit(); onAccept(item); }} className="flex-1 n-key" style={{ ...key, color: t.accent }}>{tr("Accept")}</button>}
+          </div>
+        )}
+      </div>
     </Tile>
   );
 }
@@ -17241,7 +17304,7 @@ function AwayScreen({ ranges, onChange, booked, isoOf, pop, say, onCallOff }) {
 }
 
 function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seedBooked, onBook, onCancel,
-                          say, push, right, family, duration, recurrence, setRecurrence, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, extra = [], selfCanBook = true, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now, parent, forName, onClearFor, kids, onBookFor, lessonsFor, away = null, landing = null, onLanded, onGroupOut, me = null, onMove }) {
+                          say, push, right, family, duration, recurrence, setRecurrence, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, extra = [], selfCanBook = true, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now, parent, forName, onClearFor, kids, onBookFor, lessonsFor, away = null, landing = null, onLanded, onGroupOut, me = null, onMove, onAccept = null, onDecline = null }) {
   const t = useT();
   const live = useLive();
   /* the tree's calendar: the real months for a real account, the
@@ -17282,7 +17345,11 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
   /* a day the coach is away offers nothing, whatever the week says */
   const awayOn = (m, d) => !!(away && away.size && away.has(`${yearOf(m, cx)}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`));
   const open = isGone(mo.idx, sel) || awayOn(mo.idx, sel) ? [] : openTimes(mo.idx, sel, avail, blocked, bookings, seedBooked, cx, extra);
-  const booked = seedBooked[key(mo.idx, sel)] || [];
+  /* the coach's day: the lessons booked, and the requests waiting in their
+     hours — held (openTimes counts them taken), drawn apart, counted apart */
+  const dayRows = seedBooked[key(mo.idx, sel)] || [];
+  const booked = role === "coach" ? dayRows.filter((b) => b.status !== "requested") : dayRows;
+  const asks = role === "coach" ? dayRows.filter((b) => b.status === "requested").sort((a, b) => (parseTime(a.time) ?? 0) - (parseTime(b.time) ?? 0)) : [];
   /* every lesson of the person's on the day, each its own block, in time
      order — a clinic and their own lesson on one day are two blocks, so
      the clinic (which offers no Cancel) never stands in for the lesson
@@ -17451,6 +17518,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                     onEditDay={(day) => onEditDay && onEditDay(day)}
                     onBookInto={(day, h) => onBookInto && onBookInto(day, h)}
                     onRecurring={() => onRecurring && onRecurring()} push={push} now={T}
+                    onAccept={onAccept} onDecline={onDecline}
                     mine={role === "coach" ? [] : bookings} coachName={conn?.coach || null}
                     onMine={(day) => { const i = months.findIndex((x) => x.idx === day.m); if (i >= 0) setMi(i); setSel(day.d); setPick(null); setView(tr("Calendar")); }} />
       ) : (<>
@@ -17574,13 +17642,19 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
         {past ? (
           <p className="py-10 text-center" style={{ fontFamily: ui, fontSize: 14, color: t.faint }}>{tr("That day has passed")}</p>
         ) : role === "coach" ? (
-          booked.length === 0 && dayHours.length === 0 && !awayOn(mo.idx, sel) ? (
+          booked.length === 0 && asks.length === 0 && dayHours.length === 0 && !awayOn(mo.idx, sel) ? (
             <FreeDay onSetHours={() => push("availability")} />
           ) : (<>
             {awayOn(mo.idx, sel) && <AwayLine role="coach" booked={booked.length} onEdit={() => push("away")} />}
-            {booked.length > 0 ? (
+            {booked.length > 0 || asks.length > 0 ? (
               <>
-                {booked.map((b, i) => (
+                {/* the day in time order: a request stands in its hour among
+                    the lessons, a box of its own on the same card */}
+                {[...booked.map((b) => ({ b, ask: false })), ...asks.map((b) => ({ b, ask: true }))]
+                  .sort((x, y) => (parseTime(x.b.time) ?? 0) - (parseTime(y.b.time) ?? 0))
+                  .map(({ b, ask }, i) => ask ? (
+                    <AskBlock key={b.id || `ask-${b.time}`} item={b} duration={duration} delay={i * 70} onAccept={onAccept} onDecline={onDecline} />
+                  ) : (
                   <ScheduleBlock key={b.time + i} item={b} duration={duration} delay={i * 70} lessonsFor={lessonsFor}
                                  hoursUntil={mo.idx === T.m && sel === T.d ? (parseTime(b.time) - minsNow) / 60 : null}
                                  onOpenLast={(n) => push("history:" + n)} onLog={() => onLogFor && onLogFor({ ...b, m: mo.idx, d: sel })}
@@ -21173,7 +21247,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (!next) return "";
     return next.to && next.to !== next.from ? `${fmtWeekDay(localDate(next.from))} – ${fmtWeekDay(localDate(next.to))}` : fmtWeekDay(localDate(next.from));
   })();
-  /* The diary shows what is confirmed; requests wait in Today's fold. */
+  /* What is confirmed. The coach's Diary reads coachDiaryBooked (below),
+     which holds the requests made to them in their hours as well; a
+     player's reads this with the coach's busy times. */
   const mySeedBooked = data
     ? Object.fromEntries(Object.entries(data.bookings || {}).map(([k, rows]) => [k, rows.filter((b) => !b.status || b.status === "confirmed")]).filter(([, rows]) => rows.length))
     : seedBooked[coachSport];
@@ -21192,6 +21268,20 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const playerBooked = data && role === "player"
     ? withBusy(mySeedBooked, bookFor ? ((data.busyByPlayer || {})[bookFor.id] || []) : (data.busySlots || []))
     : mySeedBooked;
+  /* A REQUEST HOLDS ITS HOUR IN THE COACH'S DIARY (24 November). The
+     coach's Diary drew the confirmed lessons alone, so the hour a player
+     had asked for read free — "6 free · Nothing booked", a plus on it —
+     and the coach could book somebody else into the very hour being asked
+     for, while the request sat on Today with nothing in the Diary to say
+     so. The coach's Diary now carries every request made to them in its
+     hour (status "requested"): drawn as Requested with Accept · Decline,
+     Today's own handlers; held, so no plus is on it and no free count
+     counts it. A request a coach made as somebody's player is not theirs
+     to answer and stays out. */
+  const coachDiaryBooked = data && role === "coach"
+    ? Object.fromEntries(Object.entries(data.bookings || {}).map(([k, rows]) => [k, rows.filter((b) => !b.status || b.status === "confirmed"
+        || (b.status === "requested" && b.playerId && (!b.coachId || !account || b.coachId === account.id)))]).filter(([, rows]) => rows.length))
+    : null;
   /* THE OPEN TIMES OF A DAY, FOR A LESSON MOVED THERE — a player's side
      of dayOpenTimes: the coach's hours as the person reads them (a
      child's coach's for a parent moving a child's lesson), the days
@@ -22947,10 +23037,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                             setBlocked={(fn) => { if (data) { const next = typeof fn === "function" ? fn(myBlocked) : fn; data.saveAvailability({ ...(liveHours || {}), blocked: next.map((b) => `${isoOf(b.m, b.d)}|${b.time}`) }); return; }
                                                               setBlocked((p) => ({ ...p, [coachSport]: typeof fn === "function" ? fn(p[coachSport]) : fn })); }}
                                                             bookings={role === "player" ? (bookFor ? (liveBookingRows || []).filter((b) => (b.playerId === bookFor.id || (b.forIds || []).includes(bookFor.id)) && (b.status === "requested" || b.status === "confirmed")).map((b) => ({ ...b, connId: 1, out: (b.outIds || []).includes(bookFor.id) })) : myBookings) : []}
-                                                            onGroupOut={data && data.canRsvp ? async (bk, out) => { const pid = bookFor ? bookFor.id : account.id; const r = await data.setGroupAbsence(bk.id, pid, out); if (r && r.error) { say(r.error.message); return; } done(out ? tr("Not going") : tr("Going"), [bookFor ? bookFor.name.split(" ")[0] : null, bk.groupName, bk.date ? fmtIsoDay(bk.date) : null].filter(Boolean).join(" · ")); } : null} seedBooked={playerBooked} onBook={bookFor ? (b) => bookKid(bookFor, b) : book} onCancel={cancel} say={say} push={push} right={juvenile ? juvRight : role === "player" ? navRight : slimRight} family={data ? null : familyCalendar} duration={duration} recurrence={recurrence} setRecurrence={setRecurrence} readOnly={juvenile && !bookFor}
+                                                            onGroupOut={data && data.canRsvp ? async (bk, out) => { const pid = bookFor ? bookFor.id : account.id; const r = await data.setGroupAbsence(bk.id, pid, out); if (r && r.error) { say(r.error.message); return; } done(out ? tr("Not going") : tr("Going"), [bookFor ? bookFor.name.split(" ")[0] : null, bk.groupName, bk.date ? fmtIsoDay(bk.date) : null].filter(Boolean).join(" · ")); } : null} seedBooked={coachDiaryBooked || playerBooked} onBook={bookFor ? (b) => bookKid(bookFor, b) : book} onCancel={cancel} say={say} push={push} right={juvenile ? juvRight : role === "player" ? navRight : slimRight} family={data ? null : familyCalendar} duration={duration} recurrence={recurrence} setRecurrence={setRecurrence} readOnly={juvenile && !bookFor}
                                                             seriesList={mySeries} onEditSeries={(r) => { setRecurId(r.id || null); setRecurFor(r.playerId ? personOf(r.playerId) : { name: r.who }); setSheet("recurring"); }} onWeather={weatherCancel}
                                                             prefs={calPrefs} setPrefs={setCalPrefs} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} onWeatherDay={(day) => { setCallOffFor(day || null); setSheet("weather"); }} onCancelWithReason={(l) => { setCancelling(typeof l === "string" ? l : l.label || `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }}
                                                             onPeek={(bk) => { setPeek(bk); setSheet("peek"); }}
+                                                            /* a request in its hour answers as Today's row does: the same Accept, the same decline sheet */
+                                                            onAccept={role === "coach" && data ? acceptAsk : null}
+                                                            onDecline={role === "coach" && data ? (r) => { setDeclining(r); setDeclineWhy(null); setDeclineNote(""); setSheet("decline"); } : null}
                                                             onMove={data && data.canMove ? (bk) => { setMoveBk(bk); setMoveFor(bookFor ? bookFor.id : (account ? account.id : null)); setSheet("move"); } : null}
                                                             onEditDay={(day) => { setEditDay(day); setSheet("editDay"); }}
                                                             onBookInto={(day, h) => { setBookSlot({ day, time: h }); setAskNote(""); setSheet(role === "coach" ? "bookWho" : "bookSelf"); }}

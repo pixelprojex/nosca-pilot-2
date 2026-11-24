@@ -1904,6 +1904,35 @@ seeded data and no account.
   meeting"), Acuity's intake answers shown on the appointment, Square's
   note at booking; Wix's and Calendly's message on a decline.
   `scripts/e2e/request-note.cjs`; behaviour.sql 10f.
+- **A request holds its hour in the coach's Diary (24 November).** The
+  coach's Diary drew confirmed lessons alone (`mySeedBooked`), so a
+  request was on Today and nowhere in the Diary: its hour read free —
+  "6 free · Nothing booked", a plus on it — and the coach could book
+  somebody else into the very hour being asked for. The coach's Diary
+  reads `coachDiaryBooked` now: the confirmed lessons and every request
+  made to them (a request a coach made as somebody's player is not
+  theirs to answer and stays out), each in its hour. On the List it is
+  a row of the day's box (`agenda-ask`): the time in the ink, the whole
+  name, "Requested" and the player's note on the grey line (two lines),
+  and **Accept · Decline** as Today's request row carries them — text
+  actions, Accept in the sport's colour, Decline in `t.faint` — beside
+  the name while the name keeps its 120, a line of their own under it,
+  on the right, where it cannot. On the Calendar view it is a box among
+  the day's lessons in time order (`AskBlock`, `cal-ask`): the face and
+  the whole name, the span and Requested on the grey line, the note in
+  the player's words, then **Decline · Accept** as the box's foot
+  (`cal-decline`, `cal-accept`), the quiet key, Accept's word in the
+  sport's colour — a day can hold several, and a screen holds one deep
+  key. Both are Today's own handlers: Accept is `acceptAsk`, Decline
+  opens the decline sheet (its Why, its Offer another time, Just
+  decline). The hour is held: no plus on it, the free count leaves it
+  out ("1 booked · 3 free", never the request as booked), the Free times
+  skip it, the month grid and the ticker mark the day, and the per-day
+  sheet carries it as a booked tile with no minus. On the Calendar view
+  a day with only a request reads no "Nothing booked", and its Call off
+  row stays the lessons' (the call-off itself still takes a request
+  with the day's lessons); a day with no hours but a request is a day.
+  `offer-times.cjs` (q1)–(q8), `diary.cjs` (a4).
 - **All lessons is its own row on the coach's home, never under
   Actions.** The archive is not a chore; `today-archive` sits in a box
   of its own under the Actions list, carrying the count.
