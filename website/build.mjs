@@ -218,7 +218,10 @@ function build() {
       theme: meta.theme || (/^(dark|world|green)$/.test(meta.header || '') ? WORLD[world] : meta.header === 'rest' ? '#F6F4EE' : '#FFFFFF'),
       worldColor: WORLD[world],
       pageCss: exists(path.join(SRC, 'css', page + '.css')) ? `<link rel="stylesheet" href="css/${page}.css">` : '',
-      pageJs: exists(path.join(SRC, 'js', page + '.js')) ? `<script defer src="js/${page}.js"></script>` : ''
+      pageJs: exists(path.join(SRC, 'js', page + '.js')) ? `<script defer src="js/${page}.js"></script>` : '',
+      /* preload: InstrumentSerif-Italic, … — a font the page's first screen sets large, fetched with the two the shell always preloads */
+      preload: (meta.preload || '').split(',').map((n) => n.trim()).filter((n) => /^[\w-]+$/.test(n) && exists(path.join(ROOT, 'fonts', n + '.woff2')))
+        .map((n) => `<link rel="preload" href="fonts/${n}.woff2" as="font" type="font/woff2" crossorigin>`).join('\n')
     };
     vars.title = esc(vars.title); vars.description = esc(vars.description);
     let html = render(shell, { ...vars, content: '%%CONTENT%%' });

@@ -353,8 +353,12 @@
       return o.tl;
     }
     if (el._shift) return el._shift;
-    /* the apron lies on the foot of the section before, so nothing this section clips can cut it off */
-    const prev = el.previousElementSibling; if (!prev) return null;
+    /* the apron lies on the foot of the section before, so nothing this section clips can cut it off. The footer's
+       "section before" is the last section of <main>, so the wedge crosses that section's own ground, never a band of
+       the body's white added under it. */
+    let prev = el.previousElementSibling;
+    if (prev && prev.tagName === 'MAIN') prev = prev.lastElementChild;
+    if (!prev) return null;
     const cs = getComputedStyle(el);
     if (getComputedStyle(prev).position === 'static') prev.style.position = 'relative';
     const apron = D.createElement('div'); apron.className = 'shift__apron'; apron.setAttribute('aria-hidden', 'true');
@@ -387,7 +391,8 @@
     };
     size(); render(0);
     return (el._shift = ScrollTrigger.create({
-      trigger: el, start: 'top bottom', end: () => 'top ' + Math.round(Math.min(Site.svh() * 0.14, 120)) + 'px',
+      /* clamp(): the footer, last on the page, may never reach the top; it levels as the page ends instead */
+      trigger: el, start: 'top bottom', end: () => 'clamp(top ' + Math.round(Math.min(Site.svh() * 0.14, 120)) + 'px)',
       onRefreshInit: size, onRefresh: (st) => render(st.progress), onUpdate: (st) => render(st.progress)
     }));
   };
@@ -1058,6 +1063,9 @@
     started = true;
     queue.splice(0).forEach((fn) => { try { fn(Site); } catch (e) { fail(e); } });
     try { stages(D); } catch (e) { fail(e); }
+    /* the footer's green arrives through the card's diagonal on every page, as every ground before it does
+       (a page that draws its own sets foot._shift, as Home does) */
+    try { const foot = $('footer.foot'); if (motion && libs && foot && !foot._shift) Site.groundShift(foot); } catch (e) { fail(e); }
     if (libs) {
       const again = () => { ScrollTrigger.refresh(); };
       fontsReady.then(again);

@@ -2,7 +2,7 @@
 
 Four pages about Nosca for shareholders, partners and anyone meeting the app for the first time: **Home** (the olive business card at the size of a screen), **Product** (the app in full), **Story** (the dark green card: the name, how it was built, what we stand for) and **Partners**.
 
-It is launched with the app, as a folder of the same Netlify site: `https://nosca-pilot-2.netlify.app/about/`. `npm run build` builds the app and then runs `node website/build.mjs --out dist/about`.
+It is launched with the app, as a folder of the same deploy: `https://nosca.netlify.app/about/` (the old address, `nosca-pilot-2.netlify.app`, builds the same and hands a visitor on to the new one). `npm run build` builds the app and then runs `node website/build.mjs --out dist/about`. Every link is relative, and the two app links (`../`, `../install`) reach the app beside it.
 
 ## To change it
 
@@ -40,7 +40,8 @@ To give the site a domain of its own, add a second site in Netlify from this sam
 
 ## What the founder can add
 
-- A contact email (`site.config.json`, `contactEmail`): the Partners page and the footer show it once it is there.
+- A contact email (`site.config.json`, `contactEmail`): Partners' close becomes "Partner with Nosca." with the address, and Home's close carries it, once it is there. While it is empty no address shows anywhere.
 - The story's first beat in his own words: when and where Nosca began, and why.
-- A real swing or forehand, filmed with consent, for the clips in Mark it up and Compare (they are the test suite's synthetic clip today).
+- A real swing or forehand of his own, filmed with consent, for the clips inside the app's screens. They show a putting green seen from above today (a stock clip with no one to read as a customer); Story's plus sheet and register and Product's plus sheet are still shot from the app before 24 November's calmer keys, and want re-shooting from a build that has them.
+- His own photographs, if he would rather than the licensed ones (`assets/photo/`, the manifest says which picture stands where).
 - Partner marks, as they sign.

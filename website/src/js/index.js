@@ -177,6 +177,7 @@ Site.ready(function (S) {
   })();
   (function footer() {
     var foot = $('.foot'), host = $('#start'); if (!foot || !host) return;
+    foot._shift = true; /* the foundation's footer shift stands down: this one is hosted in the close itself */
     var apron = document.createElement('div'); apron.className = 'shift__apron'; apron.setAttribute('aria-hidden', 'true');
     apron.innerHTML = '<i class="shift__fill"></i><i class="shift__edge"></i>';
     var cs = getComputedStyle(foot);

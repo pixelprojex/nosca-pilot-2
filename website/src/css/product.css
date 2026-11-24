@@ -215,13 +215,10 @@ html.motion .pd-sports__lead{width:min(80vw,34em)}
 /* ───────────── the close ───────────── */
 .pd-close .cols{align-items:center}
 .pd-close__copy{--stack:clamp(18px,2.4vw,30px)}
-.pd-close__h{font-size:clamp(46px,7.2vw,112px);max-width:7em}
+.pd-close__h{max-width:7em}
 .pd-close__links{display:flex;flex-wrap:wrap;gap:4px 28px}
 .pd-close__card{display:grid;gap:18px;justify-items:start;min-width:0}
 .pd-close__card .bcard{--card-w:min(84vw,460px)}
 .pd-close__card .t-caption{max-width:min(100%,26em)}
 @media (min-width:900px){.pd-close__card{justify-items:end}.pd-close__card .t-caption{text-align:right}.pd-close__card .bcard{--card-w:min(460px,36vw)}}
 
-/* ───────────── the footer's six sports on this page: a line never starts with its dot (the app's SEP_HANG) ───────────── */
-[data-page="product"] .foot__sports{display:flex;flex-wrap:wrap;max-width:27.2em;margin-left:-1.2em;clip-path:inset(-4px -4px -4px 1.2em)}
-[data-page="product"] .foot__sports>span::before{content:"\00B7";display:inline-block;width:1.2em;margin:0;text-align:center;opacity:.7}

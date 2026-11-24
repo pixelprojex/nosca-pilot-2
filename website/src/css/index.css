@@ -210,14 +210,9 @@ html:not(.motion) .hm-name__in{padding-block:clamp(96px,14vw,200px)}
   .hm-close__card .bcard{--card-w:min(36vw,460px)}
 }
 
-/* ───────── the card's sports line, on Home's two cards: a small card breaks it after Rowing, never before a dot ───────── */
-@container (max-width:419px){
-  .hm-open .bcard__sports,.hm-close .bcard__sports{width:12.4em;right:auto}
-}
-/* the footer's sports on Home: one line on a desk; where it wraps, the dot stays at the end of its word */
+/* the card's sports line and the footer's hang their dots in the foundation now (site.css .sports, .bcard__sports) */
+/* the footer's sports on Home: one line on a desk */
 [data-page="index"] .foot__sports{max-width:none}
-[data-page="index"] .foot__sports>span+span::before{content:none}
-[data-page="index"] .foot__sports>span:not(:last-child)::after{content:"·";margin:0 .2em 0 .5em;opacity:.7}
 
 /* ───────── a ground arriving on the card's diagonal (index.js): the photograph's film, and the footer ───────── */
 .hm-diag__edge{position:absolute;z-index:6;left:0;top:0;height:1.5px;width:150vmax;margin-top:-.75px;background:var(--gold-pin);transform-origin:0 50%;pointer-events:none;opacity:0}

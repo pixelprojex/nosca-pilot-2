@@ -48,6 +48,8 @@ header: green           (the ground the header stands on before the first scroll
 <section class="film g-green" id="top" …> … </section>
 <section class="section g-paper" id="…"><div class="wrap"> … </div></section>
 ```
+`preload: InstrumentSerif-Italic, InstrumentSerif-Regular` in the comment preloads fonts the page's first screen sets
+large (Story's *nascadh*), beside the two Instrument Sans cuts the shell preloads on every page.
 Template: `<!-- @include NAME key="value" -->` · `{{appUrl}} {{installUrl}} {{contactEmail}} {{year}}`
 (`{{key|fallback}}`) · `<!-- @if contactEmail --> … <!-- @else --> … <!-- @endif -->` (`@if !key` too; not nested).
 Every URL relative: `product.html#coach`, `assets/x.webp`, `./` for Home. When `contactEmail` is empty no address shows.
@@ -146,8 +148,10 @@ Each web font has a fallback face cut with `size-adjust` and its own ascent and 
 | `.t-serif` | the serif at the current size | a word or a line |
 | `<i lang="ga">nascadh</i>` | the serif's italic, a touch larger | a word in Irish, set apart as the foreign word it is. Always mark it up so |
 
+`.stack` sets its gap on every child, type classes included (their own margin reset no longer wins over it).
 `h1 h2 h3` balance; `p` wraps pretty. `.measure` is 34em. `.nw` keeps words together. `.sports` (spans) is the six
-sports line with its dots. `.t-gold` is flat gold in the ground's `--gold-text` (large type, numerals, eyebrows only).
+sports line with its dots: each name carries its dot before it and the strip left of the column is clipped, so a
+wrapped line never starts or ends on a dot (the card's `.bcard__sports` is spans and does the same). `.t-gold` is flat gold in the ground's `--gold-text` (large type, numerals, eyebrows only).
 
 ## Layout
 
@@ -237,7 +241,7 @@ four fifths of `--len`). What the markup says:
 | `data-turn="ry,rx,rz"` (`data-turn-to="ry,rx,rz"`) | it turns in 3D into rest (or from one pose to another across the whole film) |
 | a `[data-sequence]` (the phone's `seq`) | runs frame for frame with the steps: each step's `data-frame` is the frame the sequence stands on as that step begins |
 | `[data-scrub-video]` | its time runs with the film |
-| `.film__bar > i` | fills |
+| `.film__bar > i` | fills; the line fades once the film lets go (`.is-live` off), on every page |
 | `[data-ink]` `[data-rise]` `[data-settle]` `[data-depth]` `[data-stripes]` `[data-rule]` on the stage | play with the film: inside a `[data-step]` as that step begins, otherwise over the film. `data-at="6" data-len="44"` places one exactly (0 to 100). Anything your script drives itself is left alone |
 | `data-span="16,100"` | where the steps begin and end |
 | `data-unpin="sm"` | on a phone this film does not pin: it is the plain column (`.only-rest` shows, `.only-motion` hides) |
@@ -280,7 +284,9 @@ coarse pass first so a fast scroll always has a near frame. The `<img>` is the p
 |---|---|---|---|
 | `log` | 58 | 0.8 MB | home 0 · plus 1–10 · who 11–18 · page 19–27 · chipping 28–31 · putting 32–35 · logged 36–57 |
 | `register` | 36 | 1.1 MB | home 0 · peek 1–7 · open 8–15 · six marks 16–33 (the fourth is Absent) · submit 34–35 |
-| `feed` | 29 | 0.5 MB | first 0 · to the second lesson 1–14 · to the third 15–28 (a player's feed; the clips are the test suite's synthetic clip) |
+| `pd-feed` | 29 | 0.7 MB | first 0 · to the second lesson 1–14 · to the third 15–28 (a player's feed over a real putting green seen from above; Home and Product) |
+| `pt-register` | 42 | 1.3 MB | the register shot from today's app (24 Nov): the day, the clinic opened, ten names marked, Taken (Partners) |
+| `feed` | 29 | 0.5 MB | the same marks as `pd-feed` with the test suite's synthetic clip. No page uses it; kept for the tools |
 
 All are 660 × 1428, shot from a mock build of the real app (`tools/seq/seq-*.cjs`, then `seq-encode.py`; they
 need the stills harness in the scratchpad, see each file's first line). Ask the foundation for another.
@@ -295,7 +301,8 @@ pauses the moment it is not (`="once"` does not loop).
 
 ### Site.inkFill — a headline fills with ink line by line
 
-`<h2 class="t-display" data-ink>` (`data-ink="gold"` fills in gold). The dim line stays (`--fg-dim`); a full-ink
+`<h2 class="t-display" data-ink>` (`data-ink="gold"` fills in gold). The dim line stays (`--fg-dim`: `#8E8E93` on paper,
+`#8C8A84` on rest, about 3:1, so a line not yet filled reads as waiting and never as missing; the same on every page); a full-ink
 copy of each line opens over it from the left. `Site.inkFill(el, { tl, at, duration })` in a film.
 
 ### Site.rise — words rising out of their line's mask
@@ -322,6 +329,10 @@ a wedge of it, closed by the gold edge, rises out of the section before and leve
 top. Nothing is pinned. A plain section before it is given a foot as tall as the wedge (`data-shift-lead="0.5"`
 of a screen), so the wedge crosses air. After a film, a rail or a `.hold` there is no foot: the edge starts level
 when the scene lets go, tilts over the departing frame, and levels again at the top (it never lies over a scene that is still playing).
+**The footer** arrives this way on every page with no markup: `site.js` shifts `footer.foot` after the page's own
+scripts, its apron in the last section of `<main>` (so the wedge crosses that section's own ground), levelling as the
+page ends. A page that draws its own sets `foot._shift = true` in `Site.ready` (Home hosts it in `#start`). The footer's
+mark draws with the scroll (`data-stripes`), as its pinstripes do.
 In a film: `<div class="shift-layer g-paper" aria-hidden="true">…</div>` on the stage and
 `Site.groundShift(layer, { tl, at, duration, shape: 'wedge' | 'rise' | 'iris' })` opens it over the stage through a clip-path.
 

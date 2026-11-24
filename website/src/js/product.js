@@ -196,9 +196,7 @@ Site.ready(function (S) {
     gsap.fromTo(pic, { clipPath: 'inset(16% 9% 0% 9%)' }, { clipPath: 'inset(0% 0% 0% 0%)', ease: 'power1.inOut', scrollTrigger: { trigger: el, start: 'top bottom', end: 'top top', scrub: true } });
   });
 
-  /* ── the footer's green arrives through the card's diagonal, as every other ground on this page does ── */
-  var foot = S.$('footer.foot');
-  if (foot && foot.previousElementSibling) S.groundShift(foot);
+  /* the footer's green arrives through the card's diagonal: the foundation does it on every page now */
 
   /* ── the reel: which chapter is playing, and the ground the ticks stand on ── */
   var reel = S.$('.pd-reel'), first = S.$('#log'), last = S.$('#progress');

@@ -112,12 +112,8 @@ html.motion .pt-film__phone{align-self:start}
 
 /* a film's gold progress line is there only while its film plays: once the pin lets go it does not ride up with the
    stage under the next ground's wedge */
-html.motion .pt-open .film__bar,html.motion .pt-coach .film__bar,html.motion .pt-care .film__bar{transition:opacity .3s}
-html.motion .pt-open:not(.is-live) .film__bar,html.motion .pt-coach:not(.is-live) .film__bar,html.motion .pt-care:not(.is-live) .film__bar{opacity:0}
 
 /* a line waiting for the ink reads as waiting, not missing: about 3:1 on this page's white and rest */
-[data-page="partners"] .g-paper{--fg-dim:#8E8E93}
-[data-page="partners"] .g-rest{--fg-dim:#8C8A84}
 
 /* the green film: the pinstripes in one corner, behind everything */
 .pt-care{overflow:hidden;overflow:clip}
