@@ -182,6 +182,17 @@ const JS_ASSET = (() => { try { return JSON.parse(fs.readFileSync(path.join(dist
       await tap(page, '[aria-label="Today"]', 800); await openDownloads(page);
       const t4 = await text();
       check("(n) the Downloads screen lists the failed one first with its reason, the saved one under it", /Putting.*A file could not be fetched.*Short game/.test(t4) && (await page.locator('[data-download-row="failed"]').count()) === 1, t4.slice(0, 200));
+      /* (n2) 24 November: a Saved row's grey line read "Cian Murphy · Sun 22 …" at 390. Each part is whole now — the
+         whole name, the size, the reason it failed — breaking only between parts, the dot never leading a line; at 320
+         a part wider than the line wraps inside itself, as words do */
+      for (const width of [390, 320]) {
+        await page.setViewportSize({ width, height: 844 }); await page.waitForTimeout(400);
+        const fit = await M.factsFit(page, '[data-scroll="screen"]');
+        await shot(`04b-downloads-${width}`);
+        check(`(n2) at ${width} every Downloads row's areas and grey line are whole — nothing past the column, no line led by a dot, no fact split, no word broken — the reason it failed among them`,
+          M.factsWhole(fit) && fit.length === 4 && fit.some((f) => f.text === "Cian Murphy · A file could not be fetched"), JSON.stringify(fit));
+      }
+      await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(300);
       db.failFetch = null;
       /* the red disc opens the sheet: why it failed, Retry, Remove */
       await page.locator('[data-download-row="failed"] button[data-download="failed"]').first().click(); await page.waitForTimeout(600);

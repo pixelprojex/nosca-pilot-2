@@ -36,9 +36,9 @@ const { check, results, summary } = M.checker("review");
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined,
     args: ["--use-fake-device-for-media-capture", "--use-fake-ui-for-media-capture", "--autoplay-policy=no-user-gesture-required"] });
   const errorsByRole = {};
-  const boot = async (role, db) => {
+  const boot = async (role, db, viewport = { width: 390, height: 844 }) => {
     const u = Object.values(db.users).find((x) => x.id === IDS[role]);
-    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+    const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
     const page = await ctx.newPage();
     await page.clock.setFixedTime(new Date(`${TODAY}T08:00:00`)); await M.attach(page, db);
     errorsByRole[role] = errorsByRole[role] || []; page.on("pageerror", (e) => errorsByRole[role].push(String(e.message || e)));
@@ -324,6 +324,33 @@ const { check, results, summary } = M.checker("review");
       check("(j) the player's lesson page has three files, the take among them", (await p2.locator('[data-tour="lesson-clip"] button').count()) >= 3 && (await p2.locator('[data-tour="lesson-markup"]').count()) === 0);
       await shot2("10-player-lesson");
       await ctx2.close();
+    }
+
+    /* ---------- (m) every tool on the screen and 44 to a finger, at 320 and 390 ---------- */
+    /* (24 November, the class study) the five tools, the camera and the three inks were one row 372 wide: at 320 the
+       red and the white stood off the right of the screen and could not be chosen, and at 390 the white touched its
+       edge. The inks take a line of their own under the camera where the row cannot hold them; every round key reaches
+       44 through the gutter and every ink is a 44 key round its disc. Read by what a finger lands on, and each ink
+       chosen by a real tap */
+    for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }]) {
+      const { page: pm, ctx: cm, shot: shotm } = await boot("coach", freshDb(), viewport);
+      await tap(pm, '[aria-label="Roster"]', 700);
+      await pm.locator("button", { hasText: "Cian Murphy" }).first().click(); await pm.waitForTimeout(900);
+      await pm.locator("button", { hasText: "Putting" }).first().click(); await pm.waitForTimeout(1200);
+      await tap(pm, '[data-tour="lesson-markup"]', 900);
+      await pm.waitForFunction(() => { const c = document.querySelector('[data-tour="markup-stage"] canvas'); return !!c && c.width > 2; }, null, { timeout: 10000 }).catch(() => {});
+      const ctl = [];
+      for (const k of ["Pen", "Line", "Arrow", "Circle", "Angle", "Photo"]) ctl.push(await M.fingerFit(pm, `[data-tour="markup-tools"] [aria-label="${k}"]`));
+      for (let i = 0; i < 3; i++) ctl.push(await M.fingerFit(pm, '[data-tour="markup-inks"] button', i));
+      await shotm(`14-markup-tools-${viewport.width}`);
+      check(`(m${viewport.width}) at ${viewport.width} the five tools, Photo and the three inks are all on the screen, each 44 to a finger`,
+        ctl.length === 9 && ctl.every((c) => c && c.onScreen && c.missed.length === 0), JSON.stringify(ctl.filter((c) => !c || !c.onScreen || c.missed.length)));
+      const picked = [];
+      for (let i = 0; i < 3; i++) { await pm.locator('[data-tour="markup-inks"] button').nth(i).click(); await pm.waitForTimeout(120); picked.push(await pm.locator('[data-tour="markup-inks"] button').nth(i).getAttribute("aria-pressed")); }
+      const stage = await pm.locator('[data-tour="markup-stage"]').boundingBox();
+      check(`(m${viewport.width}) …each ink is chosen by a tap: yellow, red, white`, picked.join(" ") === "true true true", `${picked.join(" ")} · stage ${stage ? Math.round(stage.height) : "-"}px tall`);
+      console.log(`      note  Mark it up at ${viewport.width}×${viewport.height}: the stage ${stage ? Math.round(stage.height) : "-"}px tall`);
+      await cm.close();
     }
   } catch (e) {
     results.push({ name: "run completed", ok: false, detail: String((e && e.message) || e) });

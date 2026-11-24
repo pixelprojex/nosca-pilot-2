@@ -273,7 +273,8 @@ const litOf = (page) => page.evaluate(() => { const all = [...document.querySele
       await back(page);
       await tap(page, '[aria-label="Search"]');
       /* the drill this coach actually wrote a moment ago */
-      await page.fill('input[placeholder="Lessons, drills, tips, people"]', "ladder"); await page.waitForTimeout(600);
+      /* the header's search says Search since 24 November ("Lessons, drills, tips, peopl" was cut at 390) */
+      await page.fill('input[placeholder="Search"]', "ladder"); await page.waitForTimeout(600);
       await page.locator("button", { hasText: "Ladder drill" }).first().click(); await page.waitForTimeout(1000);
       let t5 = await leak("coach practice"); await shot("20-coach-practice");
       check("(c) coach Practice lists the real roster with counts from real drills", t5.includes("Cian Murphy") && /1 of 1 done|0 of 1 done/.test(t5) && !t5.includes("Marcus Tran"), t5.slice(0, 240));

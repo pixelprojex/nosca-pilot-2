@@ -5587,7 +5587,12 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
   const targets = [...(lessons || []), null];
   const cur = chosen ? targets.findIndex((l) => l && l.who === chosen.who && l.time === chosen.time) : targets.length - 1;
   const cycle = () => { if (live || targets.length < 2) return; haptic(6); onChoose && onChoose(targets[(Math.max(0, cur) + 1) % targets.length]); };
-  const filing = chosen ? `${String(chosen.who || "").split(" ")[0]} · ${chosen.time}` : tr("Nobody yet");
+  /* the first name and the time, each whole (Facts): the pill grows to
+     its words, and where the row up top cannot hold it — a long first
+     name at 320, the timer beside it while a clip records — the time
+     takes a second line in it. It was held to 150 and read "Saoirse ·
+     10:30…" at 390 */
+  const filing = chosen ? [String(chosen.who || "").split(" ")[0], chosen.time] : [tr("Nobody yet")];
   const mmss = (n) => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")}`;
   /* THE CHROME IS THE APP'S, NOT THE PHONE'S: paper pills over the
      picture with the ink on them, the modes as the app's own Segmented,
@@ -5620,29 +5625,30 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
           </div>
         )}
         {/* top: close, the timer while it records, what it files under */}
-        <div className="absolute inset-x-0 flex items-center justify-between px-3" style={{ top: `calc(${TOP_AIR}px + env(safe-area-inset-top, 0px))` }}>
-          <button onClick={() => { haptic(6); close(); }} aria-label={tr("Close")} className="flex items-center justify-center active:opacity-70"
+        <div className="absolute inset-x-0 flex items-center justify-between gap-2 px-3" style={{ top: `calc(${TOP_AIR}px + env(safe-area-inset-top, 0px))` }}>
+          <button onClick={() => { haptic(6); close(); }} aria-label={tr("Close")} className="shrink-0 flex items-center justify-center active:opacity-70"
                   style={{ width: 40, height: 40, borderRadius: 20, ...glass }}><X size={20} color={t.ink} strokeWidth={2} /></button>
           {live ? (
-            <span className="flex items-center gap-2 px-3 py-1.5" style={{ borderRadius: R.pill, background: DANGER, color: "#fff", fontFamily: ui, fontSize: 13, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+            <span className="shrink-0 flex items-center gap-2 px-3 py-1.5" style={{ borderRadius: R.pill, background: DANGER, color: "#fff", fontFamily: ui, fontSize: 13, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
               <span className="rounded-full" style={{ width: 7, height: 7, background: "#fff", animation: "breathe 1200ms ease-in-out infinite" }} />{mmss(cap.seconds)}
             </span>
           ) : <span />}
-          <span className="flex items-center gap-2">
+          <span className="min-w-0 flex items-center gap-2">
             {/* the framing guide: off · grid · lines, the glyph the phone's
                 camera uses for its own grid, filled while a guide is on */}
             {!noCamera && (
               <button onClick={nextGuide} disabled={live} data-tour="capture-guide" data-guide={guide}
                       aria-label={`${tr("Guide")} · ${tr(GUIDE_LABEL[guide])}`} aria-pressed={guide !== "off"}
-                      className="flex items-center justify-center active:opacity-70 disabled:opacity-60"
+                      className="shrink-0 flex items-center justify-center active:opacity-70 disabled:opacity-60"
                       style={{ width: 40, height: 40, borderRadius: 20, ...glass, ...(guide !== "off" ? { background: t.ink, color: t.page } : {}) }}>
                 <Grid3X3 size={19} color={guide !== "off" ? t.page : t.ink} strokeWidth={1.9} />
               </button>
             )}
             {lessons && lessons.length > 0 ? (
-              <button onClick={cycle} disabled={live} aria-label={tr("Filing under")} className="flex items-center gap-1.5 px-3 active:opacity-70 disabled:opacity-60"
-                      style={{ minHeight: 36, borderRadius: R.pill, ...glass, fontFamily: ui, fontSize: 13, fontWeight: 600, maxWidth: 150 }}>
-                <span className="truncate">{filing}</span><ChevronRight size={14} color={t.ink} strokeWidth={2.2} style={{ transform: "rotate(90deg)", flexShrink: 0 }} />
+              <button onClick={cycle} disabled={live} aria-label={tr("Filing under")} data-tour="capture-filing" className="min-w-0 flex items-center gap-1.5 px-3 active:opacity-70 disabled:opacity-60"
+                      style={{ minHeight: 36, paddingTop: 4, paddingBottom: 4, borderRadius: R.pill, ...glass, fontFamily: ui, fontSize: 13, fontWeight: 600, lineHeight: 1.25, textAlign: "left" }}>
+                <Facts parts={filing} className="min-w-0" />
+                <ChevronRight size={14} color={t.ink} strokeWidth={2.2} style={{ transform: "rotate(90deg)", flexShrink: 0 }} />
               </button>
             ) : null}
           </span>
@@ -5941,7 +5947,13 @@ function LessonRow({ lesson: l, poster, need, onOpen, onDownload, showWho, first
   const when = l.iso ? fmtWeekDay(localDate(l.iso)) : `${l.d} ${l.m}`;
   /* two facts on the grey line, never three — and the whole name, because
      two players with one first name are two files */
-  const sub = (facts || [showWho && l.who ? l.who : null, when, files > 1 ? `${files} ${tr("files")}` : null]).filter(Boolean).slice(0, 2).join(" · ");
+  const sub = (facts || [showWho && l.who ? l.who : null, when, files > 1 ? `${files} ${tr("files")}` : null]).filter(Boolean).slice(0, 2);
+  /* NOTHING IS CUT, AT 390 OR 320 (24 November): the areas and the grey
+     line are Facts — each part whole, breaking only between parts, a long
+     name or area wrapping inside itself — where both were one truncated
+     line ("Cian Murphy · Sun 22 …" in Saved at 390, "Short game · Pu…"
+     at 320) */
+  const areas = String(l.focus || "").split(" · ");
   return (
     /* the row opens the lesson; the disc at its right corner saves it as
        a file — two controls, so the row is a div and not one button */
@@ -5954,17 +5966,18 @@ function LessonRow({ lesson: l, poster, need, onOpen, onDownload, showWho, first
               style={{ paddingTop: 8, paddingBottom: 8 }}>
         <Poster item={poster} sport={sport} />
         <span className="flex-1 min-w-0">
-          <span className="flex items-center gap-2">
+          <span className="flex items-start gap-2">
             {/* the mark means "not yet opened" only where opening clears it —
                 the coach's To review; nothing else passes `dot`, so no row
                 a person has already read carries a mark they cannot remove.
-                The sport's colour, as Chat's unread dot is */}
-            {dot && <span role="img" aria-label={tr("Unread")} className="rounded-full shrink-0" style={{ width: 6, height: 6, background: t.accent }} />}
+                The sport's colour, as Chat's unread dot is — level with the
+                first line of the areas, which may take more than one */}
+            {dot && <span role="img" aria-label={tr("Unread")} className="rounded-full shrink-0" style={{ width: 6, height: 6, marginTop: 9, background: t.accent }} />}
             {/* what was worked on is the row's name, at a name's 16/600 (it was
                 400 beside every person row's 600, so the date under it read as loud) */}
-            <span className="truncate" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{l.focus}</span>
+            <Facts parts={areas} attrs={{ "data-focus": "" }} className="flex-1 min-w-0" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }} />
           </span>
-          <span className="block truncate mt-0.5" style={{ ...TYPE.small, color: t.sub }}>{sub}</span>
+          <Facts parts={sub} attrs={{ "data-sub": "" }} className="mt-0.5" style={{ ...TYPE.small, color: t.sub }} />
         </span>
         {/* a star is the palette's gold, wherever it is drawn */}
         {isStar && <span role="img" aria-label={tr("Starred")} className="shrink-0 flex"><Star size={13} color={STAR} fill={STAR} strokeWidth={1.6} /></span>}
@@ -9152,9 +9165,15 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
           <Icon size={Math.round(f * 0.4)} color={fg} strokeWidth={fill ? 2.1 : quietTile || calm ? 1.8 : 2} />
           {badge}
         </span>
+        {/* THE WORD IS WHOLE AT 320 (24 November): four across, a column is
+            59 there and "Message" 57 — the 2px it kept either side cut it to
+            "Messag…". In a grid one word under a face may stand in the
+            gutter too, half of it each side, so no two words meet; only
+            past that does it end on an ellipsis */}
         {!iconOnly && (
-          <span className={wrap ? "px-0.5 text-center" : "max-w-full truncate px-0.5"}
+          <span className={wrap ? "px-0.5 text-center" : "truncate"}
                 style={{ marginTop: lip, fontFamily: ui, fontSize: 13, fontWeight: 600, lineHeight: 1.2, letterSpacing: "-0.005em",
+                         ...(wrap ? null : { maxWidth: cols ? `calc(100% + ${TILE_GAP}px)` : "100%" }),
                          color: tone === "danger" || redWord ? DANGER : tone === "accent" ? t.ink : t.sub }}>{label}</span>
         )}
       </button>
@@ -9200,6 +9219,7 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
 }
 /* and a grid deals its own tiles, 22ms apart and capped at six, so a
    nine-tile sheet finishes settling in 310ms rather than 692 */
+const TILE_GAP = 12;                                         // a grid's gutter; a round key's word may stand in half of it
 const TileGrid = ({ children, cols = 3, stagger = 22 }) => (
   /* more than six tiles is a cluster: they lose their rims and take the
      wash instead, because a grid of rimmed boxes reads busy; the few
@@ -9207,7 +9227,7 @@ const TileGrid = ({ children, cols = 3, stagger = 22 }) => (
   <GridColsCtx.Provider value={cols}>
   <ClusterCtx.Provider value={React.Children.count(children) > 6}>
     {/* a row more of air than across, for the lip standing in it */}
-    <div className="grid" style={{ columnGap: 12, rowGap: 12 + LIP_H, gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+    <div className="grid" style={{ columnGap: TILE_GAP, rowGap: TILE_GAP + LIP_H, gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
       {stagger === 0 ? children : React.Children.map(children, (c, i) =>
         (c && c.type === ActTile && c.props.delay == null)
           ? React.cloneElement(c, { delay: Math.min(i, 5) * stagger })
@@ -9457,6 +9477,39 @@ const TextBtn = ({ children, onClick, color, tour, quiet }) => {
 const PERSON_FACE = 44, PERSON_TEXT_MIN = 84;
 /* the width of "· " in the grey line, held so a dot that would lead a wrapped line is clipped whole */
 const SEP_HANG = "0.6em";
+/* A LINE OF FACTS WHOSE PARTS MAY BE LONGER THAN THE LINE (24 November).
+   PersonRow's grey line keeps each fact whole and breaks only at its dot,
+   which hangs clipped off the start of a wrapped line; but its facts are
+   nowrap, so a part wider than the line — a whole name beside a lesson's
+   poster and its disc at 320 ("Maximiliano Ó Súilleabháin"), an area
+   like "Custom fitting" — would run out of the box. Here every part
+   is a box of its own that moves whole to the next line when it cannot
+   sit beside the one before, and wraps inside itself, like words, only
+   where it cannot fit even a line of its own: a fact stays whole, a
+   name wraps before an ellipsis, and a line never starts on the dot —
+   it rides at the head of its part, in the strip the clip takes. A
+   lesson row's areas and its grey line, the camera's filing pill. It
+   was "Cian Murphy · Sun 22 …" in Saved and the archive at 390. */
+function Facts({ parts, className = "", style, attrs }) {
+  const list = (parts || []).filter(Boolean);
+  return (
+    <span data-facts="" className={`block ${className}`} {...(attrs || {})}
+          style={{ marginLeft: `-${SEP_HANG}`, textIndent: SEP_HANG, clipPath: `inset(0 0 0 ${SEP_HANG})`, ...style }}>
+      {list.map((part, i) => (
+        <React.Fragment key={i}>
+          {i ? " " : ""}
+          {/* the first part leaves room for the first line's indent; each one
+              after it carries its dot in a strip of its own at its head */}
+          <span data-fact="" style={{ display: "inline-block", textIndent: 0, overflowWrap: "break-word",
+                                      maxWidth: i ? "100%" : `calc(100% - ${SEP_HANG})`, paddingLeft: i ? SEP_HANG : 0 }}>
+            {i ? <span aria-hidden="true" data-fact-dot="" style={{ display: "inline-block", width: SEP_HANG, marginLeft: `-${SEP_HANG}`, whiteSpace: "pre" }}>{"· "}</span> : null}
+            {part}
+          </span>
+        </React.Fragment>
+      ))}
+    </span>
+  );
+}
 function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", subAttrs, meta, value, actions, trailing, chevron, onTap, tour, bold = false, minHeight = 64, textMin = PERSON_TEXT_MIN, nameLines = 3, subLines = 2, muted = false, className = "", style, attrs }) {
   const t = useT();
   const Tag = onTap ? "button" : "div";
@@ -9564,7 +9617,11 @@ function Row({ label, sub, value, valueColor, checked, onToggle, radio, last, ch
           </span>
           {value && <span data-row-value="" className="min-w-0" style={{ ...TYPE.body, color: valueColor || t.sub, maxWidth: "100%", overflowWrap: "anywhere" }}>{value}</span>}
         </span>
-        {sub && <span className="block truncate mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{sub}</span>}
+        {/* the caption under the label wraps, two lines at most: a sentence
+            there was cut on one ("Cancellations, bookings, requests and
+            messa…" under Only urgent at 390); a preview past two lines — a
+            tip, a message in the search — ends on the phone's ellipsis */}
+        {sub && <span data-row-sub="" className="mt-0.5" style={{ ...TYPE.caption, color: t.faint, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{sub}</span>}
       </span>
       {right}
       {chevron && <ChevronRight size={17} color={t.trace || t.faint} />}
@@ -12342,28 +12399,42 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, onStill, onQ
                   <span style={{ ...TYPE.caption, color: t.sub, fontVariantNumeric: "tabular-nums", minWidth: 34, textAlign: "right" }}>{secsLabel(time)}</span>
                 </div>
 
-                {/* the tools, as a phone's markup draws them: icons, the one in use filled */}
-                <div className="flex items-center gap-1 mt-2" data-tour="markup-tools">
+                {/* the tools, as a phone's markup draws them: icons, the one in use
+                    filled. EVERY TOOL ON THE SCREEN AND 44 TO A FINGER (24
+                    November): the five, the camera and the three inks were one
+                    row 372 wide, so at 320 the red and the white stood off the
+                    right of the screen and could not be chosen, and at 390 the
+                    white touched its edge. The row wraps by what it holds: the
+                    inks take a line of their own under the camera wherever the
+                    row cannot hold them too (it needs 400, more than any
+                    phone gives it); each round key reaches 44 through the
+                    gutter, and an ink is a 44 key round its 24 disc */}
+                <div className="flex flex-wrap items-center mt-2" data-tour="markup-tools" style={{ columnGap: 4, rowGap: 4 }}>
                   {REVIEW_TOOLS.map(([id, label, Ico]) => {
                     const on = tool === id;
                     return (
                       <button key={id} aria-pressed={on} aria-label={tr(label)} title={tr(label)} onClick={() => { haptic(6); setTool(id); }}
-                              className="flex items-center justify-center shrink-0 active:opacity-70" style={round(on)}>
+                              className="relative flex items-center justify-center shrink-0 active:opacity-70" style={round(on)}>
+                        <span aria-hidden="true" className="absolute" style={{ inset: -2 }} />
                         <Ico size={19} color={on ? "#fff" : t.ink} strokeWidth={1.9} />
                       </button>
                     );
                   })}
                   <span className="flex-1" />
                   <button onClick={still} disabled={!dims || broken} aria-label={tr("Photo")} title={tr("Photo")}
-                          className="flex items-center justify-center shrink-0 active:opacity-70 disabled:opacity-30" style={round(false)}>
+                          className="relative flex items-center justify-center shrink-0 active:opacity-70 disabled:opacity-30" style={round(false)}>
+                    <span aria-hidden="true" className="absolute" style={{ inset: -2 }} />
                     <Camera size={19} color={t.ink} strokeWidth={1.9} />
                   </button>
-                  {REVIEW_INKS.map((c) => (
-                    <button key={c} aria-label={tr("Colour")} aria-pressed={ink === c} onClick={() => { haptic(5); setInk(c); }}
-                            className="shrink-0 active:opacity-70 ml-2"
-                            style={{ width: 24, height: 24, borderRadius: 12, background: c, border: `2px solid ${HAIR(t.ink, 0.25)}`,
-                                     boxShadow: ink === c ? `0 0 0 2px ${t.page}, 0 0 0 3.5px ${t.ink}` : "none" }} />
-                  ))}
+                  <span data-tour="markup-inks" className="flex items-center ml-auto">
+                    {REVIEW_INKS.map((c) => (
+                      <button key={c} aria-label={tr("Colour")} aria-pressed={ink === c} onClick={() => { haptic(5); setInk(c); }}
+                              className="shrink-0 flex items-center justify-center active:opacity-70" style={{ width: 44, height: 44 }}>
+                        <span className="block" style={{ width: 24, height: 24, borderRadius: 12, background: c, border: `2px solid ${HAIR(t.ink, 0.25)}`,
+                                                          boxShadow: ink === c ? `0 0 0 2px ${t.page}, 0 0 0 3.5px ${t.ink}` : "none" }} />
+                      </button>
+                    ))}
+                  </span>
                 </div>
               </>)}
 
@@ -15246,19 +15317,29 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
                  row's value, the whole of it one tap away; theirs alone */
               ...(onNote ? [[tr("Notes"), onNote, note ? String(note).split("\n")[0] : null]] : []),
               [tr("Recurring lessons"), () => onRecurring(name), seriesFor ? `${DAY_NAMES[seriesFor.day].slice(0, 3)} ${seriesFor.time}` : null],
-              ...(live ? [] : [[sportTool ? sportTool.label : tr("Sport record"), () => push("tool"), null]])].map(([lbl, act, val]) => (
+              ...(live ? [] : [[sportTool ? sportTool.label : tr("Sport record"), () => push("tool"), null]])].map(([lbl, act, val]) => {
               /* the word, its value, the chevron — no glyph (23 November) — and
                  the door's own 60, as All lessons above them (they stood 56 with
                  a tile each: a chart, a pencil, a loop, a trophy). The word never
-                 gives way; a long note's first line is cut beside it */
+                 gives way; a long note's first line is cut beside it — a
+                 preview of words, as the phone's own lists cut one */
+              const preview = lbl === tr("Notes");
+              return (
               <button key={lbl} data-row-door="" data-tour={lbl === tr("Progress") ? "player-progress" : lbl === tr("Notes") ? "player-notes" : lbl === tr("Recurring lessons") ? "player-recurring" : undefined} onClick={() => { haptic(6); soft(); act(); }} className="w-full flex items-center gap-3.5 text-left active:opacity-50"
                       style={{ minHeight: 60 }}>
-                <span data-row-label="" className="shrink-0" style={{ ...TYPE.body, color: t.ink }}>{lbl}</span>
-                {val && <span className="flex-1 min-w-0 truncate text-right" style={{ ...TYPE.body, color: t.sub }}>{val}</span>}
-                {!val && <span className="flex-1" />}
+                {/* THE VALUE IS NEVER CUT (24 November), as Settings' Row: on the
+                    label's line at the right while both fit, whole on the line
+                    under the label where they do not — Recurring lessons read
+                    "Tue 10:30…" at 390 and "T…" at 320 */}
+                <span className="flex-1 min-w-0 flex flex-wrap items-baseline justify-between" style={{ columnGap: 14 }}>
+                  <span data-row-label="" className="shrink-0" style={{ ...TYPE.body, color: t.ink }}>{lbl}</span>
+                  {val && <span data-row-value="" className={preview ? "min-w-0 truncate text-right" : "min-w-0"}
+                                style={{ ...TYPE.body, color: t.sub, ...(preview ? { flex: "1 1 0%" } : { maxWidth: "100%", overflowWrap: "break-word" }) }}>{val}</span>}
+                </span>
                 <ChevronRight size={15} color={t.trace || t.faint} />
               </button>
-            ))}
+              );
+            })}
           </div>
           <div style={{ height: 26 }} />
         </div>
@@ -18447,7 +18528,11 @@ function Notifications({ role, pop, pushOn, setPushOn, live, notify, setNotify, 
     <SwipeBack onBack={pop}>
       <Screen title={tr("Notifications")} onBack={pop}>
         <div className="px-6 mb-2 mt-2"><Card tour="notif-push">
-          <Row wrap label={tr("Tell me even when Nosca is closed")} sub={subscribed ? tr("On for this device") : why ? null : tr("Push notifications")}
+          {/* PUSH, AND WHAT IT DOES UNDER IT (24 November): the row's label was
+              the sentence, cut at 390 ("Tell me even when Nosca…"); a label
+              is a noun, and the sentence is the caption every row of this
+              screen carries */}
+          <Row label={tr("Push")} sub={tr("Tell me even when Nosca is closed")}
                /* the switch says whether it is on: a bell, struck through when off, said it a second time */
                last right={<Toggle on={subscribed} onChange={(v) => { if (!why || subscribed) flip(v); else { hapticWarn(); say && say(why); } }} />} />
         </Card></div>
@@ -19128,7 +19213,9 @@ function SearchScreen({ role, cfg, library, tips, pop, go, push, lessons: given,
         <div className="shrink-0 flex items-center gap-3 px-4 pb-3" style={{ paddingTop: TOP_AIR + 6, borderBottom: `1px solid ${t.hair}` }}>
           <div className="flex-1 min-w-0 flex items-center gap-2.5 rounded-full pl-4 pr-2" style={{ minHeight: 44, background: t.wash }}>
             <Search size={17} color={t.trace || t.faint} />
-            <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Lessons, drills, tips, people" className="flex-1 min-w-0 outline-none" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
+            {/* a placeholder is the noun of what goes in it: "Lessons, drills,
+                tips, people" read "…peopl" at 390 (24 November) */}
+            <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")} className="flex-1 min-w-0 outline-none" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
             {q
               ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")} className="shrink-0 flex items-center justify-center" style={{ width: 30, height: 30 }}><X size={16} color={t.trace || t.faint} /></button>
               : <MicBtn onText={(txt) => setQ(txt)} size={30} />}

@@ -46,7 +46,7 @@ const { check, results, summary } = M.checker("capture");
      stream (a moving picture, so frames flow) and an oscillator's audio
      track. The app runs its real path: stream → <video> → MediaRecorder
      or a canvas still, exactly as on a phone. */
-  await page.addInitScript(() => {
+  const fakeCamera = () => {
     const make = () => {
       const c = document.createElement("canvas"); c.width = 720; c.height = 1280;
       const g = c.getContext("2d"); let n = 0;
@@ -66,7 +66,8 @@ const { check, results, summary } = M.checker("capture");
     const md = { getUserMedia: gum, enumerateDevices: async () => [{ kind: "videoinput", deviceId: "fake-cam" }, { kind: "audioinput", deviceId: "fake-mic" }] };
     try { if (navigator.mediaDevices) { navigator.mediaDevices.getUserMedia = gum; navigator.mediaDevices.enumerateDevices = md.enumerateDevices; } else Object.defineProperty(navigator, "mediaDevices", { value: md, configurable: true }); }
     catch (e) { Object.defineProperty(navigator, "mediaDevices", { value: md, configurable: true }); }
-  });
+  };
+  await page.addInitScript(fakeCamera);
   await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
   const text = () => M.rootText(page);
   const shot = (name) => page.screenshot({ path: path.join(outDir, `${name}.png`) });
@@ -166,6 +167,54 @@ const { check, results, summary } = M.checker("capture");
     const t3 = await text(); await shot("06-log");
     check("(h) logging Cian's lesson finds the clip and the voice note already attached, the clip with Mark it up", (await page.locator(".nsc-swipe").count()) === 2 && /Video/.test(t3) && /Voice/.test(t3)
       && (await page.locator('[data-tour="wiz-markup"]').count()) === 1, `rows ${await page.locator(".nsc-swipe").count()} · ${t3.slice(0, 160)}`);
+
+    /* ---------- (j) the pill reads whole, at 390 and at 320, idle and recording ---------- */
+    /* (24 November, the class study) it was held to 150 and read "Saoirse · 10:30…" at 390. It grows to its words —
+       the first name and the time, each whole — and where the row up top cannot hold it (a long first name at 320,
+       the timer beside it while a clip records) the time takes a second line in it: never past the screen's edge,
+       never over the guide, the close or the timer */
+    for (const width of [390, 320]) {
+      const db2 = M.emptyDb();
+      const LONG = "00000000-0000-4000-8000-000000000a0a";
+      M.addUser(db2, { id: IDS.coach, email: "coach@t.ie" }); M.addUser(db2, { id: LONG, email: "max@t.ie" });
+      M.addProfile(db2, { id: IDS.coach, role: "coach", name: "Niamh Byrne", inviteCode: "QW7X2M" });
+      M.addProfile(db2, { id: LONG, role: "player", name: "Maximiliano Ó Súilleabháin", type: "adult", coachId: IDS.coach, dob: "1990-01-01" });
+      M.addBooking(db2, { coachId: IDS.coach, playerId: LONG, date: TODAY, time: "10:30 am", status: "confirmed" });
+      const c2 = await browser.newContext({ viewport: { width, height: width === 320 ? 568 : 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+      const p2 = await c2.newPage();
+      await p2.clock.setFixedTime(new Date(`${TODAY}T08:00:00`)); await M.attach(p2, db2);
+      p2.on("pageerror", (e) => errors.push(String(e.message || e)));
+      await M.injectSession(p2, M.session(Object.values(db2.users).find((x) => x.id === IDS.coach), db2));
+      await p2.addInitScript(fakeCamera);
+      await p2.goto(BASE, { waitUntil: "networkidle" }); await M.settle(p2);
+      await tap(p2, '[data-tour="quick"]', 900); await tap(p2, '[data-tour="quick-capture"]', 1400);
+      await p2.waitForFunction(() => { const v = document.querySelector('[data-tour="capture"] video'); return !!v && !!v.srcObject; }, null, { timeout: 8000 }).catch(() => {});
+      await p2.locator('[data-tour="capture-filing"]').click(); await p2.waitForTimeout(300);
+      /* the top row: the close, the timer while it records, the guide, the pill — each on the screen, none over another */
+      const top = () => p2.evaluate(() => {
+        const cam = document.querySelector('[data-tour="capture"]'), q = (s) => cam.querySelector(s);
+        const timer = [...cam.querySelectorAll("span")].find((s) => /^\d+:\d{2}$/.test(s.textContent.trim()) && s.querySelector(".rounded-full"));
+        const els = { close: q('[aria-label="Close"]'), timer, guide: q('[data-tour="capture-guide"]'), pill: q('[data-tour="capture-filing"]') };
+        const r = Object.fromEntries(Object.entries(els).filter(([, e]) => e).map(([k, e]) => { const b = e.getBoundingClientRect(); return [k, { l: Math.round(b.left), r: Math.round(b.right), t: Math.round(b.top), b: Math.round(b.bottom) }]; }));
+        const ks = Object.keys(r), meet = [];
+        ks.forEach((a, i) => ks.slice(i + 1).forEach((b) => { const A = r[a], B = r[b]; if (A.l < B.r - 0.5 && B.l < A.r - 0.5 && A.t < B.b - 0.5 && B.t < A.b - 0.5) meet.push(`${a}/${b}`); }));
+        /* the close and the guide keep their 40 round shape: it is the pill that gives, never a key squeezed to an oval */
+        const round = ["close", "guide"].every((k) => r[k] && r[k].r - r[k].l === 40 && r[k].b - r[k].t === 40);
+        return { rects: r, meet, round, onScreen: Object.values(r).every((x) => x.l >= 0 && x.r <= innerWidth), text: els.pill ? els.pill.textContent.replace(/\s+/g, " ").trim() : null };
+      });
+      const idle = await top(), idleFacts = await M.factsFit(p2, '[data-tour="capture-filing"]');
+      await p2.screenshot({ path: path.join(outDir, `07-pill-${width}.png`) });
+      check(`(j${width}) at ${width} the pill reads the first name and the time whole — Maximiliano · 10:30 am — on the screen, over nothing`,
+        idle.text === "Maximiliano · 10:30 am" && idle.onScreen && idle.meet.length === 0 && idle.round && M.factsWhole(idleFacts), JSON.stringify({ idle, idleFacts }));
+      await tap(p2, '[data-tour="capture-shutter"]', 1500);
+      const rec = await top(), recFacts = await M.factsFit(p2, '[data-tour="capture-filing"]');
+      await p2.screenshot({ path: path.join(outDir, `08-pill-recording-${width}.png`) });
+      check(`(j${width}) …and while a clip records, with the timer beside it, still whole and on the screen, over nothing, the close and the guide still 40 and round`,
+        !!rec.rects.timer && rec.text === "Maximiliano · 10:30 am" && rec.onScreen && rec.meet.length === 0 && rec.round && M.factsWhole(recFacts), JSON.stringify({ rec, recFacts }));
+      console.log(`      note  the pill at ${width}: ${idleFacts && idleFacts[0] ? idleFacts[0].lines : "-"} line(s) idle, ${recFacts && recFacts[0] ? recFacts[0].lines : "-"} recording`);
+      await tap(p2, '[data-tour="capture-shutter"]', 1200);
+      await c2.close();
+    }
   } catch (e) {
     results.push({ name: "run completed", ok: false, detail: String((e && e.stack) || e) });
   } finally { await browser.close(); M.stopServer(server); }

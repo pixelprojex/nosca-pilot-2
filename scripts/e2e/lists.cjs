@@ -197,12 +197,12 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       await shot("p-group-sessions");
       check("(p) the group page's sessions are boxed rows on the card's edge, no rule inside", boxedRows(ses, EDGE.golf) && ses.length === 2 && fine(sesA), `${rowSaid(ses)} · ${said(sesA)}`);
       /* the day leads the row's grey line, the archive's form */
-      const sesDays = await page.evaluate(() => { const g = document.querySelector('[data-tour="group-sessions"]'); return g ? [...g.children].map((c) => { const sp = c.querySelector("span.block.truncate"); return sp ? sp.textContent.split(" · ")[0].trim() : ""; }) : []; });
+      const sesDays = await page.evaluate(() => { const g = document.querySelector('[data-tour="group-sessions"]'); return g ? [...g.children].map((c) => { const sp = c.querySelector("[data-sub]"); return sp ? sp.textContent.split(" · ")[0].trim() : ""; }) : []; });
       check("(p2) each session reads the app's one day (Thu 15 Oct), never \"15 Oct\"", sesDays.length === 2 && sesDays.every((d) => DAY_FORM.test(d)), JSON.stringify(sesDays));
       /* at 360 a three-area session still keeps its day on one line */
       await page.setViewportSize({ width: 360, height: 780 }); await page.waitForTimeout(400);
       /* the grey line under the focus: one line, never cut (the day and the head count fit whole) */
-      const dayLines = await page.evaluate(() => { const g = document.querySelector('[data-tour="group-sessions"]'); return g ? [...g.children].map((c) => { const sp = c.querySelector("span.block.truncate"); if (!sp) return null; const r1 = sp.getBoundingClientRect(); return { lines: sp.getClientRects().length, h: Math.round(r1.height), gap: sp.scrollWidth <= sp.clientWidth ? 8 : 0 }; }) : []; });
+      const dayLines = await page.evaluate(() => { const g = document.querySelector('[data-tour="group-sessions"]'); return g ? [...g.children].map((c) => { const sp = c.querySelector("[data-sub]"); if (!sp) return null; const r1 = sp.getBoundingClientRect(); return { lines: sp.getClientRects().length, h: Math.round(r1.height), gap: sp.scrollWidth <= sp.clientWidth ? 8 : 0 }; }) : []; });
       await shot("p3-group-sessions-360");
       check("(p3) at 360 every session's day stays whole on one line, uncut", dayLines.length === 2 && dayLines.every((x) => x && x.lines === 1 && x.h <= 22 && x.gap >= 8), JSON.stringify(dayLines));
       await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(300);

@@ -85,6 +85,33 @@ const actionsOf = (page) => page.evaluate(() => {
   return { filter: !!filter, tiles: filter ? filter.querySelectorAll("button").length : 0, asks, jobs, rows: kids.length, kinds: (asks ? 1 : 0) + jobs,
            gap: list ? Math.round(list.getBoundingClientRect().top - head.getBoundingClientRect().bottom) : null };
 });
+/* (l1) SETTINGS › NOTIFICATIONS, WHOLE (24 November). The switch's row was the sentence "Tell me even when Nosca is
+   closed", cut at 390; it is named Push, the sentence the caption under it as every row of the screen carries one.
+   No label and no caption on the screen is cut (Only urgent's read "Cancellations, bookings, requests and messa…") */
+const notifications = async (page, who, shotName, shot) => {
+  await M.tap(page, '[data-tour="settings-notifications"]', 900);
+  const nf = await page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] [data-row]')].filter((r) => r.getBoundingClientRect().height > 0).map((r) => {
+    const lab = r.querySelector("[data-row-label]"), sub = r.querySelector("[data-row-sub]");
+    const cut = (e) => !!e && (e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1);
+    return { label: lab ? lab.textContent.trim() : null, sub: sub ? sub.textContent.trim() : null, labelCut: cut(lab), subCut: cut(sub), toggle: !!r.querySelector("button[aria-pressed]") };
+  }));
+  if (shotName) await shot(shotName);
+  const sw = nf.find((r) => r.label === "Push");
+  check(`(l1) ${who}: Notifications' switch is the Push row, its sentence the caption under it, and no label or caption on the screen is cut`,
+    !!sw && sw.sub === "Tell me even when Nosca is closed" && sw.toggle && nf.length >= 4 && nf.every((r) => !r.labelCut && !r.subCut)
+    && nf.some((r) => r.sub === "Cancellations, bookings, requests and messages") && !nf.some((r) => r.label === "Tell me even when Nosca is closed"), JSON.stringify(nf));
+  await M.back(page);
+};
+/* (l3) DATA & PERMISSIONS SAYS ONLY WHAT THE APP DOES (24 November, e242853): it promised notices for payments (there
+   are none), pointed to a messaging privacy note nobody can open, and said a coach must ask before recording injury
+   or fitness details (the coach's own notes ask nobody, and nobody else reads them) */
+const dataPage = async (page, who) => {
+  await M.tap(page, '[data-tour="settings-data"]', 900);
+  const dp = await M.rootText(page);
+  check(`(l3) ${who}: Data & permissions says only what is true — no payments, no separate messaging privacy note, no "must ask before recording injury"`,
+    /Data & permissions/.test(dp) && /Notes on a player/.test(dp) && /Messaging/.test(dp) && !/payment/i.test(dp) && !/separate messaging privacy note/i.test(dp) && !/must ask before recording injury/i.test(dp), dp.slice(0, 300));
+  await M.back(page);
+};
 const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
   const from = document.querySelector(fromSel); if (!from) return null;
   /* a section's head is an h2 since 21 November (the display face in ink, Lares's "Later") */
@@ -264,6 +291,38 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
       if (width === 320) await shot(`09-settings-${role}-320`);
       check(`(l) ${role} at ${width}: every Settings row is label · value · chevron — nothing before the label, no glyph but the chevron, nothing cut`,
         rs.length >= 8 && bad.length === 0 && rs.some((r) => r.label === "Default view" && r.value === "Feed") && rs.some((r) => r.label === "Sign out"), `${rs.length} rows · ` + JSON.stringify(bad.slice(0, 3)));
+      await notifications(page, `${role} at ${width}`, width === 320 ? `10-notifications-${role}-320` : null, shot);
+      await dataPage(page, `${role} at ${width}`);
+      await ctx.close();
+    }
+    /* ---------- (l2) a coach's Lessons as a player has a way back ---------- */
+    /* (24 November, e242853) it opened the player's code screen with six code boxes and nothing else — no Back, no
+       close, no tab bar — and a coach who tapped it to look could leave only by closing the app. It carries the
+       pushed screen's Back, 44 to a finger, and the edge swipe; either lands on Settings. The coach's Notifications
+       and Data & permissions are read as the other roles' are */
+    for (const width of [390, 320]) {
+      const db = freshDb();
+      const { ctx, page, shot } = await boot(db, "coach", width);
+      await tap(page, '[data-tour="profile-pill"]', 900);
+      if (await page.locator('[data-tour="sheet-settings"]').count()) await tap(page, '[data-tour="sheet-settings"]', 900);
+      const row = page.locator('[data-scroll="screen"] .nsc-group [data-row]', { hasText: /^Lessons as a player$/ });
+      const onSettings = async () => (await row.count()) === 1 && (await M.codeBoxes(page).count()) === 0;
+      await row.first().dispatchEvent("click"); await page.waitForTimeout(900);
+      const codes = await M.codeBoxes(page).count(), back = await M.fingerFit(page, '[data-tour="nocoach-back"]');
+      await shot(`13-coach-lessons-as-player-${width}`);
+      check(`(l2) the coach at ${width}: Lessons as a player opens the code screen with the pushed screen's Back, top left, on the screen and 44 to a finger`,
+        codes === 6 && !!back && back.onScreen && back.missed.length === 0 && back.left <= 16 && back.top <= 80, JSON.stringify({ codes, back }));
+      await tap(page, '[data-tour="nocoach-back"]', 900);
+      const viaBack = await onSettings();
+      await row.first().dispatchEvent("click"); await page.waitForTimeout(900);
+      /* the edge swipe: a thumb from the left edge across */
+      await page.mouse.move(6, 420); await page.mouse.down();
+      for (let k = 1; k <= 8; k++) await page.mouse.move(6 + k * 25, 422);
+      await page.mouse.up(); await page.waitForTimeout(900);
+      const viaSwipe = await onSettings();
+      check(`(l2) …Back returns to Settings, and so does the edge swipe`, viaBack && viaSwipe, JSON.stringify({ viaBack, viaSwipe }));
+      await notifications(page, `the coach at ${width}`, null, shot);
+      await dataPage(page, `the coach at ${width}`);
       await ctx.close();
     }
     /* ---------- (m) a first-run empty root tab has presence ---------- */

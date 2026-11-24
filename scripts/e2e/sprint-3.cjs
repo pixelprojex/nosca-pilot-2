@@ -571,6 +571,40 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       await ctx.close();
     }
 
+    /* ---------- (n) 24 November: the archive's rows and Saved's, whole at 390 and 320 ---------- */
+    /* The class study found "Maeve O'Connor · Wed 11 …" in the archive and "Cian Murphy · Sun 22 …" in Saved at
+       390, and at 320 the areas cut too ("Short game · Pu…"). A row's areas and its grey line are each part whole
+       now, breaking only between parts with the dot hung where the clip takes it, and a name or an area wider than
+       the line wraps inside itself: nothing runs past the column, no line starts on a dot, no fact is split */
+    {
+      const L1 = "1e000000-0000-4000-8000-0000000a0f01", L2 = "1e000000-0000-4000-8000-0000000a0f02";
+      const mod = (db) => {
+        const day = (n) => M.ymd(new Date(Date.now() - n * 864e5));
+        M.addLesson(db, { id: L1, coachId: IDS.coach, playerId: IDS.long, date: day(2), focus: "Custom fitting · Mental game", unread: false });
+        M.addMedia(db, { lessonId: L1, kind: "photo", path: `${IDS.coach}/${L1}/1.jpg` }); M.addMedia(db, { lessonId: L1, kind: "photo", path: `${IDS.coach}/${L1}/2.jpg` });
+        M.addLesson(db, { id: L2, coachId: IDS.coach, playerId: IDS.adult, date: day(1), focus: "Short game · Putting", unread: false });
+        M.setPrefs(db, IDS.coach, { starred: [L1, L2] });
+      };
+      for (const width of [390, 320]) {
+        const { ctx, page, shot } = await boot({ width, mod });
+        await tap(page, '[data-tour="today-archive"]', 1000);
+        const arch = await M.factsFit(page, '[data-scroll="screen"]');
+        await shot(`n-archive-${width}`);
+        const longRow = arch ? arch.find((f) => /Maximiliano Ó Súilleabháin/.test(f.text)) : null;
+        check(`(n${width}) the archive at ${width}: every row's areas and grey line whole — nothing past the column, no line led by a dot, no fact split, no word broken, the long name and its day both there`,
+          M.factsWhole(arch) && arch.length >= 8 && !!longRow && /Maximiliano Ó Súilleabháin · (Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{1,2} [A-Z][a-z]{2}/.test(longRow.text) && arch.some((f) => f.text === "Custom fitting · Mental game"),
+          JSON.stringify((arch || []).filter((f) => f.over || f.dotLeads || f.broken.length).slice(0, 3).concat(longRow ? [longRow] : [])));
+        await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+        await tap(page, '[data-tour="saved"]', 1000);
+        const saved = await M.factsFit(page, '[data-scroll="screen"]');
+        await shot(`n-saved-${width}`);
+        check(`(n${width}) Saved at ${width}: the starred rows' areas and grey lines whole the same way, each naming its player in full`,
+          M.factsWhole(saved) && saved.length === 4 && saved.some((f) => /^Cian Murphy · /.test(f.text)) && saved.some((f) => /^Maximiliano Ó Súilleabháin · /.test(f.text)),
+          JSON.stringify(saved));
+        await ctx.close();
+      }
+    }
+
     check("no page errors", errors.length === 0, errors.join(" | ").slice(0, 300));
   } catch (e) {
     check("(x) the suite ran to the end", false, String(e && e.stack || e).slice(0, 500));

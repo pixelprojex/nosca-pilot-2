@@ -40,6 +40,10 @@ function freshDb() {
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.adult, date: TODAY, time: "4:00 pm" });
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.adult, date: M.ymd(dayFrom(1)), time: "9:00 am" });
   M.addLesson(db, { coachId: IDS.coach, playerId: IDS.adult, date: M.ymd(dayFrom(-5)), focus: "Short game", unread: false });
+  /* (f) the player file: a lesson of two areas and two files, and a running arrangement for its Recurring lessons row */
+  const two = M.addLesson(db, { coachId: IDS.coach, playerId: IDS.adult, date: M.ymd(dayFrom(-1)), focus: "Custom fitting · Mental game", unread: false });
+  M.addMedia(db, { lessonId: two.id, kind: "photo", path: `${IDS.coach}/${two.id}/1.jpg` }); M.addMedia(db, { lessonId: two.id, kind: "photo", path: `${IDS.coach}/${two.id}/2.jpg` });
+  M.addRecurring(db, { coachId: IDS.coach, playerId: IDS.adult, weekday: 2, time: "10:30 am" });
   /* the child's next lesson, read on her own screen by the parent (e) */
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.junior, date: M.ymd(dayFrom(2)), time: "10:30 am" });
   return db;
@@ -281,6 +285,54 @@ const { check, results, summary } = M.checker("narrow");
         ? '(e) the child\'s Next row at 320 reads the day and the time whole, breaking only at the dot, which never leads the second line — it read "Tue 24 Nov · 10:0…"'
         : "(e2) at 375 the child's Next row reads on one line, whole", whole && hung && (width === 320 || tops.length === 1), JSON.stringify(o));
       console.log(`      note  the child's Next at ${width}: "${o ? o.text : "-"}" on ${tops.length} line(s), the value ${o ? o.right - o.left : "-"}px wide`);
+      await ctx.close();
+    }
+
+    /* ---------- (f) the coach's player file, whole at 390 and 320 ---------- */
+    /* (24 November, the class study) the four round keys four across: at 320 a column is 59 and "Message" read
+       "Messag…" — a word under a face may stand in half the gutter each side, so it is whole and no two words meet.
+       Recurring lessons' value read "Tue 10:30…" at 390 and "T…" at 320: it sits on the label's line while both
+       fit and takes the line under the label, whole, where they do not, as Settings' Row. The lessons above them
+       — two areas, two files — keep each part whole */
+    for (const width of [390, 320]) {
+      const { ctx, page, shot } = await boot("coach", width);
+      await tap(page, '[aria-label="Roster"]', 900);
+      await page.locator('[data-scroll="screen"] button', { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(1100);
+      const keys = await page.evaluate(() => [...document.querySelectorAll('[data-tour="player-actions"] [data-round]')].map((b) => {
+        const s = b.querySelector(":scope > span:last-child"), r = s.getBoundingClientRect();
+        return { text: s.textContent.trim(), cut: s.scrollWidth > s.clientWidth + 1, left: Math.round(r.left), right: Math.round(r.right) };
+      }));
+      const apart = keys.every((k, i) => i === 0 || k.left >= keys[i - 1].right);
+      check(`(f${width}) the player file at ${width}: Message · Tip · Drills · Log read whole under their faces, on the screen, no two words meeting`,
+        keys.map((k) => k.text).join(" · ") === "Message · Tip · Drills · Log" && keys.every((k) => !k.cut && k.left >= 0 && k.right <= width) && apart, JSON.stringify(keys));
+      const lf = await M.factsFit(page, '[data-tour="player-lessons"]');
+      check(`(f${width}) …its lessons' areas and grey lines each part whole — nothing past the column, no line led by a dot, no fact split, no word broken`,
+        M.factsWhole(lf) && lf.some((f) => f.text === "Custom fitting · Mental game"), JSON.stringify(lf));
+      await page.evaluate(() => { const sc = document.querySelector('[data-scroll="screen"]'); if (sc) sc.scrollTop = sc.scrollHeight; }); await page.waitForTimeout(400);
+      const rec = await M.rowLead(page, '[data-tour="player-recurring"]');
+      const recLines = await page.evaluate(() => { const v = document.querySelector('[data-tour="player-recurring"] [data-row-value]'); if (!v) return null; const lh = parseFloat(getComputedStyle(v).lineHeight) || 23; return Math.round(v.getBoundingClientRect().height / lh); });
+      await shot("06-player-file-foot");
+      check(`(f${width}) …and Recurring lessons reads its value whole on one line — beside the label, or under it where both do not fit, never an ellipsis — the door still 60 tall`,
+        !!rec && rec.label === "Recurring lessons" && rec.value === "Tue 10:30 am" && !rec.valueCut && !rec.labelCut && recLines === 1 && (rec.valueLine === "beside" || rec.valueLine === "under") && rec.h === 60,
+        JSON.stringify({ ...rec, recLines }));
+      console.log(`      note  Recurring lessons at ${width}: the value ${rec ? rec.valueLine : "-"} the label`);
+      await ctx.close();
+    }
+
+    /* ---------- (g) the header's search, whole ---------- */
+    /* its placeholder read "Lessons, drills, tips, peopl" at 390: a placeholder is the noun of what goes in it */
+    for (const width of [390, 320]) {
+      const { ctx, page, shot } = await boot("coach", width);
+      await tap(page, '[aria-label="Search"]', 900);
+      const ph = await page.evaluate(() => {
+        /* the search's field takes the focus as it opens */
+        const a = document.activeElement, i = a && a.tagName === "INPUT" ? a : document.querySelector("input[placeholder]"); if (!i) return null; const cs = getComputedStyle(i);
+        const probe = document.createElement("span"); probe.style.cssText = `position:absolute;visibility:hidden;white-space:pre;font:${cs.font};letter-spacing:${cs.letterSpacing}`; probe.textContent = i.placeholder; document.body.appendChild(probe);
+        const need = probe.getBoundingClientRect().width; probe.remove();
+        return { text: i.placeholder, need: Math.round(need), has: Math.round(i.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)) };
+      });
+      await shot("07-search");
+      check(`(g${width}) the header's search at ${width} reads its placeholder whole: Search`, !!ph && ph.text === "Search" && ph.need <= ph.has, JSON.stringify(ph));
       await ctx.close();
     }
 

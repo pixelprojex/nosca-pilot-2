@@ -3298,7 +3298,33 @@ seeded data and no account.
   it: beside the name while the whole name fits on its line, under it
   where it does not — a short name keeps it beside at 360 and 375, the
   long name drops it under at every width (the art direction bullet;
-  `narrow.cjs` (c1)–(c8)).
+  `narrow.cjs` (c1)–(c8)). **Since 24 November the same holds at 390**
+  (the class study found six cuts there and three more at 320). A lesson
+  row's areas and its grey line are `Facts`: each part a box of its own
+  that moves whole to the next line, its dot riding at its head in the
+  strip the clip takes, and a name or an area wider than the line wraps
+  inside itself — Saved and the archive read "Cian Murphy · Sun 22 …"
+  and "Short game · Pu…". One break inside a word is left, held for the
+  founder: a starred row at 320 gives its words 95 beside the star's
+  column, under the 106 "Showjumping" needs (the star on the poster's
+  corner would give it back). The camera's filing pill is the same, grown to
+  its words where it was held to 150 ("Saoirse · 10:30…"). A door's
+  value is `Row`'s: beside the label while both fit, whole on the line
+  under it where they do not (the player file's Recurring lessons read
+  "Tue 10:30…"); a note's first line is the one preview still cut beside
+  its label. `Row`'s caption wraps, two lines before an ellipsis. A round
+  key's word may stand in half the grid's gutter (`TILE_GAP`), so
+  "Message" is whole four across at 320. Mark it up's three inks take a
+  line of their own under the camera wherever the row cannot hold them
+  too (it needs 400, more than any phone gives it), and every tool and
+  ink answers 44 to a finger — at 320 the red and the white stood off
+  the screen. Settings › Notifications' switch is the **Push** row, its
+  sentence ("Tell me even when Nosca is closed") the caption under it,
+  as every row of that screen carries one; the header's search says
+  **Search**. `narrow.cjs` (f), (g), `sprint-3.cjs` (n), `downloads.cjs`
+  (n2), `capture.cjs` (j), `review.cjs` (m), `ease.cjs` (l1); `ease.cjs`
+  (l2) and (l3) hold a coach's Lessons as a player's Back and Data &
+  permissions' words.
 - **Rows, not cards, and one accent action a screen.** Roster, Drifting,
   Chat, Coming up, the family's people, the bell: rows with an avatar,
   a name and one grey line, each in its own box on the sport's edge
