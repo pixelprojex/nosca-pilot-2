@@ -1,5 +1,10 @@
 # The app's keys, as the site draws them
 
+**Where this applies (23 Nov, round two):** inside a vignette of the app (`.app …`) and nowhere else. The site's own
+grounds are three (the card's green, white, the rest off-white), its own key is the card's green or white, and no
+club colour is a ground, a band, a panel or a heading on a page: `BRIEF.md` §3 and `API.md`. Where this file says
+"the site's own UI", read "a vignette".
+
 23 Nov, 17:10 UTC (points 4 and 5 are the app's final rule; the screenshots in `assets/` show it and are the truth where a vignette is in doubt). The founder's newest word; it replaces the "pale glyph tile inside a white tile" part of BRIEF §3 "THE LIGHTER HALF". Everything else in the brief stands.
 
 > "the colors must be visually appealing … I do want fulfilled buttons throughout. I don't want just tiny circles and tiny icons. And the colors don't all need to be saturated dark colors. I want light colors too that also match the same color family. And make sure that it is classy and professional."
