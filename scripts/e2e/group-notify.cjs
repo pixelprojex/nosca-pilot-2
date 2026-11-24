@@ -97,7 +97,7 @@ const { check, results, summary } = M.checker("group-notify");
   const told = (db, who, title) => db.notifications.filter((n) => n.user_id === IDS[who] && (title instanceof RegExp ? title.test(n.title) : n.title === title));
   const callOff = async (page, reason, n) => {
     await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-weather"]', 900);
-    await M.click(page, reason, 400); await M.click(page, "Next", 700); await M.click(page, "Next", 700);
+    await M.click(page, reason, 400); await M.click(page, /^Next$/, 700); await M.click(page, /^Next$/, 700);
     await M.click(page, `Call off ${n} lessons`, 800);
     await pw(page).fill("secret12"); await lastBtn(page, new RegExp(`^Call off ${n} lessons$`)).click(); await page.waitForTimeout(2000);
   };

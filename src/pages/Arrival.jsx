@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { Copy, Share2 } from "lucide-react";
-import { ThemeCtx, NEUTRAL, BRAND, tr, ui, display, R, STEADY, DANGER, Mark, Button, haptic, hapticSuccess } from "../Nosca";
+import { ThemeCtx, NEUTRAL, BRAND, tr, ui, display, TYPE, R, STEADY, DANGER, Mark, Button, haptic, hapticSuccess } from "../Nosca";
 import { joinLink, shareOrCopy, copyText } from "../lib/share";
 import { isStandalone } from "../lib/install";
 
@@ -92,7 +92,7 @@ export default function Arrival({ role, profile, data, onDone }) {
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center px-7 text-center min-h-0" style={{ overflowY: "auto" }}>
-          <h1 style={{ fontFamily: display, fontSize: 32, lineHeight: 1.04, letterSpacing: "-0.036em", color: NEUTRAL.ink,
+          <h1 style={{ ...TYPE.screen, color: NEUTRAL.ink,
                        animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) both" }}>{title}</h1>
 
           {code ? (

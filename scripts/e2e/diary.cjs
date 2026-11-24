@@ -34,6 +34,13 @@ const allowedFor = { coach: ["Niamh Byrne", "Cian Murphy", "Saoirse Kelly", "Orl
 const { check, results, summary } = M.checker("diary");
 const leaks = [];
 
+/* WCAG's contrast of two computed colours, read off the page — never a constant of the palette */
+const lum = (rgb) => { const [r, g, b] = String(rgb).match(/[\d.]+/g).slice(0, 3).map((v) => { const c = Number(v) / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+const contrast = (a, b) => { const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
+/* the Diary's coloured row: how many there are, which row it is and how it reads */
+const litOf = (page) => page.evaluate(() => { const all = [...document.querySelectorAll("[data-lit]")], el = all[0]; if (!el) return { n: 0 }; const nm = el.querySelector("[data-name]");
+  return { n: all.length, row: el.getAttribute("data-tour"), bg: getComputedStyle(el).backgroundColor, fg: getComputedStyle(nm).color, text: (el.innerText || "").replace(/\s+/g, " ").trim() }; });
+
 (async () => {
   const server = await M.startServer(distDir, PORT);
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
@@ -156,7 +163,7 @@ const leaks = [];
       await click(page, "Cancel");
       /* a named reason — Something else needs words before Next wakes */
       await page.locator('[data-tour="cancel-why"]', { hasText: "Unwell" }).click(); await page.waitForTimeout(300);
-      await click(page, "Next");
+      await click(page, /^Next$/);
       await click(page, "Cancel the lesson", 900);
       /* a coach's cancel ends on their password: a wrong one writes nothing */
       const t4b = await text(); await shot("09b-coach-cancel-password");
@@ -199,6 +206,9 @@ const leaks = [];
         const box = mineRow.first().locator('xpath=ancestor::div[contains(@class,"nsc-day")][1]');
         const stillOffered = hour && (await mineRow.count()) ? await box.locator('button:not([data-tour="agenda-mine"])', { hasText: hour }).count() : -1;
         check("(a2) …and that hour carries no Plus any more", stillOffered === 0, `offered ${stillOffered} for ${hour}`);
+        /* (22 November, art direction) the Diary's one coloured row is the next CONFIRMED lesson: a request takes no colour */
+        const lit0 = await litOf(page);
+        check("(a2) …and a request is not the coloured row — nothing in the Diary takes the colour until a lesson is confirmed", lit0.n === 0, JSON.stringify(lit0));
       }
       await tap(page, '[aria-label="Home"]');
       const t3 = await leak("adult home after request"); await shot("14-adult-home-next");
@@ -229,6 +239,9 @@ const leaks = [];
         const mineRow = p.page.locator('[data-tour="agenda-mine"]');
         const mt = (await mineRow.count()) ? await mineRow.first().innerText() : "";
         check("(a3) once accepted the row names the coach with no Requested", (await mineRow.count()) === 1 && /Niamh Byrne/.test(mt) && !/Requested/.test(mt), `rows ${await mineRow.count()} · ${mt.slice(0, 80)}`);
+        /* (22 November, art direction) the person's next confirmed lesson is the Diary's one coloured row — at most one on the screen */
+        const lit = await litOf(p.page);
+        check("(a3) …and it is the Diary's one coloured row: the next confirmed lesson, filled, its words 4.5:1 and over on the fill", lit.n === 1 && lit.row === "agenda-mine" && /Niamh Byrne/.test(lit.text) && lit.bg !== "rgb(255, 255, 255)" && lit.bg !== "rgba(0, 0, 0, 0)" && contrast(lit.fg, lit.bg) >= 4.5, JSON.stringify(lit));
         if (await mineRow.count()) { await mineRow.first().click(); await p.page.waitForTimeout(900); }
         const t2b = await p.text(); await p.shot("16b-adult-list-row-tapped");
         check("(a3) a tap on it lands on the Calendar view's Your lesson, with Cancel and Reschedule", /Your lesson/.test(t2b) && (await p.page.locator('[data-tour="day-cancel"]').count()) === 1 && (await p.page.locator('[data-tour="cal-view"] button[aria-pressed="true"]').getAttribute("aria-label")) === "Calendar", t2b.slice(0, 200));
@@ -366,9 +379,10 @@ const leaks = [];
          was handed out under, so the profile shows it and offers the
          other five as additions rather than replacements. */
       check("(f) the sport they signed up to coach cannot be swapped, only added to", t11.includes("Sports you coach") && t11.includes("Add another") && (await page.locator('[aria-label="Add Tennis"]').count()) === 1 && !/\+ Tennis/.test(t11), t11.slice(0, 260));
-      /* a sport tile is its sport's colour: the add tile for tennis wears tennis' wash (on a lip of its mark since 18 November), one plus on it */
+      /* a sport tile is its sport's colour: the add tile for tennis wears tennis' own pale (the court's #D7EDEC since 23 November; it was the colour at 12% over white, and the wash was the
+         sport's until 21 November, now Apple's neutral grey), on a ring and lip of it, one plus on it */
       const tennisTile = page.locator('[aria-label="Add Tennis"]');
-      check("(f) the add tile is its sport's colour and carries one plus, not two", (await tennisTile.evaluate((el) => getComputedStyle(el).backgroundColor)) === "rgb(237, 244, 241)" && (await tennisTile.locator("svg").count()) === 1 && (await tennisTile.innerText()).trim() === "Tennis", await tennisTile.evaluate((el) => getComputedStyle(el).backgroundColor));
+      check("(f) the add tile is its sport's colour and carries one plus, not two", (await tennisTile.evaluate((el) => getComputedStyle(el).backgroundColor)) === "rgb(215, 237, 236)" && (await tennisTile.locator("svg").count()) === 1 && (await tennisTile.innerText()).trim() === "Tennis", await tennisTile.evaluate((el) => getComputedStyle(el).backgroundColor));
       await tennisTile.first().click(); await page.waitForTimeout(1200);
       check("(f) adding a second sport writes preferences.extra_sports and leaves profiles.sport alone",
             JSON.stringify((db.prefs[IDS.coach] || {}).extra_sports || []) === '["tennis"]' && db.profiles[IDS.coach].sport === "golf",

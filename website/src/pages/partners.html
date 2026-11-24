@@ -1,0 +1,95 @@
+<!--
+title: Partners · Nosca
+description: A place kept for the clubs, governing bodies and sponsors who stand with Nosca. One coaching app for six sports, in pilot in Ireland.
+world: olive
+header: paper
+-->
+
+<!-- 1. the hero -->
+<section class="section pt-hero g-paper" id="top" aria-labelledby="pt-title">
+  <div class="ringsbg pt-hero__rings" aria-hidden="true"><div class="pt-drift" data-parallax="0.14"><!-- @include mark attrs="data-draw" --></div></div>
+  <div class="wrap pt-hero__in">
+    <p class="eyebrow pt-olive pt-kinds" data-reveal><span>Clubs</span><span>Governing bodies</span><span>Sponsors</span></p>
+    <h1 class="t-mega pt-hero__title" id="pt-title" data-reveal="lines" data-delay=".1">Partners.</h1>
+    <i class="rule-gold pt-hero__rule" aria-hidden="true"></i>
+    <p class="t-lede pt-hero__lede" data-reveal data-delay=".55">Nosca keeps a place for those who stand with it.</p>
+  </div>
+</section>
+
+<!-- 2. the wall: a frame for each partner, kept clear until that partner has signed -->
+<section class="section pt-wall g-paper" id="wall" aria-labelledby="pt-wall-title">
+  <div class="wrap">
+    <div class="panel pt-wall__panel" data-club="olive">
+      <div class="pt-head">
+        <h2 class="t-h2" id="pt-wall-title" data-reveal="lines">A frame for each partner.</h2>
+        <p class="t-lede" data-reveal data-delay=".15">Each is kept clear until that partner has signed.</p>
+      </div>
+      <div class="pframes pt-frames" data-reveal-group="scale" data-stagger=".09" role="img" aria-label="Six frames, each holding the Nosca mark in gold, kept clear for partners">
+        <div class="pframe"><!-- @include mark attrs="data-draw" --></div>
+        <div class="pframe"><!-- @include mark attrs="data-draw" --></div>
+        <div class="pframe"><!-- @include mark attrs="data-draw" --></div>
+        <div class="pframe"><!-- @include mark attrs="data-draw" --></div>
+        <div class="pframe"><!-- @include mark attrs="data-draw" --></div>
+        <div class="pframe"><!-- @include mark attrs="data-draw" --></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3. why Nosca: three true lines, one for each kind of partner -->
+<section class="section pt-why g-paper" id="why" aria-labelledby="pt-why-title">
+  <div class="wrap">
+    <p class="eyebrow" data-reveal>Why Nosca</p>
+    <h2 class="t-h1 pt-why__title" id="pt-why-title" data-lit data-lit-end="bottom 58%">What a partner stands behind.</h2>
+    <div class="pt-why__grid" data-reveal-group data-stagger=".1">
+      <div class="pt-why__p">
+        <p class="eyebrow pt-olive">For a club</p>
+        <h3 class="t-h3">Coach, player and family in one place.</h3>
+        <p class="t-body">The coach, the player and the parent each have their own side of the same app.</p>
+      </div>
+      <div class="pt-why__p">
+        <p class="eyebrow pt-olive">For a governing body</p>
+        <h3 class="t-h3">Six sports in one app.</h3>
+        <p class="t-body">Golf, tennis, rowing, squash, padel and equestrian. Levels and terms are the ones each sport's governing body uses.</p>
+      </div>
+      <div class="pt-why__p">
+        <p class="eyebrow pt-olive">For a sponsor</p>
+        <h3 class="t-h3">Built and piloted in Ireland.</h3>
+        <p class="t-body">The pilot is open now, in Ireland and in English.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. climate -->
+<section class="section pt-climate g-paper" id="climate" aria-labelledby="pt-climate-title">
+  <div class="wrap">
+    <div class="pt-climate__in">
+      <div>
+        <p class="eyebrow pt-olive" data-reveal>Climate</p>
+        <h2 class="t-h1 pt-climate__title" id="pt-climate-title" data-reveal="lines">We support climate action.</h2>
+      </div>
+      <div class="pt-climate__notes" data-reveal-group data-stagger=".12">
+        <div><h3 class="t-h3">Digital, never paper.</h3><p class="t-body">Lesson notes, registers and reports.</p></div>
+        <div><h3 class="t-h3">Told before they travel.</h3><p class="t-body">A weather call-off tells everyone affected before they set out.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5. in touch: the contact line renders only when the address is known; without it the page closes on the app and the card's code -->
+<section class="section pt-close g-paper" id="contact" aria-labelledby="pt-close-title">
+  <div class="wrap pt-close__in">
+    <div class="pt-close__copy">
+      <!-- @if contactEmail --><p class="eyebrow pt-olive" data-reveal>In touch</p><h2 class="t-display" id="pt-close-title" data-reveal="lines">Partner with Nosca.</h2><p class="t-lede" data-reveal data-delay=".15">To talk about a club, a sport or a sponsorship, write to <a class="pt-mail" href="mailto:{{contactEmail}}">{{contactEmail}}</a></p><!-- @else --><p class="eyebrow pt-olive" data-reveal>The pilot</p><h2 class="t-display" id="pt-close-title" data-reveal="lines">See it for yourself.</h2><p class="t-lede" data-reveal data-delay=".15">Nosca is in pilot in Ireland. Open it on a phone, or scan the code on the card.</p><!-- @endif -->
+      <div class="keys" data-reveal-group data-delay=".25">
+        <a class="key key--lg" href="{{appUrl}}" rel="noopener" data-magnet>Open Nosca <!-- @include arrow --></a>
+        <a class="key key--lg key--paper" href="{{installUrl}}" rel="noopener" data-magnet>Add to Home Screen</a>
+      </div>
+      <p class="pt-close__links" data-reveal><a class="link" href="product.html">The product <!-- @include arrow --></a><a class="link" href="story.html">The story <!-- @include arrow --></a></p>
+    </div>
+    <div class="pt-close__card">
+      <!-- @include card world="olive" class="bcard--shadow is-back pt-bcard" attrs="data-tilt='5'" -->
+    </div>
+  </div>
+</section>

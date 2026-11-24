@@ -1,0 +1,416 @@
+[
+ {
+  "file": "coach-today-golf.webp",
+  "what": "HERO. The coach's home (Today) in golf green, Thursday 26 November, 11:20 am. Niamh Byrne's day as boxed rows: Aoife Brennan 9:00 am and Darragh O'Neill 10:00 am finished, each with Log; Cian Murphy 11:00 am live (Now) with the Register key in the sport's colour; Róisín Walsh 2:00 pm, Saoirse Kelly 4:00 pm and the Thursday clinic 5:00 pm; Tomorrow folded with 3. The mark top left, Saved, Search, the bell and the profile pill; the tab bar with the raised plus. Also the golf frame of the six-sport series.",
+  "role": "coach",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 42.9
+ },
+ {
+  "file": "coach-today-actions.webp",
+  "what": "The same home scrolled down: the afternoon's rows, Tomorrow 3, then Actions with Ciara Gallagher's lesson request (Mon 30 Nov 10:00 am) and Accept · Decline, Messages 2, and All lessons 17.",
+  "role": "coach",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 32.9
+ },
+ {
+  "file": "coach-plus-golf.webp",
+  "what": "The raised plus opened over the home: Log a lesson across the top in the sport's colour, then the eight actions two to a row, each glyph on its coloured tile: Register (with the live lesson's dot), Capture, Tip, Drills, Add player, New group, Call off in red, Competition. The tops of the sheet's small Edit link touch the bottom edge, under where a phone frame's home indicator sits.",
+  "role": "coach",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 35.0
+ },
+ {
+  "file": "coach-peek.webp",
+  "what": "A lesson's peek, opened from the home (Róisín Walsh, 2:00 pm · 45 min): her last lesson (Sun 22 Nov, Putting), All lessons, the one Log key, then six round keys: Profile, Capture, Register, Move, and Call off and Cancel in red.",
+  "role": "coach",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 35.5
+ },
+ {
+  "file": "coach-log-who.webp",
+  "what": "Logging a lesson, step one, Who: the search, filter tiles (All, U12, U14, U16, Adults, Thursday clinic), then the roster as face tiles with today's times (Cian 11:00 am, Aoife 9:00 am, Darragh 10:00 am, Róisín 2:00 pm, Saoirse 4:00 pm, Tadhg, Méabh) and the Thursday clinic under Groups, which runs on past the bottom edge.",
+  "role": "coach",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 33.2
+ },
+ {
+  "file": "coach-log-golf.webp",
+  "what": "Logging a lesson, the one page: Cian Murphy, Today, his level HI 15.8, golf's own areas as tiles with Chipping and Putting chosen, Video · Photo · Voice as round keys, Notes with dictation, and Log it in golf green. Also the golf frame of the 'each sport in its own words' series.",
+  "role": "coach",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 28.3
+ },
+ {
+  "file": "coach-register.webp",
+  "what": "The register for the 5:00 pm Thursday clinic (10 people): All present · All absent, then each person with Present and Absent: Cian, Saoirse, Ellie and Darragh marked present in green, Aoife absent in red, Róisín not yet marked.",
+  "role": "coach",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 48.9
+ },
+ {
+  "file": "coach-calloff.webp",
+  "what": "Call off, from the plus: Thu 26 Nov, Why, with Weather chosen (ticked, on the sport's tint) above Unwell, Course closed, Double booked, Family reasons and Something else, and Next.",
+  "role": "coach",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 29.2
+ },
+ {
+  "file": "coach-diary-list.webp",
+  "what": "The Diary's List view, scrolled a little so the title sits in the compact header: the List · Calendar switch, the week strip Thu 26 to Thu 3 with dots, and Today's box from 9:00 am to 5:00 pm (the free 3:00 pm with a plus, the clinic marked with a bar). Tomorrow begins under the tab bar.",
+  "role": "coach",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 36.4
+ },
+ {
+  "file": "coach-diary-calendar.webp",
+  "what": "The Diary's Calendar view, scrolled a little: November 2026 with today (26) chosen and a dot under each day with lessons, then Today · 6 booked · 1 free and Aoife Brennan's 9:00–9:45 am box (Finished). The next box sits under the tab bar.",
+  "role": "coach",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 31.8
+ },
+ {
+  "file": "coach-chat.webp",
+  "what": "Chat, the coach's list in Messages' shape: Róisín Walsh and Saoirse Kelly unread (the time and dot in the sport's colour), Saoirse's row led by her mother's words ('Orla: She's very excited…'), then Darragh, Aoife, Cian, Tadhg and Méabh with their last line and the day.",
+  "role": "coach",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 60.5
+ },
+ {
+  "file": "coach-thread.webp",
+  "what": "A thread with Cian Murphy: the coach's bubbles in golf green, Cian's in grey, gathered in runs with one time each, day dividers (Thu 19 Nov, Yesterday), Seen under the last line, and the composer with dictation.",
+  "role": "coach",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 50.9
+ },
+ {
+  "file": "coach-thread-junior.webp",
+  "what": "A junior's thread as the coach reads it (Saoirse Kelly · Parent replies): the coach's lines in green, Saoirse's own line in grey, and her mother's lines labelled 'Orla · parent', so a parent's words never read as the child's. The oldest bubble runs off the top, as a thread does.",
+  "role": "coach",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 44.5
+ },
+ {
+  "file": "coach-settings.webp",
+  "what": "Settings: Niamh Byrne · Golf coach, the search field, then the Coaching group, each row's glyph in white on its coloured tile: Default view (List), Reviews, Hours, Away, Setup, then Lessons as a player.",
+  "role": "coach",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 29.8
+ },
+ {
+  "file": "coach-player-file.webp",
+  "what": "A player's file (Cian Murphy, HI 15.8): Message, Tip, Drills and Log as round keys, the List · Feed switch, and his lessons as rows (a clip's poster or the sport's flag, the focus, the day, a Download disc each).",
+  "role": "coach",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 32.1
+ },
+ {
+  "file": "coach-markup.webp",
+  "what": "Mark it up on a clip of Cian's lesson, drawn in the app: a yellow ring round the ball, a yellow line tracing its flight, and the Angle tool's white line against a dashed vertical reading 9°. Under the dark stage: play, a frame back and on, the scrub, ½×, the five tools with the pen chosen, Photo, the three inks (the third reaches the screen's edge, as the app lays it out at 390), Talk over it and Save. The clip is the test suite's stylised ball-flight clip, not real footage.",
+  "role": "coach",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 37.1
+ },
+ {
+  "file": "coach-compare.webp",
+  "what": "Compare: two of Cian's clips side by side on the dark stage, Thu 19 Nov · Clip 1 and Thu 29 Oct, the second nudged a few frames on its own pill so the two balls sit at different heights; one transport for both, then Swap, Change and Save. Same stylised clip as the mark-up.",
+  "role": "coach",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 27.3
+ },
+ {
+  "file": "player-feed.webp",
+  "what": "The player's home, the full-bleed lesson feed (Cian Murphy): the clip fills the screen; List · Feed top left and the header's controls on a pill top right; the glass panel with Chipping · Putting, Thu 19 Nov · HI 15.8, Download, ½× and sound, the coach's note cut to one line with 'more', View lesson and the star, and the strip for the lesson's two files. The clip is the test suite's stylised ball-flight clip (a white ball over a green field).",
+  "role": "player",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 43.4
+ },
+ {
+  "file": "player-lesson.webp",
+  "what": "A lesson page as the player sees it: Thu 19 Nov · Niamh Byrne, Chipping · Putting, HI 15.8, the clip at its own shape with one play disc, then Compare and Study; the lesson's second file begins under the tab bar.",
+  "role": "player",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 28.5
+ },
+ {
+  "file": "player-drills.webp",
+  "what": "The Drills tab: Gate drill by Fri 27 Nov, Clock drill by Mon 30 Nov, Ladder drill by Wed 2 Dec, Towel drill ticked and struck, All drills 4, and Log a practice.",
+  "role": "player",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 25.3
+ },
+ {
+  "file": "player-progress.webp",
+  "what": "Progress (Cian Murphy): 8 lessons since Thu 28 May, the Handicap Index line falling from 20.1 to 15.8, then Worked on with counts and bars (Putting 3, Full swing 2, Chipping 2, Bunker play 1, On course 1).",
+  "role": "player",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 27.1
+ },
+ {
+  "file": "player-progress-attendance.webp",
+  "what": "Further down Progress: lessons a month as columns (June to November), Attendance 7 of 8 lessons (88%) as discs with one missed (Thu 6 Aug), Drills 1 of 4 done, and Share a report.",
+  "role": "player",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 25.6
+ },
+ {
+  "file": "player-feed-tennis.webp",
+  "what": "The player's feed in tennis teal: Serve · Forehand, Thu 19 Nov · Yellow ball, the coach's note, View lesson. Same stylised clip.",
+  "role": "player",
+  "sport": "tennis",
+  "w": 780,
+  "h": 1688,
+  "kb": 43.0
+ },
+ {
+  "file": "player-drills-tennis.webp",
+  "what": "The Drills tab in tennis teal: Serve targets by Fri 27 Nov, Ball toss by Mon 30 Nov, Wall rally by Wed 2 Dec, Shadow swings ticked, All drills 4, Log a practice.",
+  "role": "player",
+  "sport": "tennis",
+  "w": 780,
+  "h": 1688,
+  "kb": 27.3
+ },
+ {
+  "file": "parent-family.webp",
+  "what": "A parent's home (Orla Kelly): Orla's family, Next up Saoirse Thu 26 Nov · 4:00 pm, Children (Ellie and Saoirse, each with 1 drill and their next lesson), and Coming up (Ellie Fri 27 Nov and Fri 4 Dec, Saoirse Tue 8 Dec and Wed 16 Dec, all 4:00 pm). The parent's tab bar: Family, Lessons, Diary, Chat.",
+  "role": "parent",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 38.2
+ },
+ {
+  "file": "junior-home.webp",
+  "what": "An under-18's own home (Saoirse Kelly, 12): her lesson feed, Short game, Tue 17 Nov · HI 28.4, the coach's note, View lesson. Same stylised clip.",
+  "role": "junior",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 40.7
+ },
+ {
+  "file": "coach-today-tennis.webp",
+  "what": "Series 'same screen, six sports' (Tennis, #01836E): the coach's home exactly as coach-today-golf, re-tinted: the mark, the Register key, and the tab bar's capsule and swell take the sport's colour; the page stays white. The 5:00 pm group reads Thursday clinic.",
+  "role": "coach",
+  "sport": "tennis",
+  "w": 780,
+  "h": 1688,
+  "kb": 42.9
+ },
+ {
+  "file": "coach-today-rowing.webp",
+  "what": "Series 'same screen, six sports' (Rowing, #1B74A1): the coach's home exactly as coach-today-golf, re-tinted: the mark, the Register key, and the tab bar's capsule and swell take the sport's colour; the page stays white. The 5:00 pm group reads Thursday squad.",
+  "role": "coach",
+  "sport": "rowing",
+  "w": 780,
+  "h": 1688,
+  "kb": 43.5
+ },
+ {
+  "file": "coach-today-squash.webp",
+  "what": "Series 'same screen, six sports' (Squash, #C74B17): the coach's home exactly as coach-today-golf, re-tinted: the mark, the Register key, and the tab bar's capsule and swell take the sport's colour; the page stays white. The 5:00 pm group reads Thursday clinic.",
+  "role": "coach",
+  "sport": "squash",
+  "w": 780,
+  "h": 1688,
+  "kb": 43.5
+ },
+ {
+  "file": "coach-today-padel.webp",
+  "what": "Series 'same screen, six sports' (Padel, #6536B6): the coach's home exactly as coach-today-golf, re-tinted: the mark, the Register key, and the tab bar's capsule and swell take the sport's colour; the page stays white. The 5:00 pm group reads Thursday clinic.",
+  "role": "coach",
+  "sport": "padel",
+  "w": 780,
+  "h": 1688,
+  "kb": 42.9
+ },
+ {
+  "file": "coach-today-equestrian.webp",
+  "what": "Series 'same screen, six sports' (Equestrian, #8C2941): the coach's home exactly as coach-today-golf, re-tinted: the mark, the Register key, and the tab bar's capsule and swell take the sport's colour; the page stays white. The 5:00 pm group reads Junior jumping.",
+  "role": "coach",
+  "sport": "equestrian",
+  "w": 780,
+  "h": 1688,
+  "kb": 42.7
+ },
+ {
+  "file": "coach-log-tennis.webp",
+  "what": "Series 'each sport in its own words' (Tennis, #01836E): the log page for Cian Murphy with tennis's own areas as tiles, Serve and Forehand chosen, his level Yellow ball, Video · Photo · Voice, Notes, and Log it in the sport's colour.",
+  "role": "coach",
+  "sport": "tennis",
+  "w": 780,
+  "h": 1688,
+  "kb": 26.0
+ },
+ {
+  "file": "coach-log-rowing.webp",
+  "what": "Series 'each sport in its own words' (Rowing, #1B74A1): the log page for Cian Murphy with rowing's own areas as tiles, Technique and Rhythm & rating chosen, his level Club 1, Video · Photo · Voice, Notes, and Log it in the sport's colour.",
+  "role": "coach",
+  "sport": "rowing",
+  "w": 780,
+  "h": 1688,
+  "kb": 24.0
+ },
+ {
+  "file": "coach-log-squash.webp",
+  "what": "Series 'each sport in its own words' (Squash, #C74B17): the log page for Cian Murphy with squash's own areas as tiles, Drives and Volleys chosen, his level Double yellow, Video · Photo · Voice, Notes, and Log it in the sport's colour.",
+  "role": "coach",
+  "sport": "squash",
+  "w": 780,
+  "h": 1688,
+  "kb": 28.1
+ },
+ {
+  "file": "coach-log-padel.webp",
+  "what": "Series 'each sport in its own words' (Padel, #6536B6): the log page for Cian Murphy with padel's own areas as tiles, Net game and Overheads chosen, his level Intermediate, Video · Photo · Voice, Notes, and Log it in the sport's colour.",
+  "role": "coach",
+  "sport": "padel",
+  "w": 780,
+  "h": 1688,
+  "kb": 28.5
+ },
+ {
+  "file": "coach-log-equestrian.webp",
+  "what": "Series 'each sport in its own words' (Equestrian, #8C2941): the log page for Cian Murphy with equestrian's own areas as tiles, Flatwork and Pole work chosen, his level Jumping · Bramble (the horse he rides), Video · Photo · Voice, Notes, and Log it in the sport's colour.",
+  "role": "coach",
+  "sport": "equestrian",
+  "w": 780,
+  "h": 1688,
+  "kb": 30.8
+ },
+ {
+  "file": "splash-golf.webp",
+  "what": "Series 'the front door' (Golf, #207A30): the opening splash caught at rest 3.35 s after launch (it lifts at 4 s): the woven rings in white with the link between them (the arc inside their overlap) in the sport's colour, on near-black with the colour's radial glow, NOSCA tracked wide, a short rule, 'GOLF · COACH', and MADE IN IRELAND at the foot.",
+  "role": "brand",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 25.6
+ },
+ {
+  "file": "splash-tennis.webp",
+  "what": "Series 'the front door' (Tennis, #01836E): the opening splash caught at rest 3.35 s after launch (it lifts at 4 s): the woven rings in white with the link between them (the arc inside their overlap) in the sport's colour, on near-black with the colour's radial glow, NOSCA tracked wide, a short rule, 'TENNIS · COACH', and MADE IN IRELAND at the foot.",
+  "role": "brand",
+  "sport": "tennis",
+  "w": 780,
+  "h": 1688,
+  "kb": 25.7
+ },
+ {
+  "file": "splash-rowing.webp",
+  "what": "Series 'the front door' (Rowing, #1B74A1): the opening splash caught at rest 3.35 s after launch (it lifts at 4 s): the woven rings in white with the link between them (the arc inside their overlap) in the sport's colour, on near-black with the colour's radial glow, NOSCA tracked wide, a short rule, 'ROWING · COACH', and MADE IN IRELAND at the foot.",
+  "role": "brand",
+  "sport": "rowing",
+  "w": 780,
+  "h": 1688,
+  "kb": 27.4
+ },
+ {
+  "file": "splash-squash.webp",
+  "what": "Series 'the front door' (Squash, #C74B17): the opening splash caught at rest 3.35 s after launch (it lifts at 4 s): the woven rings in white with the link between them (the arc inside their overlap) in the sport's colour, on near-black with the colour's radial glow, NOSCA tracked wide, a short rule, 'SQUASH · COACH', and MADE IN IRELAND at the foot.",
+  "role": "brand",
+  "sport": "squash",
+  "w": 780,
+  "h": 1688,
+  "kb": 30.8
+ },
+ {
+  "file": "splash-padel.webp",
+  "what": "Series 'the front door' (Padel, #6536B6): the opening splash caught at rest 3.35 s after launch (it lifts at 4 s): the woven rings in white with the link between them (the arc inside their overlap) in the sport's colour, on near-black with the colour's radial glow, NOSCA tracked wide, a short rule, 'PADEL · COACH', and MADE IN IRELAND at the foot.",
+  "role": "brand",
+  "sport": "padel",
+  "w": 780,
+  "h": 1688,
+  "kb": 26.3
+ },
+ {
+  "file": "splash-equestrian.webp",
+  "what": "Series 'the front door' (Equestrian, #8C2941): the opening splash caught at rest 3.35 s after launch (it lifts at 4 s): the woven rings in white with the link between them (the arc inside their overlap) in the sport's colour, on near-black with the colour's radial glow, NOSCA tracked wide, a short rule, 'EQUESTRIAN · COACH', and MADE IN IRELAND at the foot.",
+  "role": "brand",
+  "sport": "equestrian",
+  "w": 780,
+  "h": 1688,
+  "kb": 26.2
+ },
+ {
+  "file": "motion-plus-golf.mp4",
+  "what": "LOOP, 4.1 s at 30 fps (H.264, yuv420p, +faststart, no audio; seamless, its last frame is its first): the coach's golf home at rest, the raised plus tapped, the sheet rising on the app's own curve (340 ms, cubic-bezier(.32,.72,0,1)) with its eight tiles arriving in a stagger and the home dimming, a hold on the open sheet, then the sheet dismissed and the home back. Shot from the real app: its CSS animations were slowed tenfold through DevTools, sampled by a burst of screenshots and resampled to 30 fps, so the timing is the app's. Play muted, looped, playsinline.",
+  "role": "coach",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 219.8
+ },
+ {
+  "file": "motion-plus-golf-poster.webp",
+  "what": "Poster for motion-plus-golf.mp4: its first frame, the coach's golf home at rest (the same moment as coach-today-golf, shot at 2x directly).",
+  "role": "coach",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 42.7
+ },
+ {
+  "file": "mark.svg",
+  "what": "The woven two-ring mark in the brand's bottle green #123C30, as the app draws it (no knock-outs, so it works on any ground). Geometry (src/lib/brandmark.jsx): viewBox 0 0 40 25; two circles r 8.6, centres (14, 12.5) and (26, 12.5), 12 apart; stroke 2.75, round caps; they cross at (20, 6.339) and (20, 18.661), 45.759° off the horizontal from each centre. Each ring is one arc drawn the long way (large-arc 1, sweep 1) with a gap of 23° (11.5° each side) centred on a crossing: the left ring (#ring-left, M18.651 19.734 A 8.6 8.6 0 1 1 21.108 17.341) breaks at the bottom crossing, where the right ring passes over it; the right ring (#ring-right, M21.349 5.266 A 8.6 8.6 0 1 1 18.892 7.659) breaks at the top crossing, where the left passes over. Each path is 50.583 units long: animate stroke-dasharray 50.583 and stroke-dashoffset from 50.583 to 0 to draw a ring in, left then right, then slide the centres from apart to 12 units to weave them.",
+  "role": "brand",
+  "sport": "all",
+  "w": 400,
+  "h": 250,
+  "kb": 0.8
+ },
+ {
+  "file": "mark-gold.svg",
+  "what": "The same mark in solid gold #C2A24C, for white and for the card's olive (about #4F5B29). Geometry (src/lib/brandmark.jsx): viewBox 0 0 40 25; two circles r 8.6, centres (14, 12.5) and (26, 12.5), 12 apart; stroke 2.75, round caps; they cross at (20, 6.339) and (20, 18.661), 45.759° off the horizontal from each centre. Each ring is one arc drawn the long way (large-arc 1, sweep 1) with a gap of 23° (11.5° each side) centred on a crossing: the left ring (#ring-left, M18.651 19.734 A 8.6 8.6 0 1 1 21.108 17.341) breaks at the bottom crossing, where the right ring passes over it; the right ring (#ring-right, M21.349 5.266 A 8.6 8.6 0 1 1 18.892 7.659) breaks at the top crossing, where the left passes over. Each path is 50.583 units long: animate stroke-dasharray 50.583 and stroke-dashoffset from 50.583 to 0 to draw a ring in, left then right, then slide the centres from apart to 12 units to weave them.",
+  "role": "brand",
+  "sport": "all",
+  "w": 400,
+  "h": 250,
+  "kb": 0.8
+ }
+]

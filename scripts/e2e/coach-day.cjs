@@ -21,7 +21,7 @@ const TOMORROW = M.ymd(new Date(Date.now() + 864e5));
 /* the app's own day label: Thu 24 Sep */
 const dayLabel = (ymd) => { const [y, m, d] = ymd.split("-").map(Number); const dt = new Date(y, m - 1, d);
   return `${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dt.getDay()]} ${d} ${["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][m - 1]}`; };
-const DANGER = "rgb(196, 52, 42)";           // #C4342A
+const DANGER = "rgb(154, 50, 42)";           // #9A322A, the club's brick since 22 November (#C4342A before)
 
 function freshDb() {
   const db = M.emptyDb();
@@ -126,20 +126,26 @@ const last = (arr, table) => arr.filter((x) => x.table === table).slice(-1)[0];
       const tiles = await page.locator('[data-tour^="quick-"]:not([data-tour="quick-log"])').evaluateAll((els) => els.map((e) => { const r = e.getBoundingClientRect(); return { id: e.getAttribute("data-tour"), y: Math.round(r.y), w: Math.round(r.width) }; }));
       const rows = [...new Set(tiles.map((x) => x.y))];
       check("(b) Log a lesson is the full-width tile at the top and the eight sit two to a row under it", !!log && !!off && log.width > 300 && tiles.length === 8 && rows.length === 4 && rows.every((y) => tiles.filter((x) => x.y === y).length === 2) && off.y > log.y + log.height - 2, JSON.stringify({ log: log && [Math.round(log.y), Math.round(log.width)], rows, n: tiles.length }));
-      const bg = await page.locator('[data-tour="quick-weather"]').evaluate((el) => getComputedStyle(el.querySelector("[data-face]") || el).backgroundColor);   // a round key (18 Nov) is red on its face
-      check("(b) Call off is red", bg === DANGER, bg);
+      /* 23 November: a filled key like its seven neighbours — the brick's cloth tone (#DAA198) with the word and the glyph in
+         the brick's own ink, no small square inside it ("I do want fulfilled buttons throughout … not tiny icons") */
+      const red = await page.locator('[data-tour="quick-weather"]').evaluate((el) => {
+        const word = [...el.querySelectorAll("*")].find((e) => e.children.length === 0 && e.textContent.trim() === "Call off");
+        const sq = el.querySelector('span[aria-hidden="true"]');
+        return { word: word ? getComputedStyle(word).color : null, sq: sq ? getComputedStyle(sq).backgroundColor : null, face: getComputedStyle(el.querySelector("[data-face]") || el).backgroundColor };
+      });
+      check("(b) Call off is the red of the family: the key filled with the brick's light colour, the word in the brick's ink, no small square inside", red.word === "rgb(85, 28, 23)" && red.sq === null && red.face === "rgb(218, 161, 152)", JSON.stringify(red));
 
       /* ---------- (c) Call off: a reason, the days, the lessons, the password ---------- */
       await tap(page, '[data-tour="quick-weather"]', 900);
       const t3 = await text(); await shot("05-calloff-why");
       check("(c) Call off asks why first, and never says weather call-off", t3.includes("Call off") && t3.includes("Weather") && t3.includes("Unwell") && !t3.includes("Weather call-off"), t3.slice(0, 200));
-      await M.click(page, "Weather", 400); await M.click(page, "Next", 700);
+      await M.click(page, "Weather", 400); await M.click(page, /^Next$/, 700);
       const t4 = await text(); await shot("05b-calloff-days");
       const dayTiles = page.getByRole("button", { name: /· \d lessons?$/ });
       check("(c) then which days: every day ahead with lessons, as tiles carrying their count", t4.includes("Which days") && (await dayTiles.count()) === 2 && (await page.getByRole("button", { name: `${dayLabel(TODAY)} · 3 lessons` }).count()) === 1 && (await page.getByRole("button", { name: `${dayLabel(TOMORROW)} · 1 lesson` }).count()) === 1, t4.slice(0, 200));
       /* today is already picked; add tomorrow — as many days as you like */
       await page.getByRole("button", { name: `${dayLabel(TOMORROW)} · 1 lesson` }).click(); await page.waitForTimeout(300);
-      await M.click(page, "Next", 700);
+      await M.click(page, /^Next$/, 700);
       const t5 = await text(); await shot("05c-calloff-which");
       const ticks = page.locator('[data-sheet] button[aria-pressed]');
       check("(c) then which lessons: both days, every lesson ticked", t5.includes("Which lessons") && t5.includes(dayLabel(TODAY)) && t5.includes(dayLabel(TOMORROW)) && (await ticks.count()) === 4 && (await page.locator('[data-sheet] button[aria-pressed="true"]').count()) === 4 && t5.includes("Call off 4 lessons"), t5.slice(0, 240));
@@ -166,7 +172,7 @@ const last = (arr, table) => arr.filter((x) => x.table === table).slice(-1)[0];
     {
       const { db, page, text } = await boot();
       await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-weather"]', 900);
-      await M.click(page, "Unwell", 400); await M.click(page, "Next", 700); await M.click(page, "Next", 700);
+      await M.click(page, "Unwell", 400); await M.click(page, /^Next$/, 700); await M.click(page, /^Next$/, 700);
       await M.click(page, "Call off 3 lessons", 800);
       await pw(page).fill("secret12"); await lastBtn(page, /^Call off 3 lessons$/).click(); await page.waitForTimeout(2000);
       const c2 = last(db.patches, "bookings");

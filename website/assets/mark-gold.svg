@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 25" width="400" height="250" role="img" aria-label="Nosca">
+  <title>Nosca</title>
+  <!-- Two rings, r 8.6, centres (14, 12.5) and (26, 12.5), stroke 2.75, round caps.
+       They cross at (20, 6.339) and (20, 18.661). The left ring breaks at the bottom
+       crossing and the right ring at the top one (23 degrees of gap each), so each
+       passes over the other once. Each ring path is 50.583 units long: animate
+       stroke-dasharray/-dashoffset from that length to 0 to draw it in. -->
+  <path id="ring-left" d="M18.651 19.734 A 8.6 8.6 0 1 1 21.108 17.341" fill="none" stroke="#C2A24C" stroke-width="2.75" stroke-linecap="round"/>
+  <path id="ring-right" d="M21.349 5.266 A 8.6 8.6 0 1 1 18.892 7.659" fill="none" stroke="#C2A24C" stroke-width="2.75" stroke-linecap="round"/>
+</svg>

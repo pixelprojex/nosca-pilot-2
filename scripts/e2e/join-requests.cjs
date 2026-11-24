@@ -3,10 +3,11 @@
    per request, in one boxed list on the sport's edge: the face, the whole
    name, one grey line of facts (the sport, Under 18, the day they asked
    in the app's one date form), and Accept · Decline as the row's text
-   actions, Accept in ink, beside the name where it fits and on a line of
+   actions, Accept in the sport's colour, beside the name where it fits and on a line of
    their own under it where it does not — the shape Today's booking
    requests and the bell's have. With nothing waiting the screen is a
-   line, and the subtitle goes. Each request was a card with a 46px face,
+   line; there is no subtitle (it counted the rows under it until 22
+   November). Each request was a card with a 46px face,
    a filled success-green Accept and an outlined Decline, and the empty
    state a card with a tick in a disc and a sentence.
    Usage: node join-requests.cjs <distDir> <port> <outDir> */
@@ -25,7 +26,8 @@ const dayFrom = (n) => { const x = new Date(`${TODAY}T12:00:00`); x.setDate(x.ge
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const nice = (x) => `${DAYS[x.getDay()]} ${x.getDate()} ${MON[x.getMonth()]}`;
 const EDGE_GOLF = "rgba(47, 107, 58, 0.72)";
-const WASH_GOLF = "rgb(235, 243, 234)";   // a list row sits on the wash with no edge (14 November)
+const CARD = "rgb(255, 255, 255)";   // a list row is Duolingo's white card on the light grey line (21 November; the wash from 14 November)
+const ACCENT_GOLF = "rgb(40, 89, 55)";   // #285937, golf's fairway since the colour study of 22 November (#207A30 before): Accept is the text action that acts, in the sport's colour
 
 function freshDb() {
   const db = M.emptyDb();
@@ -94,15 +96,16 @@ const line = (r) => `${r.name.slice(0, 14)} face ${r.face} ${r.fs}/${r.fw} sub "
       const { ctx, page, text, shot } = await boot(db, "coach", 375);
       await toRequests(page);
       const t0 = await text(); const R = await rows(page); await shot("01-requests-375");
-      check("(a) Requests opens from Today's strip, its subtitle the count — two waiting — and each request is a person row in one list on golf's wash, 8px corners, no edge, no card",
-        /Requests/.test(t0) && /2 waiting/.test(t0) && R.length === 2 && R.every((r) => r.person && r.inList && r.bg === WASH_GOLF && r.radius === "8px") && (await page.locator('[data-scroll="screen"] .nsc-list').count()) === 1,
+      /* no subtitle (22 November): "2 waiting" over two rows said the count twice */
+      check("(a) Requests opens from Today's strip with no subtitle counting them, and each request is a person row in one list, the white card at 14px — no card of its own",
+        /Requests/.test(t0) && !/\d waiting/.test(t0) && R.length === 2 && R.every((r) => r.person && r.inList && r.bg === CARD && r.radius === "14px") && (await page.locator('[data-scroll="screen"] .nsc-list').count()) === 1,
         `${t0.slice(0, 80)} · ${R.map(line).join(" | ")}`);
-      check("(b) the one row: the face 40, the name 54px in at 14.5px/400, the grey line 12px", R.length === 2 && R.every((r) => r.face === 40 && r.inset === 54 && r.fs === "14.5px" && r.fw === "400" && r.sub && r.sub.fs === "12px"), R.map(line).join(" | "));
+      check("(b) the one row: the face 44, the name 58px in at 16px/600, the grey line 14px", R.length === 2 && R.every((r) => r.face === 44 && r.inset === 58 && r.fs === "16px" && r.fw === "600" && r.sub && r.sub.fs === "14px"), R.map(line).join(" | "));
       const eoin = R.find((r) => r.name === "Eoin Walsh"), max = R.find((r) => r.name === LONG);
       check("(c) the grey line is the facts, the day in the app's one date form: Eoin's \"Golf · " + nice(dayFrom(-2)) + "\", the junior's \"Golf · Under 18 · " + nice(dayFrom(-1)) + "\" (it read \"8 Nov\")",
         !!eoin && eoin.sub.t === `Golf · ${nice(dayFrom(-2))}` && !!max && max.sub.t === `Golf · Under 18 · ${nice(dayFrom(-1))}`, `${eoin && eoin.sub.t} | ${max && max.sub.t}`);
-      check("(d) Accept · Decline are the row's text actions — no outline, no fill, 44 tall, Accept in ink and Decline quieter — beside Eoin's short name at 375",
-        R.every((r) => r.btns.length === 2 && r.btns[0].label === "Accept" && r.btns[1].label === "Decline" && r.btns.every((b) => b.bg === "rgba(0, 0, 0, 0)" && (b.bw === "0px" || b.bs === "none") && b.h >= 44) && r.btns[0].fg === r.ink && r.btns[1].fg !== r.ink && r.actsH >= 44) && !!eoin && eoin.under === false,
+      check("(d) Accept · Decline are the row's text actions — no outline, no fill, 44 tall, Accept in the sport's colour and Decline quieter — beside Eoin's short name at 375",
+        R.every((r) => r.btns.length === 2 && r.btns[0].label === "Accept" && r.btns[1].label === "Decline" && r.btns.every((b) => b.bg === "rgba(0, 0, 0, 0)" && (b.bw === "0px" || b.bs === "none") && b.h >= 44) && r.btns[0].fg === ACCENT_GOLF && r.btns[1].fg !== ACCENT_GOLF && r.btns[1].fg !== r.ink && r.actsH >= 44) && !!eoin && eoin.under === false,
         R.map(line).join(" | "));
       check("(e) nothing is cut at 375: both names whole — the long one on a second line beside its actions, as the one row keeps a pair beside a name at 375 — no grey line past its box, both buttons inside the row", R.every((r) => !r.nameCut && r.sub && !r.sub.over && r.btns.every((b) => b.right <= r.boxRight)) && !!max && max.wrapped && max.under === false, R.map((r) => `${r.name.slice(0, 12)} cut ${r.nameCut} wrapped ${r.wrapped} over ${r.sub && r.sub.over} right ${r.btns.map((b) => b.right).join("/")} box ${r.boxRight}`).join(" | "));
       /* no card: nothing of the old shape — a 46px face, a filled Accept, a disc with a tick */
@@ -117,8 +120,8 @@ const line = (r) => `${r.name.slice(0, 14)} face ${r.face} ${r.fs}/${r.fw} sub "
       await rowOf(page, "Eoin Walsh").locator("button", { hasText: /^Accept$/ }).click(); await page.waitForTimeout(1800);
       const acc = db.rpcs.filter((x) => x.fn === "respond_to_request").pop(); const eoinReq = db.requests.find((r) => r.player_id === IDS.eoin);
       const t1 = await text(); const R1 = await rows(page); await shot("02-after-accept");
-      check("(g) Accept on Eoin's row calls respond_to_request with his request and yes; his row goes and the subtitle reads 1 waiting",
-        !!acc && acc.args.p_id === eoinReq.id && acc.args.p_accept === true && eoinReq.status === "accepted" && R1.length === 1 && R1[0].name === LONG && /1 waiting/.test(t1), `${JSON.stringify(acc && acc.args)} · ${R1.map((r) => r.name).join()} · ${t1.slice(0, 80)}`);
+      check("(g) Accept on Eoin's row calls respond_to_request with his request and yes; his row goes, and still no subtitle counts the one left",
+        !!acc && acc.args.p_id === eoinReq.id && acc.args.p_accept === true && eoinReq.status === "accepted" && R1.length === 1 && R1[0].name === LONG && !/\d waiting/.test(t1), `${JSON.stringify(acc && acc.args)} · ${R1.map((r) => r.name).join()} · ${t1.slice(0, 80)}`);
       await rowOf(page, LONG).locator("button", { hasText: /^Decline$/ }).click(); await page.waitForTimeout(1800);
       const dec = db.rpcs.filter((x) => x.fn === "respond_to_request").pop(); const maxReq = db.requests.find((r) => r.player_id === IDS.junior);
       const t2 = await text(); await shot("03-empty");

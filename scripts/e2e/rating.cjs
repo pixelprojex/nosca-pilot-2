@@ -11,7 +11,8 @@ const [distDir, portArg, outDir] = process.argv.slice(2);
 const PORT = Number(portArg || 4398), BASE = `http://localhost:${PORT}`;
 fs.mkdirSync(outDir, { recursive: true });
 
-const IDS = { coach: "00000000-0000-4000-8000-00000000c0ac", adult: "00000000-0000-4000-8000-0000000adu17" };
+const IDS = { coach: "00000000-0000-4000-8000-00000000c0ac", adult: "00000000-0000-4000-8000-0000000adu17", aoife: "00000000-0000-4000-8000-0000000a01fe" };
+const TODAY = M.ymd(new Date());
 function freshDb() {
   const db = M.emptyDb();
   M.addUser(db, { id: IDS.coach, email: "coach@t.ie" }); M.addUser(db, { id: IDS.adult, email: "adult@t.ie" });
@@ -26,10 +27,13 @@ const { check, results, summary } = M.checker("rating");
   const server = await M.startServer(distDir, PORT);
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
   const errors = [];
-  const boot = async (db, role) => {
+  /* `at`: the hour pinned (the day stays real), so lessons booked this morning are over */
+  const boot = async (db, role, at = null) => {
     const u = Object.values(db.users).find((x) => x.id === IDS[role]);
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
-    const page = await ctx.newPage(); await M.attach(page, db);
+    const page = await ctx.newPage();
+    if (at) await page.clock.setFixedTime(new Date(at));
+    await M.attach(page, db);
     page.on("pageerror", (e) => errors.push(`${role}: ${String(e.message || e)}`));
     await M.injectSession(page, M.session(u, db));
     await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
@@ -84,6 +88,19 @@ const { check, results, summary } = M.checker("rating");
          the coach's profile — not a sheet that thanks and forgets */
       check("(h) the line opens the coach's profile, where the review is left for real", /Niamh Byrne/.test(ts) && /Leave a review/.test(ts) && /Submit review/.test(ts) && (await page.locator('[data-tour="coach-review"] button').count()) >= 6, ts.slice(0, 200));
       await shot("04-leave-review");
+      /* ONE TAP, ONE BEAT (22 November): Submit review is the app's Button, which buzzes on the tap; the
+         handler's commit pattern rode on it. Counted from the window's capture of the click to its bubble */
+      await page.locator('[data-tour="coach-review"] button').nth(4).click(); await page.waitForTimeout(300);
+      await page.evaluate(() => {
+        window.__beats = []; window.__inTap = false;
+        window.addEventListener("click", () => { window.__inTap = true; }, true);
+        window.addEventListener("click", () => { window.__inTap = false; }, false);
+        Object.defineProperty(navigator, "vibrate", { configurable: true, value: (p) => { if (window.__inTap) window.__beats.push(p); return true; } });
+      });
+      await page.getByRole("button", { name: "Submit review", exact: true }).click(); await page.waitForTimeout(1000);
+      const sb = await page.evaluate(() => window.__beats);
+      const rv = (db.reviews || []).find((r) => r.player_id === IDS.adult);
+      check("(h2) Submit review buzzes once, the Button's own, and the review is written", sb.length === 1 && !!rv && rv.rating === 5, JSON.stringify({ beats: sb, review: rv && { rating: rv.rating } }));
       await ctx.close();
     }
     /* ---------- a project whose table cannot take the ask ---------- */
@@ -96,6 +113,36 @@ const { check, results, summary } = M.checker("rating");
       check("(i) a refused ask is said on the burst, and the tap is offered again", (await err.count()) === 1 && /rating_requested/.test(M.norm(await err.innerText())) && (await burst(page).locator('button[data-ask="error"]').count()) === 1 && /Try again/.test(M.norm(await burst(page).innerText())), M.norm(await burst(page).innerText().catch(() => "gone")).slice(0, 200));
       check("(j) …and no notification went out", !db2.notifications.some((x) => x.kind === "rating"));
       await shot("05-refused");
+      await ctx.close();
+    }
+    /* ---------- Log next: two lessons over, one logged, the burst opens the other ---------- */
+    {
+      const db3 = freshDb();
+      M.addUser(db3, { id: IDS.aoife, email: "aoife@t.ie" });
+      M.addProfile(db3, { id: IDS.aoife, role: "player", name: "Aoife Doyle", type: "adult", coachId: IDS.coach, dob: "1990-02-02" });
+      M.addBooking(db3, { coachId: IDS.coach, playerId: IDS.adult, date: TODAY, time: "9:00 am" });
+      M.addBooking(db3, { coachId: IDS.coach, playerId: IDS.aoife, date: TODAY, time: "10:00 am" });
+      const { ctx, page, text, shot } = await boot(db3, "coach", `${TODAY}T14:00:00`);
+      /* the first of the two To log rows on Today: Cian's, at nine */
+      const cianRow = page.locator('[data-tour="today-justdone"] button', { hasText: "Cian Murphy" }).first();
+      check("(l) Today carries both finished lessons to log, Cian's first", (await cianRow.count()) === 1 && /Aoife Doyle/.test(M.norm(await text())), M.norm(await text()).slice(0, 200));
+      await cianRow.dispatchEvent("click"); await page.waitForTimeout(1000);
+      await page.getByRole("button", { name: "Chipping", exact: true }).click(); await page.waitForTimeout(300);
+      await page.getByRole("button", { name: "Log it", exact: true }).click(); await page.waitForTimeout(1600);
+      const next = page.locator('[aria-live="polite"]').getByRole("button", { name: /^Log next/ });
+      check("(m) the burst offers the other lesson: Log next · 1 left", (await next.count()) === 1 && /Log next · 1 left/.test(M.norm(await next.innerText())), M.norm(await text()).slice(0, 200));
+      await shot("06-log-next");
+      await next.dispatchEvent("click"); await page.waitForTimeout(1400);
+      /* it went to Today and stayed there: the timeout's go("log") was the old
+         render's, whose stack was still the log, so it took the tab's own
+         already-here branch and never opened the next lesson */
+      const opened = await page.evaluate(() => ({
+        burst: [...document.querySelectorAll('[aria-live="polite"]')].some((el) => /logged today/.test(el.innerText || "")),
+        log: !!document.querySelector('[data-tour="wiz-focus"]'),
+        hero: [...document.querySelectorAll("span")].filter((s) => getComputedStyle(s).fontSize === "30px").map((s) => s.textContent.trim()).find((x) => /Aoife|Cian/.test(x)) || null,
+      }));
+      check("(n) Log next clears the burst and opens the log on the other lesson, Aoife's", !opened.burst && opened.log && opened.hero === "Aoife Doyle", JSON.stringify(opened));
+      await shot("07-log-next-opened");
       await ctx.close();
     }
     check("(k) no page errors", errors.length === 0, errors.join(" | ").slice(0, 300));

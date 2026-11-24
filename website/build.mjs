@@ -1,0 +1,183 @@
+#!/usr/bin/env node
+/* Nosca's website: the build. Plain Node, no dependencies.
+   src/pages/*.html + src/partials/* + site.config.json  ->  dist/
+   Every URL it writes is relative, so dist/ works at a domain root or under a folder.
+   Usage: node build.mjs            (build once)
+          node build.mjs --watch    (rebuild when src/ changes)                          */
+import fs from 'node:fs';
+import path from 'node:path';
+import url from 'node:url';
+
+const ROOT = path.dirname(url.fileURLToPath(import.meta.url));
+const SRC = path.join(ROOT, 'src');
+/* --out <dir>: where to write (default website/dist). --release, or any --out, leaves the kit page out:
+   pages, styles and scripts whose name starts with an underscore are for working on the site, not for visitors. */
+const outAt = process.argv.indexOf('--out');
+const DIST = outAt > -1 && process.argv[outAt + 1] ? path.resolve(process.cwd(), process.argv[outAt + 1]) : path.join(ROOT, 'dist');
+const RELEASE = outAt > -1 || process.argv.includes('--release');
+const shown = (n) => !(RELEASE && n.startsWith('_'));
+const read = (p) => fs.readFileSync(p, 'utf8');
+const exists = (p) => fs.existsSync(p);
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/* ---------- the geometry the pages share ---------- */
+const RING_L = 'M18.651 19.734 A 8.6 8.6 0 1 1 21.108 17.341';
+const RING_R = 'M21.349 5.266 A 8.6 8.6 0 1 1 18.892 7.659';
+const CIRC = 'M8.6 0 A 8.6 8.6 0 1 1 -8.6 0 A 8.6 8.6 0 1 1 8.6 0'; /* a whole ring from its east point, clockwise */
+
+/* The card's pinstripe wedge (top right), in the card's own millimetres: the boundary runs from
+   (39.85, 0) on the top edge to (84, 30.52) on the right edge; the stripes cross it at 45 degrees,
+   4.24 mm apart along the top edge. Each stripe is its own path so it can be drawn in line by line. */
+function wedge(cls, flip) {
+  const W = 44.15, H = 30.52, m = H / W, step = 4.24;
+  const f = (n) => +n.toFixed(2);
+  let i = 0, out = '';
+  for (let c = 2.9; c < W + H - 0.6; c += step) {
+    const px = c / (1 + m), py = m * px;
+    const ex = c <= W ? c : W, ey = c <= W ? 0 : c - W;
+    out += `<path class="pins__s" style="--i:${i++}" pathLength="1" d="M${f(px)} ${f(py)}L${f(ex)} ${f(ey)}"/>`;
+  }
+  /* the bottom-left wedge is the top-right one turned half a turn, inside the drawing, so CSS transforms stay free */
+  return `<svg class="pins__w ${cls}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true" focusable="false">` +
+    `<g${flip ? ` transform="rotate(180 ${W / 2} ${H / 2})"` : ''}><path class="pins__edge" pathLength="1" d="M0 0L${W} ${H}"/>${out}</g></svg>`;
+}
+
+const GEN = {
+  /* <!-- @include mark class="…" --> the woven mark, two paths that can be drawn */
+  mark: (a) => {
+    const st = a.foil ? ` style="stroke:url(#g-foil${a.foil === 'd' ? '-d' : ''})"` : '';
+    return `<svg class="mark${a.class ? ' ' + a.class : ''}" viewBox="0 0 40 25"${a.label ? ` role="img" aria-label="${esc(a.label)}"` : ' aria-hidden="true"'} focusable="false"${a.attrs ? ' ' + a.attrs : ''}>` +
+      `<path class="mark__l" pathLength="1"${st} d="${RING_L}"/><path class="mark__r" pathLength="1"${st} d="${RING_R}"/></svg>`;
+  },
+  /* <!-- @include weave class="…" --> two whole rings that travel and weave (Site.weave) */
+  weave: (a) => {
+    const st = a.foil ? ` style="stroke:url(#g-foil${a.foil === 'd' ? '-d' : ''})"` : '';
+    return `<svg class="weave${a.class ? ' ' + a.class : ''}" viewBox="0 0 40 25"${a.label ? ` role="img" aria-label="${esc(a.label)}"` : ' aria-hidden="true"'} focusable="false"${a.attrs ? ' ' + a.attrs : ''}>` +
+      `<g class="weave__l" transform="translate(14 12.5)"><path${st} d="${CIRC}" stroke-dasharray="50.583 3.452" stroke-dashoffset="45.441"/></g>` +
+      `<g class="weave__r" transform="translate(26 12.5)"><path${st} d="${CIRC}" stroke-dasharray="50.583 3.452" stroke-dashoffset="18.423"/></g></svg>`;
+  },
+  /* <!-- @include pins class="…" --> the two opposing wedges of gold pinstripes */
+  pins: (a) => `<div class="pins${a.class ? ' ' + a.class : ''}" aria-hidden="true"${a.attrs ? ' ' + a.attrs : ''}>${wedge('pins__tr')}${wedge('pins__bl', true)}</div>`,
+  /* <!-- @include phone screens="coach-today-golf,coach-plus-golf" alts="…|…" mode="fade" class="…" eager="1" --> */
+  phone: (a) => {
+    const names = String(a.screens || a.src || '').split(',').map((s) => s.trim()).filter(Boolean);
+    const alts = String(a.alts || a.alt || '').split('|');
+    const imgs = names.map((n, i) => `<img class="screen${i === 0 ? ' is-on' : ''}" src="assets/${n}.webp" width="780" height="1688" alt="${esc(alts[i] || '')}"${i > 0 && !alts[i] ? ' aria-hidden="true"' : ''} decoding="async"${a.eager && i === 0 ? ' fetchpriority="high"' : ' loading="lazy"'}>`).join('');
+    return `<div class="phone${a.class ? ' ' + a.class : ''}"${a.attrs ? ' ' + a.attrs : ''}${a.settle ? ` data-phone="${esc(a.settle)}"` : ' data-phone'}>` +
+      `<div class="phone__body"><div class="phone__screen"${names.length > 1 || a.mode ? ` data-screens="${esc(a.mode || 'fade')}"` : ''}${a.autoplay ? ` data-autoplay="${esc(a.autoplay)}"` : ''}>${imgs}</div>` +
+      `<i class="phone__island" aria-hidden="true"></i><i class="phone__sheen" aria-hidden="true"><b></b></i></div><i class="phone__floor" aria-hidden="true"></i></div>`;
+  }
+};
+
+/* ---------- the template language: includes, variables, conditions ---------- */
+function attrsOf(str) {
+  const out = {};
+  String(str || '').replace(/([\w-]+)\s*=\s*"([^"]*)"/g, (_, k, v) => { out[k] = v; return ''; });
+  return out;
+}
+function render(text, vars, depth = 0) {
+  if (depth > 8) throw new Error('includes nested too deep');
+  /* <!-- @if key --> … <!-- @else --> … <!-- @endif -->   (key may be !key; not nested) */
+  text = text.replace(/<!--\s*@if\s+(!?)([\w.]+)\s*-->([\s\S]*?)<!--\s*@endif\s*-->/g, (_, not, key, body) => {
+    const [yes, no = ''] = body.split(/<!--\s*@else\s*-->/);
+    const v = vars[key];
+    const on = !(v === undefined || v === null || v === '' || v === false || v === '0');
+    return (not ? !on : on) ? yes : no;
+  });
+  /* <!-- @include name key="value" --> */
+  text = text.replace(/<!--\s*@include\s+([\w-]+)([^>]*?)-->/g, (_, name, rest) => {
+    const a = attrsOf(rest);
+    if (GEN[name]) return GEN[name](a);
+    const file = path.join(SRC, 'partials', name + '.html');
+    if (!exists(file)) throw new Error(`no partial or generator called "${name}"`);
+    return render(read(file), { ...vars, ...a }, depth + 1);
+  });
+  /* {{key}}  {{key|fallback}}  {{cur:page}} */
+  text = text.replace(/\{\{\s*cur:([\w-]+)\s*\}\}/g, (_, p) => (vars.page === p ? ' aria-current="page"' : ''));
+  text = text.replace(/\{\{\s*([\w.]+)\s*(?:\|([^}]*))?\}\}/g, (_, key, fb) => {
+    const v = vars[key];
+    return v === undefined || v === null || v === '' ? (fb !== undefined ? fb : '') : String(v);
+  });
+  return text;
+}
+/* A page starts with one comment of "key: value" lines (title, description, world, header, theme). */
+function frontMatter(src) {
+  const m = src.match(/^\s*<!--([\s\S]*?)-->/);
+  const meta = {};
+  if (!m) return { meta, body: src };
+  m[1].split('\n').forEach((line) => {
+    const k = line.match(/^\s*([\w-]+)\s*:\s*(.*?)\s*$/);
+    if (k) meta[k[1]] = k[2];
+  });
+  return { meta, body: src.slice(m[0].length) };
+}
+
+/* ---------- files ---------- */
+function put(file, data) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const buf = Buffer.isBuffer(data) ? data : Buffer.from(data);
+  if (exists(file) && fs.readFileSync(file).equals(buf)) return false;
+  fs.writeFileSync(file, buf);
+  return true;
+}
+function copyDir(from, to, keep = () => true) {
+  if (!exists(from)) return 0;
+  let n = 0;
+  for (const e of fs.readdirSync(from, { withFileTypes: true })) {
+    const a = path.join(from, e.name), b = path.join(to, e.name);
+    if (e.isDirectory()) n += copyDir(a, b, keep);
+    else if (keep(e.name)) { put(b, fs.readFileSync(a)); n++; }
+  }
+  return n;
+}
+const WORLD = { olive: '#4F5B29', green: '#123C30' };
+
+function build() {
+  const t0 = Date.now();
+  const config = JSON.parse(read(path.join(ROOT, 'site.config.json')));
+  copyDir(path.join(SRC, 'css'), path.join(DIST, 'css'), (n) => n.endsWith('.css') && shown(n));
+  copyDir(path.join(SRC, 'js'), path.join(DIST, 'js'), (n) => n.endsWith('.js') && shown(n));
+  copyDir(path.join(ROOT, 'vendor'), path.join(DIST, 'vendor'), (n) => /\.(js|css)$/.test(n));
+  copyDir(path.join(ROOT, 'fonts'), path.join(DIST, 'fonts'), (n) => /\.(woff2|txt)$/.test(n));
+  copyDir(path.join(ROOT, 'assets'), path.join(DIST, 'assets'), (n) => !/\.(json|md)$/.test(n));
+
+  const shell = read(path.join(SRC, 'partials', 'shell.html'));
+  const pagesDir = path.join(SRC, 'pages');
+  const built = [];
+  for (const f of fs.readdirSync(pagesDir).filter((n) => n.endsWith('.html') && shown(n)).sort()) {
+    const page = f.replace(/\.html$/, '');
+    const { meta, body } = frontMatter(read(path.join(pagesDir, f)));
+    const world = meta.world === 'green' ? 'green' : 'olive';
+    const vars = {
+      ...config,
+      title: 'Nosca · Coaching, linked.',
+      description: 'One coaching app for coach, player and parent, in golf, tennis, rowing, squash, padel and equestrian. In pilot in Ireland.',
+      header: 'paper',
+      ...meta,
+      page, world,
+      theme: meta.theme || (meta.header === 'dark' ? WORLD[world] : '#FFFFFF'),
+      worldColor: WORLD[world],
+      pageCss: exists(path.join(SRC, 'css', page + '.css')) ? `<link rel="stylesheet" href="css/${page}.css">` : '',
+      pageJs: exists(path.join(SRC, 'js', page + '.js')) ? `<script defer src="js/${page}.js"></script>` : ''
+    };
+    vars.title = esc(vars.title); vars.description = esc(vars.description);
+    let html = render(shell, { ...vars, content: '%%CONTENT%%' });
+    html = html.replace('%%CONTENT%%', () => render(body, vars));
+    html = html.replace(/\n[ \t]*\n[ \t]*\n+/g, '\n\n');
+    /* guard rails: nothing absolute, nothing third-party but the app's own links */
+    const bad = [...html.matchAll(/(?:src|href)="(\/[^"]*|https?:\/\/[^"]*)"/g)].map((m) => m[1])
+      .filter((u) => !(config.appUrl && u.startsWith(config.appUrl.replace(/\/$/, ''))));
+    if (bad.length) console.warn(`  ! ${f}: not relative: ${[...new Set(bad)].join(', ')}`);
+    if (/\[[A-Z][^\]\n<>]{2,40}\]|lorem ipsum|coming soon/i.test(html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, ' '))) console.warn(`  ! ${f}: looks like a placeholder is showing`);
+    put(path.join(DIST, f), html);
+    built.push(f);
+  }
+  console.log(`built ${built.join(' ')} in ${Date.now() - t0} ms`);
+}
+
+try { build(); } catch (e) { console.error('build failed: ' + e.message); process.exitCode = 1; }
+if (process.argv.includes('--watch')) {
+  let t = 0;
+  fs.watch(SRC, { recursive: true }, () => { clearTimeout(t); t = setTimeout(() => { try { build(); } catch (e) { console.error('build failed: ' + e.message); } }, 120); });
+  console.log('watching src/ …');
+}

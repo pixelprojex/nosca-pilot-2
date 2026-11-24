@@ -6,6 +6,11 @@
    beside Register. A control that cannot sit beside the name takes a
    line of its own under it (the person row's rule for Accept · Decline);
    a title is never cut. Measured at 320 and, as the control, at 375.
+   Since 22 November the lesson on now is the day's one coloured card
+   (art direction): Register is a white key inside it, beside the name
+   while the whole name fits on its line and under it where it does not;
+   and the time leads every other row of the day at 17/600 in a 74
+   column, so at 350 and under the row's face gives way to the name.
    Usage: node narrow.cjs <distDir> <port> <outDir> */
 const path = require("path"), fs = require("fs");
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
@@ -35,6 +40,8 @@ function freshDb() {
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.adult, date: TODAY, time: "4:00 pm" });
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.adult, date: M.ymd(dayFrom(1)), time: "9:00 am" });
   M.addLesson(db, { coachId: IDS.coach, playerId: IDS.adult, date: M.ymd(dayFrom(-5)), focus: "Short game", unread: false });
+  /* the child's next lesson, read on her own screen by the parent (e) */
+  M.addBooking(db, { coachId: IDS.coach, playerId: IDS.junior, date: M.ymd(dayFrom(2)), time: "10:30 am" });
   return db;
 }
 
@@ -79,15 +86,39 @@ const { check, results, summary } = M.checker("narrow");
              marks: bs.map((b) => { const r = b.getBoundingClientRect(); return { label: b.textContent.trim(), top: Math.round(r.top), h: Math.round(r.height), w: Math.round(r.width) }; }),
              rowH: Math.round(row.getBoundingClientRect().height) };
   }, name);
-  /* the live row on the home: the name's room and where Register sits */
-  const liveRow = (page) => page.evaluate(() => {
-    const reg = document.querySelector('[data-tour="day-register"]'); if (!reg) return null;
-    const row = reg.parentElement, body = row.querySelector("button");
-    const nm = body.querySelector("[data-name]"); const nr = nm.getBoundingClientRect(), rr = reg.getBoundingClientRect();
-    const lh = parseFloat(getComputedStyle(nm).lineHeight) || 18;
-    return { name: nm.textContent.trim(), nameW: Math.round(nr.width), lines: Math.round(nr.height / lh), nameCut: nm.scrollHeight > nm.clientHeight + 1 || nm.scrollWidth > nm.clientWidth + 1, nameBottom: Math.round(nr.bottom),
-             regTop: Math.round(rr.top), regH: Math.round(rr.height), regLabel: reg.textContent.trim(), rowH: Math.round(row.getBoundingClientRect().height) };
-  });
+  /* a name's fit, in the page: its lines, whether it is cut, and whether a
+     word was broken inside (a word wider than its box, which overflow-wrap
+     breaks mid-word) */
+  const FIT = `(nm) => { const cs = getComputedStyle(nm), lh = parseFloat(cs.lineHeight) || 19, r = nm.getBoundingClientRect();
+    const probe = document.createElement("span"); probe.style.cssText = "position:absolute;visibility:hidden;white-space:nowrap;font:" + cs.font + ";letter-spacing:" + cs.letterSpacing; document.body.appendChild(probe);
+    const widest = Math.max(...nm.textContent.trim().split(/\\s+/).map((w) => { probe.textContent = w; return probe.getBoundingClientRect().width; })); probe.remove();
+    return { name: nm.textContent.trim(), nameW: Math.round(r.width), lines: Math.round(r.height / lh), nameCut: nm.scrollHeight > nm.clientHeight + 1 || nm.scrollWidth > nm.clientWidth + 1, broken: widest > nm.clientWidth + 1,
+             nameBottom: Math.round(r.bottom), nameRight: Math.round(r.right) }; }`;
+  /* the day's coloured card on the home (the lesson on now): how many
+     there are, the name's fit, and where Register sits — its height,
+     whether it is inside the card, and what of the card it lies over */
+  const liveCard = (page) => page.evaluate((FIT) => {
+    const cards = [...document.querySelectorAll("[data-next-card]")], card = cards[0]; if (!card) return { cards: 0 };
+    const reg = card.querySelector('[data-tour="day-register"]'), nm = card.querySelector("[data-name]");
+    const cr = card.getBoundingClientRect(), rr = reg ? reg.getBoundingClientRect() : null;
+    /* every word, glyph and picture of the card that is not the key's own */
+    const others = [...card.querySelectorAll("span, svg, img")].filter((x) => !reg || !reg.contains(x)).filter((x) => x.tagName !== "SPAN" || (!x.children.length && x.textContent.trim())).map((x) => x.getBoundingClientRect()).filter((r) => r.width > 0);
+    const hits = rr ? others.filter((r) => !(r.right <= rr.left + 0.5 || r.left >= rr.right - 0.5 || r.bottom <= rr.top + 0.5 || r.top >= rr.bottom - 0.5)).length : null;
+    const time = [...card.querySelectorAll("span")].find((s) => !s.children.length && /^\d{1,2}:\d{2} [ap]m$/.test(s.textContent.trim()));
+    return { cards: cards.length, kind: card.dataset.nextCard, ...eval(FIT)(nm), bg: getComputedStyle(card).backgroundColor, fg: getComputedStyle(nm).color, timeSize: time ? getComputedStyle(time).fontSize : null,
+             regLabel: reg ? reg.textContent.trim() : null, regTop: rr ? Math.round(rr.top) : null, regLeft: rr ? Math.round(rr.left) : null, regH: rr ? Math.round(rr.height) : null,
+             regInside: rr ? rr.left >= cr.left - 0.5 && rr.right <= cr.right + 0.5 && rr.top >= cr.top - 0.5 && rr.bottom <= cr.bottom + 0.5 : null, hits, cardH: Math.round(cr.height) };
+  }, FIT);
+  /* a row of the day that is not the card, by the name it carries: the
+     name's fit, the time that leads it, its face and its tail */
+  const dayRow = (page, who) => page.evaluate(([FIT, who]) => {
+    const row = [...document.querySelectorAll('[data-scroll="screen"] .nsc-ruled > *')].find((b) => !b.hasAttribute("data-next-card") && [...b.querySelectorAll("[data-name]")].some((n) => n.textContent.trim() === who) && /\d{1,2}:\d{2} [ap]m/.test(b.textContent)); if (!row) return null;
+    const nm = row.querySelector("[data-name]"), tm = [...row.querySelectorAll("span")].find((s) => !s.children.length && /^\d{1,2}:\d{2} [ap]m$/.test(s.textContent.trim()));
+    const tcs = getComputedStyle(tm), tail = [...row.querySelectorAll("span")].find((s) => !s.children.length && s.textContent.trim() === "Log");
+    return { ...eval(FIT)(nm), time: tm.textContent.trim(), timeSize: tcs.fontSize, timeWeight: tcs.fontWeight, timeW: Math.round(tm.getBoundingClientRect().width), timeCut: tm.scrollWidth > tm.clientWidth + 1,
+             timeLeads: tm.getBoundingClientRect().right <= nm.getBoundingClientRect().left, face: row.querySelectorAll("span.rounded-full, img").length > 0, log: !!tail, logBeside: tail ? tail.getBoundingClientRect().top < nm.getBoundingClientRect().bottom : null,
+             rowH: Math.round(row.getBoundingClientRect().height) };
+  }, [FIT, who]);
 
   try {
     /* ---------- (a) the compact header's title, whole, at 320 ---------- */
@@ -138,31 +169,52 @@ const { check, results, summary } = M.checker("narrow");
       await ctx.close();
     }
 
-    /* ---------- (c) the home's live row with a long name ---------- */
+    /* ---------- (c) the lesson on now is the day's one coloured card ---------- */
+    /* (22 November, art direction) the live row became the card: the sport's
+       colour, white words, the time at 28, the ringed face and the whole
+       name, Register a white key inside it. What the row's checks proved,
+       the card's prove: the name whole — never cut, no word broken — at
+       320, 360 and 375 for a short name and the long one; Register a key 44
+       tall inside the card, lying over nothing; and its place decided by
+       the name, never the width — beside the name while the whole name
+       fits on its line, a line of its own under it where it does not. */
+    /* what every card must be, whatever the width and the name */
+    const cardOk = (o, who) => !!o && o.cards === 1 && o.kind === "now" && o.name === who && !o.nameCut && !o.broken && o.regLabel === "Register" && o.regH >= 44 && o.regInside === true && o.hits === 0 && o.timeSize === "28px";
+    const under = (o) => o.regTop >= o.nameBottom - 2, beside = (o) => o.regTop < o.nameBottom - 8 && o.regLeft >= o.nameRight - 1;
     for (const width of [320, 375]) {
       const { ctx, page, shot } = await boot("coach", width);
       await tap(page, '[aria-label="Today"]', 900);
-      const o = await liveRow(page);
-      await shot("03-live-row");
+      const o = await liveCard(page);
+      await shot("03-live-card");
       if (width === 320) {
-        check("(c1) at 320 the live row gives the name its room — at least 85px, nothing cut — and Register takes a line of its own under it",
-          !!o && o.nameW >= 85 && !o.nameCut && o.regTop >= o.nameBottom - 2 && o.regLabel === "Register", JSON.stringify(o));
+        check("(c1) at 320 the card gives the long name its room — two lines at most, no word broken, nothing cut — and Register, a 44-tall key inside the card, takes a line of its own under it",
+          cardOk(o, LONG) && o.nameW >= 85 && o.lines <= 2 && under(o), JSON.stringify(o));
       } else {
-        check("(c2) at 375 Register stays beside the name, and the name is whole on three lines at most", !!o && !o.nameCut && o.nameW >= 84 && o.regTop < o.nameBottom - 8 && o.regLabel === "Register", JSON.stringify(o));
+        check("(c2) at 375 the whole long name does not fit beside Register, so Register takes a line of its own under it and the name reads on one line", cardOk(o, LONG) && o.lines === 1 && under(o), JSON.stringify(o));
       }
       await ctx.close();
     }
 
-    /* ---------- (c3)–(c5) the live row's rule is the name, not the width ---------- */
-    for (const [width, at, who, beside] of [[360, "16:10", "Cian Murphy", true], [375, "16:10", "Cian Murphy", true], [360, "09:10", LONG, false]]) {
+    /* ---------- (c3)–(c8) Register's place is the name's, not the width's; the day's other rows ---------- */
+    for (const [width, at, who, want] of [[360, "16:10", "Cian Murphy", "beside"], [375, "16:10", "Cian Murphy", "beside"], [360, "09:10", LONG, "under"], [320, "16:10", "Cian Murphy", "either"]]) {
       const { ctx, page, shot } = await boot("coach", width, at);
       await tap(page, '[aria-label="Today"]', 900);
-      const o = await liveRow(page);
-      await shot(`03-live-row-${who.split(" ")[0]}`);
-      const ok = !!o && o.name === who && !o.nameCut && o.regLabel === "Register" && (beside ? (o.regTop < o.nameBottom - 8 && o.rowH <= 64) : (o.regTop >= o.nameBottom - 2 && o.nameW >= 85));
-      check(beside
-        ? `(c${width === 360 ? 3 : 4}) at ${width} a short name keeps Register beside it on a 60px row — a fixed basis dropped it under every name at 360`
-        : `(c5) at 360 the long name's longest word does not fit beside Register, so Register takes a line of its own under it`, ok, JSON.stringify(o));
+      const o = await liveCard(page);
+      await shot(`03-live-card-${who.split(" ")[0]}`);
+      const ok = cardOk(o, who) && (want === "beside" ? (beside(o) && o.lines === 1 && o.cardH <= 126) : want === "under" ? (under(o) && o.lines === 1) : (o.lines === 1 && (under(o) || beside(o))));
+      check(want === "beside"
+        ? `(c${width === 360 ? 3 : 4}) at ${width} a short name keeps Register beside it, the card at its one height — a fixed basis dropped it under every name at 360`
+        : want === "under" ? "(c5) at 360 the whole long name does not fit beside Register, so Register takes a line of its own under it"
+        : "(c6) at 320 a short name reads whole on one line, Register a 44-tall key inside the card beside it or under it, lying over nothing", ok, JSON.stringify(o));
+      /* at ten past four the long name's lesson is over: a white row to log, the time leading it */
+      if (at === "16:10" && width !== 375) {
+        const r = await dayRow(page, LONG);
+        const lead = !!r && r.timeLeads && r.timeSize === "17px" && r.timeWeight === "600" && r.timeW === 74 && !r.timeCut;
+        check(width === 320
+          ? "(c7) at 320 the time leads the day's other rows at 17/600 in its 74 column and the long name reads whole beside it — no word broken, nothing cut, Log beside it — the face giving way to the name"
+          : "(c8) at 360 the same row keeps its face, the time leading at 17/600, the long name whole on three lines at most, no word broken",
+          lead && r.name === LONG && !r.nameCut && !r.broken && r.log && r.logBeside && (width === 320 ? (!r.face && r.lines <= 2) : (r.face && r.lines <= 3)), JSON.stringify(r));
+      }
       await ctx.close();
     }
 
@@ -177,6 +229,38 @@ const { check, results, summary } = M.checker("narrow");
       }, LONG);
       await shot("04-diary-row");
       check('(d) the Diary\'s List row at 320 reads the whole name on a second line — it read "Maximiliano Ó Súil…" beside the time', !!o && o.text === LONG && !o.cut && o.lines <= 2, JSON.stringify(o));
+      await ctx.close();
+    }
+
+    /* ---------- (e) the child's Next row, whole ---------- */
+    /* the parent's screen for a child: Next reads the day and the time,
+       each fact whole, and breaks only at the dot — which hangs, clipped,
+       off the second line's start (PersonRow's grey line), so the line
+       reads "10:30 am", never "· 10:30 am". It read "Tue 24 Nov · 10:0…"
+       at 320 for a round */
+    for (const width of [320, 375]) {
+      const { ctx, page, shot } = await boot("parent", width);
+      await tap(page, '[aria-label="Family"]', 900);
+      await page.locator("button", { hasText: "Saoirse" }).first().click(); await page.waitForTimeout(1000);
+      const o = await page.evaluate(() => {
+        const lbl = [...document.querySelectorAll('[data-scroll="screen"] .nsc-list > * > span:first-child')].find((s) => s.textContent.trim() === "Next"); if (!lbl) return null;
+        const v = lbl.nextElementSibling, vr = v.getBoundingClientRect(), cs = getComputedStyle(v);
+        const facts = [...v.querySelectorAll(".whitespace-nowrap")].map((f) => {
+          const r = f.getBoundingClientRect(), dot = f.firstElementChild && f.firstElementChild.textContent.includes("·") ? f.firstElementChild.getBoundingClientRect() : null;
+          return { text: f.textContent.replace("·", "").trim(), top: Math.round(r.top), right: Math.round(r.right), boxes: f.getClientRects().length, dotRight: dot ? Math.round(dot.right) : null };
+        });
+        return { text: v.textContent.replace(/\s+/g, " ").trim(), cut: v.scrollWidth > v.clientWidth + 1 || cs.textOverflow === "ellipsis", left: Math.round(vr.left), right: Math.round(vr.right), facts };
+      });
+      await shot("05-kid-next");
+      const tops = o ? [...new Set(o.facts.map((f) => f.top))] : [];
+      /* a fact that starts a line of its own carries its dot left of the value's box, where the clip takes it */
+      const hung = !!o && o.facts.every((f, i) => i === 0 || f.top === o.facts[i - 1].top || (f.dotRight !== null && f.dotRight <= o.left + 1));
+      const whole = !!o && !o.cut && o.facts.length === 2 && /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{1,2} [A-Z][a-z]{2}$/.test(o.facts[0].text) && o.facts[1].text === "10:30 am"
+        && o.facts.every((f) => f.boxes === 1 && f.right <= o.right + 1);
+      check(width === 320
+        ? '(e) the child\'s Next row at 320 reads the day and the time whole, breaking only at the dot, which never leads the second line — it read "Tue 24 Nov · 10:0…"'
+        : "(e2) at 375 the child's Next row reads on one line, whole", whole && hung && (width === 320 || tops.length === 1), JSON.stringify(o));
+      console.log(`      note  the child's Next at ${width}: "${o ? o.text : "-"}" on ${tops.length} line(s), the value ${o ? o.right - o.left : "-"}px wide`);
       await ctx.close();
     }
 

@@ -1,7 +1,7 @@
 /* ONE NEW GROUP SHEET. New group is one sheet whichever control opens it
    — the roster's tile, the roster's Groups-half row, the plus — headed
    "New group", a "Group name" field, the people as the app's boxed person
-   rows (PersonPicker), the week as a day row with the chosen day in ink,
+   rows (PersonPicker), the week as a day row with the chosen day Duolingo's chosen answer,
    every time, the weeks, Create group. For a long time the roster's foot
    row ("Create a group") opened a second sheet of round chips with
    "e.g. Saturday clinic", four times in a grid and a "Create · 8 Fridays
@@ -100,14 +100,17 @@ const brief = (sh) => sh ? `${sh.title} · "${sh.ph}" · ${sh.people.length} peo
       const C = await shape(page); await shot("03-from-tile");
       check("(d) the roster's New group tile opens the same sheet", !!C && print(C) === print(A), `${print(C)} vs ${print(A)}`);
 
-      /* the chosen day in ink, as a chosen tile is; the others on the wash; never the success green */
-      const on = C ? C.days.filter((d) => d.bg === C.ink) : [], off = C ? C.days.filter((d) => d.bg !== C.ink) : [];
-      check("(e) the chosen day is filled with the ink and reads white; the six others share one quiet fill; none is the success green",
-        !!C && on.length === 1 && on[0].d === "Sa" && on[0].fg === "rgb(255, 255, 255)" && off.length === 6 && new Set(off.map((d) => d.bg)).size === 1 && !C.days.some((d) => d.bg === STEADY),
+      /* every key is filled since 23 November: the chosen day is golf's cloth tone with the hue's ink, the six others
+         the quiet key in golf's pale (it was the pale face on a white key, and the ink before that); never the success green */
+      const SEL_FACE = "rgb(148, 189, 158)", SEL_FG = "rgb(22, 49, 30)";   // fairway's cloth #94BD9E; its ink
+      const QUIET = "rgb(219, 238, 223)";                                     // fairway's pale #DBEEDF
+      const on = C ? C.days.filter((d) => d.bg === SEL_FACE) : [], off = C ? C.days.filter((d) => d.bg !== SEL_FACE) : [];
+      check("(e) the chosen day is the chosen answer, golf's light colour filling it with the word in its ink; the six others are the quiet key in golf's pale; none is the success green",
+        !!C && on.length === 1 && on[0].d === "Sa" && on[0].fg === SEL_FG && off.length === 6 && new Set(off.map((d) => d.bg)).size === 1 && off[0].bg === QUIET && !C.days.some((d) => d.bg === STEADY),
         C ? JSON.stringify(C.days.map((d) => `${d.d} ${d.bg}`)) : "no sheet");
       await page.locator("[data-sheet] button", { hasText: /^Th$/ }).first().click(); await page.waitForTimeout(300);
       const C2 = await shape(page);
-      check("(e2) tapping Thursday moves the ink to it", !!C2 && C2.days.filter((d) => d.bg === C2.ink).map((d) => d.d).join() === "Th", C2 ? JSON.stringify(C2.days.map((d) => `${d.d} ${d.bg}`)) : "no sheet");
+      check("(e2) tapping Thursday moves the chosen answer to it", !!C2 && C2.days.filter((d) => d.bg === SEL_FACE).map((d) => d.d).join() === "Th", C2 ? JSON.stringify(C2.days.map((d) => `${d.d} ${d.bg}`)) : "no sheet");
       /* every time: a junior clinic is after school */
       const late = page.locator("[data-sheet] button", { hasText: /^4:30 pm$/ });
       await late.first().click(); await page.waitForTimeout(300);

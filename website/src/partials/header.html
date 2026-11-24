@@ -1,0 +1,26 @@
+<header class="hdr" data-theme="{{header}}" data-theme-top="{{header}}">
+  <div class="hdr__in wrap wrap--wide">
+    <a class="hdr__home" href="./" aria-label="Nosca, home"{{cur:index}}><!-- @include mark class="hdr__mark" --></a>
+    <nav class="hdr__nav" aria-label="Site">
+      <a href="product.html"{{cur:product}}>Product</a>
+      <a href="story.html"{{cur:story}}>Story</a>
+      <a href="partners.html"{{cur:partners}}>Partners</a>
+    </nav>
+    <a class="key key--sm hdr__key" href="{{appUrl}}" rel="noopener">Open Nosca</a>
+    <button class="hdr__menu" type="button" aria-expanded="false" aria-controls="menu" aria-label="Menu"><i></i><i></i></button>
+  </div>
+</header>
+<div class="menu g-world" id="menu" hidden>
+  <!-- @include pins class="pins--band" -->
+  <nav class="menu__nav wrap" aria-label="Menu">
+    <a class="menu__link" href="./"{{cur:index}}><span>Home</span></a>
+    <a class="menu__link" href="product.html"{{cur:product}}><span>Product</span></a>
+    <a class="menu__link" href="story.html"{{cur:story}}><span>Story</span></a>
+    <a class="menu__link" href="partners.html"{{cur:partners}}><span>Partners</span></a>
+  </nav>
+  <div class="menu__foot wrap">
+    <a class="key key--paper" href="{{appUrl}}" rel="noopener">Open Nosca</a>
+    <a class="key key--ghost" href="{{installUrl}}" rel="noopener">Add to Home Screen</a>
+    <p class="menu__line">Coaching, linked.</p>
+  </div>
+</div>

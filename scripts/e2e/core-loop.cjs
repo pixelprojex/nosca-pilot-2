@@ -247,18 +247,18 @@ const leaks = [];
       check("(g) the roster row reads where the player stands — the next lesson's day and time here — not a total", /\w{3} \d{1,2} \w{3} · \d{1,2}:\d\d [ap]m/.test(rowG) && !/\d+ lessons?\b/.test(rowG), rowG);
       await page.locator('[data-tour="roster-row"]', { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(900);
       const tg = await leak("coach player file"); await shot("coach-player-file");
-      check("(g) the player's file carries the real lesson count", /All 3 lessons/.test(tg), tg.slice(0, 240));
+      check("(g) the player's file carries the real lesson count", /All lessons\s*3/.test(tg), tg.slice(0, 240));
       /* every row carries its own Download disc now — count the rows, not the discs */
       const fileRows = page.locator('[data-tour="player-lessons"] button:not([data-tour="player-all-lessons"]):not([aria-label^="Download"])');
       const rowTexts = await fileRows.allInnerTexts();
       /* the two seeded plus the one just logged, newest first */
-      check("(g) the player file lists that player's real lessons, newest first, with the way to them all", /All 3 lessons/.test(tg) && rowTexts.length === 3 && /Chipping/.test(rowTexts[0]) && /Short game/.test(rowTexts[1]) && /20 Aug/i.test(rowTexts[2]) && /Putting/.test(rowTexts[2]) && !tg.includes("Grip"), JSON.stringify(rowTexts));
+      check("(g) the player file lists that player's real lessons, newest first, with the way to them all", /All lessons\s*3/.test(tg) && rowTexts.length === 3 && /Chipping/.test(rowTexts[0]) && /Short game/.test(rowTexts[1]) && /20 Aug/i.test(rowTexts[2]) && /Putting/.test(rowTexts[2]) && !tg.includes("Grip"), JSON.stringify(rowTexts));
       check("(g) the file's rows are the coach's own — nothing seeded (14 Jun, Driving)", !tg.includes("14 Jun") && !tg.includes("Held the finish"), tg.slice(0, 200));
       /* the archive is one tap away whether or not there are more than
          the few shown — three lessons still get a way through to all */
       /* the archive is the first thing on the file now, at the size of
          the thing it opens, rather than a thin outline at the foot of a list */
-      check("(g) the whole archive is one button under the rows", (await page.locator('[data-tour="player-all-lessons"]').count()) === 1 && /All 3 lessons/.test(tg), tg.slice(0, 200));
+      check("(g) the whole archive is one button under the rows", (await page.locator('[data-tour="player-all-lessons"]').count()) === 1 && /All lessons\s*3/.test(tg), tg.slice(0, 200));
       await fileRows.filter({ hasText: "Putting" }).first().click(); await page.waitForTimeout(1200);
       await page.locator('[data-tour="lesson-clip"] video').first().waitFor({ timeout: 8000 }).catch(() => {});
       const t10 = await leak("coach lesson view"); await shot("coach-lesson-view");
@@ -375,7 +375,7 @@ const leaks = [];
         await row.click(); await page.waitForTimeout(1200);
         const t = await leak("coach player file with a group");
         /* two private in the fixture, plus the squad they were marked at: the file counts the group session for the players who were at it */
-        check("(i) …and the file counts the group session, named, with no 'private' hedge", t.includes("Serve") && /All 3 lessons/.test(t) && !t.includes("private"), t.slice(0, 240));
+        check("(i) …and the file counts the group session, named, with no 'private' hedge", t.includes("Serve") && /All lessons\s*3/.test(t) && !t.includes("private"), t.slice(0, 240));
         await ctx.close();
       }
       {

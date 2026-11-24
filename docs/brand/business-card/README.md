@@ -61,8 +61,8 @@ read in any light.
 
 | Caption | Points to | What happens |
 |---|---|---|
-| Open Nosca | `https://nosca-pilot-2.netlify.app/` | Sign-up, or the app for a member. |
-| Add to phone | `https://nosca-pilot-2.netlify.app/install` | The Home Screen guide: iPhone · Android · Computer, opened on the device it is read on, with the browser's own Install button where it offers one. The same guide is Settings › Add to Home Screen and the arrival screen's line after sign-up. |
+| Open Nosca | `https://nosca.netlify.app/` | Sign-up, or the app for a member. |
+| Add to phone | `https://nosca-pilot-2.netlify.app/install` — the printed code; it hops to `https://nosca.netlify.app/install` | The Home Screen guide: iPhone · Android · Computer, opened on the device it is read on, with the browser's own Install button where it offers one. The same guide is Settings › Add to Home Screen and the arrival screen's line after sign-up. |
 
 Version 3 codes (29 modules) at error level M, drawn as vector squares
 16.5 mm wide — 0.57 mm a module, over the 0.5 mm phones read with ease
@@ -113,4 +113,12 @@ the foil as black, as MOO wants it.
 
 One code (`/install`, the guide first, its X out to the app), olive front with the stripes in two
 opposing corner wedges, gold on both sides (MOO foils both or neither): the back's mark, NOSCA and a
-fine rule. The files are also served at `https://nosca-pilot-2.netlify.app/card/` for a phone.
+fine rule. The files are also served at `https://nosca.netlify.app/card/` for a phone.
+
+## Revised 23 November — the cards are printed
+
+The code on the printed cards is `https://nosca-pilot-2.netlify.app/install` and cannot change. The app
+moved to `https://nosca.netlify.app`; the first address is kept as a signpost that sends every page on to
+the same page there (`index.html`, `scripts/e2e/signpost.cjs`). So: **never rename or delete the Netlify
+site `nosca-pilot-2`**, and never change `scripts/business-card.py`'s `--site` default — a reprint must
+carry the code the cards in people's pockets carry.

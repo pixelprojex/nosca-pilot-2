@@ -3,15 +3,36 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- THE SIGNPOST. The printed business cards carry the site's first
+         address in their code, and ink cannot be changed. That address is
+         a signpost now: whatever page of it is opened, the same page of
+         the app's own address opens instead (the card's /install above
+         all — an app added to a Home Screen lives at the address it was
+         added from) — but only once that address has ANSWERED. The hop
+         first asks it for a picture every build ships; a picture loads
+         across sites where a fetch may not, and anything but a picture
+         (the site down, a login wall in front of it, no network) leaves
+         the person on this address, which still carries the whole app.
+         So a card can never land on a dead page, and the hop switches
+         itself on, with no deploy, the moment the new address is well.
+         Only this one host hops; a deploy preview, a branch deploy and
+         localhost are other hosts and stay where they are. Change either
+         name here and in netlify/functions/lib/signpost.mjs together;
+         scripts/e2e/signpost.cjs plays a scanned card, both ways. -->
+    <script>
+      (function (l) {
+        if (l.hostname !== "nosca-pilot-2.netlify.app") return;
+        var to = "https://nosca.netlify.app", over = false, probe = new Image();
+        probe.onload = function () { if (!over) { over = true; l.replace(to + l.pathname + l.search + l.hash); } };
+        probe.onerror = function () { over = true; };
+        setTimeout(function () { over = true; }, 4000);
+        probe.src = to + "/icons/icon-192.png?signpost=" + Date.now();
+      })(location);
+    </script>
     <title>Nosca</title>
-    <link rel="preconnect" href="https://api.fontshare.com" />
-    <link
-      href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@300,400,500&f[]=switzer@400,500,600&display=swap"
-      rel="stylesheet"
-    />
     <!-- the paper, not the brand: a phone paints the status bar and the browser chrome
          with it, and a green or cream band above a white app read as a blank strip -->
-    <meta name="theme-color" content="#FEFEFE" />
+    <meta name="theme-color" content="#FFFFFF" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
@@ -20,7 +41,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Nosca" />
   </head>
-  <body style="margin:0; background:#FEFEFE;">
+  <body style="margin:0; background:#FFFFFF;">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

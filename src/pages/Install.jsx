@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { X } from "lucide-react";
-import { ThemeCtx, NEUTRAL, BRAND, tr, display, Mark, Button, InstallGuide, haptic, EDGE, SOFT_LIP, LIST_CSS } from "../Nosca";
+import { ThemeCtx, NEUTRAL, BRAND, tr, display, TYPE, Mark, Button, InstallGuide, haptic, EDGE, SOFT_LIP, LIST_CSS } from "../Nosca";
 import { registerSw } from "../lib/push";
 
 /* ADD TO HOME SCREEN — https://<site>/install
@@ -33,7 +33,7 @@ export default function InstallPage() {
           </button>
         </div>
         <div className="flex-1 px-6 pt-8" style={{ animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) both" }}>
-          <h1 style={{ fontFamily: display, fontSize: 28, lineHeight: 1.06, letterSpacing: "-0.03em", color: NEUTRAL.ink, marginBottom: 24 }}>
+          <h1 style={{ ...TYPE.screen, color: NEUTRAL.ink, marginBottom: 24 }}>
             {tr("Add to Home Screen")}
           </h1>
           <InstallGuide />

@@ -4,7 +4,7 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/AuthContext";
 import {
   ThemeCtx, NEUTRAL, BRAND, SPORTS, tr, ui, display, TYPE, R, DANGER, STEADY, useT,
-  hapticSuccess, hapticWarn, haptic, Mark, Frame, SignupShell, Choice, Headline, Sub, Field, Button,
+  hapticSuccess, hapticWarn, haptic, openAbout, Mark, Frame, SignupShell, Choice, Headline, Sub, Field, Button,
   CodeBoxes, DobBox, PickSport,
 } from "../Nosca";
 
@@ -127,6 +127,11 @@ function Landing({ invite, onCreate, onSignIn }) {
             <Button tone="ink" onClick={onCreate}>{tr("Create account")}</Button>
           </div>
           <Button tone="quiet" onClick={onSignIn}>{tr("Sign in")}</Button>
+          {/* the company's website, findable before an account exists: a quiet line under the two keys, 44 to a finger */}
+          <button data-tour="auth-about" onClick={() => { haptic(6); openAbout(); }} className="w-full active:opacity-50"
+                  style={{ minHeight: 44, marginTop: 6, fontFamily: ui, fontSize: 14, fontWeight: 600, color: NEUTRAL.sub }}>
+            {tr("About Nosca")}
+          </button>
         </div>
       </div>
     </ThemeCtx.Provider>
@@ -328,7 +333,7 @@ function CodesStep({ junior, parent, initial, busy, err, onBack, onDone, onSkip,
   }, [pending, coachLook.status, famLook.status]);
 
   const label = (text) => (
-    <p className="mb-3 text-center" style={{ ...TYPE.eyebrow, color: t.faint }}>{text}</p>
+    <p className="mb-3 text-center" style={{ ...TYPE.eyebrow, color: t.sub }}>{text}</p>
   );
 
   return (

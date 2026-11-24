@@ -18,3 +18,4 @@ package-lock.json
 # committed because the round's letter had not been added yet. One rule:
 # nothing whose name starts dist- belongs in the repository.
 dist-*/
+website/dist/
