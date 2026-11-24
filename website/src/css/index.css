@@ -80,6 +80,10 @@ html.motion .hm-film__phone{--phone-w:min(60vw,calc((100vh - var(--hdr-h) - 306p
   html.motion .hm-film{grid-template-rows:minmax(0,1fr)}
   html.motion .hm-film__phone{--phone-w:min(30vw,340px,calc((100vh - var(--hdr-h) - 110px)/2.2));--phone-w:min(30vw,340px,calc((100svh - var(--hdr-h) - 110px)/2.2));align-self:center}
 }
+/* a tablet held upright has the height for a larger phone than a third of its width */
+@media (min-width:720px) and (max-width:1099px) and (min-aspect-ratio:1/2) and (max-aspect-ratio:1/1){
+  html.motion .hm-film__phone{--phone-w:min(40vw,340px,calc((100vh - var(--hdr-h) - 110px)/2.2));--phone-w:min(40vw,340px,calc((100svh - var(--hdr-h) - 110px)/2.2))}
+}
 html:not(.motion) .hm-film{padding-block:clamp(72px,10vw,120px)}
 /* at rest a phone shows one screen, so the player's other screens stand in a row under it */
 .hm-film__rest{display:flex;flex-wrap:wrap;justify-content:center;gap:clamp(10px,2vw,20px);grid-column:1/-1;--shot-w:clamp(96px,20vw,170px);margin-top:clamp(20px,4vw,48px)}
@@ -97,6 +101,7 @@ html:not(.motion) .hm-film{padding-block:clamp(72px,10vw,120px)}
 html.motion .hm-sports__track{--pw:min(66vw,calc((100vh - var(--hdr-h) - 250px)*.8));--pw:min(66vw,calc((100svh - var(--hdr-h) - 250px)*.8));padding-top:var(--hdr-h);align-items:center}
 html.motion .hm-sports__lead{width:min(80vw,34em)}
 @media (min-width:720px){html.motion .hm-sports__track{--pw:min(34vw,calc((100vh - var(--hdr-h) - 236px)*.8));--pw:min(34vw,calc((100svh - var(--hdr-h) - 236px)*.8))}}
+@media (min-width:720px) and (max-width:1099px) and (min-aspect-ratio:1/2) and (max-aspect-ratio:1/1){html.motion .hm-sports__track{--pw:min(50vw,calc((100vh - var(--hdr-h) - 236px)*.8));--pw:min(50vw,calc((100svh - var(--hdr-h) - 236px)*.8))}}
 html:not(.motion) .hm-sports{padding-block:clamp(72px,10vw,140px)}
 html:not(.motion) .hm-sports__track{grid-template-columns:repeat(auto-fill,minmax(calc(var(--pw)*1.17),1fr));row-gap:clamp(40px,6vw,72px);max-width:calc(1160px + var(--gut)*2);margin-inline:auto}
 html:not(.motion) .hm-sports__lead{grid-column:1/-1}

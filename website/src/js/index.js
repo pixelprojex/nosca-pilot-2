@@ -52,10 +52,11 @@ Site.ready(function (S) {
       /* the back: its gold rule draws, the light crosses it */
       tl.fromTo(rule, { scaleX: 0, transformOrigin: '0 50%' }, { scaleX: 1, duration: 9, ease: 'power2.out' }, 55);
       tl.set(sheenB, { opacity: 1 }, 58).fromTo(sheenB, { xPercent: -46 }, { xPercent: 46, duration: 13, ease: 'power1.inOut' }, 58).set(sheenB, { opacity: 0 }, 71.5);
-      /* and grows until it is the page: all white by 88, before the next section's first words rise onto it */
-      tl.to(bits, { autoAlpha: 0, duration: 6, ease: 'power1.in' }, 70);
-      tl.to(shadow, { autoAlpha: 0, duration: 5 }, 70);
-      tl.to(flip, { scale: function () { return g.sEnd; }, duration: 16, ease: 'power2.in' }, 72);
+      /* the back is held a moment to be read, then grows until it is the page: it starts slowly with its words still
+         on it, they go as it gathers pace, and it is all white at 95, as the next section's first words rise onto it */
+      tl.to(flip, { scale: function () { return g.sEnd; }, duration: 21, ease: 'power3.in' }, 74);
+      tl.to(bits, { autoAlpha: 0, duration: 5, ease: 'power1.in' }, 85);
+      tl.to(shadow, { autoAlpha: 0, duration: 6 }, 78);
     });
 
     /* the opening, once, while the visitor has not yet scrolled: the stripes draw line by line, the rings draw and
