@@ -19,40 +19,35 @@
  * by address — the database's `push_url`, a device's own origin — and
  * answers whoever calls it.
  *
- * WHICHEVER SITE HOLDS THE KEYS SENDS (24 November). The secrets a
- * sender needs live only in a site's own environment, and the app's own
- * site was built without them: with the signpost standing down as well,
- * the daily summary would have gone out from neither. So a site without
- * the keys skips, and the signpost stands down only when the app's own
- * site says it is armed (armed.mjs, appSiteArmed below).
+ * THE FIRST SITE SENDS (24 November). The secrets a sender needs live
+ * only in a site's own environment. The first site's have sent every
+ * push and every summary there has been — the database's `push_url` is
+ * its relay — and the app's own site's are not to be trusted to: on the
+ * day of the move they were there, so a check that they existed said
+ * yes, while its database address did not parse and every read failed.
+ * The summary going out from the app's own site that morning would have
+ * gone out from nowhere. So the app's own site never sends what a
+ * scheduled job sends (isAppSite), the first site always does, and a
+ * site that is neither — a single site built from this repository —
+ * sends, as before.
  */
 export const SIGNPOST_SITE = "nosca-pilot-2";
 export const SIGNPOST_HOST = `${SIGNPOST_SITE}.netlify.app`;
 /* the app's own site, which the signpost sends every visitor to */
-export const APP_HOST = "nosca.netlify.app";
-
-/* Will the app's own site send what a scheduled job sends? Its armed
-   endpoint answers whether that site holds the secrets a sender needs.
-   Anything but a plain yes — no answer in five seconds, an error, a site
-   built before the endpoint existed — is no, and the signpost sends it
-   itself: one summary from the old address beats none from either. */
-export async function appSiteArmed(fetcher = fetch) {
-  try {
-    const res = await fetcher(`https://${APP_HOST}/.netlify/functions/armed`, { signal: AbortSignal.timeout(5000) });
-    if (!res.ok) return false;
-    const body = await res.json();
-    return body && body.armed === true;
-  } catch { return false; }
-}
+export const APP_SITE = "nosca";
+export const APP_HOST = `${APP_SITE}.netlify.app`;
 
 const hostOf = (value) => {
   if (typeof value !== "string" || !value) return "";
   try { return new URL(value.includes("://") ? value : `https://${value}`).hostname.toLowerCase(); } catch { return ""; }
 };
 
-export function isSignpost(env = {}, context = undefined) {
+const isSite = (name, host) => (env = {}, context = undefined) => {
   const names = [env.SITE_NAME, context && context.site && context.site.name];
-  if (names.some((n) => typeof n === "string" && n.toLowerCase() === SIGNPOST_SITE)) return true;
+  if (names.some((n) => typeof n === "string" && n.toLowerCase() === name)) return true;
   const urls = [env.URL, context && context.site && context.site.url];
-  return urls.some((u) => hostOf(u) === SIGNPOST_HOST);
-}
+  return urls.some((u) => hostOf(u) === host);
+};
+
+export const isSignpost = isSite(SIGNPOST_SITE, SIGNPOST_HOST);
+export const isAppSite = isSite(APP_SITE, APP_HOST);

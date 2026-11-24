@@ -24,7 +24,10 @@
  * with its database writes — the two never send a person back and forth.
  *
  * A variable set on the site, in the shell or in a .env file wins, and
- * then none of this runs. */
+ * then none of this runs — once it is usable: the address is tidied as
+ * it is usually pasted (cleanUrl), and an address that still will not
+ * parse, or no key beside it, is no database, and the three are read
+ * here in its place. */
 
 export const FIRST_SITE = "https://nosca-pilot-2.netlify.app";
 export const APP_HOST = "nosca.netlify.app";
@@ -76,6 +79,42 @@ export async function settingsFromSite(home = FIRST_SITE, fetcher = globalThis.f
   } catch {
     return null;
   }
+}
+
+/* THE ADDRESS AS IT IS USUALLY PASTED. A trailing slash, the REST endpoint beside it on Supabase's
+   settings page, the host without its https:// (the app's own site's functions were given one that
+   would not parse, 24 November) — each is put right, the way the functions' projectUrl does. */
+export function cleanUrl(value) {
+  const v = String(value || "").trim().replace(/\/+$/, "").replace(/\/rest\/v1$/, "");
+  return v && !/^[a-z][a-z0-9+.-]*:\/\//i.test(v) ? `https://${v.replace(/^\/+/, "")}` : v;
+}
+
+/* a database the app can start on: an http(s) address that parses, and a key. Anything less is no
+   database at all — never a build that writes /ready.png and sends the first site's visitors to an app
+   that throws on its first line */
+export function usable(url, key) {
+  if (!url || !key || !String(key).trim()) return false;
+  try { return /^https?:$/.test(new URL(url).protocol); } catch { return false; }
+}
+
+/* NEVER A SECRET IN A BUNDLE. Whatever is named VITE_SUPABASE_ANON_KEY and VITE_VAPID_PUBLIC_KEY is
+   handed to every visitor. A service key pasted under the anon key's name, or the push service's private
+   key under the public one's — easy slips on a settings page that lists them side by side — would be
+   published. The build stops instead (vite.config.js), and the last good deploy keeps being served.
+   Returns what is wrong, or null. */
+export function secretNamed(env = {}) {
+  const key = String(env.VITE_SUPABASE_ANON_KEY || "").trim();
+  if (/^sb_secret_/i.test(key)) return "VITE_SUPABASE_ANON_KEY holds a secret key";
+  const parts = key.split(".");
+  if (parts.length === 3) {
+    try {
+      const claims = JSON.parse(fromB64url(parts[1]).toString("utf8"));
+      if (claims && claims.role && claims.role !== "anon") return `VITE_SUPABASE_ANON_KEY holds a ${claims.role} key`;
+    } catch { /* not a JWT: nothing to read */ }
+  }
+  const vapid = String(env.VITE_VAPID_PUBLIC_KEY || "").trim();
+  if (vapid && fromB64url(vapid).length === 32) return "VITE_VAPID_PUBLIC_KEY holds a private key";
+  return null;
 }
 
 /* a build with no database: its own address sends a person to the same page of the first site, before anything loads */

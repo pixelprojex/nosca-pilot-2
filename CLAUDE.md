@@ -2733,7 +2733,16 @@ seeded data and no account.
   project (never a service key, never another project's), a P-256 point
   (`scripts/public-settings.mjs`, called from `vite.config.js` when
   `NETLIFY` is true). A value set on the site, in the shell or in a .env
-  file wins and then nothing is read; the e2e mock builds are untouched;
+  file wins and then nothing is read — once it is usable: the address is
+  tidied as it is usually pasted (`cleanUrl`: a bare host takes https://,
+  the REST endpoint and a trailing slash go), and an address that still
+  will not parse, or no key beside it, is no database (`usable`), so the
+  three are read in its place and no build writes `/ready.png` over an
+  app that throws on its first line. **A secret named where the bundle
+  reads it stops the build** (`secretNamed`): a service key under
+  `VITE_SUPABASE_ANON_KEY`, an `sb_secret_` key, or the push service's
+  private key under `VITE_VAPID_PUBLIC_KEY` would be handed to every
+  visitor; the last good deploy is served instead. The e2e mock builds are untouched;
   a build off Netlify reads nothing. **They are never written into the
   repository**: the old site holds the same three as variables, and
   Netlify's secret scanning fails a build that finds a site variable's
@@ -2774,16 +2783,22 @@ seeded data and no account.
   letters inside a token (`isDemoUrl`). Only that exact host hops: a
   deploy preview, a branch deploy and localhost are other hosts and stay
   where they are. `netlify/functions/lib/signpost.mjs` names the two.
-  **Exactly one site sends.** A site without the keys skips the daily
-  summary and says so (it was a 500); the signpost stands down only when
-  the app's own site answers armed (`armed.mjs`: true or false, never a
-  value; `appSiteArmed`, five seconds, anything but yes is no) — for a
-  morning the signpost stood down regardless while the app's site held
-  no keys, and the summary would have gone out from neither. The relay is
-  called by address (the database's `push_url`, the old site's) and
-  answers there; a worker whose own site holds no keys repairs a rotated
-  subscription through the signpost's `resub`, which answers that one
-  origin across sites. `scripts/business-card.py`'s `--site` default stays
+  **Exactly one site sends, and it is the old one.** The daily summary
+  goes out from the old site, whose keys have sent every push and every
+  summary there has been, and never from the app's own (`isAppSite`); a
+  site that is neither — one site built from this repository on its own
+  — sends, and a site without the keys says so and sends nothing (it was
+  a 500). For a morning the signpost stood down regardless while the
+  app's site held no keys; then for an hour it stood down whenever the
+  app's site said it held them (an `armed` endpoint) — and on the day of
+  the move it did hold them while its database address would not parse
+  ("Failed to parse URL", read off its `resub`), so the summary would
+  have gone out from nowhere. Holding a key is not sending with it. The
+  relay is called by address (the database's `push_url`, the old site's)
+  and answers there; a worker whose own site cannot repair a rotated
+  subscription asks the signpost's `resub`, which answers that one
+  origin across sites. The functions' `projectUrl` takes a bare host as
+  https too. `scripts/business-card.py`'s `--site` default stays
   the OLD address — it is the printed code; never "correct" it.
   `website/site.config.json` names the app and the guide by relative address (`../`, `../install`) — the site lives inside the app's own deploy, so its Open Nosca can never point at an address that is not answering (for an hour it named the new site while that stood behind a login wall). A real domain, when
   there is one, is added to the app's own site and the two names in
