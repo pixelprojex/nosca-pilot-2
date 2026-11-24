@@ -8569,7 +8569,7 @@ function Toast({ msg }) {
     </div>
   );
 }
-function Segmented({ options, value, onChange, tour }) {
+function Segmented({ options, value, onChange, tour, tall = false }) {
   const t = useT();
   const idx = Math.max(0, options.indexOf(value));
   const n = options.length || 1;
@@ -8587,8 +8587,9 @@ function Segmented({ options, value, onChange, tour }) {
         const on = value === o;
         return (
           <button key={o} aria-pressed={on} aria-label={o} onClick={() => { haptic(6); onChange(o); }} className="relative flex-1 rounded-lg"
-                  style={{ minHeight: 34, paddingBottom: 2, background: "transparent", transition: `color ${MOTION.move}ms`,
-                           fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: on ? t.ink : t.sub }}>{o}</button>
+                  /* `tall`: 44 to a finger, where the control is the only way to another answer (the install guide's Change) */
+                  style={{ minHeight: tall ? 44 : 34, paddingBottom: 2, background: "transparent", transition: `color ${MOTION.move}ms`,
+                           fontFamily: ui, fontSize: tall ? 14.5 : 13.5, fontWeight: 600, color: on ? t.ink : t.sub }}>{o}</button>
         );
       })}
     </div>
@@ -18404,27 +18405,50 @@ function Notifications({ role, pop, pushOn, setPushOn, live, notify, setNotify, 
      drawn here in one line (INS_GLYPHS, the Ins* pieces) — the thing to
      tap is the white key with the ring round it, what stands beside it
      is drawn faint. No symbol is ever typed into a sentence. Every tap
-     is a step. Where one iOS can show either of two controls (Safari's
-     Bottom and Top layouts keep Share on the toolbar) both are drawn
-     side by side in the one step.
-   · TRUE, BY VERSION. Safari has moved Share twice. iOS 18 and earlier:
-     Share on the toolbar. iOS 26: the three dots right of the address
-     bar, then Share. iOS 27: the dots became a Tabs button and Share
-     went into the Page Menu, three lines at the left of the address bar
-     — an iOS 27 iPhone read "three dots" for two months. Then View More
-     in the share sheet (26 and 27), Add to Home Screen, Add with Open as
-     Web App left on. `installSubFor` picks by Safari's own Version/.
-     Read on 23 November 2026: Apple's iPhone User Guide, "Turn a website
-     into an app in Safari on iPhone" ("Tap the Page Menu button, then
-     tap Share. If your Tabs layout is set to Bottom or Top, tap the
-     Share button" — its older regional copies say "the More button");
-     Cult of Mac, "Safari in iOS 27" (the More menu on the right replaced
-     with a Tabs button; Share by the Page menu on the left of the
-     address bar); M. Firtman, 8 June 2026 ("the new three lines menu,
-     Share, View more"); MacRumors' iOS 26 how-to ("Tap the three dots to
-     the right of the Safari address bar. In the pop-up menu, tap
-     Share"); khmyznikov/pwa-install issue 158 (View More comes first on
-     the newest iPhones).
+     is a step. WHERE A PHONE MAY SHOW EITHER OF TWO CONTROLS THE WORDS
+     NAME NEITHER ("Tap one of these") and the picture draws both, side
+     by side: a sentence that says "three dots" to a phone showing three
+     lines is the mistake the founder was handed.
+   · TRUE, BY VERSION (read on 24 November 2026; Apple's own pages could
+     not be opened from the build machine, so each line stands on the
+     search engine's reading of them and on two independent how-tos).
+     Safari has moved Share twice.
+     – iOS 18 and earlier: Share in the toolbar at the foot, then Add to
+       Home Screen down the list, then Add.
+     – iOS 26, Compact (the default): the More button, three dots at the
+       right of the address bar, then Share (MacRumors' how-to: "Tap the
+       three dots to the right of the Safari address bar. In the pop-up
+       menu, tap Share"; 9to5Mac: the address bar sits between Back and
+       the dots). The button at the LEFT of the bar there is the Page
+       Menu, a rectangle over two lines, and does not lead to Share — so
+       this set never says "lines". Bottom and Top layouts keep Share on
+       the toolbar (iDownloadBlog, Tom's Guide), so it is drawn beside.
+     – iOS 27, Compact: the dots became a Tabs button and Share went into
+       the Page Menu, three lines at the left of the address bar (Cult of
+       Mac, "Safari in iOS 27": "The More menu on the right has been
+       replaced with a Tabs button … tap the Page menu on the left of the
+       address bar, or tap and hold the address bar"; MacStories' review:
+       "the bottom-right button is no longer a generic ellipsis menu – it
+       opens your tabs"; M. Firtman, June 2026: "the new three lines menu,
+       Share, View more"; Apple's iPhone User Guide, "Turn a website into
+       an app in Safari on iPhone": "Tap the Page Menu button, then tap
+       Share. If your Tabs layout is set to Bottom or Top, tap the Share
+       button"). An iOS 27 iPhone read "three dots" for two months.
+     – 26 and 27: the share sheet shows a short row of round actions and
+       keeps Add to Home Screen behind the last, View More (pwa-install
+       issue 158; Firtman) — More with three dots on some 26 releases (a
+       26.4 report lists "Copy, Add to Bookmarks, Add to Reading List,
+       More"), so both are drawn. Then Add, with Open as Web App on, which
+       is the default from iOS 26 (iDownloadBlog, citing WebKit).
+     – Chrome on Android: the menu row is "Install and create shortcut"
+       from Chrome 150 (Android Authority, July 2026) and "Add to Home
+       screen" before; both drawn. Samsung Internet: the three lines
+       bottom right, Add page to, Home screen, Add (Samsung's developer
+       hub). A computer: the install icon in the address bar; Safari on a
+       Mac: File › Add to Dock.
+     `installSubFor` picks by Safari's own Version/; another browser on an
+     iPhone (Chrome, Edge, Firefox) reaches Add to Home Screen through
+     its own Share, so it reads the Share set.
    · ONE GUIDE, TWO DRESSES. `dress="card"` is /install's (the card's
      gold for the numerals, the thread and the ring; pages/Install.jsx
      lays the card over it); the default is the app's own page, with the
@@ -18449,13 +18473,19 @@ const INSTALL_SUBS = {
 };
 /* what the quiet row calls a choice whose key is too short to stand alone */
 const INSTALL_SUB_NAME = { Earlier: "iOS 18 or earlier", Samsung: "Samsung Internet" };
+/* Chrome, Edge and Firefox on an iPhone: the Share set, under the browser's own name */
+const INSTALL_IOS_BROWSER = { chrome: "Chrome", edge: "Edge", firefox: "Firefox" };
 const INSTALL_HINT = {
   iPhone: "Settings › General › About › iOS Version",
   Android: "A Samsung phone opens links in Samsung Internet",
   Computer: null,
 };
 const installSubFor = (tab, browser) => {
-  if (tab === "iPhone") { const v = iosMajor(); return !v || v >= 27 ? "iOS 27" : v >= 26 ? "iOS 26" : "Earlier"; }
+  if (tab === "iPhone") {
+    /* Chrome, Edge and Firefox on an iPhone carry Add to Home Screen under their own Share */
+    if (INSTALL_IOS_BROWSER[browser]) return "Earlier";
+    const v = iosMajor(); return !v || v >= 27 ? "iOS 27" : v >= 26 ? "iOS 26" : "Earlier";
+  }
   if (tab === "Android") return browser === "samsung" ? "Samsung" : "Chrome";
   return browser === "safari" ? "Safari" : "Chrome or Edge";
 };
@@ -18494,7 +18524,7 @@ const INS_GLYPHS = {
   cross: "M7 7l10 10M17 7 7 17",
 };
 function InsGlyph({ name, size = 26, color, sw = 1.9 }) {
-  const box = { width: size, height: size, viewBox: "0 0 24 24", "aria-hidden": "true", focusable: "false", style: { display: "block", flexShrink: 0 } };
+  const box = { width: size, height: size, viewBox: "0 0 24 24", "aria-hidden": "true", focusable: "false", "data-glyph": name, style: { display: "block", flexShrink: 0 } };
   if (name === "dots" || name === "dotsV") {
     const at = [5.2, 12, 18.8];
     return <svg {...box}>{at.map((p) => <circle key={p} cx={name === "dots" ? p : 12} cy={name === "dots" ? 12 : p} r={1.75} fill={color} />)}</svg>;
@@ -18535,7 +18565,7 @@ function InsBar({ p, lead, trail, max = 150, run }) {
     ? { marginLeft: -INS_PAD, minWidth: trail ? 96 : 48, borderRadius: "0 999px 999px 0", border: "1.5px solid #E2E2E7", borderLeft: "none" }
     : { maxWidth: max, minWidth: lead || trail ? 96 : 56, borderRadius: 999, boxShadow: "inset 0 0 0 1.5px #E2E2E7" };
   return (
-    <span className="inline-flex items-center min-w-0" style={{ flex: "1 1 0", height: 52, padding: 4, gap: 8, background: "#FFFFFF", boxSizing: "border-box", ...shape }}>
+    <span data-ins-bar="" className="inline-flex items-center min-w-0" style={{ flex: "1 1 0", height: 52, padding: 4, gap: 8, background: "#FFFFFF", boxSizing: "border-box", ...shape }}>
       {lead}
       <span className="flex-1 min-w-0" style={{ height: 6, borderRadius: 3, background: "#D9D9DE", margin: run ? `0 ${trail ? 4 : 14}px 0 ${INS_PAD}px` : lead ? "0 12px 0 2px" : trail ? "0 2px 0 12px" : "0 14px" }} />
       {trail}
@@ -18563,20 +18593,59 @@ function InsAppIcon({ p, size = 60 }) {
     </span>
   );
 }
+/* a round action of the share sheet: a disc with its glyph and its name
+   under it; with no glyph, one of the faint ones that stand before it */
+function InsRound({ p, glyph, label }) {
+  const { t, hi } = p;
+  return (
+    <span className="inline-flex flex-col items-center shrink-0" style={{ gap: 7 }}>
+      <span {...(glyph ? { "data-ins-tap": "" } : { "aria-hidden": "true" })} className="inline-flex items-center justify-center"
+            style={{ width: 46, height: 46, borderRadius: 23, ...(glyph ? { background: "#FFFFFF", boxShadow: `0 0 0 2px ${hi}, 0 4px 0 ${MIX("#FFFFFF", hi, 0.32)}` } : { background: "#E2E2E7" }) }}>
+        {glyph && <InsGlyph name={glyph} size={24} color={t.ink} sw={2} />}
+      </span>
+      {label
+        ? <span style={{ ...insWord(t), fontSize: 12, whiteSpace: "nowrap" }}>{label}</span>
+        : <span aria-hidden="true" style={{ width: 24, height: 5, borderRadius: 3, background: "#D9D9DE", marginTop: 5 }} />}
+    </span>
+  );
+}
+/* a row of a Home Screen: Nosca among the others, which are drawn faint */
+function InsHome({ p }) {
+  const other = { flex: "0 1 48px", minWidth: 32, aspectRatio: "1 / 1", marginTop: 2, borderRadius: "23%", background: "#E2E2E7" };
+  return (
+    <span className="flex items-start justify-center w-full" style={{ gap: 12, padding: "4px 2px 0" }}>
+      <span aria-hidden="true" style={other} /><span aria-hidden="true" style={other} />
+      <InsAppIcon p={p} size={52} />
+      <span aria-hidden="true" style={other} />
+    </span>
+  );
+}
 /* THE STEPS. `text` is the few words, `sub` a second line only where a
    picture cannot say it, `alt` what the picture shows for somebody who
-   cannot see it, `pic` the drawing. */
+   cannot see it, `pic` the drawing. Where a phone may show either of
+   two controls the words name neither — "Tap one of these" — and the
+   picture draws both. */
 const INS_OPEN = (ios) => ({
   /* iOS gives a Home Screen app its own storage, so an iPhone signs in once more there; Android's shares the browser's */
-  text: tr("Tap Nosca"), sub: ios ? tr("On the Home Screen. Sign in once.") : tr("On the Home screen"),
-  alt: tr("The Nosca icon on the Home Screen"),
-  pic: (p) => <InsAppIcon p={p} />,
+  text: ios ? tr("Tap Nosca on the Home Screen") : tr("Tap Nosca on the Home screen"), sub: ios ? tr("Sign in there once") : null,
+  alt: tr("The Nosca icon, among the others on the Home Screen"),
+  pic: (p) => <InsHome p={p} />,
 });
 const INS_SHARE_ROW = { text: tr("Tap Share"), alt: tr("Share, in the menu"), pic: (p) => <InsTap p={p} glyph="share" label="Share" /> };
-const INS_VIEW_MORE = { text: tr("Tap View More"), alt: tr("View More, under the first few actions"), pic: (p) => <InsTap p={p} label="View More" trail="chevDown" /> };
+/* the share sheet's row of round actions ends on View More (a chevron) — More (three dots) on some releases of iOS 26 */
+const INS_VIEW_MORE = {
+  text: tr("Tap View More"), alt: tr("View More, the last of the round buttons: a chevron pointing down. On some iPhones it reads More."),
+  pic: (p) => (
+    <span className="flex items-start justify-center" style={{ gap: 10 }}>
+      <InsRound p={p} /><InsRound p={p} glyph="chevDown" label="View More" />
+      <span className="flex items-center" style={{ height: 46 }}><InsOr p={p} /></span>
+      <InsRound p={p} glyph="dots" label="More" />
+    </span>
+  ),
+};
 const INS_ADD_ROW = { text: tr("Tap Add to Home Screen"), sub: tr("Scroll down to find it"), alt: tr("Add to Home Screen, a square with a plus"), pic: (p) => <InsTap p={p} glyph="plusSquare" label="Add to Home Screen" /> };
 const INS_ADD_WEBAPP = {
-  text: tr("Tap Add"), sub: tr("Open as Web App stays on"),
+  text: tr("Tap Add"), sub: tr("Leave Open as Web App on"),
   alt: tr("Add, top right. Open as Web App is switched on."),
   pic: (p) => (
     <InsSheet>
@@ -18595,12 +18664,12 @@ const INS_ADD_WEBAPP = {
 };
 function installSteps(sub) {
   if (sub === "iOS 27") return [
-    { text: tr("Tap the three lines"), alt: tr("Three lines at the left of the address bar. Or Share, the square with an arrow, where the toolbar shows it."),
+    { text: tr("Tap one of these"), alt: tr("Three lines at the left of the address bar. Or Share, the square with an arrow, where the toolbar shows it."),
       pic: (p) => <><InsBar p={p} lead={<InsInBar p={p} glyph="lines" />} /><InsOr p={p} /><InsTap p={p} glyph="share" /></> },
     INS_SHARE_ROW, INS_VIEW_MORE, INS_ADD_ROW, INS_ADD_WEBAPP, INS_OPEN(true),
   ];
   if (sub === "iOS 26") return [
-    { text: tr("Tap the three dots"), alt: tr("Three dots at the right of the address bar. Or Share, the square with an arrow, where the toolbar shows it."),
+    { text: tr("Tap one of these"), alt: tr("Three dots at the right of the address bar. Or Share, the square with an arrow, where the toolbar shows it."),
       pic: (p) => <><InsBar p={p} run /><InsTap p={p} glyph="dots" round /><InsOr p={p} /><InsTap p={p} glyph="share" /></> },
     INS_SHARE_ROW, INS_VIEW_MORE, INS_ADD_ROW, INS_ADD_WEBAPP, INS_OPEN(true),
   ];
@@ -18623,8 +18692,9 @@ function installSteps(sub) {
   if (sub === "Chrome") return [
     { text: tr("Tap the three dots"), alt: tr("Three dots, top right, beside the address bar"),
       pic: (p) => <><InsBar p={p} run /><InsTap p={p} glyph="dotsV" /></> },
-    { text: tr("Tap Add to Home screen"), alt: tr("Add to Home screen. On some phones it reads Install app."),
-      pic: (p) => <span className="flex flex-wrap items-center justify-center" style={{ gap: "14px 10px" }}><InsTap p={p} glyph="phoneIn" label="Add to Home screen" /><span className="inline-flex items-center" style={{ gap: 10 }}><InsOr p={p} /><InsTap p={p} label="Install app" /></span></span> },
+    /* Chrome 150 (July 2026) renamed the row; a phone not yet updated keeps the old name */
+    { text: tr("Tap one of these"), alt: tr("Install and create shortcut, in the menu. On an older Chrome it reads Add to Home screen."),
+      pic: (p) => <span className="flex flex-col items-center" style={{ gap: 9 }}><InsTap p={p} label="Install and create shortcut" /><InsOr p={p} /><InsTap p={p} label="Add to Home screen" /></span> },
     { text: tr("Tap Install"), alt: tr("Install, not Create shortcut"),
       pic: (p) => <span className="flex flex-wrap items-center justify-center" style={{ gap: "14px 14px" }}><InsTap p={p} label="Install" round /><InsFaint p={p}>Create shortcut</InsFaint></span> },
     INS_OPEN(false),
@@ -18670,7 +18740,7 @@ function InstallSteps({ steps, dress, tour, wait = 0 }) {
     </ol>
   );
 }
-export function InstallGuide({ tour = "install", dress = "app", wait = 0 }) {
+export function InstallGuide({ tour = "install", dress = "app", wait = 0, onDone }) {
   const t = useT();
   const browser = browserOf();
   const [tab, setTabRaw] = useState(() => INSTALL_TAB[platformOf()] || "Computer");
@@ -18684,6 +18754,8 @@ export function InstallGuide({ tour = "install", dress = "app", wait = 0 }) {
   const [arrived, setArrived] = useState(wait === 0);
   useEffect(() => { if (arrived) return undefined; const x = setTimeout(() => setArrived(true), wait + 900); return () => clearTimeout(x); }, [arrived, wait]);
   useEffect(() => onInstallPromptChange((on) => setOffer(on)), []);
+  /* the page that holds the guide takes its title off once there is nothing left to do */
+  useEffect(() => { if (done && onDone) onDone(); }, [done]);
   const install = async () => {
     haptic(10);
     const r = await promptInstall();
@@ -18692,7 +18764,14 @@ export function InstallGuide({ tour = "install", dress = "app", wait = 0 }) {
     else setNote(tr("Couldn't open the install sheet"));
   };
   const card = dress === "card";
-  if (done) return (
+  if (done) return card ? (
+    /* the card's page: the icon that landed, and the one line, under the card */
+    <div data-tour={tour} className="ins flex flex-col items-center text-center" style={{ gap: 14, paddingTop: 4 }}>
+      <style>{INSTALL_CSS}</style>
+      <span aria-hidden="true"><InsAppIcon p={{ t, hi: "transparent" }} size={64} /></span>
+      <p data-tour={`${tour}-done`} style={{ ...TYPE.title, color: t.ink, textWrap: "balance" }}>{tr("Nosca is on your Home Screen")}</p>
+    </div>
+  ) : (
     <div data-tour={tour} className="ins flex items-center" style={{ gap: 16, marginTop: SPACE.row }}>
       <style>{INSTALL_CSS}</style>
       <span aria-hidden="true"><InsAppIcon p={{ t, hi: "transparent" }} size={56} /></span>
@@ -18707,14 +18786,14 @@ export function InstallGuide({ tour = "install", dress = "app", wait = 0 }) {
       {/* which device these steps are for, and the one way to another */}
       <button data-tour={`${tour}-device`} aria-expanded={choose} onClick={() => { haptic(6); setChoose(!choose); }}
               className="w-full flex items-center justify-between text-left active:opacity-60" style={{ minHeight: 48, gap: 12 }}>
-        <span className="min-w-0" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{tab} · {INSTALL_SUB_NAME[sub] || sub}</span>
+        <span className="min-w-0" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{tab} · {(tab === "iPhone" && sub === "Earlier" && platformOf() === "iphone" && INSTALL_IOS_BROWSER[browser]) || INSTALL_SUB_NAME[sub] || sub}</span>
         <span className="shrink-0" style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, color: card ? INSTALL_GOLD : t.accent }}>{choose ? tr("Done") : tr("Change")}</span>
       </button>
       {choose && (
         <div data-tour={`${tour}-choices`} style={{ paddingTop: 4, paddingBottom: SPACE.tight }}>
-          <Segmented options={INSTALL_TABS} value={tab} onChange={setTab} tour={`${tour}-platform`} />
+          <Segmented tall options={INSTALL_TABS} value={tab} onChange={setTab} tour={`${tour}-platform`} />
           <div style={{ marginTop: SPACE.tight }}>
-            <Segmented options={INSTALL_SUBS[tab]} value={sub} onChange={setSub} tour={`${tour}-version`} />
+            <Segmented tall options={INSTALL_SUBS[tab]} value={sub} onChange={setSub} tour={`${tour}-version`} />
           </div>
           {INSTALL_HINT[tab] && <p data-tour={`${tour}-hint`} style={{ ...TYPE.caption, color: t.sub, marginTop: SPACE.tight }}>{tr(INSTALL_HINT[tab])}</p>}
         </div>

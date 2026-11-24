@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { ThemeCtx, NEUTRAL, CLUB, tr, ui, TYPE, MOTION, Button, InstallGuide, INSTALL_CSS, haptic, openAbout } from "../Nosca";
 import { RING_L, RING_R, BRAND } from "../lib/brandmark.jsx";
@@ -84,7 +84,7 @@ const FRONT = TURN.delay + Math.round(TURN.ms * 0.36);
 function InstallCard() {
   return (
     <div data-tour="install-card" role="img" aria-label={tr("The Nosca card: two woven rings and NOSCA in gold on olive green, with gold pinstripes in two corners")}
-         className="relative mx-auto" style={{ width: "min(272px, 100%)", aspectRatio: `${CARD_W} / ${CARD_H}`, perspective: 900, transform: "rotate(-3deg)", animation: "insFade 260ms ease-out backwards" }}>
+         className="ins-card relative mx-auto" style={{ aspectRatio: `${CARD_W} / ${CARD_H}`, perspective: 900, transform: "rotate(-3deg)", animation: "insFade 260ms ease-out backwards" }}>
       {/* what the card rests on: a soft shadow that stays on the paper while the card turns */}
       <span aria-hidden="true" className="absolute" style={{ left: "4%", right: "4%", top: "16%", bottom: "3%", borderRadius: 14, boxShadow: "0 16px 26px -6px rgba(26,32,14,0.34), 0 6px 10px -3px rgba(26,32,14,0.22)",
                                                               animation: `insShade ${TURN.ms}ms linear ${TURN.delay}ms backwards` }} />
@@ -135,7 +135,15 @@ function InstallCard() {
 
 /* the page's own motion. Every animation here fills `backwards`: the
    element's own style is the finished state, so what remains after the
-   arrival — and all there ever is under Reduce Motion — is the page. */
+   arrival — and all there ever is under Reduce Motion — is the page.
+
+   THE LAYOUT. On a phone it is one column, and its air is measured off
+   the screen's height (`vh`), so that on a 375 × 667 phone the card,
+   the line and the title leave step one — numeral, words and picture —
+   on the first screen, and a tall phone gets the room it has. On a
+   computer (900 wide and over) it is two columns, composed: the card,
+   the line, the rule and the key on the left; the title and the steps
+   on the right; the whole centred on the screen. */
 const PAGE_CSS = `
 @keyframes insTurn{from{transform:translateY(16px) rotateY(-180deg)}to{transform:none}}
 @keyframes insDraw{from{stroke-dashoffset:1.02}to{stroke-dashoffset:0}}
@@ -143,6 +151,23 @@ const PAGE_CSS = `
 @keyframes insRule{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 @keyframes insShade{${SHADE}}
 .calm *, .calm *::before, .calm *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+.ins-shell{width:100%;max-width:460px;margin:0 auto;display:flex;flex-direction:column;flex:1 1 auto}
+.ins-x{position:relative;flex:none;height:44px}
+.ins-card{width:min(272px,76vw)}
+.ins-what{margin-top:clamp(18px,3vh,26px)}
+.ins-rule{margin:clamp(16px,2.6vh,24px) 0 clamp(18px,2.8vh,26px)}
+.ins-foot{margin-top:auto;padding-top:36px}
+@media (min-width:900px) and (min-height:520px){
+  .ins-shell{max-width:1000px;flex:none;margin:auto;padding:64px 0 40px;display:grid;grid-template-columns:minmax(0,420px) minmax(0,460px);grid-template-rows:auto auto minmax(0,1fr);column-gap:96px;justify-content:center;align-items:start}
+  .ins-x{display:contents}
+  .ins-x > button{right:20px !important;top:16px !important}
+  .ins-lead{grid-column:1;grid-row:1}
+  .ins-foot{grid-column:1;grid-row:2;margin-top:0;padding-top:0}
+  .ins-main{grid-column:2;grid-row:1 / span 3}
+  .ins-card{width:min(372px,100%)}
+  .ins-what{margin-top:30px}
+  .ins-rule{margin:26px 0 28px}
+}
 `;
 /* the app's own Reduce motion switch (Settings), kept on the phone; the
    system's setting is honoured by index.css and INSTALL_CSS */
@@ -154,35 +179,39 @@ const rise = (delay) => ({ animation: `insRise 560ms ${MOTION.curve} ${delay}ms 
 export default function InstallPage() {
   useEffect(() => { registerSw(); }, []);
   const open = () => { haptic(10); window.location.assign("/"); };
+  /* once the app is on a Home Screen there is nothing left to add: the title goes */
+  const [done, setDone] = useState(false);
   return (
     <ThemeCtx.Provider value={PAGE}>
-      <div className={`ins flex flex-col${appCalm() ? " calm" : ""}`} data-tour="install-page" style={{ minHeight: "100dvh", background: PAGE.page, overflowX: "clip" }}>
+      <div className={`ins relative flex flex-col${appCalm() ? " calm" : ""}`} data-tour="install-page" style={{ minHeight: "100dvh", background: PAGE.page, overflowX: "clip" }}>
         <style>{INSTALL_CSS}{PAGE_CSS}</style>
         <div className="shrink-0" style={{ height: "env(safe-area-inset-top, 0px)" }} />
-        <div className="w-full mx-auto flex flex-col flex-1" style={{ maxWidth: 460 }}>
+        <div className="ins-shell">
           {/* the way out to the app — sign-up, or the app for a member */}
-          <div className="shrink-0 relative" style={{ height: 52 }}>
+          <div className="ins-x">
             <button onClick={open} aria-label={tr("Close")} data-tour="install-close" className="absolute flex items-center justify-center active:opacity-60"
-                    style={{ right: 12, top: 4, width: 44, height: 44 }}>
+                    style={{ right: 10, top: 0, width: 44, height: 44 }}>
               <X size={20} color={PAGE.ink} strokeWidth={2} />
             </button>
           </div>
-          <div className="px-6">
+          <div className="ins-lead px-6">
             <InstallCard />
             {/* what Nosca is, for somebody who has only the card */}
-            <p data-tour="install-what" className="text-center mx-auto" style={{ ...TYPE.body, color: PAGE.sub, textWrap: "balance", marginTop: 26, ...rise(300) }}>
+            <p data-tour="install-what" className="ins-what text-center mx-auto" style={{ ...TYPE.body, color: PAGE.sub, textWrap: "balance", ...rise(300) }}>
               {tr("A coaching app: lessons, video and drills.")}
             </p>
             {/* the card's own rule, in its gold */}
-            <span aria-hidden="true" className="block" style={{ height: 2, borderRadius: 2, margin: "24px 0 26px", transformOrigin: "0 50%",
-                                                                background: `linear-gradient(90deg, ${FOIL[0][1]}, ${FOIL[2][1]} 52%, ${CLUB.gold})`,
-                                                                animation: `insRule 760ms ${MOTION.curve} 380ms backwards` }} />
-            <h1 style={{ ...TYPE.screen, color: PAGE.ink, marginBottom: 4, ...rise(440) }}>{tr("Add to Home Screen")}</h1>
+            <span aria-hidden="true" className="ins-rule block" style={{ height: 2, borderRadius: 2, transformOrigin: "0 50%",
+                                                                         background: `linear-gradient(90deg, ${FOIL[0][1]}, ${FOIL[2][1]} 52%, ${CLUB.gold})`,
+                                                                         animation: `insRule 760ms ${MOTION.curve} 380ms backwards` }} />
+          </div>
+          <div className="ins-main px-6">
+            {!done && <h1 style={{ ...TYPE.screen, color: PAGE.ink, marginBottom: 2, ...rise(440) }}>{tr("Add to Home Screen")}</h1>}
             <div style={rise(500)}>
-              <InstallGuide dress="card" wait={560} />
+              <InstallGuide dress="card" wait={560} onDone={() => setDone(true)} />
             </div>
           </div>
-          <div className="px-6 shrink-0 mt-auto" style={{ paddingTop: 36, paddingBottom: "max(20px, env(safe-area-inset-bottom, 20px))" }}>
+          <div className="ins-foot px-6 shrink-0" style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom, 20px))" }}>
             <Button tone="ink" onClick={open} tour="install-open">{tr("Open Nosca")}</Button>
             {/* the company's website, as the sign-in page carries it: a quiet line under the key, 44 to a finger */}
             <button data-tour="install-about" onClick={() => { haptic(6); openAbout(); }} className="w-full active:opacity-50"
