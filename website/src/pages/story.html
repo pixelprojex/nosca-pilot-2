@@ -8,9 +8,11 @@ header: green
 <!-- ═════════════ THE NAME · the first screen is a film ═════════════
      The dark card's front at the size of a screen. Two gold rings stand apart at its edges; the scroll brings
      them in until each passes through the other, the pinstripes draw in the corners, the long form of the name
-     rises under it. Then the white of the page opens through the card's own diagonal. -->
-<section class="film g-green st-name" id="top" style="--len:3;--len-sm:2.3" data-header="green">
+     rises under it and holds. Then the words go, and the green opens along the card's own diagonal, its gold edge
+     on it, onto the next scene, which is already standing underneath (story.css lays #moment under this stage). -->
+<section class="film g-green st-name" id="top" style="--len:3;--len-sm:2.8" data-header="green">
   <div class="film__stage">
+    <div class="st-name__ground">
     <!-- @include pins class="st-name__pins" -->
     <div class="film__safe st-name__in">
       <p class="eyebrow st-name__eye">The story</p>
@@ -21,14 +23,15 @@ header: green
         <p class="st-name__link">A coach, a player and a family, linked.</p>
       </div>
     </div>
-    <div class="shift-layer g-paper st-name__next" data-header="paper" aria-hidden="true"></div>
+    </div>
+    <i class="st-name__edge" aria-hidden="true"></i>
   </div>
 </section>
 
 <!-- ═════════════ ONE MOMENT ═════════════
      The sentence every coach screen is judged against fills with ink a phrase at a time, and the phone does what
      each phrase says: it is picked up, the register is taken in seconds, it is put down. -->
-<section class="film g-paper st-moment" id="moment" style="--len:4;--len-sm:3" data-header="paper">
+<section class="film g-paper st-moment" id="moment" style="--len:4;--len-sm:4" data-header="paper">
   <i class="st-thread" aria-hidden="true"></i><i class="st-knot" aria-hidden="true"></i>
   <div class="film__stage">
     <div class="film__safe st-moment__in">
@@ -67,26 +70,26 @@ header: green
       <li class="st-p" style="--span:5" data-z="0">
         <p class="t-numeral" aria-hidden="true">1</p>
         <hr class="rule-gold rule-gold--hair" data-rule>
-        <h3 class="t-h3" data-rise="lines">Coach and player, side by side.</h3>
-        <p class="t-body">Both see the same lesson. A gap between them is a fault, and we fix it.</p>
+        <h3 class="t-h2 st-p__t" data-rise="lines">Coach and player, side by side.</h3>
+        <p class="t-lede st-p__l">Both see the same lesson. A gap between them is a fault, and we fix it.</p>
       </li>
       <li class="st-p st-p--low" style="--at:8;--span:5" data-z="0.5">
         <p class="t-numeral" aria-hidden="true">2</p>
         <hr class="rule-gold rule-gold--hair" data-rule>
-        <h3 class="t-h3" data-rise="lines">Fewer taps.</h3>
-        <p class="t-body">Every step has to earn its place.</p>
+        <h3 class="t-h2 st-p__t" data-rise="lines">Fewer taps.</h3>
+        <p class="t-lede st-p__l">Every step has to earn its place.</p>
       </li>
       <li class="st-p" style="--span:5" data-z="0">
         <p class="t-numeral" aria-hidden="true">3</p>
         <hr class="rule-gold rule-gold--hair" data-rule>
-        <h3 class="t-h3" data-rise="lines">The coach's own words.</h3>
-        <p class="t-body">Every note, tip and reply is theirs, typed or spoken.</p>
+        <h3 class="t-h2 st-p__t" data-rise="lines">The coach's own words.</h3>
+        <p class="t-lede st-p__l">Every note, tip and reply is theirs, typed or spoken.</p>
       </li>
       <li class="st-p st-p--low" style="--at:8;--span:5" data-z="0.5">
         <p class="t-numeral" aria-hidden="true">4</p>
         <hr class="rule-gold rule-gold--hair" data-rule>
-        <h3 class="t-h3" data-rise="lines">Nothing pretends.</h3>
-        <p class="t-body">Every button does what it says, or it is not there.</p>
+        <h3 class="t-h2 st-p__t" data-rise="lines">Nothing pretends.</h3>
+        <p class="t-lede st-p__l">Every button does what it says, or it is not there.</p>
       </li>
     </ol>
   </div>
@@ -95,22 +98,22 @@ header: green
 <!-- ═════════════ HOW IT WAS BUILT ═════════════
      Only the dates the record holds. A fine gold line runs from the first commit to the redraw; as it passes
      29 Sep the 45 cycle days light one by one, and the date beside it steps in time. -->
-<section class="film g-rest st-built" id="built" data-film data-span="0,100" style="--len:4.6;--len-sm:3.4" data-header="rest">
+<section class="film g-rest st-built" id="built" data-film data-span="0,100" data-step-fade="1.6" data-ground-shift style="--len:4.6;--len-sm:4" data-header="rest">
   <i class="st-thread" aria-hidden="true"></i><i class="st-knot" aria-hidden="true"></i>
   <div class="film__stage">
     <div class="film__safe st-built__in">
       <p class="eyebrow eyebrow--rule st-built__eye">How it was built</p>
       <ol class="film__steps st-built__steps">
-        <li data-step="0,15"><p class="st-date">2 Sep <span>2026</span></p><p class="st-fact">The first commit.</p></li>
-        <li data-step="15,29"><p class="st-date">19 Sep</p><p class="st-fact">Rebuilt around one behaviour.</p></li>
-        <li data-step="29,57"><p class="st-date">29 Sep</p><p class="st-fact">Daily development cycles begin. Every morning: research, build, test, ship.</p></li>
-        <li data-step="57,71"><p class="st-date">13 Nov</p><p class="st-fact">The visual sprint.</p></li>
-        <li data-step="71,85"><p class="st-date">21 Nov</p><p class="st-fact">The app redrawn in white, with each sport's own colour.</p></li>
-        <li data-step="85,100"><p class="st-date">45</p><p class="st-fact">development cycles, from 29 Sep to 20 Nov.</p></li>
+        <li data-step="0,16"><p class="st-date">2 Sep <span>2026</span></p><p class="st-fact">The first commit.</p></li>
+        <li data-step="16,32"><p class="st-date">19 Sep</p><p class="st-fact">Rebuilt around one behaviour.</p></li>
+        <li data-step="32,56"><p class="st-date">29 Sep</p><p class="st-fact">Daily development cycles begin. Every morning: research, build, test, ship.</p></li>
+        <li data-step="56,72"><p class="st-date">13 Nov</p><p class="st-fact">The visual sprint.</p></li>
+        <li data-step="72,86"><p class="st-date">21 Nov</p><p class="st-fact">The app redrawn in white, with each sport's own colour.</p></li>
+        <li data-step="86,100"><p class="st-date">45</p><p class="st-fact">development cycles, from <span class="nw">29 Sep</span> to <span class="nw">20 Nov.</span></p></li>
       </ol>
       <div class="st-axis" aria-hidden="true">
         <i class="st-axis__line"><i class="st-axis__fill"></i></i>
-        <div class="st-axis__ticks"><!-- @include ticks --></div>
+        <div class="st-axis__ticks"><i class="gap" style="--p:67.50"></i><i class="gap" style="--p:68.75"></i><i class="gap" style="--p:70.00"></i><i class="gap" style="--p:71.25"></i><i class="gap" style="--p:72.49"></i><i class="gap" style="--p:78.75"></i><i class="gap" style="--p:80.01"></i><i class="gap" style="--p:81.25"></i><i class="gap" style="--p:87.50"></i><i class="tk" data-t="0.0000" style="--p:33.75"></i><i class="tk" data-t="0.0192" style="--p:35.00"></i><i class="tk" data-t="0.0385" style="--p:36.24"></i><i class="tk" data-t="0.0577" style="--p:37.50"></i><i class="tk" data-t="0.0769" style="--p:38.75"></i><i class="tk" data-t="0.0962" style="--p:39.99"></i><i class="tk" data-t="0.1154" style="--p:41.25"></i><i class="tk" data-t="0.1346" style="--p:42.50"></i><i class="tk" data-t="0.1538" style="--p:43.75"></i><i class="tk" data-t="0.1731" style="--p:45.00"></i><i class="tk" data-t="0.1923" style="--p:46.25"></i><i class="tk" data-t="0.2115" style="--p:47.50"></i><i class="tk" data-t="0.2308" style="--p:48.74"></i><i class="tk" data-t="0.2500" style="--p:50.00"></i><i class="tk" data-t="0.2692" style="--p:51.25"></i><i class="tk" data-t="0.2885" style="--p:52.49"></i><i class="tk" data-t="0.3077" style="--p:53.75"></i><i class="tk" data-t="0.3269" style="--p:55.00"></i><i class="tk" data-t="0.3462" style="--p:56.24"></i><i class="tk" data-t="0.3654" style="--p:57.50"></i><i class="tk" data-t="0.3846" style="--p:58.75"></i><i class="tk" data-t="0.4038" style="--p:60.01"></i><i class="tk" data-t="0.4231" style="--p:61.25"></i><i class="tk" data-t="0.4423" style="--p:62.50"></i><i class="tk" data-t="0.4615" style="--p:63.75"></i><i class="tk" data-t="0.4808" style="--p:65.00"></i><i class="tk" data-t="0.5000" style="--p:66.25"></i><i class="tk" data-t="0.6154" style="--p:73.75"></i><i class="tk" data-t="0.6346" style="--p:75.00"></i><i class="tk" data-t="0.6538" style="--p:76.26"></i><i class="tk" data-t="0.6731" style="--p:77.50"></i><i class="tk" data-t="0.7500" style="--p:82.50"></i><i class="tk" data-t="0.7692" style="--p:83.76"></i><i class="tk" data-t="0.7885" style="--p:85.00"></i><i class="tk" data-t="0.8077" style="--p:86.25"></i><i class="tk" data-t="0.8462" style="--p:88.75"></i><i class="tk tk--half" data-t="0.8654" style="--p:89.73"></i><i class="tk tk--half" data-t="0.8654" style="--p:90.27"></i><i class="tk" data-t="0.8846" style="--p:91.25"></i><i class="tk" data-t="0.9038" style="--p:92.51"></i><i class="tk" data-t="0.9231" style="--p:93.75"></i><i class="tk" data-t="0.9423" style="--p:95.00"></i><i class="tk" data-t="0.9615" style="--p:96.26"></i><i class="tk" data-t="0.9808" style="--p:97.50"></i><i class="tk" data-t="1.0000" style="--p:98.75"></i></div>
         <i class="st-axis__pt" style="--p:0"><b></b></i>
         <i class="st-axis__pt" style="--p:21.25"><b></b></i>
         <i class="st-axis__pt" style="--p:33.75"><b></b></i>
@@ -118,7 +121,7 @@ header: green
         <i class="st-axis__pt" style="--p:100"><b></b></i>
         <span class="st-axis__l st-axis__l--a" style="--p:0">2 Sep</span>
         <span class="st-axis__l st-axis__l--m" style="--p:33.75">29 Sep</span>
-        <span class="st-axis__l st-axis__l--m" style="--p:90">13 Nov</span>
+        <span class="st-axis__l st-axis__l--m st-axis__l--n" style="--p:90">13 Nov</span>
         <span class="st-axis__l st-axis__l--z" style="--p:100">21 Nov</span>
       </div>
     </div>
@@ -126,13 +129,13 @@ header: green
 </section>
 
 <!-- ═════════════ PROVEN BEFORE IT SHIPS ═════════════
-     The crawl, drawn on the coach's plus sheet: a fine gold line finds each control in turn, and each one answers. -->
-<section class="film g-paper st-proven" id="proven" style="--len:3.4;--len-sm:2.6" data-header="paper">
+     The crawl, drawn on the coach's plus sheet: a fine gold line finds each control in turn. On a phone the words
+     come first and then make way for the sheet, so the sheet is drawn at a size that can be read. -->
+<section class="film g-rest st-proven" id="proven" style="--len:3.4;--len-sm:3.6" data-header="rest">
   <i class="st-thread" aria-hidden="true"></i>
   <div class="film__stage">
     <div class="film__safe st-proven__in">
       <div class="st-proven__copy">
-        <p class="eyebrow eyebrow--rule">Before each release</p>
         <h2 class="t-h1 st-proven__h" data-ink="manual">Proven before it&nbsp;ships.</h2>
         <p class="st-proven__n"><span class="t-numeral">1,500+</span> <span class="st-proven__l">automated checks drive the app as a coach, a player, a parent and a junior.</span></p>
         <p class="t-body st-proven__crawl">A crawl taps every control and fails on any that does nothing.</p>
@@ -151,52 +154,39 @@ header: green
           <i class="st-ring" style="--x:51.5;--y:79.4;--w:42.3;--h:10.6"></i>
           <i class="st-ring st-ring--word" style="--x:42.6;--y:92.2;--w:14.8;--h:3.6"></i>
         </div>
-        <figcaption class="st-crawl__sum"><i class="st-crawl__bar"><i></i></i><span><b class="st-crawl__n">10</b> of 10 controls answer</span></figcaption>
       </figure>
     </div>
   </div>
 </section>
 
 <!-- ═════════════ EVERY SPORT IN ITS OWN WORDS ═════════════
-     The family shown once, small, as a tailor's swatch card; beside it each sport's words and levels on fine rules. -->
+     One idea: each sport's words and levels on fine rules. A sport's one mark outside a screen is its dot. -->
 <section class="section g-rest st-sports" id="sports" data-header="rest">
   <i class="st-thread" aria-hidden="true"></i>
   <div class="wrap cols">
     <div class="st-sports__head" style="--span:5">
-      <p class="eyebrow eyebrow--rule">Six sports</p>
-      <h2 class="t-h1" data-ink>Every sport in its own&nbsp;words.</h2>
+      <h2 class="t-h1 st-sports__h" data-ink>Every sport in its own&nbsp;words.</h2>
       <p class="t-lede" data-rise="lines">Levels and terms are the ones each sport's governing body uses. Never invented.</p>
-      <div class="st-swatch" role="img" aria-label="The six sports' colours in Nosca, one family: golf fairway, tennis court, rowing river, squash sienna, padel aubergine, equestrian claret">
-        <p class="st-swatch__top"><span class="wordmark">NOSCA</span><span>One family</span></p>
-        <ul class="st-swatch__chips" aria-hidden="true">
-          <li style="--c:var(--golf)"><i></i><b>Golf</b><span>Fairway</span></li>
-          <li style="--c:var(--tennis)"><i></i><b>Tennis</b><span>Court</span></li>
-          <li style="--c:var(--rowing)"><i></i><b>Rowing</b><span>River</span></li>
-          <li style="--c:var(--squash)"><i></i><b>Squash</b><span>Sienna</span></li>
-          <li style="--c:var(--padel)"><i></i><b>Padel</b><span>Aubergine</span></li>
-          <li style="--c:var(--equestrian)"><i></i><b>Equestrian</b><span>Claret</span></li>
-        </ul>
-      </div>
     </div>
     <dl class="st-table" style="--at:7;--span:6">
-      <div class="st-row"><hr class="rule-gold rule-gold--hair" data-rule><dt>Golf</dt><dd>Full swing, short game, on course</dd><dd class="st-lv">Handicap Index</dd></div>
-      <div class="st-row"><hr class="rule-gold rule-gold--hair" data-rule><dt>Tennis</dt><dd>Serve, return, rally, net</dd><dd class="st-lv">Red, Orange, Green and Yellow ball, then WTN</dd></div>
-      <div class="st-row"><hr class="rule-gold rule-gold--hair" data-rule><dt>Rowing</dt><dd>Technique, rhythm, racing, erg</dd><dd class="st-lv">J13 to J18, Novice to Senior</dd></div>
-      <div class="st-row"><hr class="rule-gold rule-gold--hair" data-rule><dt>Squash</dt><dd>Drives, volleys, front court, movement</dd><dd class="st-lv">The ball's dot</dd></div>
-      <div class="st-row"><hr class="rule-gold rule-gold--hair" data-rule><dt>Padel</dt><dd>Net game, overheads, walls</dd><dd class="st-lv">Levels 0 to 7</dd></div>
-      <div class="st-row"><hr class="rule-gold rule-gold--hair" data-rule><dt>Equestrian</dt><dd>Flatwork, poles, jumping, cross-country</dd><dd class="st-lv">Pony Club tests and riding-school stages</dd></div>
+      <div class="st-row"><hr class="rule-gold rule-gold--hair" data-rule><dt><i class="sport-dot" data-sport="golf" aria-hidden="true"></i>Golf</dt><dd>Full swing, short game, on course</dd><dd class="st-lv">Handicap Index</dd></div>
+      <div class="st-row"><hr class="rule-gold rule-gold--hair" data-rule><dt><i class="sport-dot" data-sport="tennis" aria-hidden="true"></i>Tennis</dt><dd>Serve, return, rally, net</dd><dd class="st-lv">Red, Orange, Green and Yellow ball, then WTN</dd></div>
+      <div class="st-row"><hr class="rule-gold rule-gold--hair" data-rule><dt><i class="sport-dot" data-sport="rowing" aria-hidden="true"></i>Rowing</dt><dd>Technique, rhythm, racing, erg</dd><dd class="st-lv">J13 to J18, Novice to Senior</dd></div>
+      <div class="st-row"><hr class="rule-gold rule-gold--hair" data-rule><dt><i class="sport-dot" data-sport="squash" aria-hidden="true"></i>Squash</dt><dd>Drives, volleys, front court, movement</dd><dd class="st-lv">The ball's dot</dd></div>
+      <div class="st-row"><hr class="rule-gold rule-gold--hair" data-rule><dt><i class="sport-dot" data-sport="padel" aria-hidden="true"></i>Padel</dt><dd>Net game, overheads, walls</dd><dd class="st-lv">Levels 0 to 7</dd></div>
+      <div class="st-row"><hr class="rule-gold rule-gold--hair" data-rule><dt><i class="sport-dot" data-sport="equestrian" aria-hidden="true"></i>Equestrian</dt><dd>Flatwork, poles, jumping, cross-country</dd><dd class="st-lv">Pony Club tests and riding-school stages</dd></div>
     </dl>
   </div>
 </section>
 
-<!-- ═════════════ CLIMATE · three photographs settle one after another ═════════════ -->
+<!-- ═════════════ CLIMATE · three photographs settle one after another ═════════════
+     Each picture's quiet, dark ground is its lower third, where the words stand (MANIFEST.json's headline zones). -->
 <section class="film g-green st-climate" id="climate" data-span="36,100" style="--len:3.8;--len-sm:2.9" data-header="none">
   <div class="film__stage">
+    <!-- @include photo name="rowing-river-1" class="photo--bleed photo--veil st-climate__pic" sizes="100vw" -->
     <!-- @include photo name="golf-fairway-1" class="photo--bleed photo--veil st-climate__pic" sizes="100vw" -->
-    <!-- @include photo name="rowing-crew-2" class="photo--bleed photo--veil st-climate__pic" sizes="100vw" -->
     <!-- @include photo name="equestrian-school-2" class="photo--bleed photo--veil st-climate__pic" sizes="100vw" -->
     <div class="film__safe st-climate__in">
-      <p class="eyebrow eyebrow--rule">Climate</p>
       <h2 class="t-h1 st-climate__h" data-ink="manual">We support climate action.</h2>
       <div class="film__steps st-climate__steps">
         <p class="t-lede" data-step>Lesson notes, registers and reports are digital, never paper.</p>
@@ -211,7 +201,6 @@ header: green
 <section class="section g-rest st-close" id="ireland" data-ground-shift data-header="rest">
   <div class="wrap cols st-close__in">
     <div class="st-close__copy" style="--span:5">
-      <p class="eyebrow eyebrow--rule">Where it is from</p>
       <h2 class="t-h1 st-close__h" data-ink><span class="nw">Made in</span> Ireland.</h2>
       <p class="t-lede" data-rise="lines">The pilot is in Ireland, in English.</p>
       <div class="keys st-close__keys">
@@ -220,7 +209,7 @@ header: green
       </div>
     </div>
     <div class="st-close__card" style="--at:7;--span:6">
-      <!-- @include card world="green" class="bcard--shadow is-back st-card" attrs="data-card-turn data-start='top 96%' data-end='center 50%'" -->
+      <!-- @include card world="green" class="bcard--shadow is-back st-card" attrs="data-card-turn data-start='top 72%' data-end='center 42%'" -->
     </div>
   </div>
 </section>
