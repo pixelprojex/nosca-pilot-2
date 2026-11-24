@@ -209,9 +209,11 @@ seeded data and no account.
   - **Gold as foil, in four places and no others** (`FOIL`, the card's
     own `#C2A24C`; `FOIL_LIGHT` `#E6D08A`): the day's one coloured card
     carries the card's pinstripe wedge in its top-right corner
-    (`CardFoil`: the card's 45° stripes 9 apart, a hairline of `FOIL` at a
-    third of its strength, inside the triangle the card's own wedge
-    draws, clipped by the card's corner, `aria-hidden`, taking no tap) and
+    (`CardFoil`: 66 by 46 at the card's own slope, the card's 45° stripes
+    8 apart, a hairline of `FOIL` at a third of its strength, clipped by
+    the card's corner, behind the card's words and keys, `aria-hidden`,
+    taking no tap — at 96 by 64 it ran over Register's top at 360 and
+    375, `narrow.cjs` (c3), (c4)) and
     its eyebrow (Now · Next · In 25 min) in `FOIL_LIGHT`; the lit Diary
     row's and the lit family row's chevron are `FOIL_LIGHT` (`foilOn`:
     4.65:1 on squash's sienna, the lowest lead; a coach's own colour that

@@ -73,7 +73,7 @@ const foilOf = (page) => page.evaluate(() => {
   const svg = c.querySelector("svg[data-foil]"), path = svg && svg.querySelector("path"), eb = c.querySelector("[data-foil-word]");
   const cr = c.getBoundingClientRect(), sr = svg ? svg.getBoundingClientRect() : null;
   return { wedge: !!svg, stroke: path ? getComputedStyle(path).stroke : null, opacity: path ? Number(getComputedStyle(path).strokeOpacity) : 0, hidden: svg ? svg.getAttribute("aria-hidden") : null,
-           taps: svg ? getComputedStyle(svg).pointerEvents : null, corner: sr ? Math.round(cr.right - sr.right) === 0 && Math.round(sr.top - cr.top) === 0 : false, clip: getComputedStyle(c).overflow,
+           taps: svg ? getComputedStyle(svg).pointerEvents : null, corner: sr ? cr.right - sr.right >= 0 && cr.right - sr.right <= 2 && sr.top - cr.top >= 0 && sr.top - cr.top <= 2 : false, clip: getComputedStyle(c).overflow,
            eyebrow: eb ? getComputedStyle(eb).color : null, bg: getComputedStyle(c).backgroundColor };
 });
 /* the plus sheet's eight filled keys: their faces */

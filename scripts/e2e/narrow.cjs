@@ -101,13 +101,19 @@ const { check, results, summary } = M.checker("narrow");
     const cards = [...document.querySelectorAll("[data-next-card]")], card = cards[0]; if (!card) return { cards: 0 };
     const reg = card.querySelector('[data-tour="day-register"]'), nm = card.querySelector("[data-name]");
     const cr = card.getBoundingClientRect(), rr = reg ? reg.getBoundingClientRect() : null;
-    /* every word, glyph and picture of the card that is not the key's own */
-    const others = [...card.querySelectorAll("span, svg, img")].filter((x) => !reg || !reg.contains(x)).filter((x) => x.tagName !== "SPAN" || (!x.children.length && x.textContent.trim())).map((x) => x.getBoundingClientRect()).filter((r) => r.width > 0);
+    /* every word, glyph and picture of the card that is not the key's own — the card's foil wedge
+       (24 November) is an ornament drawn behind the words and keys, and is measured on its own below */
+    const foil = card.querySelector("svg[data-foil]");
+    const others = [...card.querySelectorAll("span, svg, img")].filter((x) => !reg || !reg.contains(x)).filter((x) => !foil || !foil.contains(x)).filter((x) => x.tagName !== "SPAN" || (!x.children.length && x.textContent.trim())).map((x) => x.getBoundingClientRect()).filter((r) => r.width > 0);
     const hits = rr ? others.filter((r) => !(r.right <= rr.left + 0.5 || r.left >= rr.right - 0.5 || r.bottom <= rr.top + 0.5 || r.top >= rr.bottom - 0.5)).length : null;
+    /* the wedge's stripes fill the triangle above the diagonal from its box's top-left to its bottom-right:
+       the key is clear of them when its top stands below that diagonal over the whole of its span */
+    const fr = foil ? foil.getBoundingClientRect() : null;
+    const foilClear = !fr || !rr || rr.right <= fr.left || rr.top >= fr.bottom || (rr.top - fr.top) >= (fr.height / fr.width) * (Math.min(rr.right, fr.right) - fr.left) - 0.5;
     const time = [...card.querySelectorAll("span")].find((s) => !s.children.length && /^\d{1,2}:\d{2} [ap]m$/.test(s.textContent.trim()));
     return { cards: cards.length, kind: card.dataset.nextCard, ...eval(FIT)(nm), bg: getComputedStyle(card).backgroundColor, fg: getComputedStyle(nm).color, timeSize: time ? getComputedStyle(time).fontSize : null,
              regLabel: reg ? reg.textContent.trim() : null, regTop: rr ? Math.round(rr.top) : null, regLeft: rr ? Math.round(rr.left) : null, regH: rr ? Math.round(rr.height) : null,
-             regInside: rr ? rr.left >= cr.left - 0.5 && rr.right <= cr.right + 0.5 && rr.top >= cr.top - 0.5 && rr.bottom <= cr.bottom + 0.5 : null, hits, cardH: Math.round(cr.height) };
+             regInside: rr ? rr.left >= cr.left - 0.5 && rr.right <= cr.right + 0.5 && rr.top >= cr.top - 0.5 && rr.bottom <= cr.bottom + 0.5 : null, hits, foilClear, cardH: Math.round(cr.height) };
   }, FIT);
   /* a row of the day that is not the card, by the name it carries: the
      name's fit, the time that leads it, its face and its tail */
@@ -179,7 +185,7 @@ const { check, results, summary } = M.checker("narrow");
        the name, never the width — beside the name while the whole name
        fits on its line, a line of its own under it where it does not. */
     /* what every card must be, whatever the width and the name */
-    const cardOk = (o, who) => !!o && o.cards === 1 && o.kind === "now" && o.name === who && !o.nameCut && !o.broken && o.regLabel === "Register" && o.regH >= 44 && o.regInside === true && o.hits === 0 && o.timeSize === "28px";
+    const cardOk = (o, who) => !!o && o.cards === 1 && o.kind === "now" && o.name === who && !o.nameCut && !o.broken && o.regLabel === "Register" && o.regH >= 44 && o.regInside === true && o.hits === 0 && o.foilClear === true && o.timeSize === "28px";
     const under = (o) => o.regTop >= o.nameBottom - 2, beside = (o) => o.regTop < o.nameBottom - 8 && o.regLeft >= o.nameRight - 1;
     for (const width of [320, 375]) {
       const { ctx, page, shot } = await boot("coach", width);

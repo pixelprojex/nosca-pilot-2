@@ -13252,13 +13252,18 @@ const accentCard = (t, last = false) => {
 };
 /* THE CARD'S CORNER: the business card's pinstripe wedge, in the top-right
    corner of the day's one coloured card — the stripes at the card's 45°,
-   9 apart, a hairline of the foil at a third of its strength, inside the
+   8 apart, a hairline of the foil at a third of its strength, inside the
    triangle the card's own wedge draws (its edge from the top-left of the
-   corner to the foot of the right side), clipped by the card's corner.
-   Ornament only: it takes no tap and says nothing to a screen reader. */
-const FOIL_W = 96, FOIL_H = 64;
+   corner to the foot of the right side, at the card's own slope),
+   clipped by the card's corner. 66 by 46, so the wedge keeps to the
+   corner and never reaches Register, whose right edge stands 16 in from
+   the card's (at 96 by 64 it ran over the key's top at 360 and 375 —
+   narrow.cjs (c3), (c4)); and it is drawn behind the card's words and
+   keys whatever the layout. Ornament only: it takes no tap and says
+   nothing to a screen reader. */
+const FOIL_W = 66, FOIL_H = 46;
 const FOIL_STRIPES = (() => {
-  const m = FOIL_H / FOIL_W, step = 9 * Math.SQRT2, f = (n) => Number(n.toFixed(2)), out = [];
+  const m = FOIL_H / FOIL_W, step = 8 * Math.SQRT2, f = (n) => Number(n.toFixed(2)), out = [];
   for (let c = step / 2; c < FOIL_W + FOIL_H; c += step) {
     const x0 = c / (1 + m), x1 = Math.min(c, FOIL_W);
     if (x0 < x1) out.push(`M${f(x0)} ${f(m * x0)}L${f(x1)} ${f(c - x1)}`);
@@ -13267,7 +13272,7 @@ const FOIL_STRIPES = (() => {
 })();
 const CardFoil = () => (
   <svg aria-hidden="true" data-foil="" width={FOIL_W} height={FOIL_H} viewBox={`0 0 ${FOIL_W} ${FOIL_H}`} className="absolute"
-       style={{ top: 0, right: 0, pointerEvents: "none" }}>
+       style={{ top: 0, right: 0, pointerEvents: "none", zIndex: 0 }}>
     <path d={FOIL_STRIPES} stroke={FOIL} strokeOpacity="0.34" strokeWidth="1" fill="none" />
   </svg>
 );
@@ -13303,7 +13308,7 @@ function NextCard({ l, live, until, avatar, onPeek, onRegister }) {
        squeezed to its longest word beside the key, "Cian Murphy" on two
        lines and a long name on three at 320. Alone on its line the body
        shrinks to the card and the name wraps at its spaces. */
-    <div className="w-full flex flex-wrap items-center gap-x-3.5 gap-y-3" style={{ paddingTop: 14, paddingBottom: 16 }}>
+    <div className="w-full flex flex-wrap items-center gap-x-3.5 gap-y-3" style={{ paddingTop: 14, paddingBottom: 16, position: "relative", zIndex: 1 }}>
       <button data-card-body="" onClick={() => { haptic(7); soft(); onPeek(l); }} className="text-left" style={{ flex: "1 1 auto", minWidth: 0, maxWidth: "100%" }}>{content}</button>
       <button data-tour="day-register" onClick={() => { hapticCommit(); soft(); onRegister(l); }} className="shrink-0 ml-auto px-4 n-key"
               style={{ "--key-lip": LIP(t.accent), minHeight: 44, borderRadius: R.control, background: "#FFFFFF",
@@ -13311,7 +13316,7 @@ function NextCard({ l, live, until, avatar, onPeek, onRegister }) {
     </div>
   );
   return (
-    <button onClick={() => { haptic(7); soft(); onPeek(l); }} className="w-full flex items-center gap-3.5 text-left" style={{ paddingTop: 14, paddingBottom: 16 }}>
+    <button onClick={() => { haptic(7); soft(); onPeek(l); }} className="w-full flex items-center gap-3.5 text-left" style={{ paddingTop: 14, paddingBottom: 16, position: "relative", zIndex: 1 }}>
       <span className="flex-1 min-w-0">{content}</span>
       <ChevronRight size={18} color={foil} strokeWidth={2.2} />
     </button>
