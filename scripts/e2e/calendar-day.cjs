@@ -39,7 +39,7 @@ const HAIRLINE = "rgb(235, 235, 240)";
    tone with the hue's ink since the 23rd, when every key was filled (it was the lead at a tenth and at 55%
    over white, then for a morning its pale) */
 const ACCENT = { golf: "#285937", equestrian: "#6B2935" };
-const CLOTH = { golf: "#94BD9E", equestrian: "#DA9FA6" };
+const CLOTH = { golf: "#94BD9E", equestrian: "#CDAEB1" };   // claret's cloth capped with the reds and blues on 24 November (#DA9FA6 before)
 const mixRgb = (a, b, k) => { const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); const x = p(a), y = p(b); return `rgb(${x.map((v, i) => Math.round(v + (y[i] - v) * k)).join(", ")})`; };
 const SEL = (sport) => ({ face: mixRgb(CLOTH[sport], "#000000", 0), ring: mixRgb(CLOTH[sport], ACCENT[sport], 0.5), fg: mixRgb(ACCENT[sport], "#000000", 0.45) });
 const GROUP = "rgb(110, 90, 147)";

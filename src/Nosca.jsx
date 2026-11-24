@@ -496,14 +496,14 @@ export const CLUB = { fairway: "#285937", olive: "#4F5B29", bottle: "#123C30", l
 const CLUB_PALE = {
   fairway: ["#DBEEDF", "#C1DAC6", "#94BD9E"], olive: ["#E5EBD7", "#CFD7BC", "#ABB78D"],
   bottle: ["#DCECE6", "#C3D8D0", "#98BAAE"], lawn: ["#E0ECDC", "#C8D8C2", "#A0BA98"],
-  court: ["#D7EDEC", "#BBDAD8", "#8ABCBA"], petrol: ["#D9ECF1", "#BED8DF", "#91B9C5"],
-  river: ["#DBEAFA", "#C1D5EC", "#95B4D8"], navy: ["#DFE9F7", "#C7D4E7", "#9EB3D0"],
-  steel: ["#DFE9F2", "#C6D5E0", "#9EB4C6"], aubergine: ["#EDE3F9", "#D9CCEA", "#BBA7D4"],
-  indigo: ["#E4E6FA", "#CDD0EC", "#A9AED7"], plum: ["#F3E2ED", "#E2CBDA", "#C9A4BD"],
-  claret: ["#F7E2E4", "#E9C9CC", "#DA9FA6"], sienna: ["#F6E4DA", "#E7CCBE", "#D6A589"],
+  court: ["#D7EDEC", "#BBDAD8", "#8ABCBA"], petrol: ["#D9ECF1", "#BED8DF", "#9EBEC7"],
+  river: ["#DBEAFA", "#C1D5EC", "#A7BACE"], navy: ["#DFE9F7", "#C7D4E7", "#A9B9CF"],
+  steel: ["#DFE9F2", "#C6D5E0", "#A4BBCD"], aubergine: ["#EDE3F9", "#D9CCEA", "#BDB2CA"],
+  indigo: ["#E4E6FA", "#CDD0EC", "#B2B5CF"], plum: ["#F3E2ED", "#E2CBDA", "#C8AFBF"],
+  claret: ["#F7E2E4", "#E9C9CC", "#CDAEB1"], sienna: ["#F6E4DA", "#E7CCBE", "#D6A589"],
   rust: ["#F7E3DC", "#E8CCC1", "#D8A38E"], saddle: ["#F3E5D9", "#E2CFBE", "#C8AB91"],
   chestnut: ["#F4E4DC", "#E3CEC2", "#CAA998"], gold: ["#F0E7D0", "#DED2B2", "#C3AF7E"],
-  slate: ["#E3E9EC", "#CBD4D9", "#9FB5C1"], brick: ["#F8E2DF", "#EACAC6", "#DAA198"],
+  slate: ["#E3E9EC", "#CBD4D9", "#A5BBC7"], brick: ["#F8E2DF", "#EACAC6", "#D9ABA4"],
 };
 const PALE_BY_HEX = Object.fromEntries(Object.keys(CLUB).map((k) => [CLUB[k].toUpperCase(), CLUB_PALE[k]]));
 /* A FUNCTION HAS A HUE, AND A SPORT SAYS WHICH COLOUR THAT IS. `HUE`
@@ -524,11 +524,21 @@ export const CLUB_SETS = {
   brand:      clubSet("bottle",    "olive",   "navy",  "saddle", "plum",      "claret",   "bottle"),
   golf:       clubSet("fairway",   "olive",   "navy",  "saddle", "plum",      "claret",   "bottle"),
   tennis:     clubSet("court",     "lawn",    "navy",  "rust",   "aubergine", "claret",   "bottle"),
-  rowing:     clubSet("river",     "petrol",  "steel", "saddle", "plum",      "claret",   "navy"),
+  rowing:     clubSet("river",     "court",   "indigo", "saddle", "plum",      "claret",   "bottle"),
   squash:     clubSet("sienna",    "petrol",  "navy",  "saddle", "plum",      "claret",   "bottle"),
-  padel:      clubSet("aubergine", "petrol",  "navy",  "rust",   "indigo",    "claret",   "bottle"),
-  equestrian: clubSet("claret",    "fairway", "navy",  "saddle", "plum",      "chestnut", "bottle"),
+  padel:      clubSet("aubergine", "petrol",  "navy",  "rust",   "plum",      "claret",   "bottle"),
+  equestrian: clubSet("claret",    "fairway", "navy",  "saddle", "aubergine", "chestnut", "bottle"),
 };
+/* NO TWO KEYS OF A SPORT THE SAME COLOUR (24 November). The cool and red
+   hues' cloth tones are capped (scripts/club-palette.py: baby blue, lilac
+   and pink were the class study's tell), and a capped blue meets the next
+   blue: rowing's Register (river) and Capture (steel) came to one grey-blue,
+   padel's Register (aubergine) and Drills (indigo) to one lilac. So the
+   sport whose lead is a blue takes its blue (Capture) from indigo, its teal
+   from court and its brand from the bottle as every other sport does; a
+   purple lead takes plum for Drills, a red lead aubergine. The script holds
+   the same table (SETS) and refuses to run if two of a sport's eight plus
+   keys of different colours sit closer than SEPARATE — change the two together. */
 /* the colour a role takes in this sport. The lead is whatever the theme's
    accent is (a coach's own branding moves it), so a green thing and the
    one action are always one colour. A hex handed in is itself. */
@@ -537,12 +547,34 @@ export const hueOf = (t, hue) => {
   const k = hue.slice(2);
   return k === "green" ? t.accent : ((t.club || CLUB_SETS.brand)[k] || t.accent);
 };
+/* a colour's relative luminance (WCAG), and the contrast of two colours */
+const lumOf = (c) => {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(c || "")); if (!m) return 1;
+  const [r, g, b] = [0, 2, 4].map((i) => { const v = parseInt(m[1].slice(i, i + 2), 16) / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+const contrastOf = (a, b) => { const [x, y] = [lumOf(a), lumOf(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
 /* what is drawn on a colour: white, or the ink on the card's gold */
 export const onHue = (c) => {
   const m = /^#?([0-9a-f]{6})$/i.exec(String(c || "")); if (!m) return "#FFFFFF";
-  const [r, g, b] = [0, 2, 4].map((i) => { const v = parseInt(m[1].slice(i, i + 2), 16) / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.3 ? "#2B2410" : "#FFFFFF";
+  return lumOf(c) > 0.3 ? "#2B2410" : "#FFFFFF";
 };
+/* GOLD AS FOIL (24 November, the class study). The founder, 23 November:
+   "I love the gold elements on the business card … bring that into the
+   app slightly … not overdoing it". On the card the gold is a foil — a
+   line, a few words, the pinstripes in a corner — on its deep ground,
+   never a fill. So, rationed, and in these places only: FOIL, the card's
+   own gold, as an ornament on a deep colour (the pinstripe wedge in the
+   corner of the day's one coloured card, the ring round the Logged
+   burst's tick); FOIL_LIGHT for words on a lead (the coloured card's
+   eyebrow and chevron: 4.65:1 on squash's sienna, the lowest of the
+   leads, and a coach's own colour that would carry it under 4.5 keeps
+   white — `foilOn`); on white, the mark and one fine rule on the sign-in
+   landing, as the card's back carries them (a logo and a line, never a
+   word: gold words on white read 2.4:1), and otherwise only STAR and the
+   gold's ink. Never a key's face, never words on white. */
+export const FOIL = "#C2A24C", FOIL_LIGHT = "#E6D08A";
+export const foilOn = (ground, fallback = "#FFFFFF") => (contrastOf(FOIL_LIGHT, ground) >= 4.5 ? FOIL_LIGHT : fallback);
 /* a star on the white page: the card's gold a step deeper, 3:1 and over */
 export const STAR = "#9A7B2B";
 /* a colour's lighter relations: [pale, the pale's ledge, the cloth tone].
@@ -652,6 +684,17 @@ export const SEL = (t) => {
   return KEYS_TINTED ? { face: cloth, ring: clothLip(t.accent), lip: clothLip(t.accent), fg: onCloth(t.accent) }
     : { face: pale, ring: cloth, lip: cloth, fg: MIX(t.accent, "#000000", 0.08) };
 };
+/* A RED QUIET KEY (24 November, the class study): what calls off, cancels
+   or removes, where it is not the one confirm, is the brick's own pale on
+   the pale's ledge with the word in the brick — it was the sport's pale
+   with a red word on it, a mint key saying a red thing. One look, from
+   `Button`'s dangerQuiet to every red key drawn by hand (`redKey`). */
+export const RED_KEY = (t) => {
+  if (darkPage(t)) return { face: TINT(t), ring: KEY_RING(t), lip: TINT_LIP(t), fg: DANGER };
+  const [pale, ledge] = lightsOf(DANGER);
+  return { face: pale, ring: ledge, lip: MIX(ledge, DANGER, 0.12), fg: DANGER };
+};
+export const redKey = (t) => { const k = RED_KEY(t); return { background: k.face, border: `${EDGE_W}px solid ${k.ring}`, "--key-lip": k.lip, color: k.fg }; };
 /* a row of a list chosen from (a reason on Cancel, Call off, End or
    Decline): the list's white card at rest, Duolingo's chosen answer once
    picked — the sport's colour faint on the face, its ring and ledge (the
@@ -2906,7 +2949,7 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                     <button key={h} data-tour="agenda-mine" data-lit={lit ? "1" : undefined} onClick={() => { haptic(7); soft(); onMine(day); }}
                             className="w-full flex items-center gap-3 px-4 text-left active:opacity-50" style={{ minHeight: 56, ...line, ...litStyle }}>
                       {inner}
-                      <ChevronRight size={lit ? 16 : 14} color={lit ? t.onAccent : t.trace || t.faint} strokeWidth={lit ? 2.2 : 2} />
+                      <ChevronRight size={lit ? 16 : 14} color={lit ? foilOn(t.accent, t.onAccent) : t.trace || t.faint} strokeWidth={lit ? 2.2 : 2} />
                     </button>
                   );
                   return mineRow;
@@ -3711,8 +3754,11 @@ function PublishedBurst({ lesson, tally, onAskRating, onLogNext, remaining = 0, 
                   animation: waits ? "fadeIn 320ms ease both" : "celebFade 1900ms ease backwards" }}>
       <div className="w-full flex flex-col items-center" style={{ gridRow: 2 }}>
         <span className="rounded-full flex items-center justify-center shrink-0"
+              /* a fine ring of the card's foil set in from the disc's edge, as
+                 a medal's rim — the gold's one moment in the log (FOIL) */
+              data-foil=""
               style={{ width: 94, height: 94, background: t.accent,
-                       boxShadow: lipOf(LIP(t.accent), 4),
+                       boxShadow: `inset 0 0 0 5px ${t.accent}, inset 0 0 0 6.5px ${FOIL}, ${lipOf(LIP(t.accent), 4)}`,
                        animation: "stampIn 620ms cubic-bezier(.34,1.56,.64,1) both" }}>
           <Check size={42} color={t.onAccent} strokeWidth={2.1} />
         </span>
@@ -4250,8 +4296,8 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
                                      fontFamily: ui, fontSize: 12, fontWeight: 600, color: t.ink }}>{tr("No end")}</button>}
                     {/* End asks why, lists the lessons it booked and takes the password — the End sheet */}
                     <button data-tour="recur-end" onClick={() => { haptic(9); onEnd(x); }} className="px-3 n-key"
-                            style={{ minHeight: 40, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`,
-                                     fontFamily: ui, fontSize: 12, fontWeight: 600, color: DANGER }}>{tr("End")}</button>
+                            style={{ minHeight: 40, borderRadius: R.control, ...redKey(t),
+                                     fontFamily: ui, fontSize: 12, fontWeight: 600 }}>{tr("End")}</button>
                   </div>
                 </>
               )}
@@ -5858,13 +5904,13 @@ function DownloadSheetBody({ lesson, onOpen, onUpdate, onShare, onRemove, onCanc
             {/* a progress fill is the sport's colour */}
             <div style={{ height: "100%", width: `${Math.max(2, pct)}%`, background: t.accent, borderRadius: 3, transition: "width 220ms linear" }} />
           </div>
-          <button onClick={onCancel} className="w-full mt-4 n-key" style={{ ...quiet, color: DANGER }}>{tr("Cancel")}</button>
+          <button onClick={onCancel} className="w-full mt-4 n-key" style={{ ...quiet, ...redKey(t) }}>{tr("Cancel")}</button>
         </div>
       )}
       {status === "failed" && (
         <div className="mt-5">
           <Button onClick={onRetry}>{tr("Retry")}</Button>
-          <button onClick={onRemove} className="w-full mt-2.5 n-key" style={{ ...quiet, color: DANGER }}>{tr("Remove")}</button>
+          <button onClick={onRemove} className="w-full mt-2.5 n-key" style={{ ...quiet, ...redKey(t) }}>{tr("Remove")}</button>
         </div>
       )}
       {status === "saved" && (
@@ -5874,7 +5920,7 @@ function DownloadSheetBody({ lesson, onOpen, onUpdate, onShare, onRemove, onCanc
             <button onClick={onUpdate} className="flex-1 n-key" style={quiet}>{tr("Update")}</button>
             <button onClick={onShare} className="flex-1 n-key" style={quiet}>{tr("Share as a file")}</button>
           </div>
-          <button onClick={onRemove} className="w-full mt-2.5 n-key" style={{ ...quiet, color: DANGER }}>{tr("Remove")}</button>
+          <button onClick={onRemove} className="w-full mt-2.5 n-key" style={{ ...quiet, ...redKey(t) }}>{tr("Remove")}</button>
         </div>
       )}
     </div>
@@ -7304,7 +7350,7 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
                  name={first(k.name)} faceName={k.name} src={avatarUrl(k.avatarPath)} subTone={nx ? "ink" : "faint"}
                  sub={nx ? `${fmtDay(nx.date)} · ${nx.time}` : k.coachId ? tr("Nothing booked") : tr("No coach yet")}
                  /* what is undone, never a total: the lessons live on the child's own screen */
-                 value={todo > 0 ? `${todo} ${todo === 1 ? tr("drill") : tr("drills")}` : null} chevron />
+                 value={todo > 0 ? `${todo} ${todo === 1 ? tr("drill") : tr("drills")}` : null} chevron={lit ? foilOn(t.accent, t.onAccent) : true} />
     );
     return lit ? <OnAccent>{row}</OnAccent> : row;
   };
@@ -8085,8 +8131,8 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
               {/* the diary passes onCancel (the Why sheet); an older caller onNoShow —
                   the button took only the second, so the diary's Cancel did nothing */}
               <button data-tour="block-cancel" onClick={() => { hapticWarn(); const act = onCancel || onNoShow; act && act(item); }} className="px-4 n-key"
-                      style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`,
-                               fontFamily: ui, fontSize: 15, fontWeight: 600, color: DANGER }}>{tr("Cancel")}</button>
+                      style={{ minHeight: 46, borderRadius: R.control, ...redKey(t),
+                               fontFamily: ui, fontSize: 15, fontWeight: 600 }}>{tr("Cancel")}</button>
               <button onClick={() => { haptic(8); push("player:" + item.who); }} className="flex-1 n-key"
                       style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`,
                                fontFamily: ui, fontSize: 15, fontWeight: 600, color: t.ink }}>{tr("Profile")}</button>
@@ -8911,7 +8957,7 @@ export function Button({ children, onClick, tone = "accent", disabled, tour }) {
     ink:    { background: t.accent, color: t.onAccent, border: "none", lip: LIP(t.accent) },
     quiet:  { background: TINT(t), color: t.ink, border: `${EDGE_W}px solid ${KEY_RING(t)}`, lip: TINT_LIP(t) },
     danger: { background: DANGER, color: "#fff", border: "none", lip: LIP(DANGER) },
-    dangerQuiet: { background: TINT(t), color: DANGER, border: `${EDGE_W}px solid ${KEY_RING(t)}`, lip: TINT_LIP(t) },
+    dangerQuiet: (() => { const k = RED_KEY(t); return { background: k.face, color: k.fg, border: `${EDGE_W}px solid ${k.ring}`, lip: k.lip }; })(),
   }[tone];
   /* not yet live: a flat stone with the word in the faint grey — the
      accent at a third of its strength read as a faded, broken button */
@@ -9019,9 +9065,12 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
      "I do want fulfilled buttons throughout. I don't want just tiny
      circles and tiny icons." What calls off is the brick's. */
   const fill = quietTile && Icon && (hue || redWord) ? fillOf(t, redWord ? HUE.red : hue) : null;
-  const bg = fill ? fill.face : tone === "accent" ? t.accent : tone === "danger" ? DANGER : on ? sel.face : TINT(t);
+  /* a red word key with no glyph to fill is the red quiet key, as Button's is */
+  const red = redWord && !fill ? RED_KEY(t) : null;
+  const bg = fill ? fill.face : tone === "accent" ? t.accent : tone === "danger" ? DANGER : on ? sel.face : red ? red.face : TINT(t);
   const fg = fill ? fill.fg : tone === "accent" ? t.onAccent : tone === "danger" ? "#fff" : on ? sel.fg : redWord ? DANGER : t.ink;
-  const lipC = fill ? fill.lip : tone === "accent" ? LIP(t.accent) : tone === "danger" ? LIP(DANGER) : on ? sel.lip : calm ? SOFT_LIP(t) : TINT_LIP(t);
+  const lipC = fill ? fill.lip : tone === "accent" ? LIP(t.accent) : tone === "danger" ? LIP(DANGER) : on ? sel.lip : red ? red.lip : calm ? SOFT_LIP(t) : TINT_LIP(t);
+  const quietRing = red ? red.ring : KEY_RING(t);
   /* the second kind keeps the sport's edge as its outline, 3:1 and over */
   const ring = "";
   const enter = `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`;
@@ -9058,7 +9107,7 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
               className={`relative w-full flex text-left ${stacked ? "flex-col items-start justify-between" : "items-center"}`}
               data-fill={fill ? "" : undefined}
               style={{ minHeight: h, gap: stacked ? 10 : 12, padding: stacked ? "14px 14px 13px" : "0 16px", borderRadius: R.surface, background: bg,
-                       boxShadow: p.rest, border: `${EDGE_W}px solid ${fill ? "transparent" : quietTile ? KEY_RING(t) : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`, animation: enter,
+                       boxShadow: p.rest, border: `${EDGE_W}px solid ${fill ? "transparent" : quietTile ? quietRing : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`, animation: enter,
                        transition: `background ${MOTION.settle}ms, box-shadow 140ms ease-out, transform 140ms ease-out` }}>
         <Icon size={fill ? 24 : 22} color={fg} strokeWidth={fill ? 2 : quietTile || calm ? 1.8 : 2} className="shrink-0" />
         {/* NOTHING IS CUT AT 320: where the glyph and the word share a line
@@ -9084,7 +9133,7 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
               style={{ gap: 7, paddingTop: 2, animation: enter, WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}>
         <span data-face="" data-lip="" data-fill={fill ? "" : undefined} data-rest={rest} data-dn={down} data-by={lip} className="relative flex items-center justify-center rounded-full"
               style={{ width: `min(${f}px, 100%)`, aspectRatio: "1 / 1", background: bg, boxShadow: rest,
-                       border: `${EDGE_W}px solid ${fill ? "transparent" : quietTile ? KEY_RING(t) : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`,
+                       border: `${EDGE_W}px solid ${fill ? "transparent" : quietTile ? quietRing : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`,
                        transition: `background ${MOTION.settle}ms` }}>
           {/* a function's key carries its glyph in the hue's own ink on its filled face */}
           <Icon size={Math.round(f * 0.4)} color={fg} strokeWidth={fill ? 2.1 : quietTile || calm ? 1.8 : 2} />
@@ -9105,7 +9154,7 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
             {...p.handlers}
             className={`relative w-full flex items-center justify-center ${block && Icon ? "gap-2.5" : "flex-col gap-1.5"}`}
             style={{ minHeight: h, borderRadius: R.surface, background: bg, boxShadow: p.rest,
-                     border: `${EDGE_W}px solid ${quietTile ? KEY_RING(t) : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`, animation: enter,
+                     border: `${EDGE_W}px solid ${quietTile ? quietRing : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`, animation: enter,
                      transition: `background ${MOTION.settle}ms, box-shadow 140ms ease-out, transform 140ms ease-out` }}>
       {/* A tile does not need a glyph to be a tile. Where the word is
           the whole meaning — the focus of a lesson, a sub-area — an
@@ -9456,7 +9505,8 @@ function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", s
       {/* the pair of words on the right: a line of its own under the name
           when the row cannot hold both (ml-auto keeps it on the right) */}
       {actions && <span className="shrink-0 flex items-stretch gap-1 ml-auto" style={{ minHeight: 44 }}>{actions}</span>}
-      {chevron && <ChevronRight size={15} color={t.trace || t.faint} />}
+      {/* a chevron handed a colour takes it: the lit row's is the card's light foil */}
+      {chevron && <ChevronRight size={15} color={typeof chevron === "string" ? chevron : t.trace || t.faint} />}
     </Tag>
   );
 }
@@ -13200,6 +13250,27 @@ const accentCard = (t, last = false) => {
   const p = press3d(LIP(t.accent), LIP_H, LIP_PRESS);
   return { style: { background: t.accent, "--edge": t.accent, borderRadius: 16, boxShadow: p.rest, marginBottom: last ? LIP_H - 2 : 10 + LIP_H }, handlers: p.handlers };
 };
+/* THE CARD'S CORNER: the business card's pinstripe wedge, in the top-right
+   corner of the day's one coloured card — the stripes at the card's 45°,
+   9 apart, a hairline of the foil at a third of its strength, inside the
+   triangle the card's own wedge draws (its edge from the top-left of the
+   corner to the foot of the right side), clipped by the card's corner.
+   Ornament only: it takes no tap and says nothing to a screen reader. */
+const FOIL_W = 96, FOIL_H = 64;
+const FOIL_STRIPES = (() => {
+  const m = FOIL_H / FOIL_W, step = 9 * Math.SQRT2, f = (n) => Number(n.toFixed(2)), out = [];
+  for (let c = step / 2; c < FOIL_W + FOIL_H; c += step) {
+    const x0 = c / (1 + m), x1 = Math.min(c, FOIL_W);
+    if (x0 < x1) out.push(`M${f(x0)} ${f(m * x0)}L${f(x1)} ${f(c - x1)}`);
+  }
+  return out.join("");
+})();
+const CardFoil = () => (
+  <svg aria-hidden="true" data-foil="" width={FOIL_W} height={FOIL_H} viewBox={`0 0 ${FOIL_W} ${FOIL_H}`} className="absolute"
+       style={{ top: 0, right: 0, pointerEvents: "none" }}>
+    <path d={FOIL_STRIPES} stroke={FOIL} strokeOpacity="0.34" strokeWidth="1" fill="none" />
+  </svg>
+);
 /* a face on the colour keeps a white ring, so a green disc on golf's green reads */
 const RingedFace = ({ children }) => (
   <span className="shrink-0 inline-flex rounded-full" style={{ boxShadow: "0 0 0 2px #FFFFFF" }}>{children}</span>
@@ -13207,10 +13278,12 @@ const RingedFace = ({ children }) => (
 function NextCard({ l, live, until, avatar, onPeek, onRegister }) {
   const t = useT();
   const fg = t.onAccent;
+  /* the eyebrow and the chevron in the card's light foil (FOIL); the time and the name stay white */
+  const foil = foilOn(t.accent, fg);
   const grp = l.kind && l.kind.startsWith("Group");
   const content = (
     <span className="block min-w-0">
-      <span className="block" style={{ ...TYPE.eyebrow, color: fg }}>{live ? tr("Now") : until || tr("Next")}</span>
+      <span className="block" data-foil-word="" style={{ ...TYPE.eyebrow, color: foil }}>{live ? tr("Now") : until || tr("Next")}</span>
       <span className="block" style={{ fontFamily: display, fontSize: 28, lineHeight: 1.12, letterSpacing: "-0.02em", fontWeight: 700, color: fg, ...FIG, whiteSpace: "nowrap", marginTop: 2 }}>{l.time}</span>
       <span className="flex items-center gap-2.5" style={{ marginTop: 10 }}>
         <RingedFace>{grp
@@ -13240,7 +13313,7 @@ function NextCard({ l, live, until, avatar, onPeek, onRegister }) {
   return (
     <button onClick={() => { haptic(7); soft(); onPeek(l); }} className="w-full flex items-center gap-3.5 text-left" style={{ paddingTop: 14, paddingBottom: 16 }}>
       <span className="flex-1 min-w-0">{content}</span>
-      <ChevronRight size={18} color={fg} strokeWidth={2.2} />
+      <ChevronRight size={18} color={foil} strokeWidth={2.2} />
     </button>
   );
 }
@@ -13608,7 +13681,9 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
               if (l === marked) {
                 const card = accentCard(t, i === todayRows.length - 1);
                 return (
-                  <div key={l.id || `t${i}`} data-tour="today-next" data-next-card={variant === "now" ? "now" : "next"} {...card.handlers} style={card.style}>
+                  <div key={l.id || `t${i}`} data-tour="today-next" data-next-card={variant === "now" ? "now" : "next"} {...card.handlers}
+                       style={{ ...card.style, position: "relative", overflow: "hidden" }}>
+                    <CardFoil />
                     <OnAccent>
                       <NextCard l={l} live={l === liveNow} until={l === liveNow ? null : untilText(l.hoursUntil ?? 1) || null} avatar={avatarFor(l)}
                                 onPeek={(x) => onPeek && onPeek(x)} onRegister={(x) => onRegister && onRegister(x)} />
@@ -17256,8 +17331,8 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                           coach is told with the reason; Reschedule says that much on
                           its own. The harness keeps the one-tap cancel. */}
                       <button data-tour="day-cancel" onClick={() => { haptic(8); if (live && onCancelWithReason && myDay.id) { onCancelWithReason({ ...myDay, label: [forName, `${myDay.date ? fmtIsoDay(myDay.date) : dayLabel} · ${myDay.time}`].filter(Boolean).join(" · ") }); return; } onCancel(myDay); say("Cancelled"); }} className="flex-1 n-key"
-                              style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`,
-                                       fontFamily: ui, fontSize: 15, fontWeight: 600, color: DANGER }}>{tr("Cancel")}</button>
+                              style={{ minHeight: 46, borderRadius: R.control, ...redKey(t),
+                                       fontFamily: ui, fontSize: 15, fontWeight: 600 }}>{tr("Cancel")}</button>
                       {/* a real account asks for the lesson to move — one write, a
                           request at the new time; a project without the function, and
                           the harness, keep the cancel and "Pick a new time" */}
@@ -22460,7 +22535,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                          onRemove={kind === "downloads" ? (l) => downloads.remove(l.id) : null}
                          foot={kind === "downloads" && nSaved > 1 ? (
                            <button onClick={() => { hapticWarn(); downloads.removeAll(); }} className="w-full mb-6 n-key"
-                                   style={{ minHeight: 46, borderRadius: R.control, background: TINT(theme), border: `${EDGE_W}px solid ${KEY_RING(theme)}`, ...TYPE.small, fontWeight: 600, color: DANGER }}>{tr("Remove all")}</button>
+                                   style={{ minHeight: 46, borderRadius: R.control, ...redKey(theme), ...TYPE.small, fontWeight: 600 }}>{tr("Remove all")}</button>
                          ) : null}
                          pop={pop} push={push} say={say} />;
   } else if (screen === "groups") {

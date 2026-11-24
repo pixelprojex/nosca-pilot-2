@@ -173,6 +173,59 @@ seeded data and no account.
   change them together. Contrast: paper on it 11:1, white 12:1. The
   `theme-color` meta in index.html and the manifest's `theme_color` are
   NOT the brand: they are the paper (see below).
+- **The blues and the reds calmer, a red quiet key, and the card's gold,
+  rationed (24 November, the class study).** The founder, 23 November:
+  "still not classy enough … the Lares app is looking absolutely
+  stunning … I love the gold elements on the business card … bring that
+  into the app slightly … not overdoing it". So:
+  - **The cloth of a blue, a violet or a red is capped**
+    (`scripts/club-palette.py`, `CLOTH_QUIET`): hue 200° round to 30° at
+    lightness 0.78 and a chroma of 0.036 at most, the brick's 0.055 — at
+    the family's full cloth chroma they read as baby blue, lilac, pink
+    and salmon on a key. The pales and the deep colours did not move.
+  - **No two keys of a sport the same colour.** A capped blue meets the
+    next blue: rowing's Register (river) and Capture (steel) came to one
+    grey-blue 0.005 apart. So rowing's set is river · court · indigo ·
+    saddle · plum · claret · bottle (Capture indigo, Add player court, New
+    group the bottle as in every other sport), padel's Drills plum, and
+    equestrian's Drills aubergine. The script holds the same table
+    (`SETS`) and refuses to run if two of a sport's eight plus keys of
+    different colours sit closer than `SEPARATE` (0.019 in OKLab); every
+    sport is at or above where it was before the cap. Change `CLUB_SETS`
+    and `SETS` together. `keys.cjs` (a2) reads the eight faces off the
+    plus sheet in all six sports.
+  - **A red quiet key is the brick's pale** (`RED_KEY`, `redKey(t)`):
+    what cancels, ends or removes where it is not the one confirm —
+    `Button`'s `dangerQuiet` (Just decline, the step before a password,
+    EditDay's Call off, the arrangement's End, Delete permanently), the
+    manager's End, a player's Cancel beside Reschedule, the coach's
+    block's Cancel, the download sheet's Cancel and Remove, Saved's
+    Remove all — is the brick's pale ringed in its ledge on a ledge a step
+    toward the brick, the word in the brick (6:1). It was the sport's
+    pale with a red word, a mint key saying a red thing. A function key
+    that calls off (the plus's Call off, the peek's Call off · Cancel)
+    stays the brick's cloth; the one destructive confirm stays `DANGER`
+    filled. `keys.cjs` (j), `boxes.cjs` (s2), (s3).
+  - **Gold as foil, in four places and no others** (`FOIL`, the card's
+    own `#C2A24C`; `FOIL_LIGHT` `#E6D08A`): the day's one coloured card
+    carries the card's pinstripe wedge in its top-right corner
+    (`CardFoil`: the card's 45° stripes 9 apart, a hairline of `FOIL` at a
+    third of its strength, inside the triangle the card's own wedge
+    draws, clipped by the card's corner, `aria-hidden`, taking no tap) and
+    its eyebrow (Now · Next · In 25 min) in `FOIL_LIGHT`; the lit Diary
+    row's and the lit family row's chevron are `FOIL_LIGHT` (`foilOn`:
+    4.65:1 on squash's sienna, the lowest lead; a coach's own colour that
+    would carry it under 4.5 keeps white); the Logged burst's disc wears
+    a fine ring of `FOIL` set 5 in from its edge, a medal's rim; and the
+    sign-in landing is the card's back — the mark in `FOIL` over the
+    name, one 56 × 1 rule of it under the name, the name itself the ink
+    (gold words on white read 2.4:1). The star, a tip and a trophy keep
+    `STAR` and the gold's ink. Never a key's face, never words on white,
+    never a glow. `keys.cjs` (c1), (i), (k), (l).
+  This supersedes, where they say otherwise: the cloth tone "at 0.76"
+  for those hues and the claret and brick values in the colour study
+  below, and every "white key with the red word" (`dangerQuiet`) in the
+  bullets below it.
 - **A row of words carries no icon (23 November).** The founder, of
   Settings: "I don't want you to have the icons in the settings, as it
   makes it look very tacky, and a lot of the icons throughout could

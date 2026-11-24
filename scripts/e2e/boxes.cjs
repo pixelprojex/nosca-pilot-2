@@ -161,6 +161,10 @@ const metaOf = (page, title) => page.evaluate((title) => {
     const sRgb = (c) => { const m = String(c).match(/rgba?\(([^)]+)\)/); return m ? m[1].split(",").slice(0, 3).map((x) => +x) : [255, 255, 255]; };
     const sRatio = (a, b) => { const [x, y] = [sLum(a), sLum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
     const isStone = (os) => os.length > 0 && Object.values(KEYS).some((KEY) => os.every((o) => o.bg === KEY.face && o.ring === KEY.ring && o.inline === "1.5px" && o.shadow.includes(KEY.lip) && sRatio(sRgb(o.fg), sRgb(o.bg)) >= 4.5));
+    /* A RED QUIET KEY (24 November): what cancels or ends, where it is not the one confirm, is the brick's own pale
+       ringed in the pale's ledge on a ledge a step toward the brick, the word in the brick — in every sport alike */
+    const RED_KEY = { face: "rgb(248, 226, 223)", ring: "rgb(234, 202, 198)", lip: "rgb(224, 184, 179)", fg: "rgb(154, 50, 42)" };
+    const isRed = (os) => os.length > 0 && os.every((o) => o.bg === RED_KEY.face && o.ring === RED_KEY.ring && o.inline === "1.5px" && o.shadow.includes(RED_KEY.lip) && o.fg === RED_KEY.fg && sRatio(sRgb(o.fg), sRgb(o.bg)) >= 4.5);
     const toldK = (os) => os.map((o) => `${o.label}: ${o.bg} ring ${o.ring} ${o.inline} · ${o.shadow.slice(0, 40)}`).join(" | ");
   const boot = async (role, d = db, at = "08:00") => {
     const u = Object.values(d.users).find((x) => x.id === IDS[role]);
@@ -581,16 +585,16 @@ const metaOf = (page, title) => page.evaluate((title) => {
         const dec = await meet(page, "[data-sheet]", "decline sheet");
         await shot("13-decline-sheet");
         const decK = await keysIn(page, "[data-sheet]", /^Just decline$/);
-        check("(s2) Just decline, the quiet Button, is the white key — the white face on its ledge, its red word 4.5:1",
-          decK.length === 1 && isStone(decK), toldK(decK));
+        check("(s2) Just decline, the red quiet Button, is the red quiet key — the brick's pale on its ledge, its red word 4.5:1 (it was the sport's pale with a red word)",
+          decK.length === 1 && isRed(decK), toldK(decK));
         await closeSheet(page);
         await tap(page, '[aria-label="Diary"]', 1000); await toList(page);
         await tap(page, '[data-tour="cal-recurring"]', 1000);
         const man = await meet(page, '[data-scroll="screen"]', "recurring manager");
         await shot("13-manager-end");
         const end = await keysIn(page, '[data-scroll="screen"]', /^End$/);
-        check("(s3) the manager's End is the white key on the control's corner, 40 tall — not a hairline pill",
-          isStone(end) && end.every((o) => o.radius === "10px" && o.h >= 40), toldK(end) + ` ${JSON.stringify(end.map((o) => [o.radius, o.h]))}`);
+        check("(s3) the manager's End is the red quiet key on the control's corner, 40 tall — not a hairline pill",
+          isRed(end) && end.every((o) => o.radius === "10px" && o.h >= 40), toldK(end) + ` ${JSON.stringify(end.map((o) => [o.radius, o.h]))}`);
         await tap(page, '[aria-label="Today"]', 900); await toSettings(page);
         await tap(page, '[data-tour="settings-library"]', 1000);
         /* the bin sits inside a drill's unfolded row */

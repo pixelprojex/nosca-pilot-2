@@ -59,6 +59,25 @@ const lipOf = (shadow) => { const m = String(shadow || "").match(/\b0px (\d+(?:\
 const lum = (rgb) => { const [r, g, b] = String(rgb).match(/[\d.]+/g).slice(0, 3).map((v) => { const c = Number(v) / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
 const contrast = (a, b) => { const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
 const rgbIn = (s) => { const m = String(s || "").match(/rgba?\([^)]+\)/); return m ? m[0] : null; };
+/* how far apart two computed colours are, in OKLab — what scripts/club-palette.py's SEPARATE measures */
+const oklab = (rgb) => {
+  const [r, g, b] = String(rgb).match(/[\d.]+/g).slice(0, 3).map((v) => { const c = Number(v) / 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; });
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b), m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b), q = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  return [0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * q, 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * q, 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * q];
+};
+const dE = (x, y) => { const p = oklab(x), q = oklab(y); return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]); };
+const FOIL = "rgb(194, 162, 76)", FOIL_LIGHT = "rgb(230, 208, 138)";
+/* the gold on the day's card: the pinstripe wedge in its corner and the eyebrow's colour */
+const foilOf = (page) => page.evaluate(() => {
+  const c = document.querySelector("[data-next-card]"); if (!c) return null;
+  const svg = c.querySelector("svg[data-foil]"), path = svg && svg.querySelector("path"), eb = c.querySelector("[data-foil-word]");
+  const cr = c.getBoundingClientRect(), sr = svg ? svg.getBoundingClientRect() : null;
+  return { wedge: !!svg, stroke: path ? getComputedStyle(path).stroke : null, opacity: path ? Number(getComputedStyle(path).strokeOpacity) : 0, hidden: svg ? svg.getAttribute("aria-hidden") : null,
+           taps: svg ? getComputedStyle(svg).pointerEvents : null, corner: sr ? Math.round(cr.right - sr.right) === 0 && Math.round(sr.top - cr.top) === 0 : false, clip: getComputedStyle(c).overflow,
+           eyebrow: eb ? getComputedStyle(eb).color : null, bg: getComputedStyle(c).backgroundColor };
+});
+/* the plus sheet's eight filled keys: their faces */
+const plusFaces = (page) => page.locator("[data-tile][data-fill]").evaluateAll((els) => els.map((e) => ({ word: (e.innerText || "").trim(), bg: getComputedStyle(e).backgroundColor })));
 /* the day's coloured card, as the page draws it */
 const cardOf = (page) => page.evaluate(() => {
   const cs = [...document.querySelectorAll("[data-next-card]")], c = cs[0]; if (!c) return { n: 0 };
@@ -98,8 +117,9 @@ const ty = (transform) => { const m = String(transform || "").match(/matrix\(([^
     /* FILLED KEYS (23 November): a function's tile is filled with its function's light colour — Register the lead's
        cloth tone, #94BD9E — with no ring, the word in the hue's ink, on a three-point ledge of the same hue */
     check("(a) Register on the plus is a filled tile: the lead's light colour on the face, no ring, a three-point ledge of the same hue, the word in its ink — never a white key", regTile && !!reg && reg.bg === "rgb(148, 189, 158)" && reg.border === "rgba(0, 0, 0, 0)" && lipOf(reg.shadow) === 3 && /rgb\(94, 139, 107\)/.test(reg.shadow) && reg.fg === "rgb(22, 49, 30)" && reg.w > reg.h, JSON.stringify(reg));
-    /* Call off is filled like its neighbours, in the brick's light colour (#DAA198) with the brick's ink */
-    check("(a) …Call off filled with the brick's light colour, its word in the brick's ink, on the same ledge", !!off && off.bg === "rgb(218, 161, 152)" && off.fg === "rgb(85, 28, 23)" && lipOf(off.shadow) === 3, JSON.stringify(off));
+    /* Call off is filled like its neighbours, in the brick's light colour with the brick's ink — #D9ABA4 since the
+       cloth of the reds and the blues was capped (24 November; #DAA198 before, a salmon) */
+    check("(a) …Call off filled with the brick's light colour, its word in the brick's ink, on the same ledge", !!off && off.bg === "rgb(217, 171, 164)" && off.fg === "rgb(85, 28, 23)" && lipOf(off.shadow) === 3, JSON.stringify(off));
     check("(a) …and Log a lesson the accent across the top, the glyph beside the word", !!logBlock && logBlock.bg === ACCENT && lipOf(logBlock.shadow) === 3 && logBlock.h >= 60 && logBlock.h < 70, JSON.stringify(logBlock));
     await page.keyboard.press("Escape"); await page.mouse.click(20, 120); await page.waitForTimeout(700);
 
@@ -132,6 +152,14 @@ const ty = (transform) => { const m = String(transform || "").match(/matrix\(([^
       await page.mouse.move(5, 5); await page.mouse.up(); await page.waitForTimeout(400);
       const up = await cardOf(page);
       check("(c0) …and the whole card sinks onto its ledge under the finger and comes back", ty(down.transform) === 3 && lipOf(down.shadow) === 1 && ty(up.transform) === 0 && lipOf(up.shadow) === 4, JSON.stringify({ down: [down.transform, down.shadow], up: [up.transform, up.shadow] }));
+      /* (c1) GOLD AS FOIL (24 November): the card carries the business card's pinstripe wedge in its top-right corner —
+         a hairline of the card's gold at a third of its strength, clipped by the corner, ornament only — and its
+         eyebrow in the light foil; the time and the name stay white */
+      const foil = await foilOf(page);
+      check("(c1) the day's card carries the card's pinstripe wedge in its top-right corner: the card's gold, a third of its strength, clipped by the corner, taking no tap and saying nothing",
+        !!foil && foil.wedge && foil.stroke === FOIL && foil.opacity > 0.2 && foil.opacity < 0.5 && foil.corner && foil.clip === "hidden" && foil.taps === "none" && foil.hidden === "true", JSON.stringify(foil));
+      check("(c1) …and its eyebrow is the light foil, 4.5:1 and over on the card, while the name stays white",
+        !!foil && foil.eyebrow === FOIL_LIGHT && contrast(foil.eyebrow, foil.bg) >= 4.5 && card.fg === "rgb(255, 255, 255)", JSON.stringify({ foil, name: card.fg }));
     }
     await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
 
@@ -193,11 +221,22 @@ const ty = (transform) => { const m = String(transform || "").match(/matrix\(([^
     await shot("h-log-media");
     check("(h) the log's Video, Photo and Voice are the icon alone, each named for VoiceOver", media.length === 3 && media.every((m) => m.text === "" && m.svg), JSON.stringify(media));
 
+    /* (k) the Logged burst: the tick's disc wears a fine ring of the card's gold set in from its edge, a medal's rim */
+    {
+      const area = page.getByRole("button", { name: "Chipping", exact: true });
+      if (await area.count()) { await area.first().click(); await page.waitForTimeout(300); }
+      await page.getByRole("button", { name: "Log it", exact: true }).click(); await page.waitForTimeout(1700);
+      const disc = await page.evaluate(() => { const d = document.querySelector('[aria-live="polite"] [data-foil]'); return d ? { shadow: getComputedStyle(d).boxShadow, bg: getComputedStyle(d).backgroundColor } : null; });
+      await shot("k-burst");
+      check("(k) the Logged burst's tick sits in the accent's disc with a fine ring of the card's gold set in from its edge",
+        !!disc && disc.bg === ACCENT && disc.shadow.includes(`${FOIL} 0px 0px 0px 6.5px inset`) && disc.shadow.includes(`${ACCENT} 0px 0px 0px 5px inset`), JSON.stringify(disc));
+    }
+
     await ctx.close();
 
     /* (i) the words on the sport's colour, read on the card itself in every sport: 4.5:1 and over, one card a screen */
     {
-      const read = [];
+      const read = [], apart = [];
       for (const sport of ["golf", "tennis", "rowing", "squash", "padel", "equestrian"]) {
         const d = freshDb(sport), su = Object.values(d.users).find((x) => x.id === IDS.coach);
         const c2 = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
@@ -206,12 +245,64 @@ const ty = (transform) => { const m = String(transform || "").match(/matrix\(([^
         p2.on("pageerror", (e) => errors.push(`${sport}: ${String(e.message || e)}`));
         await M.injectSession(p2, M.session(su, d));
         await p2.goto(BASE, { waitUntil: "networkidle" }); await M.settle(p2);
-        const c = await cardOf(p2);
-        read.push({ sport, n: c.n, bg: c.bg, fg: c.fg, ratio: c.n ? Math.round(contrast(c.fg, c.bg) * 100) / 100 : 0 });
+        const c = await cardOf(p2), f = await foilOf(p2);
+        read.push({ sport, n: c.n, bg: c.bg, fg: c.fg, ratio: c.n ? Math.round(contrast(c.fg, c.bg) * 100) / 100 : 0, foil: f && f.eyebrow, foilRatio: f && f.eyebrow ? Math.round(contrast(f.eyebrow, c.bg) * 100) / 100 : 0 });
         if (sport === "tennis") await p2.screenshot({ path: path.join(outDir, "i-card-tennis.png") });
+        /* the plus sheet's eight: no two keys of different functions the same colour */
+        await tap(p2, '[data-tour="quick"]', 900);
+        const faces = await plusFaces(p2);
+        let close = { d: 9 };
+        for (let i = 0; i < faces.length; i++) for (let j = i + 1; j < faces.length; j++) { const d = dE(faces[i].bg, faces[j].bg); if (d < close.d) close = { d: Math.round(d * 1000) / 1000, a: faces[i].word, b: faces[j].word }; }
+        apart.push({ sport, n: faces.length, ...close });
+        if (sport === "rowing") await p2.screenshot({ path: path.join(outDir, "a2-plus-rowing.png") });
         await c2.close();
       }
       check("(i) the words on the day's card read 4.5:1 and over in all six sports, one card a screen", read.length === 6 && read.every((r) => r.n === 1 && r.ratio >= 4.5), JSON.stringify(read));
+      check("(i) …and its eyebrow, in the light foil, reads 4.5:1 and over on the card in all six sports", read.length === 6 && read.every((r) => r.foil === FOIL_LIGHT && r.foilRatio >= 4.5), JSON.stringify(read.map((r) => [r.sport, r.foil, r.foilRatio])));
+      /* NO TWO KEYS OF A SPORT THE SAME COLOUR (24 November): the cool and red cloth tones were capped, and in rowing
+         the lead's blue and Capture's met at one grey-blue (0.005 apart) — the sets were changed so every pair stays apart */
+      check("(a2) the plus sheet's eight keys are eight colours in every sport: no two closer than 0.018 in OKLab", apart.length === 6 && apart.every((x) => x.n === 8 && x.d >= 0.018), JSON.stringify(apart));
+    }
+    /* (j) A RED QUIET KEY (24 November): what cancels, where it is not the one confirm, is the brick's own pale on
+       the pale's ledge with the word in the brick — never the sport's pale with a red word on it. A player's own
+       lesson ends on Cancel · Reschedule: the red quiet key beside the lead's quiet key */
+    {
+      const d = freshDb(), au = Object.values(d.users).find((x) => x.id === IDS.adult);
+      const c3 = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+      const p3 = await c3.newPage();
+      await p3.clock.setFixedTime(new Date(`${TODAY}T08:00:00`)); await M.attach(p3, d);
+      p3.on("pageerror", (e) => errors.push(`adult: ${String(e.message || e)}`));
+      await M.injectSession(p3, M.session(au, d));
+      await p3.goto(BASE, { waitUntil: "networkidle" }); await M.settle(p3);
+      await tap(p3, '[aria-label="Diary"]', 1200);
+      if (await p3.locator('[data-tour="cal-view"] [aria-label="Calendar"]').count()) await tap(p3, '[data-tour="cal-view"] [aria-label="Calendar"]', 900);
+      const keyOf = (sel) => p3.locator(sel).first().evaluate((el) => { const cs = getComputedStyle(el); return { bg: cs.backgroundColor, ring: cs.borderTopColor, fg: cs.color, lip: cs.boxShadow }; }).catch(() => null);
+      const cancel = await keyOf('[data-tour="day-cancel"]'), resched = await keyOf('[data-tour="day-reschedule"]');
+      await p3.screenshot({ path: path.join(outDir, "j-red-key.png") });
+      check("(j) a player's Cancel is the red quiet key: the brick's pale (#F8E2DF) on its own ledge, the word in the brick at 4.5:1 and over",
+        !!cancel && cancel.bg === "rgb(248, 226, 223)" && cancel.ring === "rgb(234, 202, 198)" && cancel.fg === "rgb(154, 50, 42)" && contrast(cancel.fg, cancel.bg) >= 4.5 && lipOf(cancel.lip) === 3, JSON.stringify(cancel));
+      check("(j) …beside Reschedule, the lead's quiet key — never the same face with a red word",
+        !!resched && !!cancel && resched.bg !== cancel.bg && resched.fg !== cancel.fg, JSON.stringify({ cancel, resched }));
+      await c3.close();
+    }
+
+    /* (l) THE FRONT DOOR IS THE CARD'S BACK (24 November): the mark in the card's gold over the name, and one fine
+       gold rule under it; the name itself stays the ink (gold words on white read 2.4:1) */
+    {
+      const c4 = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+      const p4 = await c4.newPage(); await M.attach(p4, M.emptyDb());
+      p4.on("pageerror", (e) => errors.push(`landing: ${String(e.message || e)}`));
+      await p4.goto(BASE, { waitUntil: "networkidle" }); await M.settle(p4); await p4.waitForTimeout(900);
+      const door = await p4.evaluate(() => {
+        const mark = document.querySelector("[data-foil] svg"), rule = document.querySelector("[data-foil-rule]");
+        const name = [...document.querySelectorAll("span")].find((x) => x.textContent.trim() === "NOSCA" && !x.children.length);
+        return { strokes: mark ? [...mark.querySelectorAll("path")].map((p) => p.getAttribute("stroke")) : [], rule: rule ? { bg: getComputedStyle(rule).backgroundColor, w: rule.getBoundingClientRect().width, h: rule.getBoundingClientRect().height } : null,
+                 name: name ? getComputedStyle(name).color : null, create: /Create account/.test(document.body.innerText) };
+      });
+      await p4.screenshot({ path: path.join(outDir, "l-landing.png") });
+      check("(l) the sign-in page's mark is the card's gold, with one fine gold rule under the name, and the name stays the ink",
+        door.create && door.strokes.length === 2 && door.strokes.every((x) => String(x).toUpperCase() === "#C2A24C") && !!door.rule && door.rule.bg === FOIL && door.rule.h === 1 && door.rule.w === 56 && !!door.name && door.name !== FOIL, JSON.stringify(door));
+      await c4.close();
     }
     check("no page errors", errors.length === 0, errors.join(" | ").slice(0, 300));
   } catch (e) {
