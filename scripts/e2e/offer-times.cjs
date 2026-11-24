@@ -407,6 +407,10 @@ function freshDb({ hours = true, away = null, family = false, requestFor = "adul
       /* in time order: the request's box sits before the 4:00 pm lesson's */
       const order = await page.evaluate(() => [...document.querySelectorAll('[data-tour="cal-ask"], [data-tour="cal-block"]')].map((b) => b.getAttribute("data-tour")));
       check("(q7) …in its hour: the request at ten stands before Saoirse's four o'clock", JSON.stringify(order) === JSON.stringify(["cal-ask", "cal-block"]), JSON.stringify(order));
+      /* Decline beside Accept is the red quiet key, as a player's Cancel beside Reschedule is (boxes.cjs's RED_KEY) */
+      const dk = await blk.first().locator('[data-tour="cal-decline"]').evaluate((b) => { const s = getComputedStyle(b); return { bg: s.backgroundColor, ring: s.borderTopColor, fg: s.color }; }).catch(() => null);
+      check("(q7b) …its Decline is the red quiet key: the brick's pale ringed in its ledge, the word in the brick",
+            !!dk && dk.bg === "rgb(248, 226, 223)" && dk.ring === "rgb(234, 202, 198)" && dk.fg === "rgb(154, 50, 42)", JSON.stringify(dk));
       await blk.first().locator('[data-tour="cal-accept"]').click(); await page.waitForTimeout(1800);
       const req = db.bookings.find((b) => b.id === CC06);
       const after = await page.evaluate(() => ({ asks: document.querySelectorAll('[data-tour="cal-ask"]').length, blocks: [...document.querySelectorAll('[data-tour="cal-block"]')].map((b) => b.innerText.replace(/\s+/g, " ").slice(0, 60)) }));
