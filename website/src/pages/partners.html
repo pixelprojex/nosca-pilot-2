@@ -12,7 +12,7 @@ header: rest
   <div class="film__stage">
     <div class="film__safe pt-open__in">
       <div class="pt-open__copy">
-        <p class="eyebrow eyebrow--rule">In pilot in Ireland</p>
+        <p class="eyebrow eyebrow--rule">In pilot, in Ireland</p>
         <h1 class="t-display pt-open__h" id="pt-title">Partners.</h1>
         <p class="t-lede pt-open__lede">For the clubs, academies and sponsors who would stand with&nbsp;Nosca.</p>
       </div>
@@ -29,48 +29,50 @@ header: rest
 <section class="section g-paper pt-offer" id="club" data-ground-shift aria-labelledby="pt-club-title">
   <div class="wrap">
     <div class="cols pt-offer__head">
-      <p class="eyebrow eyebrow--rule pt-offer__eb">For a club or an academy</p>
+      <p class="eyebrow eyebrow--rule pt-offer__eb">Clubs and academies</p>
       <h2 class="t-display pt-offer__h" id="pt-club-title" data-ink>Every lesson your coaches give, kept.</h2>
       <p class="t-lede pt-offer__lede" data-rise="lines">The clips, the note and the drills stay on the lesson, where the coach, the player and the family can find them.</p>
     </div>
     <ol class="pt-why" aria-label="Why Nosca">
       <li class="pt-why__row">
         <i class="rule-gold pt-why__rule" data-rule aria-hidden="true"></i>
-        <span class="t-numeral pt-why__n" aria-hidden="true">01</span>
+        <span class="t-numeral pt-why__n" aria-hidden="true">1</span>
         <h3 class="t-h2 pt-why__h" data-rise>Six sports in one&nbsp;app.</h3>
-        <p class="t-body pt-why__p">Golf, tennis, rowing, squash, padel and equestrian. Levels and terms are the ones each sport's governing body uses.</p>
+        <p class="t-body pt-why__p" data-rise="lines">Golf, tennis, rowing, squash, padel and equestrian. Levels and terms are the ones each sport's governing body uses.</p>
       </li>
       <li class="pt-why__row">
         <i class="rule-gold pt-why__rule" data-rule aria-hidden="true"></i>
-        <span class="t-numeral pt-why__n" aria-hidden="true">02</span>
+        <span class="t-numeral pt-why__n" aria-hidden="true">2</span>
         <h3 class="t-h2 pt-why__h" data-rise>Coach, player and family in one&nbsp;place.</h3>
-        <p class="t-body pt-why__p">Each has their own side of the same app, and sees the same lesson.</p>
+        <p class="t-body pt-why__p" data-rise="lines">Each has their own side of the same app, and sees the same lesson.</p>
       </li>
       <li class="pt-why__row">
         <i class="rule-gold pt-why__rule" data-rule aria-hidden="true"></i>
-        <span class="t-numeral pt-why__n" aria-hidden="true">03</span>
-        <h3 class="t-h2 pt-why__h" data-rise>Built and piloted in&nbsp;Ireland.</h3>
-        <p class="t-body pt-why__p">The pilot runs in Ireland, in English.</p>
+        <span class="t-numeral pt-why__n" aria-hidden="true">3</span>
+        <h3 class="t-h2 pt-why__h" data-rise>Built in&nbsp;Ireland.</h3>
+        <p class="t-body pt-why__p" data-rise="lines">The pilot runs here first, in English.</p>
       </li>
     </ol>
   </div>
 </section>
 
 <!-- ═════════════ 3. THE COACH'S SIDE ═════════════ The phone stands a screen tall and draws back into its frame; then
-     a real clinic's register is taken in it, frame by frame, while the captions step in time. All markup. -->
-<section class="film g-rest pt-coach" id="coach" data-film data-ground-shift style="--len:4.8;--len-sm:4" data-header="rest" aria-label="Taking the register for a clinic, step by step">
+     a real clinic's register is taken in it, frame by frame, while the captions step in time: the day with the clinic
+     on now, its register rising at one tap, every name marked, Submit, "Register taken". The sequence (assets/seq/
+     pt-register) is keyed by hand in partners.js. On a short phone the film is the plain column. -->
+<section class="film g-rest pt-coach" id="coach" data-film data-ground-shift data-shift-lead="0.3" style="--len:4.8;--len-sm:4" data-header="rest" aria-label="Taking the register for a clinic, step by step">
   <div class="film__stage">
     <div class="film__safe pt-film">
       <div class="pt-film__dev only-motion">
-        <!-- @include phone seq="register" seqalt="Taking the register for a clinic in Nosca: the coach's day, the clinic, ten names marked Present or Absent" class="pt-film__phone" attrs="data-device data-zoom='tall' data-turn='18,6,-1.5'" -->
+        <!-- @include phone seq="pt-register" seqalt="Taking the register in Nosca: the coach's day with Thursday clinic on now, its register opened, all ten names marked, the register taken" class="pt-film__phone" attrs="data-device data-zoom='tall' data-turn='18,6,-1.5'" seqattrs="data-drive='manual'" -->
       </div>
       <div class="pt-film__copy">
         <p class="eyebrow eyebrow--rule" data-after-lead>The coach's side</p>
         <div class="film__steps">
-          <div data-step data-frame="0"><p class="t-numeral">1</p><h3 class="t-h2">The day, in order.</h3><p class="t-lede">Private lessons and group clinics side by side.</p><figure class="shot pt-rest only-rest"><img src="assets/seq/register/f000.webp" width="660" height="1428" alt="A coach's day in Nosca: private lessons in order, the one on now as the green card, Thursday clinic at 5:00 pm" loading="lazy" decoding="async"></figure></div>
-          <div data-step data-frame="1"><p class="t-numeral">2</p><h3 class="t-h2">The clinic on now.</h3><p class="t-lede">One tap opens it.</p><figure class="shot pt-rest only-rest"><img src="assets/seq/register/f007.webp" width="660" height="1428" alt="Thursday clinic opened over the day: Log, and Profile, Capture, Register, Call off and Cancel under it" loading="lazy" decoding="async"></figure></div>
-          <div data-step data-frame="16"><p class="t-numeral">3</p><h3 class="t-h2">The register.</h3><p class="t-lede">Present or absent, a tap for each name.</p><figure class="shot pt-rest only-rest"><img src="assets/seq/register/f024.webp" width="660" height="1428" alt="The register for Thursday clinic: ten names, each marked Present or Absent" loading="lazy" decoding="async"></figure></div>
-          <div data-step data-frame="34"><p class="t-numeral">4</p><h3 class="t-h2">Taken.</h3><p class="t-lede">Each player's attendance builds from it, for them and their family to see.</p><figure class="shot pt-rest only-rest"><img src="assets/seq/register/f035.webp" width="660" height="1428" alt="The register taken: nine present, one absent" loading="lazy" decoding="async"></figure></div>
+          <div data-step><p class="t-numeral">1</p><div class="pt-cap"><h3 class="t-h2">The day, in&nbsp;order.</h3><p class="t-lede">Private lessons and clinics side by&nbsp;side.</p></div><figure class="shot pt-rest only-rest"><img src="assets/seq/pt-register/f000.webp" width="660" height="1428" alt="A coach's day in Nosca: five private lessons from 9:00 am, each with Log, and Thursday clinic at 5:00 pm as the green card marked Now, with Register on it" loading="lazy" decoding="async"></figure></div>
+          <div data-step><p class="t-numeral">2</p><div class="pt-cap"><h3 class="t-h2">The clinic on&nbsp;now.</h3><p class="t-lede">One tap opens its&nbsp;register.</p></div><figure class="shot pt-rest only-rest"><img src="assets/seq/pt-register/f008.webp" width="660" height="1428" alt="The register for Thursday clinic, 5:00 pm, 10 people: each name with Present and Absent, none marked yet" loading="lazy" decoding="async"></figure></div>
+          <div data-step><p class="t-numeral">3</p><div class="pt-cap"><h3 class="t-h2">The&nbsp;register.</h3><p class="t-lede">Present or absent, a tap for each&nbsp;name.</p></div><figure class="shot pt-rest only-rest"><img src="assets/seq/pt-register/f033.webp" width="660" height="1428" alt="Every name on the register marked: Aoife Brennan Absent, the other nine Present, 9 of 10 present above Submit register" loading="lazy" decoding="async"></figure></div>
+          <div data-step><p class="t-numeral">4</p><div class="pt-cap"><h3 class="t-h2">Taken.</h3><p class="t-lede">Attendance builds from it, for the family to&nbsp;see.</p></div><figure class="shot pt-rest only-rest"><img src="assets/seq/pt-register/f041.webp" width="660" height="1428" alt="After Submit: the day's registers listed, and a note reading Register taken, 9 present" loading="lazy" decoding="async"></figure></div>
         </div>
       </div>
       <i class="film__bar"><i></i></i>
@@ -87,25 +89,26 @@ header: rest
       <div class="pt-film__copy">
         <p class="eyebrow eyebrow--rule">Juniors, with care</p>
         <div class="film__steps">
-          <div data-step><p class="t-numeral">1</p><h3 class="t-h2">An adult answers for a&nbsp;junior.</h3><p class="t-lede">A parent books for a child and answers for them.</p><figure class="shot pt-rest only-rest"><img src="assets/parent-family.webp" width="780" height="1688" alt="A parent's family in Nosca: the children and what is coming up for each" loading="lazy" decoding="async"></figure></div>
-          <div data-step><p class="t-numeral">2</p><h3 class="t-h2">A parent's words are the&nbsp;parent's.</h3><p class="t-lede">In a child's thread, every line from an adult carries their name.</p><figure class="shot pt-rest only-rest"><img src="assets/coach-thread-junior.webp" width="780" height="1688" alt="A child's thread: the parent's lines carry her name, Orla · parent" loading="lazy" decoding="async"></figure></div>
-          <div data-step><p class="t-numeral">3</p><h3 class="t-h2">No family reads&nbsp;another's.</h3><p class="t-lede">A coach's message to a group lands in each family's own thread.</p><figure class="shot pt-rest only-rest"><img src="assets/coach-chat.webp" width="780" height="1688" alt="A coach's Chat: each family in its own thread" loading="lazy" decoding="async"></figure></div>
-          <div data-step><p class="t-numeral">4</p><h3 class="t-h2">An account of their&nbsp;own.</h3><p class="t-lede">An under-18 signs in to their own side of the app.</p><figure class="shot pt-rest only-rest"><img src="assets/junior-home.webp" width="780" height="1688" alt="A junior's own home in Nosca" loading="lazy" decoding="async"></figure></div>
+          <div data-step><p class="t-numeral">1</p><div class="pt-cap"><h3 class="t-h2">An adult answers for a&nbsp;junior.</h3><p class="t-lede">A parent books for a child.</p></div><figure class="shot pt-rest only-rest"><img src="assets/partners-family.webp" width="780" height="1688" alt="Orla's family in Nosca: Saoirse's lesson next, her two children with a drill each, and what is coming up for each" loading="lazy" decoding="async"></figure></div>
+          <div data-step><p class="t-numeral">2</p><div class="pt-cap"><h3 class="t-h2">A parent's words are the&nbsp;parent's.</h3><p class="t-lede">Each line from an adult carries their&nbsp;name.</p></div><figure class="shot pt-rest only-rest"><img src="assets/partners-thread.webp" width="780" height="1688" alt="Saoirse's thread with her coach: Orla's lines are labelled Orla · parent" loading="lazy" decoding="async"></figure></div>
+          <div data-step><p class="t-numeral">3</p><div class="pt-cap"><h3 class="t-h2">No family reads&nbsp;another's.</h3><p class="t-lede">Each family talks to the coach in its own&nbsp;thread.</p></div><figure class="shot pt-rest only-rest"><img src="assets/partners-chat.webp" width="780" height="1688" alt="A coach's Chat: a thread for each player, a child's thread led by the parent's name, Orla" loading="lazy" decoding="async"></figure></div>
+          <div data-step><p class="t-numeral">4</p><div class="pt-cap"><h3 class="t-h2">An account of their&nbsp;own.</h3><p class="t-lede">An under-18 has their own drills and&nbsp;lessons.</p></div><figure class="shot pt-rest only-rest"><img src="assets/partners-junior.webp" width="780" height="1688" alt="Saoirse's own Drills in Nosca: Clock drill, by Sat 28 Nov, and Log a practice" loading="lazy" decoding="async"></figure></div>
         </div>
       </div>
-<div class="pt-film__dev only-motion">
-        <!-- @include phone screens="parent-family,coach-thread-junior,coach-chat,junior-home" alts="A parent's family in Nosca: the children and what is coming up for each|A child's thread: the parent's lines carry her name, Orla · parent|A coach's Chat: each family in its own thread|A junior's own home in Nosca" mode="fade" class="pt-film__phone" attrs="data-device data-turn='-16,5,1' data-turn-to='12,-3,-1'" -->
+      <div class="pt-film__dev only-motion">
+        <!-- @include phone screens="partners-family,partners-thread,partners-chat,partners-junior" alts="Orla's family in Nosca: the children and what is coming up for each|Saoirse's thread: the parent's lines labelled Orla · parent|A coach's Chat: a thread for each player|Saoirse's own Drills in Nosca" mode="push" class="pt-film__phone" attrs="data-device='push' data-swap='7' data-turn='-16,5,1' data-turn-to='12,-3,-1'" -->
       </div>
       <i class="film__bar"><i></i></i>
     </div>
   </div>
 </section>
 
-<!-- ═════════════ 5. CLIMATE ═════════════ A photograph opens out of the green as a window, grows to the whole screen
-     and comes to rest, while one sentence fills with ink on it. Played in partners.js. -->
-<section class="film g-green pt-still" id="climate" style="--len:2.8;--len-sm:2.3" data-header="none" aria-labelledby="pt-climate-title">
+<!-- ═════════════ 5. CLIMATE ═════════════ A crew crossing a still lake at dusk opens out of the green as a window and
+     grows to the whole screen; the scroll is the clip's play head, so the boat crosses as the thumb goes down, while
+     one sentence fills with ink on the dark water. Played in partners.js. -->
+<section class="film g-green pt-still" id="climate" style="--len:2.8;--len-sm:2.6" data-header="none" aria-labelledby="pt-climate-title">
   <div class="film__stage">
-    <!-- @include photo name="coaching-megaphone-6" class="photo--bleed photo--veil pt-still__pic" attrs="data-settle='manual'" sizes="100vw" -->
+    <figure class="vid vid--bleed vid--veil pt-still__pic" style="--ar:1280/720;--focus:58% 40%;--tone:#070C14" data-settle="manual"><video data-scrub-video data-drive="manual" muted playsinline preload="none" width="1280" height="720" poster="assets/partners-lake-poster.webp" src="assets/partners-lake.mp4" aria-label="A crew crossing a still lake at dusk, far off under a banded sky"></video></figure>
     <div class="film__safe pt-still__in">
       <p class="eyebrow eyebrow--rule pt-still__eb">Climate</p>
       <h2 class="t-display pt-still__h" id="pt-climate-title" data-ink="manual">We support climate&nbsp;action.</h2>
@@ -125,40 +128,37 @@ header: rest
     </div>
     <ol class="pt-steps">
       <li class="pt-steps__line" aria-hidden="true"><i></i></li>
-      <li class="pt-step"><span class="t-numeral pt-step__n" aria-hidden="true">1</span><div><h3 class="t-h3" data-rise>Open Nosca on a&nbsp;phone.</h3><p class="t-body">Add it to the Home Screen, on iPhone, Android or a computer.</p></div></li>
-      <li class="pt-step"><span class="t-numeral pt-step__n" aria-hidden="true">2</span><div><h3 class="t-h3" data-rise>Each coach signs&nbsp;up.</h3><p class="t-body">Every coach has a code of their own to give their players.</p></div></li>
-      <li class="pt-step"><span class="t-numeral pt-step__n" aria-hidden="true">3</span><div><h3 class="t-h3" data-rise>Players ask to&nbsp;join.</h3><p class="t-body">A player asks with the coach's code, and the coach accepts.</p></div></li>
-      <li class="pt-step"><span class="t-numeral pt-step__n" aria-hidden="true">4</span><div><h3 class="t-h3" data-rise>Families join&nbsp;together.</h3><p class="t-body">A parent starts a family and shares its code. The juniors in it are looked after there.</p></div></li>
+      <li class="pt-step"><span class="t-numeral pt-step__n" aria-hidden="true">1</span><div><h3 class="t-h3" data-rise>Open Nosca on a&nbsp;phone.</h3><p class="t-body" data-rise="lines">Add it to the Home Screen and it opens like any other&nbsp;app.</p></div></li>
+      <li class="pt-step"><span class="t-numeral pt-step__n" aria-hidden="true">2</span><div><h3 class="t-h3" data-rise>Each coach signs&nbsp;up.</h3><p class="t-body" data-rise="lines">Every coach has a code of their own to give their players.</p></div></li>
+      <li class="pt-step"><span class="t-numeral pt-step__n" aria-hidden="true">3</span><div><h3 class="t-h3" data-rise>Players ask to&nbsp;join.</h3><p class="t-body" data-rise="lines">A player asks with the coach's code, and the coach accepts.</p></div></li>
+      <li class="pt-step"><span class="t-numeral pt-step__n" aria-hidden="true">4</span><div><h3 class="t-h3" data-rise>Families join&nbsp;together.</h3><p class="t-body" data-rise="lines">A parent starts a family and shares its code. The juniors in it are looked after there.</p></div></li>
     </ol>
   </div>
 </section>
 
 <!-- ═════════════ 7. FRAMES KEPT ═════════════ The rest ground rises through the diagonal. Each frame draws its gold
      hairline round itself and its mark, one after another, as the scroll passes. -->
-<section class="section g-rest pt-wall" id="frames" data-ground-shift aria-labelledby="pt-wall-title">
+<section class="section g-rest pt-wall" id="frames" data-ground-shift data-shift-lead="0.3" aria-labelledby="pt-wall-title">
   <div class="wrap">
     <div class="cols pt-wall__head">
       <p class="eyebrow eyebrow--rule pt-wall__eb">Frames kept</p>
       <h2 class="t-h1 pt-wall__h" id="pt-wall-title" data-ink>A frame for each&nbsp;partner.</h2>
       <p class="t-lede pt-wall__lede" data-rise="lines">Each is kept clear until that partner has signed.</p>
     </div>
-    <div class="pframes pt-frames" role="img" aria-label="Six empty frames, each holding the Nosca mark in gold, kept clear for partners">
-      <div class="pframe"><i class="pt-edge pt-edge--t"></i><i class="pt-edge pt-edge--r"></i><i class="pt-edge pt-edge--b"></i><i class="pt-edge pt-edge--l"></i><!-- @include mark --></div>
-      <div class="pframe"><i class="pt-edge pt-edge--t"></i><i class="pt-edge pt-edge--r"></i><i class="pt-edge pt-edge--b"></i><i class="pt-edge pt-edge--l"></i><!-- @include mark --></div>
-      <div class="pframe"><i class="pt-edge pt-edge--t"></i><i class="pt-edge pt-edge--r"></i><i class="pt-edge pt-edge--b"></i><i class="pt-edge pt-edge--l"></i><!-- @include mark --></div>
-      <div class="pframe"><i class="pt-edge pt-edge--t"></i><i class="pt-edge pt-edge--r"></i><i class="pt-edge pt-edge--b"></i><i class="pt-edge pt-edge--l"></i><!-- @include mark --></div>
-      <div class="pframe"><i class="pt-edge pt-edge--t"></i><i class="pt-edge pt-edge--r"></i><i class="pt-edge pt-edge--b"></i><i class="pt-edge pt-edge--l"></i><!-- @include mark --></div>
-      <div class="pframe"><i class="pt-edge pt-edge--t"></i><i class="pt-edge pt-edge--r"></i><i class="pt-edge pt-edge--b"></i><i class="pt-edge pt-edge--l"></i><!-- @include mark --></div>
+    <div class="pframes pt-frames" role="img" aria-label="Three empty frames, each a gold hairline the shape of the card, kept clear for partners">
+      <div class="pframe"><i class="pt-edge pt-edge--t"></i><i class="pt-edge pt-edge--r"></i><i class="pt-edge pt-edge--b"></i><i class="pt-edge pt-edge--l"></i></div>
+      <div class="pframe"><i class="pt-edge pt-edge--t"></i><i class="pt-edge pt-edge--r"></i><i class="pt-edge pt-edge--b"></i><i class="pt-edge pt-edge--l"></i></div>
+      <div class="pframe"><i class="pt-edge pt-edge--t"></i><i class="pt-edge pt-edge--r"></i><i class="pt-edge pt-edge--b"></i><i class="pt-edge pt-edge--l"></i></div>
     </div>
   </div>
 </section>
 
 <!-- ═════════════ 8. IN TOUCH ═════════════ The contact line renders only when the address is known; without it the
      page closes on the app and the card's code. The card turns to its back on its own passage. -->
-<section class="section g-paper pt-close" id="contact" data-ground-shift aria-labelledby="pt-close-title">
+<section class="section g-paper pt-close" id="contact" data-ground-shift data-shift-lead="0.3" aria-labelledby="pt-close-title">
   <div class="wrap pt-close__in">
     <div class="pt-close__copy">
-      <!-- @if contactEmail --><p class="eyebrow eyebrow--rule">In touch</p><h2 class="t-display pt-close__h" id="pt-close-title" data-ink>Partner with Nosca.</h2><p class="t-lede" data-rise="lines">To talk about a club, a sport or a sponsorship, write to <a class="pt-mail" href="mailto:{{contactEmail}}">{{contactEmail}}</a></p><!-- @else --><p class="eyebrow eyebrow--rule">Scan to start</p><h2 class="t-display pt-close__h" id="pt-close-title" data-ink>See it for yourself.</h2><p class="t-lede" data-rise="lines">Nosca is in pilot in Ireland. Open it on a phone, or scan the code on the card.</p><!-- @endif -->
+      <!-- @if contactEmail --><p class="eyebrow eyebrow--rule">In touch</p><h2 class="t-display pt-close__h" id="pt-close-title" data-ink>Partner with Nosca.</h2><p class="t-lede" data-rise="lines">To talk about a club, a sport or a sponsorship, write to <a class="pt-mail" href="mailto:{{contactEmail}}">{{contactEmail}}</a></p><!-- @else --><p class="eyebrow eyebrow--rule">Coaching, linked</p><h2 class="t-display pt-close__h" id="pt-close-title" data-ink>See it for yourself.</h2><p class="t-lede" data-rise="lines">One app for coach, player and parent. It opens on any&nbsp;phone.</p><!-- @endif -->
       <div class="keys">
         <a class="key key--lg" href="{{appUrl}}" rel="noopener" data-magnet>Open Nosca <!-- @include arrow --></a>
         <a class="key key--lg key--paper" href="{{installUrl}}" rel="noopener" data-magnet>Add to Home Screen</a>

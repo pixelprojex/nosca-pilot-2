@@ -9,10 +9,15 @@
 .pt-open__lede{max-width:17em}
 .pt-open__card{justify-self:center;display:grid;place-items:center;min-width:0}
 .pt-open__bcard{--card-w:min(88vw,560px)}
-/* with motion the card's shadow turns with it: an empty box behind its faces casting the shadow (partners.js puts it
-   there and takes the flat shared one away) */
-.pt-open__cast{position:absolute;inset:0;border-radius:3.6%/5.5%;transform:translateZ(-1px);pointer-events:none;
+/* With motion both cards' shadows turn with them: the flip's own ::before, an empty box a hair behind the faces,
+   casts it, so edge-on the shadow is a line and never a flat white panel left lying behind the card. The flat shared
+   shadow (.bcard--shadow) is the card at rest. Both are laid out before the first paint: no script needed. */
+html.motion .pt-open__bcard.bcard--shadow::before,html.motion .pt-close__bcard.bcard--shadow::before{display:none}
+html.motion .pt-open__bcard .bcard__flip::before,html.motion .pt-close__bcard .bcard__flip::before{content:"";position:absolute;inset:0;border-radius:3.6%/5.5%;transform:translateZ(-1px);pointer-events:none;
   box-shadow:0 calc(var(--u)*4) calc(var(--u)*7) calc(var(--u)*-3) rgba(22,26,12,.3),0 calc(var(--u)*1.2) calc(var(--u)*2.2) calc(var(--u)*-1) rgba(22,26,12,.2)}
+/* frame 0 of the opening film, in CSS, so the first paint is the film's first frame (the card lying front up on
+   the table) and not its white back: partners.js plays from exactly this pose */
+html.motion .pt-open__bcard .bcard__flip{transform:translate3d(0,5vh,0) rotate(-11deg) rotateX(52deg) scale(.9);transform:translate3d(0,5svh,0) rotate(-11deg) rotateX(52deg) scale(.9)}
 @media (min-width:900px){
   .pt-open__in{grid-template-columns:minmax(0,6fr) minmax(0,6fr);gap:clamp(32px,4vw,80px);align-items:center}
   .pt-open__h{font-size:clamp(58px,9.4vw,150px)}
@@ -21,8 +26,11 @@
 }
 /* with motion: the whole scene on one screen, the card a little smaller on a short one */
 html.motion .pt-open__in{padding-block:calc(var(--hdr-h) + clamp(16px,4vh,48px)) clamp(40px,7vh,72px)}
-html.motion .pt-open__bcard{--card-w:min(88vw,560px,calc((100vh - var(--hdr-h) - 360px)*1.52));--card-w:min(88vw,560px,calc((100svh - var(--hdr-h) - 360px)*1.52))}
+/* never under 282 on a phone: below that the back's words and its code run over each other */
+html.motion .pt-open__bcard{--card-w:max(min(88vw,282px),min(88vw,560px,calc((100vh - var(--hdr-h) - 360px)*1.52)));--card-w:max(min(88vw,282px),min(88vw,560px,calc((100svh - var(--hdr-h) - 360px)*1.52)))}
 html.motion .pt-open__card{perspective:1400px}
+/* the first SE in Safari (320 × 460): the headline a step smaller so the eyebrow clears the header and the card its foot */
+@media (max-width:719px) and (max-height:520px){html.motion .pt-open__in{gap:18px;padding-top:calc(var(--hdr-h) + 12px)}html.motion .pt-open__h{font-size:54px}html.motion .pt-open__copy{gap:10px}}
 html.motion .pt-open .bcard__rule{transform-origin:0 50%}
 @media (min-width:900px){
   html.motion .pt-open__bcard{--card-w:min(44vw,600px,calc((100vh - var(--hdr-h) - 150px)*1.52));--card-w:min(44vw,600px,calc((100svh - var(--hdr-h) - 150px)*1.52))}
@@ -38,7 +46,7 @@ html.motion .pt-open .bcard__rule{transform-origin:0 50%}
 .pt-why{list-style:none;margin:clamp(72px,10vw,152px) 0 0;padding:0;display:grid}
 .pt-why__row{position:relative;display:grid;grid-template-columns:minmax(0,1fr);gap:10px 0;padding:clamp(26px,3vw,40px) 0 clamp(40px,5vw,72px)}
 .pt-why__rule{position:absolute;left:0;right:0;top:0;width:auto}
-.pt-why__n{font-size:clamp(40px,4.6vw,72px)}
+.pt-why__n{font-size:clamp(36px,4vw,60px)}
 .pt-why__h{max-width:11em}
 .pt-why__p{color:var(--fg-2);max-width:26em}
 @media (min-width:900px){
@@ -63,17 +71,31 @@ html:not(.motion) .pt-film__copy{max-width:none}
 html:not(.motion) .pt-film .film__steps>[data-step]{display:flex;flex-direction:column;min-width:0}
 html:not(.motion) .pt-film__copy .t-h2{font-size:clamp(24px,2.4vw,32px);line-height:1.12;letter-spacing:-.02em}
 html:not(.motion) .pt-film__copy .t-lede{font-size:17px}
-@media (min-width:720px){html:not(.motion) .pt-film .film__steps{grid-template-columns:repeat(2,minmax(0,1fr));gap:56px clamp(28px,4vw,64px)}}
-@media (min-width:1100px){html:not(.motion) .pt-film .film__steps{grid-template-columns:repeat(4,minmax(0,1fr))}}
+/* from 720 each caption stands beside its own screen on a gold hairline, two to a row from 1040: never four equal
+   columns */
+@media (min-width:720px){
+  html:not(.motion) .pt-film .film__steps{gap:0 clamp(32px,5vw,80px)}
+  html:not(.motion) .pt-film .film__steps>[data-step]{display:grid;grid-template-columns:minmax(0,200px) minmax(0,1fr);grid-template-rows:auto 1fr;column-gap:clamp(24px,3vw,44px);align-items:start;padding:28px 0 52px;border-top:1px solid var(--line);position:relative}
+  html:not(.motion) .pt-film .film__steps>[data-step]::before{content:"";position:absolute;left:0;top:-1px;width:56px;height:1px;background:var(--rule)}
+  html:not(.motion) .pt-film .pt-rest{grid-column:1;grid-row:1/span 2;order:0;margin:0;--shot-w:100%}
+  html:not(.motion) .pt-film .film__steps>[data-step]>.t-numeral,html:not(.motion) .pt-film .pt-cap{grid-column:2}
+}
+@media (min-width:1040px){html:not(.motion) .pt-film .film__steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
 html.motion .pt-film{grid-template-rows:auto minmax(0,1fr)}
 html.motion .pt-coach .pt-film__dev{order:1}
 html.motion .pt-film__dev{display:grid;place-items:center;align-self:start}
-html.motion .pt-film__phone{--phone-w:min(60vw,calc((100vh - var(--hdr-h) - 300px)/2.2));--phone-w:min(60vw,calc((100svh - var(--hdr-h) - 300px)/2.2));align-self:start}
+html.motion .pt-film__phone{align-self:start}
+/* On a phone the caption is compact, so the phone keeps a size its screens read at: the numeral stands beside the
+   heading rather than over it, the heading and the line under it a step smaller, and the phone takes what is left
+   of the screen with a floor of 200 (under 620 tall the film is the plain column instead, partners.js) */
 @media (max-width:719px){
-  html.motion .pt-film__copy .film__steps>[data-step]{min-height:146px}
-  html.motion .pt-film__copy .t-lede{font-size:17px}
-  html.motion .pt-film__copy .t-numeral{font-size:28px}
-  html.motion .pt-film__copy .t-h2{font-size:clamp(26px,7.6vw,31px)}
+  html.motion .pt-film{gap:14px;padding-top:calc(var(--hdr-h) + 10px);padding-bottom:40px}
+  html.motion .pt-film__copy .film__steps{margin-top:10px}
+  html.motion .pt-film__copy .film__steps>[data-step]{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:12px;align-items:baseline;min-height:96px}
+  html.motion .pt-film__copy .t-numeral{font-size:28px;line-height:1}
+  html.motion .pt-film__copy .t-h2{margin-top:0;font-size:clamp(23px,6.4vw,27px);line-height:1.08}
+  html.motion .pt-film__copy .t-lede{margin-top:6px;font-size:16px;line-height:1.35}
+  html.motion .pt-film__phone{--phone-w:max(200px,min(62vw,calc((100vh - var(--hdr-h) - 160px)/2.2)));--phone-w:max(200px,min(62vw,calc((100svh - var(--hdr-h) - 160px)/2.2)))}
 }
 @media (min-width:720px){
   .pt-film{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,6vw,110px)}
@@ -88,22 +110,33 @@ html.motion .pt-film__phone{--phone-w:min(60vw,calc((100vh - var(--hdr-h) - 300p
   html.motion .pt-film__phone{--phone-w:min(30vw,400px,calc((100vh - var(--hdr-h) - 110px)/2.2));--phone-w:min(30vw,400px,calc((100svh - var(--hdr-h) - 110px)/2.2))}
 }
 
+/* a film's gold progress line is there only while its film plays: once the pin lets go it does not ride up with the
+   stage under the next ground's wedge */
+html.motion .pt-open .film__bar,html.motion .pt-coach .film__bar,html.motion .pt-care .film__bar{transition:opacity .3s}
+html.motion .pt-open:not(.is-live) .film__bar,html.motion .pt-coach:not(.is-live) .film__bar,html.motion .pt-care:not(.is-live) .film__bar{opacity:0}
+
+/* a line waiting for the ink reads as waiting, not missing: about 3:1 on this page's white and rest */
+[data-page="partners"] .g-paper{--fg-dim:#8E8E93}
+[data-page="partners"] .g-rest{--fg-dim:#8C8A84}
+
 /* the green film: the pinstripes in one corner, behind everything */
 .pt-care{overflow:hidden;overflow:clip}
 .pt-care .pins{--pins-w:clamp(170px,38vw,620px);--pin-sw:.2}
 @media (min-width:1000px){.pt-care .pins{--pin-sw:.12}}
 .pt-care .film__safe{position:relative;z-index:1}
+html.motion .pt-care .phone__screen .screen{will-change:transform}
 @media (max-width:719px){.pt-care .pins{--pins-w:46vw;opacity:.7}}
 
 /* ───────────── 5. climate: a photograph as the film's ground ───────────── */
-.pt-still .photo{--veil:.56}
+.pt-still .vid{--veil:.46}
 .pt-still__eb{color:var(--on-green)}
 .pt-still__in{display:grid;align-content:end;justify-items:start;gap:clamp(12px,2vh,22px);padding:calc(var(--hdr-h) + 24px) var(--gut) clamp(48px,11vh,128px);max-width:1360px;margin-inline:auto}
 .pt-still__h{max-width:8.6em;--fg-dim:rgba(244,246,243,.34)}
 .pt-still__p{max-width:24em;color:var(--on-green)}
 html:not(.motion) .pt-still__in{padding-block:clamp(44px,7vw,96px)}
 html:not(.motion) .pt-still .photo--veil::after{display:none}
-@media (max-width:719px){html.motion .pt-still .photo{--veil:.62}}
+@media (max-width:719px){html.motion .pt-still .vid{--veil:.5}}
+html:not(.motion) .pt-still .vid--veil::after{display:none}
 
 /* ───────────── 6. how it starts ───────────── */
 .pt-start__head{display:grid;gap:clamp(14px,2vw,24px);align-content:start;justify-items:start}
@@ -129,9 +162,8 @@ html:not(.motion) .pt-still .photo--veil::after{display:none}
   .pt-wall__h{--span:8}
   .pt-wall__lede{--at:8;--span:5;align-self:end}
 }
-.pt-frames{margin-top:clamp(52px,7vw,104px)}
-.pt-frames .pframe{background:transparent}
-.pt-frames .pframe .mark{opacity:.42}
+.pt-frames{margin-top:clamp(52px,7vw,104px);grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(12px,3vw,48px);max-width:1040px}
+.pt-frames .pframe{background:transparent;aspect-ratio:84/55;border-radius:3.6%/5.5%}
 .pt-edge{display:none}
 /* with motion each frame's hairline is four edges, drawn round in turn (partners.js); the drawn line replaces the inset one */
 html.motion .pt-frames .pframe{box-shadow:none}
