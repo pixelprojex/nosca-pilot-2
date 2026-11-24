@@ -1100,7 +1100,13 @@ export function useNoscaData(profile) {
     return {};
   };
 
-  const takeRegister = async (label, marks) => {
+  /* `replace`: this register stands in for any taken before it for the same
+     lesson on the same day — a private lesson's register is one tap, and a
+     second tap on the other mark is a correction, not a second register
+     (registers are read by the label and the day, so two would be merged
+     in whatever order the marks came back). Taken out only once the new
+     one is written, so a refused write leaves the old one standing. */
+  const takeRegister = async (label, marks, { replace = false } = {}) => {
     /* the day is written from this phone's clock, the same day the key
        shown on screen was built from — the server's default is UTC, which
        is tomorrow late on an evening west of Greenwich */
@@ -1119,6 +1125,12 @@ export function useNoscaData(profile) {
         await supabase.from("attendance_sessions").delete().eq("id", session.id);
         return { error: { message: "Couldn't save the register. Try again." } };
       }
+    }
+    if (replace) {
+      /* the marks go with their session (on delete cascade); a refusal here
+         leaves the older register beside the new, as a retake always did */
+      await supabase.from("attendance_sessions").delete()
+        .eq("coach_id", profile.id).eq("label", label).eq("session_date", sessionDate).neq("id", session.id);
     }
     await load();
     return { session };

@@ -868,8 +868,12 @@ async function attach(page, db, opts = {}) {
       if (table === "drills" || table === "recurring" || table === "tips") gone = gone.filter((r) => r.coach_id === meId);
       if (table === "competitions") gone = gone.filter((r) => S.isCoach ? r.coach_id === meId : r.player_id === meId);
       if (table === "push_subscriptions") gone = gone.filter((r) => r.user_id === meId);
-      const target = { notifications: db.notifications, drills: db.drills, tips: db.tips, recurring: db.recurring, competitions: db.competitions, bookings: db.bookings, push_subscriptions: db.pushSubs, messages: db.messages, lesson_media: db.media, reviews: db.reviews }[table];
+      /* "attendance_sessions: the coach takes them": a coach's own registers only */
+      if (table === "attendance_sessions") gone = gone.filter((r) => r.coach_id === meId);
+      const target = { notifications: db.notifications, drills: db.drills, tips: db.tips, recurring: db.recurring, competitions: db.competitions, bookings: db.bookings, push_subscriptions: db.pushSubs, messages: db.messages, lesson_media: db.media, reviews: db.reviews, attendance_sessions: db.sessions }[table];
       if (target) gone.forEach((r) => { const i = target.indexOf(r); if (i >= 0) target.splice(i, 1); });
+      /* attendance_marks references attendance_sessions on delete cascade */
+      if (table === "attendance_sessions") { const ids = new Set(gone.map((r) => r.id)); for (let i = db.marks.length - 1; i >= 0; i--) if (ids.has(db.marks[i].session_id)) db.marks.splice(i, 1); }
       /* bookings.recurring_id references recurring on delete set null:
          ending an arrangement leaves its lessons, unlinked */
       if (table === "recurring") { const ids = new Set(gone.map((r) => r.id)); db.bookings.forEach((b) => { if (b.recurring_id && ids.has(b.recurring_id)) b.recurring_id = null; }); }

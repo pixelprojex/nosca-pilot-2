@@ -999,6 +999,23 @@ seeded data and no account.
   Logging a lesson keeps its own burst; opening the app keeps the
   splash. Anything a coach does a dozen times in a sitting gets the
   toast.
+- **A private lesson's register is one tap (24 November).** A register
+  of one person had the coach mark them and then press Submit — two taps
+  for one fact, mid-lesson. Present or Absent is the register now
+  (`markOne` in `Attendance`): written as it is tapped, Submit's toast
+  ("Register taken" · "1 present"), the row left marked, and no tally
+  and no Submit under it. A second tap on the other mark is a
+  correction, written in place of the first — `takeRegister(label,
+  marks, { replace: true })` takes out the coach's other registers of
+  that label and day once the new one is written (registers are read by
+  the label and the day, and two would merge in whatever order their
+  marks came back) — the writes go one after another, so a quick change
+  of mind lands in order, and a refused write says why and puts the mark
+  back. A group's register keeps Submit: many marks, and the coach says
+  when it is done. The register's way back reads **Today**
+  (`register-back`): it goes to the sheet's own list, Register · Today —
+  it read "All lessons", the archive's name, which it never opened.
+  `core-loop.cjs` (d), (d2); `sprint-3.cjs` (b), (j).
 - **Notifications are one shape.** The title carries the fact and
   nothing else; the body carries the detail that did not fit, and is
   null when there is none. No instructions, no encouragement, no full
@@ -1047,8 +1064,17 @@ seeded data and no account.
   **Done** takes them off (taking the last free time off ends Edit by
   itself, so Add a time is back); a booked time carries who and no
   minus — Call off is the way out; outside Edit a tile is not a
-  button. **Add a time** (`editday-add`) is the half hours not on the
-  day as the app's `TimeGrid`, and is not drawn when there are none.
+  button. Who, on a booked or a requested tile, keeps every word whole
+  (`TileName`, 24 November): each word a box of its own, so a line only
+  breaks at a space; the whole name where it fits in two lines, else
+  the first name and the surname's initial (`nameShort`: "Maximiliano Ó
+  S.", the particle kept), and a word wider than the tile ends on an
+  ellipsis, never broken — measured as laid out, and again when the
+  width changes; a group's name is never initialled. At 320 it read
+  "Maximilian" over "o Ó…" (`edit-day.cjs` (t), which reads every line
+  off the characters' own boxes at 320 and 390). **Add a time**
+  (`editday-add`) is the half hours not on the day as the app's
+  `TimeGrid`, and is not drawn when there are none.
   The subtitle is "5 times" or nothing; an empty day reads "Nothing
   offered" as a line; an away day reads Away and offers nothing; today's
   times already gone are neither counted nor offered back ("Nothing is
@@ -1072,6 +1098,25 @@ seeded data and no account.
   that never asked"). Calendly's date-specific hours, Acuity's override
   hours for specific days, PGA Coach's Open Time and Blocked Times
   beside its recurring hours. `scripts/e2e/edit-day.cjs`.
+- **The coach's Diary has one door to what runs it (24 November).**
+  Recurring lessons sat at the foot of the List, a fortnight of days
+  down, and Hours, Away and Call off lived in Settings and on the plus:
+  the founder kept finding that a thing existed and could not be found
+  from the Diary it runs. **Manage** (`diary-manage`) is one word beside
+  the Diary's title — the family screen's Manage in the same place, in
+  ink, never a glyph and never the accent — and a coach's alone; a
+  player's Diary is as it was. It opens the app's one sheet
+  (`DiaryManage`): Hours · Away · Recurring lessons · Call off · Add to
+  phone calendar (`manage-row`, `data-manage` naming each), rows of words
+  (`DoorRow`: the word, its value in the sub grey, the chevron; the
+  value never cut — beside the word while both fit, whole on the line
+  under it where they do not), each doing exactly what its Settings row
+  or the plus does. The values: the week's days ("5 days"), the next
+  span away, the arrangements running ("1 running"), nothing on Call off
+  (its word the red), the confirmed lessons ahead ("3 lessons") —
+  nothing where there is nothing, never a nought, and Add to phone
+  calendar not there with nothing to add, as Settings › Add to phone calendar is not.
+  The List's Recurring lessons foot stays. `scripts/e2e/diary-manage.cjs`.
 - **The mark sits top-left on every root screen, as tall as the icons
   across from it.** `Screen` puts `Mark` (`HEADER_MARK`: 36 wide at a
   weight of 3, so the rings stand the 18px the search and the bell's
@@ -1266,13 +1311,16 @@ seeded data and no account.
   row's `sub`, and for the foot of a list: the diary ended on "End of
   your hours", which told a coach what they could already see, and
   carries Recurring lessons there now.
-- **Settings is a list, not a page, and it is searchable.** `Settings`
-  builds `groups` of rows ({ label, sub, icon, onTap, right, tour, keys })
-  and renders them through one loop; the search field under the profile
-  row filters every row by label, value and `keys`. Add a setting by
-  adding a row with keys; keep its `tour` id if the walkthrough rings
-  it. The search was cut once and the founder called that a big miss —
-  it stays. No text-size control: the type is set once for everyone.
+- **Settings is a list, not a page, and it is searchable.**
+  `settingsGroups` builds the groups of rows ({ label, sub, value, onTap,
+  right, pick, tour, keys }) — the one list `Settings` renders through
+  `SettingRow` and the header's search finds (below); the search field
+  under the profile row filters every row by label, value and `keys`
+  (`settingFinds`). Add a setting by adding a row with keys there, and
+  the header's search finds it too; keep its `tour` id if the
+  walkthrough rings it. The search was cut once and the founder called
+  that a big miss — it stays. No text-size control: the type is set once
+  for everyone.
 - **A coach may also be somebody's player.** `request_coach()` allows
   it, so `data.lessons` holds both what they taught and what they took.
   `taught()` is every coach-side list; `mineOnly()` is their own.
@@ -1367,6 +1415,37 @@ seeded data and no account.
 - **Search is the field and the results, nothing else.** No "Try"
   suggestions under an empty search — they were cut at the founder's
   ask — and one microphone that gives way to the clear cross.
+- **The search finds where to go, not only what was written (24
+  November).** The founder kept finding that a feature was there and
+  could not be found ("all the features are still not being offered"),
+  so a term opens a **Go to** group above Lessons, Tips, Drills, Players
+  and Messages (`search-goto`; each row `search-goto-row`, `data-goto`
+  naming it). One registry, `goToRows`: every row this person's Settings
+  draws (`settingsGroups`, the very list, so a row Settings leaves out —
+  Add to Home Screen once installed, Away for anyone but a coach — is
+  left out here too, and a toggle or a pick changes in place as it does
+  there); every action on the coach's plus by its one name (Log a lesson
+  and `COACH_ACTIONS`, whose `keys` sit beside each) through the plus's
+  own `runQuick`, Call off its red word; and the places the home, the
+  Diary and the switcher open — To log, To review, Join requests,
+  Drifting, Recurring lessons, Progress (whose, picked as the plus's Tip
+  is), All lessons, Saved and Starred for a coach; a player's own
+  Progress, a parent's each child's named on the row, Book a lesson (the
+  Diary) for whoever books, Log a practice where the Drills tab offers
+  it, Send a clip where the thread's camera is (a parent's per child),
+  Saved and Starred — each only for someone who can open it, so a junior
+  is offered nothing a junior cannot do; Your coach is found by
+  "review", the profile being where one is left. A row is a row of words
+  in Settings' own box, `.nsc-group`, which every kind of the search
+  sits in now; the drill and tip libraries carry their count as their
+  value, so the plus's Drills and the library read apart. Matching is
+  Settings' own (`findsIn`): the term anywhere in the label, the value or
+  a key, or every word of it the start of a word in any order ("hom
+  scr"), accents folded both ways, one letter the start of a word only;
+  the best match first (`goToRank`). The query, the pick unfolded and
+  the scroll are kept, so Back from where a row went is the search as it
+  was; the field takes the focus only on a fresh open. An empty field
+  still shows nothing. `scripts/e2e/search-goto.cjs`.
 - **A control for narrowing a list appears when the list needs
   narrowing, and there is only ever one of them.** The roster's search
   above eight people, the drill library's filter above eight drills, the
@@ -1531,11 +1610,39 @@ seeded data and no account.
   read every coach line there, and no family reads another's: a group
   thread would put every parent's words and every child's name in
   front of every family, which no safeguarding guidance for juniors
-  allows. The group's own page carries one **Message**
-  (`group-page-message`) at the top as the player file's tile, before
-  anything that grows with the data. Before this a
+  allows. The group's own page carries **Message**
+  (`group-page-message`) at the top among its keys (the next bullet),
+  before anything that grows with the data. Before this a
   squad of six was six threads and six identical lines.
   `scripts/e2e/group-message.cjs`.
+- **A group's page opens its group's work (24 November).** It carried
+  Message alone, so logging the clinic, taking its register and changing
+  who is in it were all somewhere else. Now it leads with **Message ·
+  Log · Register** (`group-page-keys`) in the app's key forms — three are
+  round keys three across, two are tiles two to a row, one alone is a
+  key across the page, never a key drawn by hand — Log the accent, the
+  others their function's green: Message and Log while somebody of the
+  group is on the roster; Log (`group-page-log`) the log with the group
+  already picked, as the Who page's group face picks it, so Log it writes
+  a group lesson with every member at it; Register (`group-page-register`)
+  the register on the group's lesson today (`groupToday`: the one on now,
+  else the last begun, else the next), its own roll, and no Register on a
+  day without one. Under the keys, **Edit** (`group-page-edit`), a row of
+  words, opens `GroupEditBody`: the roster as New group's `PersonPicker`,
+  the members ticked by id, Save asleep until something changed, written
+  through the one save the group was made with (`saveGroups`,
+  preferences.groups) — and **never a name field**: a group's bookings
+  carry its name and `group_members()` finds the members by it, so a
+  renamed group would cut every lesson it has booked off from its people.
+  Remove is there only when nothing is booked ahead (`groupAhead`: not
+  begun by the clock, read off the booking's own date — a day key holds
+  no year, and last month's session read as next year's); otherwise one
+  line says so — "3 lessons ahead — End them first" — and offers no
+  removal. Remove group is the red quiet
+  key, then a plain confirm (Remove, the one `DANGER` key; Keep it the
+  way back; the sessions logged stay in All lessons, and the line says
+  so), and it takes the group off the coach's groups, lands on the
+  roster and says Removed. `scripts/e2e/group-page.cjs`.
 - **A group's lessons reach its members.** A group booking carries a
   name and no player, and for a long time `trg_bookings_notify` returned
   at once for it and `remind_bookings` skipped it: a clinic booked,
@@ -1574,7 +1681,7 @@ seeded data and no account.
   block, so a clinic never stands in for the person's own lesson that
   day — with the group's name where Cancel and Reschedule are (a member
   cannot call off everyone's clinic; Not going takes them out of that
-  one session, below), Settings › Calendar ("Lesson · Saturday clinic ·
+  one session, below), Settings › Add to phone calendar ("Lesson · Saturday clinic ·
   Niamh Byrne", a parent's "Lesson · Saoirse · …"), and the family's
   Coming up, which lists only the household's — it listed every group
   slot of the child's coach the policy lets a parent read — and names
@@ -1626,7 +1733,7 @@ seeded data and no account.
   reader can name: a member who said Not going and then left the coach
   keeps a row the coach can read and is counted nowhere).
   A member out is not reminded the evening before, and the session
-  leaves their Settings › Calendar and the family's Coming up. No
+  leaves their Settings › Add to phone calendar and the family's Coming up. No
   reason, no Maybe, no deadline, no nagging: the field offers them
   (Teamer's reason for admins, TeamSnap's Maybe, Heja's reminders) and
   a one-coach pilot needs the no. The hook probes the table
@@ -3020,8 +3127,10 @@ seeded data and no account.
   route falls back to the lesson's own `who` when it is opened with no
   name (the thread's card, the bell), so the page still reads Sent by
   Cian. `scripts/e2e/clip-reply.cjs`; behaviour.sql 8d.
-- **Lessons go into the phone's calendar from Settings › Calendar.**
-  The row (`settings-calendar`, found by "ical", "export", "sync")
+- **Lessons go into the phone's calendar from Settings › Add to phone calendar.**
+  The row (`settings-calendar`, found by "ical", "export", "sync"; it
+  read "Calendar" until the coach's Diary Manage sheet named the same
+  thing "Add to phone calendar" — one name per thing)
   carries the count of confirmed bookings ahead and is not there when
   there are none — never a nought. A tap hands out one iCalendar file
   (`icsOf`, `shareTextFile`: the share sheet where there is one, else a
@@ -3074,8 +3183,12 @@ seeded data and no account.
   screen on both sides, and it stores nothing.** `ProgressScreen`
   (route `progress` for your own, `progress:<id>` for a player's) is
   reached from the first foot row of the coach's player file
-  (`player-progress`), from the profile pill's switcher for a player
-  (`sheet-progress`), and from the child's screen for a parent
+  (`player-progress`) and from the level under the name on that file
+  (`player-level`, 24 November: "HI 18.4" in the sub grey with a
+  chevron after it, 44 to a finger without moving a pixel; no level, no
+  door; the file's four keys and its last five lessons as they were —
+  `progress.cjs` (g2)–(g7)), from the profile pill's switcher for a
+  player (`sheet-progress`), and from the child's screen for a parent
   (`kid-progress`). `progressOf()` reads the lessons: the level over
   time as one hand-drawn SVG line (`LevelLine`) where the sport's stage
   is a number (HI, WTN, a padel level — the number behind the stage tag
