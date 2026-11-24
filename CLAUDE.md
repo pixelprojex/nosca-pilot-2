@@ -1934,7 +1934,7 @@ seeded data and no account.
   with only a request reads no "Nothing booked", and its Call off row
   stays the lessons' (the call-off itself still takes a request with the
   day's lessons); a day with no hours but a request is a day.
-  `offer-times.cjs` (q1)–(q8), `diary.cjs` (a4), `edit-day.cjs` (d0b) —
+  `offer-times.cjs` (q1)–(q9), `diary.cjs` (a4), `edit-day.cjs` (d0b) —
   whose emptied day (d1) is emptied once the request on it has been
   declined from the Diary.
 - **All lessons is its own row on the coach's home, never under

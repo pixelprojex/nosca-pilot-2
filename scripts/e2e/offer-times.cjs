@@ -31,10 +31,10 @@
           nothing: the one write lands on no row
    d12    the decline fits the request's own length, not the coach's
    d13    a request caught by a weather call-off reads Request declined
-   q1-q8  the request holds its hour in the coach's Diary: a row on the List
+   q1-q9  the request holds its hour in the coach's Diary: a row on the List
           and a box on the Calendar view, Requested, Accept · Decline as
-          Today's (the decline sheet with them), no plus on it, no free
-          count counting it
+          Today's (the decline sheet with them; Accept from either view),
+          no plus on it, no free count counting it
 
    Usage: node offer-times.cjs <distDir> <port> <outDir> */
 const path = require("path"), fs = require("fs");
@@ -414,6 +414,22 @@ function freshDb({ hours = true, away = null, family = false, requestFor = "adul
       check("(q8) Accept in the Diary is Today's accept: the request confirmed, the player told, and it stands as a lesson in its hour",
             !!req && req.status === "confirmed" && told.some((x) => /^Lesson confirmed/.test(x)) && after.asks === 0 && after.blocks.some((x) => /Cian Murphy/.test(x) && /10:00–10:45 am/.test(x)),
             JSON.stringify({ status: req && req.status, told, after }));
+      await ctx.close();
+    }
+    /* the List's Accept is the same accept: the hour becomes the lesson's row */
+    {
+      const db = freshDb();
+      const { ctx, page } = await boot(db);
+      await M.tap(page, '[aria-label="Diary"]', 1000);
+      const lb = page.locator('[data-tour="cal-view"] [aria-label="List"]'); if (await lb.count()) await M.tap(page, '[data-tour="cal-view"] [aria-label="List"]', 700);
+      const tomorrow = page.locator("div.mb-6").filter({ has: page.locator("span", { hasText: /^Tomorrow$/ }) }).first();
+      await tomorrow.locator('[data-tour="agenda-ask"] [data-tour="agenda-accept"]').first().click(); await page.waitForTimeout(1800);
+      const req = db.bookings.find((b) => b.id === CC06);
+      const told = toldFor(db, IDS.adult, CC06);
+      const rows = await tomorrow.locator('[data-tour="agenda-row"]').evaluateAll((els) => els.map((b) => b.textContent.replace(/\s+/g, " ").trim()));
+      check("(q9) Accept on the List is the same accept: the request confirmed, the player told, and the hour a lesson row of the day with no Requested row left",
+            !!req && req.status === "confirmed" && told.some((x) => /^Lesson confirmed/.test(x)) && (await tomorrow.locator('[data-tour="agenda-ask"]').count()) === 0 && rows.some((x) => /^10:00 am\s*Cian Murphy/.test(x)),
+            JSON.stringify({ status: req && req.status, told, rows }));
       await ctx.close();
     }
 
