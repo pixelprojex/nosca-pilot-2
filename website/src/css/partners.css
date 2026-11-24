@@ -1,67 +1,145 @@
-/* Partners. A white page; olive and gold are its only accents. Everything here is the finished page; entrances live under html.motion. */
+/* Partners. The most restrained of the four pages: the card's three grounds, its gold as lines and numerals, the app's
+   screens and one photograph. Every rule lays the FINISHED page out first; anything pinned, hidden or offset lives
+   under html.motion. Prefix pt-. Shared classes are only scoped. */
 
-.pt-olive{color:var(--club-olive-ink)}
+/* ───────────── 1. the card ───────────── */
+.pt-open__in{display:grid;grid-template-columns:minmax(0,1fr);gap:clamp(30px,5vh,56px);align-content:center;justify-items:start;max-width:1360px;margin-inline:auto;padding:calc(var(--hdr-h) + clamp(40px,7vw,96px)) var(--gut) clamp(56px,8vw,112px)}
+.pt-open__copy{display:grid;gap:clamp(14px,2.2vh,26px);justify-items:start;min-width:0}
+.pt-open__h{font-size:clamp(60px,17vw,132px);line-height:.9}
+.pt-open__lede{max-width:17em}
+.pt-open__card{justify-self:center;display:grid;place-items:center;min-width:0}
+.pt-open__bcard{--card-w:min(88vw,560px)}
+/* with motion the card's shadow turns with it: an empty box behind its faces casting the shadow (partners.js puts it
+   there and takes the flat shared one away) */
+.pt-open__cast{position:absolute;inset:0;border-radius:3.6%/5.5%;transform:translateZ(-1px);pointer-events:none;
+  box-shadow:0 calc(var(--u)*4) calc(var(--u)*7) calc(var(--u)*-3) rgba(22,26,12,.3),0 calc(var(--u)*1.2) calc(var(--u)*2.2) calc(var(--u)*-1) rgba(22,26,12,.2)}
+@media (min-width:900px){
+  .pt-open__in{grid-template-columns:minmax(0,6fr) minmax(0,6fr);gap:clamp(32px,4vw,80px);align-items:center}
+  .pt-open__h{font-size:clamp(58px,9.4vw,150px)}
+  .pt-open__card{justify-self:end}
+  .pt-open__bcard{--card-w:min(44vw,600px)}
+}
+/* with motion: the whole scene on one screen, the card a little smaller on a short one */
+html.motion .pt-open__in{padding-block:calc(var(--hdr-h) + clamp(16px,4vh,48px)) clamp(40px,7vh,72px)}
+html.motion .pt-open__bcard{--card-w:min(88vw,560px,calc((100vh - var(--hdr-h) - 360px)*1.52));--card-w:min(88vw,560px,calc((100svh - var(--hdr-h) - 360px)*1.52))}
+html.motion .pt-open__card{perspective:1400px}
+html.motion .pt-open .bcard__rule{transform-origin:0 50%}
+@media (min-width:900px){
+  html.motion .pt-open__bcard{--card-w:min(44vw,600px,calc((100vh - var(--hdr-h) - 150px)*1.52));--card-w:min(44vw,600px,calc((100svh - var(--hdr-h) - 150px)*1.52))}
+}
 
-/* ───────── 1. the hero ───────── */
-.pt-hero{overflow:hidden;overflow:clip;padding-block:calc(var(--hdr-h) + clamp(52px,9vw,128px)) clamp(44px,6vw,84px)}
-.pt-hero__rings{color:var(--club-olive-tint);--rings-w:min(168vw,1240px);--rings-o:1}
-.pt-drift{position:absolute;inset:0}
-.pt-hero__rings .mark{left:74%;top:58%}
-.pt-hero__in{position:relative;display:grid;justify-items:start}
-.pt-kinds{display:flex;flex-wrap:wrap;row-gap:.5em}
-.pt-kinds>span{white-space:nowrap}
-.pt-kinds>span+span::before{content:"·";margin:0 .7em;color:var(--gold-lo)}
-@media (max-width:419px){.pt-kinds{font-size:12px;letter-spacing:.14em}.pt-kinds>span+span::before{margin:0 .55em}}
-.pt-hero__title{margin-top:clamp(14px,2vw,28px);font-size:clamp(64px,19.5vw,250px)}
-.pt-hero__rule{width:min(240px,44vw);margin-top:clamp(24px,3vw,42px)}
-.pt-hero__lede{margin-top:clamp(18px,2.2vw,30px);max-width:17em}
-/* the gold rule draws once; `backwards` holds the start through the delay and then lets go, so the rule rests on its own style */
-html.motion .pt-hero__rule{animation:pt-rule 1.5s .7s cubic-bezier(.65,0,.35,1) backwards}
-@keyframes pt-rule{from{transform:scaleX(0)}}
+/* ───────────── 2. for a club ───────────── */
+.pt-offer__h{max-width:9.6em}
+.pt-offer__lede{max-width:24em}
+@media (min-width:900px){
+  .pt-offer__h{--span:10}
+  .pt-offer__lede{--at:6;--span:6}
+}
+.pt-why{list-style:none;margin:clamp(72px,10vw,152px) 0 0;padding:0;display:grid}
+.pt-why__row{position:relative;display:grid;grid-template-columns:minmax(0,1fr);gap:10px 0;padding:clamp(26px,3vw,40px) 0 clamp(40px,5vw,72px)}
+.pt-why__rule{position:absolute;left:0;right:0;top:0;width:auto}
+.pt-why__n{font-size:clamp(40px,4.6vw,72px)}
+.pt-why__h{max-width:11em}
+.pt-why__p{color:var(--fg-2);max-width:26em}
+@media (min-width:900px){
+  .pt-why__row{grid-template-columns:repeat(12,minmax(0,1fr));column-gap:clamp(12px,2vw,28px);align-items:baseline}
+  .pt-why__n{grid-column:1/span 2}
+  .pt-why__h{grid-column:3/span 6}
+  .pt-why__p{grid-column:9/span 4}
+}
 
-/* ───────── 2. the wall ───────── */
-.pt-wall{padding-block:0 clamp(24px,4vw,56px)}
-.pt-wall .wrap{max-width:calc(1320px + var(--gut)*2)}
-.pt-wall__panel{border-radius:clamp(24px,3.4vw,48px);padding:clamp(30px,6vw,88px) clamp(18px,5.6vw,84px) clamp(32px,6.2vw,92px)}
-.pt-head{display:grid;gap:clamp(10px,2vw,24px);align-items:end}
-.pt-head .t-lede{color:var(--sub);max-width:20em}
-.pt-frames{margin-top:clamp(26px,4.6vw,64px)}
-/* on the sage wall a frame stands on the pale's own ledge, and its mark is a little surer than on white */
-.pt-frames .pframe{box-shadow:inset 0 0 0 1.5px var(--club-olive-lip),0 2px 0 var(--club-olive-lip),0 22px 44px -30px rgba(12,16,10,.2)}
-.pt-frames .pframe .mark{opacity:calc(.5 + var(--glint,0)*.5)}
-/* the foil catches the light: partners.js raises --glint on one frame after another. Never a band of light across the white
-   faces: on empty boxes that reads as something still loading. */
-.pt-frames .pframe::before{box-shadow:inset 0 0 0 1px rgba(194,162,76,.76);opacity:calc(.5 + var(--glint,0)*.5)}
-@media (min-width:900px){.pt-head{grid-template-columns:minmax(0,7fr) minmax(0,4fr)}}
+/* ───────────── 3 and 4. the films: copy beside a phone ───────────── */
+.pt-film{display:grid;grid-template-columns:minmax(0,1fr);gap:28px;align-items:center;justify-items:center;max-width:1240px;margin-inline:auto;padding:calc(var(--hdr-h) + 18px) var(--gut) 44px}
+.pt-film__copy{width:100%;max-width:30em}
+.pt-film__copy .film__steps{margin-top:18px}
+.pt-film__copy .t-numeral{font-size:clamp(30px,4vw,60px)}
+.pt-film__copy .t-h2{margin-top:6px;max-width:11em}
+.pt-film__copy .t-lede{margin-top:10px;max-width:21em}
+.pt-film__phone{--phone-w:min(64vw,300px)}
+html:not(.motion) .pt-film{padding-block:clamp(72px,10vw,128px)}
+/* at rest the phone comes after the words on a phone-sized screen */
+html:not(.motion) .pt-coach .pt-film__phone{order:1}
+html.motion .pt-film{grid-template-rows:auto minmax(0,1fr)}
+html.motion .pt-coach .pt-film__phone{order:1}
+html.motion .pt-film__phone{--phone-w:min(60vw,calc((100vh - var(--hdr-h) - 300px)/2.2));--phone-w:min(60vw,calc((100svh - var(--hdr-h) - 300px)/2.2));align-self:start}
+@media (max-width:719px){
+  html.motion .pt-film__copy .film__steps>[data-step]{min-height:146px}
+  html.motion .pt-film__copy .t-lede{font-size:17px}
+  html.motion .pt-film__copy .t-numeral{font-size:28px}
+  html.motion .pt-film__copy .t-h2{font-size:clamp(26px,7.6vw,31px)}
+}
+@media (min-width:720px){
+  .pt-film{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,6vw,110px)}
+  html:not(.motion) .pt-coach .pt-film__phone,html.motion .pt-coach .pt-film__phone{order:0}
+  .pt-coach .pt-film__copy{justify-self:start}
+  html.motion .pt-film{grid-template-rows:minmax(0,1fr)}
+  html.motion .pt-film__phone{--phone-w:min(40vw,340px,calc((100vh - var(--hdr-h) - 110px)/2.2));--phone-w:min(40vw,340px,calc((100svh - var(--hdr-h) - 110px)/2.2));align-self:center}
+}
+@media (min-width:1100px){
+  html.motion .pt-film__phone{--phone-w:min(30vw,400px,calc((100vh - var(--hdr-h) - 110px)/2.2));--phone-w:min(30vw,400px,calc((100svh - var(--hdr-h) - 110px)/2.2))}
+}
 
-/* ───────── 3. why Nosca ───────── */
-.pt-why__title{margin-top:clamp(14px,1.8vw,24px);max-width:9.5em}
-.pt-why__grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(30px,4vw,64px);margin-top:clamp(44px,6.4vw,96px)}
-.pt-why__p{position:relative;display:grid;gap:10px;align-content:start;padding-top:26px}
-.pt-why__p::before{content:"";position:absolute;left:0;top:0;width:44px;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--gold-lo),var(--gold-hi) 50%,var(--gold))}
-.pt-why__p .eyebrow{margin-bottom:4px;font-size:12px;letter-spacing:.14em;white-space:nowrap}      /* one line each, so the three headings under them start level */
-.pt-why__p .t-body{max-width:24em}
-@media (max-width:739px){.pt-why__grid{grid-template-columns:minmax(0,1fr)}}
+/* the green film: the pinstripes in one corner, behind everything */
+.pt-care{overflow:hidden;overflow:clip}
+.pt-care .pins{--pins-w:clamp(170px,38vw,620px);--pin-sw:.2}
+@media (min-width:1000px){.pt-care .pins{--pin-sw:.12}}
+.pt-care .film__safe{position:relative;z-index:1}
+@media (max-width:719px){.pt-care .pins{--pins-w:46vw;opacity:.7}}
 
-/* ───────── 4. climate ───────── */
-.pt-climate{padding-block:0 clamp(88px,13vw,184px)}
-.pt-climate__in{display:grid;gap:clamp(28px,5vw,80px);padding-top:clamp(44px,6.4vw,96px);border-top:1.5px solid var(--edge)}
-.pt-climate__title{margin-top:clamp(12px,1.6vw,20px);max-width:8em;font-size:clamp(36px,5.6vw,76px)}
-.pt-climate__notes{display:grid;gap:clamp(22px,2.8vw,36px);align-content:start}
-.pt-climate__notes>div{display:grid;gap:8px;padding-top:18px;border-top:1.5px solid var(--club-olive-lip)}
-@media (min-width:900px){.pt-climate__in{grid-template-columns:minmax(0,6fr) minmax(0,5fr);align-items:start}.pt-climate__notes{padding-top:clamp(28px,3vw,40px)}}
+/* ───────────── 5. climate: a photograph as the film's ground ───────────── */
+.pt-still .photo{--veil:.56}
+.pt-still__eb{color:var(--on-green-2)}
+.pt-still__in{display:grid;align-content:end;justify-items:start;gap:clamp(12px,2vh,22px);padding:calc(var(--hdr-h) + 24px) var(--gut) clamp(48px,11vh,128px);max-width:1360px;margin-inline:auto}
+.pt-still__h{max-width:8.6em;--fg-dim:rgba(244,246,243,.34)}
+.pt-still__p{max-width:24em;color:var(--on-green)}
+html:not(.motion) .pt-still__in{padding-block:clamp(44px,7vw,96px)}
+html:not(.motion) .pt-still .photo--veil::after{display:none}
+@media (max-width:719px){html.motion .pt-still .photo{--veil:.62}}
 
-/* ───────── 5. in touch ───────── */
-.pt-close{padding-top:0;padding-bottom:clamp(96px,14vw,200px)}
-.pt-close__in{display:grid;gap:clamp(44px,7vw,96px);align-items:center}
-.pt-close__copy{display:grid;gap:clamp(16px,2vw,24px);justify-items:start}
-.pt-close__copy h2{font-size:clamp(42px,7.4vw,104px);max-width:7.5em}
-.pt-close__copy .keys{margin-top:6px}
-/* KEYS.md 4: the second key beside the one action is the world's pale (its face, the deep word, its own ledge), never a white tile */
-.pt-close .key--paper{--key-bg:var(--club-olive-tint);--key-fg:var(--club-olive);--key-lip:var(--club-olive-lip);--key-ring:0 0 0 0 transparent}
-.pt-close__links{display:flex;flex-wrap:wrap;gap:0 28px}
+/* ───────────── 6. how it starts ───────────── */
+.pt-start__head{display:grid;gap:clamp(14px,2vw,24px);align-content:start;justify-items:start}
+.pt-start__h{max-width:7em}
+.pt-start__lede{max-width:16em}
+.pt-steps{position:relative;list-style:none;margin:0;padding:0 0 0 clamp(26px,3vw,44px);display:grid;gap:clamp(34px,4.4vw,60px)}
+/* the gold line the steps hang on: the hairline at rest, drawn down with the scroll (partners.js) */
+.pt-steps__line{position:absolute;left:0;top:8px;bottom:8px;width:1px;background:var(--line)}
+.pt-steps__line>i{position:absolute;inset:0;background:var(--rule)}
+.pt-step{display:grid;grid-template-columns:auto minmax(0,1fr);gap:clamp(16px,2vw,28px);align-items:baseline}
+.pt-step__n{font-size:clamp(36px,4vw,60px);min-width:.9em}
+.pt-step .t-h3{max-width:14em}
+.pt-step .t-body{margin-top:8px;color:var(--fg-2);max-width:26em}
+@media (min-width:900px){
+  .pt-start__head{--span:5;position:sticky;top:calc(var(--hdr-h) + 48px)}
+  .pt-steps{--at:7;--span:6}
+}
+
+/* ───────────── 7. frames kept ───────────── */
+.pt-wall__h{max-width:8.4em}
+.pt-wall__lede{max-width:20em}
+@media (min-width:900px){
+  .pt-wall__h{--span:8}
+  .pt-wall__lede{--at:8;--span:5;align-self:end}
+}
+.pt-frames{margin-top:clamp(52px,7vw,104px)}
+.pt-frames .pframe{background:transparent}
+.pt-frames .pframe .mark{opacity:.42}
+.pt-edge{display:none}
+/* with motion each frame's hairline is four edges, drawn round in turn (partners.js); the drawn line replaces the inset one */
+html.motion .pt-frames .pframe{box-shadow:none}
+html.motion .pt-edge{display:block;position:absolute;background:rgba(194,162,76,.62);pointer-events:none}
+html.motion .pt-edge--t{left:0;right:0;top:0;height:1px;transform-origin:0 50%}
+html.motion .pt-edge--r{top:0;bottom:0;right:0;width:1px;transform-origin:50% 0}
+html.motion .pt-edge--b{left:0;right:0;bottom:0;height:1px;transform-origin:100% 50%}
+html.motion .pt-edge--l{top:0;bottom:0;left:0;width:1px;transform-origin:50% 100%}
+
+/* ───────────── 8. in touch ───────────── */
+.pt-close__in{display:grid;gap:clamp(52px,8vw,112px);align-items:center}
+.pt-close__copy{display:grid;gap:clamp(16px,2vw,26px);justify-items:start}
+.pt-close__h{font-size:clamp(46px,8vw,120px);max-width:7.4em}
+.pt-close__copy .keys{margin-top:8px}
+.pt-close__links{display:flex;flex-wrap:wrap;gap:6px 28px;margin:0}
 .pt-mail{color:var(--ink);text-underline-offset:4px;overflow-wrap:anywhere}
-.pt-close__card{display:grid;justify-items:center}
-.pt-bcard{--card-w:min(86vw,500px)}
+.pt-close__card{display:grid;justify-items:center;min-width:0}
+.pt-close__bcard{--card-w:min(88vw,520px)}
 @media (min-width:980px){.pt-close__in{grid-template-columns:minmax(0,6fr) minmax(0,5fr)}.pt-close__card{justify-items:end}}
 @media (max-width:419px){.pt-close__copy .key--lg{padding:0 22px;font-size:17px}}
