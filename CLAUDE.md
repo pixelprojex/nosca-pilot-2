@@ -999,6 +999,23 @@ seeded data and no account.
   Logging a lesson keeps its own burst; opening the app keeps the
   splash. Anything a coach does a dozen times in a sitting gets the
   toast.
+- **A private lesson's register is one tap (24 November).** A register
+  of one person had the coach mark them and then press Submit — two taps
+  for one fact, mid-lesson. Present or Absent is the register now
+  (`markOne` in `Attendance`): written as it is tapped, Submit's toast
+  ("Register taken" · "1 present"), the row left marked, and no tally
+  and no Submit under it. A second tap on the other mark is a
+  correction, written in place of the first — `takeRegister(label,
+  marks, { replace: true })` takes out the coach's other registers of
+  that label and day once the new one is written (registers are read by
+  the label and the day, and two would merge in whatever order their
+  marks came back) — the writes go one after another, so a quick change
+  of mind lands in order, and a refused write says why and puts the mark
+  back. A group's register keeps Submit: many marks, and the coach says
+  when it is done. The register's way back reads **Today**
+  (`register-back`): it goes to the sheet's own list, Register · Today —
+  it read "All lessons", the archive's name, which it never opened.
+  `core-loop.cjs` (d), (d2); `sprint-3.cjs` (b), (j).
 - **Notifications are one shape.** The title carries the fact and
   nothing else; the body carries the detail that did not fit, and is
   null when there is none. No instructions, no encouragement, no full

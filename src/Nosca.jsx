@@ -5361,6 +5361,27 @@ function Attendance({ lessons, roster, groups = [], taken, chosen, onSubmit, clo
     soft();
     setMarks((m) => ({ ...m, [id]: v }));
   };
+  /* A PRIVATE LESSON'S REGISTER IS ONE TAP (24 November). A register of one
+     person had the coach mark them and then press Submit, two taps for one
+     fact. Present or Absent is the register now: the mark is written as it
+     is tapped, the toast is Submit's, the row stays marked, and a second tap
+     on the other mark writes it in place of the first (`replace`: one
+     register a lesson a day). The writes go one after another, so a quick
+     change of mind lands in the order it was made; a refused write says
+     why and the mark goes back to what was written. A group's register
+     keeps Submit: it is many marks, and the coach says when it is done. */
+  const writing = useRef(Promise.resolve());
+  const markOne = (id, v) => {
+    if (marks[id] === v) return;
+    v === "in" ? hapticSuccess() : hapticWarn();
+    soft(); chime();
+    const before = marks, next = { [id]: v }, l = picked;
+    setMarks(next);
+    writing.current = writing.current.then(async () => {
+      const res = await onSubmit(l, next, { replace: true });
+      if (res && res.error) setMarks((m) => (m[id] === v ? before : m));
+    }).catch(() => {});
+  };
 
   const all = (v) => { haptic(10); soft(); const m = {}; rollOf(picked, marks, added).forEach((r) => (m[r.id] = v)); setMarks(m); };
 
@@ -5372,14 +5393,19 @@ function Attendance({ lessons, roster, groups = [], taken, chosen, onSubmit, clo
     const done = who.filter((r) => marks[r.id]).length;
     const present = who.filter((r) => marks[r.id] === "in").length;
     const ready = done === who.length;
+    /* one person, not a group: the tap is the register */
+    const one = !isGroup(picked) && who.length === 1;
 
     return (
       <>
-        <button onClick={() => { haptic(6); setPicked(null); }}
+        {/* the way back goes to today's lessons, the sheet's own list headed
+            Register · Today — it read "All lessons", the archive's name, which
+            it never opened. The label grey, never the accent: a way back, not
+            the sheet's one action */}
+        <button data-tour="register-back" onClick={() => { haptic(6); setPicked(null); }}
                 className="flex items-center gap-1.5 mb-4 active:opacity-50"
                 style={{ ...TYPE.small, color: t.sub, minHeight: 44 }}>
-          {/* a way back, not the screen's one action: the label grey, never the accent */}
-          <ChevronLeft size={15} color={t.sub} strokeWidth={2.2} /> {tr("All lessons")}
+          <ChevronLeft size={15} color={t.sub} strokeWidth={2.2} /> {tr("Today")}
         </button>
 
         <h2 style={{ ...TYPE.title, color: t.ink }}>{picked.who}</h2>
@@ -5419,7 +5445,7 @@ function Attendance({ lessons, roster, groups = [], taken, chosen, onSubmit, clo
                 {[["in", tr("Present"), STEADY], ["out", tr("Absent"), DANGER]].map(([v, lbl, tone]) => {
                   const on = m === v;
                   return (
-                    <button key={v} onClick={() => mark(r.id, v)} data-tour={`register-${v}`}
+                    <button key={v} onClick={() => (one ? markOne(r.id, v) : mark(r.id, v))} data-tour={`register-${v}`}
                             /* a key on its lip: the edge's at rest, the mark's own colour made deeper once chosen */
                             className="flex items-center justify-center n-key"
                             style={{ minWidth: 66, minHeight: 44, borderRadius: R.control,
@@ -5461,7 +5487,11 @@ function Attendance({ lessons, roster, groups = [], taken, chosen, onSubmit, clo
         )}
 
         {/* a fresh register is "3 to mark", never a large nought before
-            anybody has been marked; the figure comes with the first mark */}
+            anybody has been marked; the figure comes with the first mark.
+            A register of one has neither: its row is the register, and the
+            toast says it was taken (it read "1 to mark" over no button, and
+            "0 of 1 present", a large nought, once marked absent) */}
+        {!one && (<>
         <div data-tour="register-tally" className="flex items-baseline gap-2 mt-4 mb-5">
           {done === 0 ? (
             <span style={{ ...TYPE.small, color: t.faint }}>{who.length} {tr("to mark")}</span>
@@ -5478,6 +5508,8 @@ function Attendance({ lessons, roster, groups = [], taken, chosen, onSubmit, clo
         <Button disabled={!ready} onClick={() => { hapticSuccess(); chime(); onSubmit(picked, marks); setPicked(null); }}>
           <span className="inline-flex items-center justify-center gap-2">{tr("Submit register")}{ready && <Check size={17} color={t.onAccent} strokeWidth={2.4} />}</span>
         </Button>
+        </>)}
+        {one && <div style={{ height: SPACE.tight }} />}
       </>
     );
   }
@@ -23735,21 +23767,23 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onEdit={() => { setSheet(null); setTimeout(() => push("layout"), 180); }}
                                             onRun={runQuick} />
             : sheet === "attend" ? <Attendance lessons={todayList || []} roster={roster} groups={myGroups} taken={registers} chosen={attendFor}
-                                            onSubmit={async (l, marks) => {
+                                            onSubmit={async (l, marks, opts) => {
                                               const n = Object.values(marks).filter((x) => x === "in").length;
                                               if (data) {
                                                 /* the marks already carry real ids — the sheet
                                                    keys them by row, not by display name, so two
                                                    players called the same thing no longer share
-                                                   one mark */
-                                                const res = await data.takeRegister(l.who, marks);
+                                                   one mark; a private lesson's one tap replaces
+                                                   what it wrote before (`opts.replace`) */
+                                                const res = await data.takeRegister(l.who, marks, opts);
                                                 /* the register is what was written, not what was ticked */
-                                                if (res && res.error) { hapticWarn(); say(res.error.message); return; }
+                                                if (res && res.error) { hapticWarn(); say(res.error.message); return res; }
                                                 done(tr("Register taken"), `${n} ${tr("present")}`);
-                                                return;
+                                                return {};
                                               }
                                               setRegisters((r) => ({ ...r, [registerKey(l.who, new Date())]: marks }));
                                               done(tr("Register taken"), `${n} ${tr("present")}`);
+                                              return {};
                                             }}
                                             close={() => setSheet(null)} say={say} />
             : sheet === "capture" ? null   /* the camera is an overlay of its own, after the Sheet */

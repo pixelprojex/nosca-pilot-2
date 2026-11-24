@@ -178,19 +178,38 @@ const leaks = [];
       await tap(page, '[data-tour="peek-register"]', 900);
       const t4 = await leak("coach attendance"); await shot("coach-attendance");
       /* Register on a lesson opens that lesson's register — no second
-         pick. "All lessons" is the way back to the day's list. */
+         pick. Its way back goes to the day's list, the sheet's own
+         Register · Today, and says so: "Today" (24 November; it read "All
+         lessons", the archive's name, which it never opened). */
       const sheet4 = await page.locator("[data-sheet]").first().innerText();
-      check("(d) Register on a lesson opens that lesson's roll, already chosen", sheet4.includes("Cian Murphy") && sheet4.includes("9:00 am") && sheet4.includes("Present") && sheet4.includes("All lessons"), sheet4.slice(0, 240));
-      await page.getByRole("button", { name: "All lessons", exact: true }).first().click(); await page.waitForTimeout(500);
+      const back4 = page.locator('[data-sheet] [data-tour="register-back"]');
+      check("(d) Register on a lesson opens that lesson's roll, already chosen, its way back reading Today", sheet4.includes("Cian Murphy") && sheet4.includes("9:00 am") && sheet4.includes("Present") && (await back4.count()) === 1 && M.norm(await back4.innerText()) === "Today" && !sheet4.includes("All lessons"), sheet4.slice(0, 240));
+      await back4.first().click(); await page.waitForTimeout(500);
       const sheet4b = await page.locator("[data-sheet]").first().innerText();
       /* a lesson merely asked for is answered in the diary, so 4:00 pm
          is not on the day's register list */
-      check("(d) All lessons lists today's real confirmed bookings by name", sheet4b.includes("Cian Murphy") && sheet4b.includes("9:00 am") && sheet4b.includes("Saoirse Kelly") && sheet4b.includes("10:30 am") && !sheet4b.includes("4:00 pm"), sheet4b.slice(0, 240));
+      check("(d) Today lists today's real confirmed bookings by name", /^Register\s*Today/.test(sheet4b.trim()) && sheet4b.includes("Cian Murphy") && sheet4b.includes("9:00 am") && sheet4b.includes("Saoirse Kelly") && sheet4b.includes("10:30 am") && !sheet4b.includes("4:00 pm"), sheet4b.slice(0, 240));
       await page.locator("div.z-40").getByRole("button", { name: /Cian Murphy/ }).first().click(); await page.waitForTimeout(500);
-      await page.locator("div.z-40").getByRole("button", { name: "Present", exact: true }).first().click(); await page.waitForTimeout(300);
-      await page.getByRole("button", { name: /Submit register/ }).click(); await page.waitForTimeout(1200);
+      /* A PRIVATE LESSON'S REGISTER IS ONE TAP (24 November): Present is the register — no Submit, no tally */
+      check("(d) a private lesson's register carries no Submit and no tally: the row is the register", (await page.locator("[data-sheet] button", { hasText: /Submit register/ }).count()) === 0 && (await page.locator('[data-sheet] [data-tour="register-tally"]').count()) === 0, (await page.locator("[data-sheet]").first().innerText()).slice(0, 200));
+      await page.locator("div.z-40").getByRole("button", { name: "Present", exact: true }).first().click(); await page.waitForTimeout(1400);
       const sess = db.posts.find((x) => x.table === "attendance_sessions"); const marks = db.posts.find((x) => x.table === "attendance_marks");
-      check("(d) submitting posts attendance_sessions + attendance_marks with real ids", !!sess && sess.rows[0].label === "Cian Murphy" && sess.rows[0].coach_id === IDS.coach && !!marks && marks.rows[0].player_id === IDS.adult && marks.rows[0].state === "in", JSON.stringify({ sess: sess && sess.rows[0], marks: marks && marks.rows }));
+      check("(d) one tap on Present posts attendance_sessions + attendance_marks with real ids", !!sess && sess.rows[0].label === "Cian Murphy" && sess.rows[0].coach_id === IDS.coach && !!marks && marks.rows[0].player_id === IDS.adult && marks.rows[0].state === "in", JSON.stringify({ sess: sess && sess.rows[0], marks: marks && marks.rows }));
+      const toast4 = M.norm(await page.locator("[data-toast]").innerText().catch(() => ""));
+      const row4 = await page.locator('[data-sheet] [data-reg-row="Cian Murphy"]').getAttribute("data-mark").catch(() => null);
+      check("(d) …the toast is Submit's — Register taken · 1 present — and the row stays marked Present", /Register taken\s*1 present/.test(toast4) && row4 === "in", JSON.stringify({ toast4, row4 }));
+      /* a second tap, on Absent, is a correction: written in place of the first, never a second register */
+      await page.locator("div.z-40").getByRole("button", { name: "Absent", exact: true }).first().click();
+      /* the toast comes with the write and goes again: watched for, not read once */
+      let toast4b = "";
+      for (let i = 0; i < 30 && !/0 present/.test(toast4b); i++) { await page.waitForTimeout(100); toast4b = M.norm(await page.locator("[data-toast]").innerText().catch(() => "")); }
+      await page.waitForTimeout(600);
+      const today4 = TODAY;   /* the page's clock is pinned to it */
+      const regs = db.sessions.filter((x) => x.label === "Cian Murphy" && x.coach_id === IDS.coach && x.session_date === today4);
+      const regMarks = regs.length ? db.marks.filter((mk) => mk.session_id === regs[0].id) : [];
+      check("(d2) a second tap, Absent, is written in place of the first: one register for the lesson today, Cian absent, the row marked Absent",
+        regs.length === 1 && regMarks.length === 1 && regMarks[0].player_id === IDS.adult && regMarks[0].state === "out" && (await page.locator('[data-sheet] [data-reg-row="Cian Murphy"]').getAttribute("data-mark")) === "out" && /Register taken\s*0 present/.test(toast4b),
+        JSON.stringify({ regs: regs.length, regMarks, toast4b }));
       await page.waitForTimeout(2200);
 
       /* Live capture sheet: real day, holding pile */

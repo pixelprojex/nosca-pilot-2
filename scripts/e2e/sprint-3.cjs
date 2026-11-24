@@ -133,7 +133,9 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       await page.keyboard.press("Escape").catch(() => {}); await tap(page, '[data-scrim], .scrim', 400).catch(() => {});
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-attend"]', 900);
-      const pick = sheet(page).locator("button", { hasText: "Cian Murphy" }).first();
+      /* a private lesson's register is one tap since 24 November and has no Submit; a group's keeps it,
+         so the Button is read on the clinic's */
+      const pick = sheet(page).locator("button", { hasText: "Saturday clinic" }).first();
       if (await pick.count()) { await pick.click(); await page.waitForTimeout(700); }
       const submit = page.getByRole("button", { name: /Submit register/ }).first();
       const r2 = (await submit.count()) ? await styleOf(submit, "borderRadius") : "none";
@@ -364,13 +366,19 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       /* A20: a fresh register is "N to mark", the figure only with the first mark */
       await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-attend"]', 900);
       await shot("j-register-pick");
-      await sheet(page).locator('button', { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(800);
+      /* the tally is a group's: a register of one is one tap and its row is the register (24 November) */
+      await sheet(page).locator('button', { hasText: "Saturday clinic" }).first().click(); await page.waitForTimeout(800);
       const tally0 = M.norm(await page.locator('[data-tour="register-tally"]').innerText().catch(() => ""));
       await shot("j-register-fresh");
       check("(j) a fresh register reads how many to mark, never a nought of N present", /^\d+ to mark$/.test(tally0), tally0);
       await sheet(page).locator('[data-tour="register-in"]').first().click(); await page.waitForTimeout(400);
       const tally1 = M.norm(await page.locator('[data-tour="register-tally"]').innerText().catch(() => ""));
       check("(j) …and the first mark brings the figure and of N present", /^1\s*of \d+ present/.test(tally1), tally1);
+      /* a private lesson's: no tally, no Submit — the mark is the register, its way back Today */
+      await sheet(page).locator('[data-tour="register-back"]').first().click(); await page.waitForTimeout(600);
+      await sheet(page).locator('button', { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(800);
+      check("(j) a private lesson's register has neither: no tally and no Submit — one tap is the register",
+        (await page.locator('[data-sheet] [data-tour="register-tally"]').count()) === 0 && (await page.locator("[data-sheet] button", { hasText: /Submit register/ }).count()) === 0 && (await page.locator('[data-sheet] [data-tour="register-in"]').count()) === 1, "");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       /* A21: the coach's Cancel sheet carries no box of copy (the password step says it) */
       await page.locator("button", { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(900);
