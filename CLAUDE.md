@@ -2573,7 +2573,17 @@ seeded data and no account.
   page of the new, the path, the query and the fragment kept — so a
   scanned card lands on `/install` at the address the app is then added
   to a Home Screen from (an installed app lives at the address it was
-  added from, so the guide must never be followed on the old one). Only
+  added from, so the guide should not be followed on the old one). It
+  hops only once the new address has ANSWERED: it first asks it for a
+  picture every build ships (`/icons/icon-192.png` — a picture loads
+  across sites where a fetch may not), and anything but a picture
+  leaves the person on the old address, which still carries the whole
+  app. On the day of the move the new site stood behind Netlify's
+  site protection — a 401 "Login Redirect" for everyone but the
+  founder's own signed-in browser — and a blind hop would have sent
+  every printed card to a login wall; now a card can never land on a
+  dead page, and the hop switches itself on, with no deploy, the
+  moment the new address is well. Only
   that exact host hops: a deploy preview, a branch deploy and localhost
   are other hosts and stay where they are. `netlify/functions/lib/
   signpost.mjs` names the two, and `digest.mjs` does nothing on the
