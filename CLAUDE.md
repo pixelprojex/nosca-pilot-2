@@ -1550,11 +1550,39 @@ seeded data and no account.
   read every coach line there, and no family reads another's: a group
   thread would put every parent's words and every child's name in
   front of every family, which no safeguarding guidance for juniors
-  allows. The group's own page carries one **Message**
-  (`group-page-message`) at the top as the player file's tile, before
-  anything that grows with the data. Before this a
+  allows. The group's own page carries **Message**
+  (`group-page-message`) at the top among its keys (the next bullet),
+  before anything that grows with the data. Before this a
   squad of six was six threads and six identical lines.
   `scripts/e2e/group-message.cjs`.
+- **A group's page opens its group's work (24 November).** It carried
+  Message alone, so logging the clinic, taking its register and changing
+  who is in it were all somewhere else. Now it leads with **Message ·
+  Log · Register** (`group-page-keys`) in the app's key forms — three are
+  round keys three across, two are tiles two to a row, one alone is a
+  key across the page, never a key drawn by hand — Log the accent, the
+  others their function's green: Message and Log while somebody of the
+  group is on the roster; Log (`group-page-log`) the log with the group
+  already picked, as the Who page's group face picks it, so Log it writes
+  a group lesson with every member at it; Register (`group-page-register`)
+  the register on the group's lesson today (`groupToday`: the one on now,
+  else the last begun, else the next), its own roll, and no Register on a
+  day without one. Under the keys, **Edit** (`group-page-edit`), a row of
+  words, opens `GroupEditBody`: the roster as New group's `PersonPicker`,
+  the members ticked by id, Save asleep until something changed, written
+  through the one save the group was made with (`saveGroups`,
+  preferences.groups) — and **never a name field**: a group's bookings
+  carry its name and `group_members()` finds the members by it, so a
+  renamed group would cut every lesson it has booked off from its people.
+  Remove is there only when nothing is booked ahead (`groupAhead`: not
+  begun by the clock, read off the booking's own date — a day key holds
+  no year, and last month's session read as next year's); otherwise one
+  line says so — "3 lessons ahead — End them first" — and offers no
+  removal. Remove group is the red quiet
+  key, then a plain confirm (Remove, the one `DANGER` key; Keep it the
+  way back; the sessions logged stay in All lessons, and the line says
+  so), and it takes the group off the coach's groups, lands on the
+  roster and says Removed. `scripts/e2e/group-page.cjs`.
 - **A group's lessons reach its members.** A group booking carries a
   name and no player, and for a long time `trg_bookings_notify` returned
   at once for it and `remind_bookings` skipped it: a clinic booked,

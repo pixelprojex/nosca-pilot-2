@@ -16018,7 +16018,8 @@ function SportTool({ cfg, sport, rows, onAdd, onRemove, pop, say }) {
    comes from a register — never from who is in the group, which would
    report a full house at every session nobody was marked at. */
 function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers, onMessage = null, members = null,
-                        onLesson = null, onDownload = null, liveMedia = null, onNeedMedia = null, sport, standingFor = null, stageFor = null }) {
+                        onLesson = null, onDownload = null, liveMedia = null, onNeedMedia = null, sport, standingFor = null, stageFor = null,
+                        onLog = null, onRegister = null, onEdit = null }) {
   const t = useT();
   const real = !!sessions;
   const weeks = real ? sessions.map((l) => {
@@ -16043,16 +16044,46 @@ function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers, onMes
   return (
     <SwipeBack onBack={pop}>
       <Screen title={group.name} onBack={pop} meta={`${DAY_NAMES[group.day]}s ${group.time}`}>
-        {/* the group's one action, at the top before anything that grows with
-            the data — the player file's tile, a line into each member's own
-            thread */}
-        {onMessage && (
-          <div className="px-6 mb-5">
-            {/* one action is a key across the page, never a lone circle at
-                its left edge */}
-            <Button tone="quiet" tour="group-page-message" onClick={() => onMessage(group)}>
-              <span className="inline-flex items-center justify-center gap-2"><MessageCircle size={18} color={t.ink} strokeWidth={1.9} />{tr("Message")}</span>
-            </Button>
+        {/* THE GROUP'S WORK, AT THE TOP (24 November): Message · Log ·
+            Register, before anything that grows with the data, as a player's
+            file leads with its keys. Message a line into each member's own
+            thread; Log the log with the group already picked, as the Who
+            page's group face picks it; Register the register on the group's
+            lesson today, its own roll — and no Register on a day without
+            one. Message and Log only while somebody of the group is on the
+            roster. The app's key forms, never a key drawn by hand: three are
+            round keys three across, two are tiles two to a row, and one
+            alone is a key across the page. */}
+        {(() => {
+          const keys = [
+            onMessage && { tour: "group-page-message", Icon: MessageCircle, hue: HUE.green, label: tr("Message"), act: () => onMessage(group) },
+            onLog && { tour: "group-page-log", Icon: Plus, tone: "accent", label: tr("Log"), act: () => onLog(group) },
+            onRegister && { tour: "group-page-register", Icon: Check, hue: HUE.green, label: tr("Register"), act: () => onRegister(group) },
+          ].filter(Boolean);
+          if (!keys.length) return null;
+          if (keys.length === 1) {
+            const k = keys[0], accent = k.tone === "accent";
+            return (
+              <div className="px-6" data-tour="group-page-keys" style={{ marginBottom: SPACE.row }}>
+                <Button tone={accent ? "accent" : "quiet"} tour={k.tour} onClick={k.act}>
+                  <span className="inline-flex items-center justify-center gap-2"><k.Icon size={18} color={accent ? t.onAccent : t.ink} strokeWidth={1.9} />{k.label}</span>
+                </Button>
+              </div>
+            );
+          }
+          return (
+            <div className="px-6" data-tour="group-page-keys" style={{ marginBottom: SPACE.row }}>
+              <TileGrid cols={keys.length}>
+                {keys.map((k) => <ActTile key={k.tour} tour={k.tour} h={keys.length === 2 ? 60 : 82} Icon={k.Icon} hue={k.hue} tone={k.tone || "quiet"} label={k.label} onTap={k.act} />)}
+              </TileGrid>
+            </div>
+          );
+        })()}
+        {/* the group itself — who is in it, and its removal — one door under
+            its keys; never its name (a group's bookings carry the name) */}
+        {onEdit && (
+          <div className="px-6" style={{ marginBottom: SPACE.block }}>
+            <div className="nsc-list"><HomeRow boxed tour="group-page-edit" label={tr("Edit")} onPress={onEdit} /></div>
           </div>
         )}
         {/* one grey line, not a dashboard of three stat cells */}
@@ -16605,6 +16636,67 @@ function CreateGroup({ roster, nouns, times: own, onCreate, close, say }) {
                                onCreate({ name: name.trim(), members: chosen.map((r) => r.name), memberIds: chosen.map((r) => r.id).filter(Boolean), day, time, weeks }); close(); }}>
         {tr("Create group")}
       </Button>
+    </>
+  );
+}
+
+/* A GROUP'S EDIT IS WHO IS IN IT, AND ITS REMOVAL (24 November) — never
+   its name. A group's bookings carry the name and the database's
+   group_members() finds the members by it, so a renamed group would cut
+   every lesson it has booked off from the people in it: nobody told of a
+   call-off, nobody reminded, nobody's Diary holding the clinic. The people
+   are New group's own picker, picked by id, written through the one save
+   the group was made with (preferences.groups). Remove is there only when
+   nothing is booked ahead — otherwise one line says so and offers no
+   removal — and it is the red quiet key, then a plain confirm. */
+function GroupEditBody({ group, roster, nouns, picked: start, ahead = 0, sessions = 0, onSave, onRemove, close, say }) {
+  const t = useT();
+  const [members, setMembers] = useState(start || []);
+  const [busy, setBusy] = useState(false);
+  const [confirm, setConfirm] = useState(false);
+  const changed = members.length !== (start || []).length || members.some((id) => !(start || []).includes(id));
+  const save = async () => {
+    if (busy || !changed || !members.length) return;
+    setBusy(true);   /* the Button buzzes on the tap: one tap, one beat */
+    const res = await onSave(members);
+    setBusy(false);
+    if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't save the group.")); return; }
+    close();
+  };
+  if (confirm) return (
+    <>
+      <h2 className={sessions ? "mb-1" : "mb-5"} data-tour="group-remove-confirm" style={{ ...TYPE.title, color: t.ink }}>{`${tr("Remove")} ${group.name}`}</h2>
+      {/* what stays, in one line: the sessions logged for it are in All lessons still */}
+      {sessions > 0 && (
+        <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>
+          {`${countOf(sessions, "sessions")} ${sessions === 1 ? tr("stays in All lessons") : tr("stay in All lessons")}`}
+        </p>
+      )}
+      <Button tone="danger" tour="group-remove-go" disabled={busy} onClick={async () => { setBusy(true); await onRemove(); }}>{tr("Remove")}</Button>
+      <button onClick={() => { haptic(6); setConfirm(false); }} className="w-full mt-2.5 active:opacity-60"
+              style={{ minHeight: 48, ...TYPE.body, color: t.sub }}>{tr("Keep it")}</button>
+    </>
+  );
+  return (
+    <>
+      <h2 className="mb-1" data-tour="group-edit" style={{ ...TYPE.title, color: t.ink }}>{group.name}</h2>
+      <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>{`${DAY_NAMES[group.day] || ""}s ${group.time || ""}`.trim()}</p>
+      <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.sub }}>
+        {members.length ? countOf(members.length, nouns) : tr("Members")}
+      </div>
+      <div className="mb-5">
+        <PersonPicker tour="group-edit-people" people={(roster || []).map((r) => ({ id: r.id || r.name, name: r.name, avatarPath: r.avatarPath }))}
+                      picked={members} onToggle={(p) => setMembers((m) => (m.includes(p.id) ? m.filter((x) => x !== p.id) : [...m, p.id]))} />
+      </div>
+      <Button tour="group-edit-save" disabled={busy || !changed || !members.length} onClick={save}>{busy ? tr("Saving…") : tr("Save")}</Button>
+      {ahead > 0 ? (
+        /* nothing is taken from under a booked lesson: the run is ended first */
+        <p data-tour="group-edit-ahead" className="mt-4 text-center" style={{ ...TYPE.small, color: t.sub }}>{`${countOf(ahead, "lessons")} ${tr("ahead")} — ${tr("End them first")}`}</p>
+      ) : (
+        <div className="mt-3">
+          <Button tone="dangerQuiet" tour="group-edit-remove" onClick={() => setConfirm(true)}>{tr("Remove group")}</Button>
+        </div>
+      )}
     </>
   );
 }
@@ -20363,6 +20455,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [declineWhy, setDeclineWhy] = useState(null);
   const [declineNote, setDeclineNote] = useState("");
   const [messageGroup, setMessageGroup] = useState(null);   // the saved group a message goes to, or null for Everyone
+  const [editGroup, setEditGroup] = useState(null);         // the group whose Edit sheet is open
   /* Someone who plays two sports shouldn't be asked which one every
      time they open the app. Set once, per person. */
 
@@ -22272,6 +22365,58 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     }
     say(`${g.name} created · ${occ.length} lessons scheduled`); haptic(20);
   };
+  /* A GROUP'S OWN PAGE OPENS ITS WORK (24 November). A group is found by
+     its name the way the database's group_members() finds it, trimmed and
+     in any case; a group's booking is one with no player and a group's
+     name, or the harness's "Group · 9". */
+  const sameGroupName = (a, b) => String(a || "").trim().toLowerCase() === String(b || "").trim().toLowerCase();
+  const sameGroup = (x, g) => (x && g && x.id != null && g.id != null ? String(x.id) === String(g.id) : sameGroupName(x && x.name, g && g.name));
+  const isGroupRow = (b) => !!b && !b.playerId && (!!b.group || !!b.groupName || String(b.kind || "").startsWith("Group"));
+  /* the group's lesson today: the one on now, else the last one begun, else the next */
+  const groupToday = (g) => {
+    const mine = (todayList || []).filter((l) => isGroupRow(l) && sameGroupName(l.groupName || l.who, g.name));
+    return mine.find((l) => !l.done && (l.hoursUntil ?? 9) <= 0.5 && (l.hoursUntil ?? 9) > -((l.duration || 45) / 60))
+      || mine.filter((l) => (l.hoursUntil ?? 9) <= 0).pop() || mine[0] || null;
+  };
+  /* what the group has booked and not yet begun, by the clock as it is —
+     by the booking's own date where it carries one: the diary's key holds
+     no year, and a session last month, outside the calendar's six, read as
+     next year's and kept a finished group from ever being removed */
+  const groupAhead = (g) => {
+    const cal = account ? { ...calendar, nowMins } : calendar;
+    const todayIso = isoOf(todayMD.m, todayMD.d);
+    return Object.entries(coachDiaryBooked || mySeedBooked || {}).reduce((n, [k, rows]) => {
+      const [m, d] = k.split("-").map(Number);
+      return n + (rows || []).filter((b) => {
+        if (!isGroupRow(b) || !sameGroupName(b.groupName || b.who, g.name)) return false;
+        if (b.status && b.status !== "confirmed" && b.status !== "requested") return false;
+        if (b.date) return b.date > todayIso || (b.date === todayIso && !timeGone(m, d, b.time, cal));
+        return !!m && !!d && !isPast(m, d, cal) && !timeGone(m, d, b.time, cal);
+      }).length;
+    }, 0);
+  };
+  /* who is in it, through the save the group was made with; never its
+     name — its bookings carry the name, and group_members() reads it */
+  const saveGroupMembers = async (g, ids) => {
+    const chosen = (roster || []).filter((r) => ids.includes(r.id || r.name));
+    const patch = { members: chosen.map((r) => r.name), memberIds: chosen.map((r) => r.id).filter(Boolean) };
+    if (data) {
+      const cur = (data.prefs && data.prefs.groups) || [];
+      const r = await data.saveGroups(cur.map((x) => (sameGroup(x, g) ? { ...x, ...patch } : x)));
+      if (r && r.error) return { error: { message: tr("Couldn't save the group.") } };
+    } else setGroups((gs) => ({ ...gs, [coachSport]: (gs[coachSport] || []).map((x) => (sameGroup(x, g) ? { ...x, ...patch } : x)) }));
+    done(tr("Saved"), [g.name, countOf(chosen.length, cfg.nouns)].filter(Boolean).join(" · "));
+    return {};
+  };
+  const removeGroup = async (g) => {
+    if (data) {
+      const cur = (data.prefs && data.prefs.groups) || [];
+      const r = await data.saveGroups(cur.filter((x) => !sameGroup(x, g)));
+      if (r && r.error) { hapticWarn(); say(tr("Couldn't remove the group.")); return r; }
+    } else setGroups((gs) => ({ ...gs, [coachSport]: (gs[coachSport] || []).filter((x) => !sameGroup(x, g)) }));
+    done(tr("Removed"), g.name, DANGER);
+    return {};
+  };
 
   const playerLessons = (() => {
     /* Row-level security hands an adult their family's lessons as well
@@ -23103,6 +23248,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                              /* routes carry ids; the harness's player route reads a name */
                              onOpen={(r) => push("player:" + (data ? r.id : r.name))}
                              onMessage={membersOnRoster(g, roster).length ? (grp) => { setMessageGroup(grp); setSheet("broadcast"); } : null}
+                             /* the log with the group picked, as the Who page's group face picks it */
+                             onLog={membersOnRoster(g, roster).length ? (grp) => { setPrefill({ who: grp.name, kind: "Group", groupName: grp.name }); go("log"); } : null}
+                             onRegister={(() => { const l = groupToday(g); return l ? () => { setAttendFor(l); setSheet("attend"); } : null; })()}
+                             onEdit={() => { setEditGroup(g); setSheet("groupEdit"); }}
                              sessions={data ? (data.lessons || []).filter((l) => l.type === "Group" && l.who === gname) : null}
                              registers={registers} sport={coachSport} onDownload={downloadLesson}
                              liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null}
@@ -23843,6 +23992,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               setGroups((gs) => ({ ...gs, [coachSport]: [...(gs[coachSport] || []), { id: Date.now(), ...g }] }));
                                               done(tr("Group created"), `${g.name} · ${g.members.length}`); }}
                                             close={() => setSheet(null)} say={say} />
+              : sheet === "groupEdit" && editGroup ? <GroupEditBody key={editGroup.id || editGroup.name} group={editGroup} roster={roster} nouns={cfg.nouns} say={say}
+                                            picked={membersOnRoster(editGroup, roster).map((r) => r.id || r.name)}
+                                            ahead={groupAhead(editGroup)}
+                                            sessions={data ? (data.lessons || []).filter((l) => l.type === "Group" && sameGroupName(l.who, editGroup.name)).length : 0}
+                                            onSave={(ids) => saveGroupMembers(editGroup, ids)}
+                                            /* the page goes with the group: back on the roster, then the write */
+                                            onRemove={() => { const g = editGroup; setSheet(null); setEditGroup(null); pop(); return removeGroup(g); }}
+                                            close={() => { setSheet(null); setEditGroup(null); }} />
               : sheet === "newThread" ? <NewThread role={role} roster={roster} conns={conns.filter((c) => c.profileId === activeProfileId)}
                                             people={data && role !== "coach" ? (liveThreads || []).map((c) => ({ id: c.playerId, name: c.who, sub: c.sub })) : null}
                                             /* a real thread is found by id; the harness's seeded
