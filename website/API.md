@@ -224,6 +224,7 @@ four fifths of `--len`). What the markup says:
 | `[data-step-mark]` | the nth one gets `.is-on` while the nth step plays (a chapter list, dots) |
 | `[data-device]` on a phone (`="fade|slide|rise|push"`, `data-swap="4.4"`) | its screens change with the steps |
 | `data-zoom="bleed|tall|1.8"` (`data-zoom-len="16"`, `data-zoom-wide="tall"`) | the phone's screen fills the stage (or stands a screen tall), then draws back into its frame over the first 16 of the film. A 660px frame at full bleed on a desk is soft: name a gentler start for 900 and up |
+| `[data-after-lead]` | anything that should wait for the zoom: it arrives as the phone settles into its frame (an eyebrow, a chapter list) |
 | `data-turn="ry,rx,rz"` (`data-turn-to="ry,rx,rz"`) | it turns in 3D into rest (or from one pose to another across the whole film) |
 | a `[data-sequence]` (the phone's `seq`) | runs frame for frame with the steps: each step's `data-frame` is the frame the sequence stands on as that step begins |
 | `[data-scrub-video]` | its time runs with the film |
@@ -363,7 +364,7 @@ pass of light across the arriving face. `<div class="bcard is-back" data-card-tu
 - Pictures: `width` and `height` always, `loading="lazy"` below the fold, `alt` on the first of a stack and
   `alt=""` on the rest. Video: `muted playsinline`, never autoplaying off screen.
 - Lines are split only once the fonts are in, and re-split on resize; do not put `data-ink` and `data-rise` on one element.
-- Anchors land clear of the header (`scroll-padding-top`, Lenis's offset, and `Site.toHash` once films have set the page's length).
+- Anchors: a link to `#id` on the same page glides there. A plain section lands with its top at the header's foot; a film, a scene or a rail lands flush with the top of the screen, pinned on its first frame. A page opened on `#id` lands again once films have set the page's length (`Site.toHash`).
 - Safari: no `scroll-timeline`, no `animation-timeline`; `lvh`/`svh` are written with a `vh` fallback before them.
 - Before you report, with `cap.cjs`: no console errors, no failed requests, no sideways scroll at 320 / 390 / 768 /
   1440 / 1920, nothing under 12px, `--mode off` and `--mode nojs` whole, and every film watched frame by frame.
@@ -376,7 +377,7 @@ pass of light across the arriving face. `<div class="bcard is-back" data-card-tu
 - `Site.vignette`'s soft restart blanked a tile. It is off unless asked for (`soft: true`), and then only dips.
 - The card partial handed its `class` on to the QR code inside it. It does not.
 - `.hold` stacked over later sections and the footer. It is under everything after it and stops painting once covered.
-- Lenis anchors landed under the header; a page opened on `#id` landed short once films lengthened it. Both land clear.
+- Lenis anchors landed under the header; a page opened on `#id` landed short once films lengthened it. The foundation handles anchors itself now: sections land at the header's foot, films flush.
 - The header was 97% white and ghosted over content. It is solid, on the ground beneath it, closed by a gold hairline.
 - `<i lang="ga">` had no style. It is the serif's true italic.
 - Gold was a gradient (`.t-gold`, `#g-foil`). It is one flat metal.

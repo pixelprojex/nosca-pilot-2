@@ -698,6 +698,9 @@
         if (ds.turn) { const f = ds.turn.split(',').map(Number), t = (ds.turnTo || '0,0,0').split(',').map(Number); d.api.turn(tl, { from: f, to: t, at: 0, duration: ds.turnTo ? 100 : Math.max(lead, 22), ease: ds.turnTo ? 'none' : 'power2.out' }); }
         if (d.api.screens.length > 1 && cuts.length && !$('[data-sequence]', d.el)) d.api.swap(tl, cuts, { mode: ds.device || undefined, duration: swapLen });
       });
+      /* what waits for the zoom to finish: an eyebrow, a chapter list. It arrives as the phone settles into its frame. */
+      const late = $$('[data-after-lead]', el);
+      if (late.length) { if (lead) tl.fromTo(late, { autoAlpha: 0 }, { autoAlpha: 1, duration: lead * 0.3, ease: 'power1.out' }, lead * 0.72); else gsap.set(late, { autoAlpha: 1 }); }
       $$('[data-sequence]', el).forEach((q) => {
         if (q.dataset.drive === 'manual') return;
         const api = Site.sequence(q, { scroll: false }); if (!api) return;
@@ -921,24 +924,46 @@
     });
   }
 
-  /* ───────── smooth wheel on a desk; a phone keeps its own scrolling. Anchors land clear of the header. ───────── */
-  const clear = () => { const h = $('.hdr'); return (h ? h.offsetHeight : 60) + 14; };
+  /* ───────── smooth wheel on a desk; a phone keeps its own scrolling. Anchors land clear of the header. ─────────
+     A plain section lands with its top at the header's foot (its own padding is the air), so the header takes its ground. A film, a scene or a rail lands flush with the top
+     of the screen, pinned and on its first frame (its stage is laid out for the header standing over it). */
+  const clear = (el) => {
+    if (el && motion && el.matches && el.matches('.film, .scene, .rail, [data-header="none"]')) return 0;
+    const h = $('.hdr'); return h ? h.offsetHeight : 60;
+  };
   function smooth() {
     if (!fine || !W.Lenis) return;
-    const anchors = { get offset() { return -clear(); } };
-    const lenis = Site.lenis = new W.Lenis({ lerp: 0.105, smoothWheel: true, syncTouch: false, anchors, autoRaf: false });
+    const lenis = Site.lenis = new W.Lenis({ lerp: 0.105, smoothWheel: true, syncTouch: false, anchors: false, autoRaf: false });
     lenis.on('scroll', ScrollTrigger.update);
     gsap.ticker.add((t) => lenis.raf(t * 1000));
     gsap.ticker.lagSmoothing(0);
   }
   /* a page opened on #somewhere: pinned films change the page's length after the browser has jumped, so land again */
   Site.toHash = function (hash, instant) {
-    const id = (hash || location.hash || '').replace(/^#/, ''); if (!id) return;
+    const id = (hash || location.hash || '').replace(/^#/, ''); if (!id) return false;
     let el = null; try { el = D.getElementById(decodeURIComponent(id)); } catch (e) { el = null; }
-    if (!el) return;
-    const y = Math.max(0, el.getBoundingClientRect().top + W.pageYOffset - clear());
-    if (Site.lenis) Site.lenis.scrollTo(y, { immediate: instant !== false, force: true }); else W.scrollTo(0, y);
+    if (!el) return false;
+    const y = Math.max(0, Math.round(el.getBoundingClientRect().top + W.pageYOffset - clear(el)));
+    const jump = instant !== false || Site.reduced;
+    if (Site.lenis) Site.lenis.scrollTo(y, { immediate: jump, force: true, duration: jump ? 0 : 1.2 });
+    else W.scrollTo({ top: y, behavior: jump ? 'auto' : 'smooth' });
+    return el;
   };
+  /* a link to somewhere on this page glides there (and the keyboard's focus goes with it) */
+  function anchors() {
+    D.addEventListener('click', (e) => {
+      if (e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const a = e.target.closest && e.target.closest('a[href*="#"]'); if (!a || a.target === '_blank') return;
+      let u; try { u = new URL(a.href, location.href); } catch (err) { return; }
+      if (u.origin !== location.origin || u.pathname !== location.pathname || u.search !== location.search || u.hash.length < 2) return;
+      const el = Site.toHash(u.hash, false); if (!el) return;
+      e.preventDefault();
+      if (u.hash !== location.hash) history.pushState(null, '', u.hash);
+      if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
+      el.focus({ preventScroll: true });
+    });
+    W.addEventListener('popstate', () => { if (location.hash) Site.toHash(location.hash); });
+  }
 
   /* ───────── wire every data-attribute under a root ───────── */
   Site.scan = function (root) {
@@ -1001,7 +1026,7 @@
       ScrollTrigger.addEventListener('refreshInit', () => H.classList.add('is-measuring'));
       ScrollTrigger.addEventListener('refresh', () => { H.classList.remove('is-measuring'); if (Site.header) Site.header.refresh(); });
     }
-    try { keys(); header(); } catch (e) { fail(e); }
+    try { keys(); header(); anchors(); } catch (e) { fail(e); }
     try {
       if (motion) { smooth(); holds(); }
       Site.scan(D);
