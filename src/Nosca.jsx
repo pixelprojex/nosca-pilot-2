@@ -4099,6 +4099,60 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
    minus on each free time and only then does a tap take one off, as on
    Hours. Group only / Private only lived in this sheet's state and were
    never saved, so they are gone rather than stored. */
+/* A PERSON'S FIRST NAME AND THE SURNAME'S INITIAL — "Maximiliano Ó S.",
+   "Saoirse K." — for a name that will not fit where it is drawn. The
+   particle before the surname stays whole (Ó, Ní, Mac, de …): "Ó S." is
+   how an Irish surname is initialled, never "Ó." or "S." alone. */
+const SURNAME_PARTICLE = /^(Ó|O|Ní|Ni|Nic|Mac|Mc|Uí|Ui|Ua|de|De|Di|Du|Da|Le|La|van|Van|von|Von|der|Der|den)$/;
+const nameShort = (name) => {
+  const w = String(name || "").trim().split(/\s+/).filter(Boolean);
+  if (w.length < 2) return w.join(" ");
+  const last = w[w.length - 1], before = w[w.length - 2];
+  return `${w[0]} ${w.length > 2 && SURNAME_PARTICLE.test(before) ? `${before} ` : ""}${Array.from(last)[0].toUpperCase()}.`;
+};
+/* A NAME ON A TILE KEEPS EVERY WORD WHOLE (24 November). The per-day
+   sheet's booked tile drew the name with the browser's break-word, and at
+   320 "Maximiliano Ó Súilleabháin" read "Maximilian" over "o Ó…". Each word
+   is a box of its own, so a line only ever breaks at a space; the whole
+   name stands where it fits in two lines, else the first name and the
+   surname's initial (`nameShort`); and a single word wider than the tile
+   ends on an ellipsis — it is never broken. The choice is measured, not
+   guessed — the words' own lines are counted as laid out, before the
+   first paint — and made again when the tile's width changes. A group's
+   name is not a person's and is never initialled. */
+function TileName({ name, person = true, lines = 2, style }) {
+  const box = useRef(null), at = useRef(null);
+  const full = String(name || "").trim().replace(/\s+/g, " ");
+  const short = person ? nameShort(full) : full;
+  const [rev, setRev] = useState(0);
+  const [fit, setFit] = useState({ key: null, short: false });
+  const key = `${full}|${rev}`;
+  const useShort = fit.key === key && fit.short;
+  /* the whole name is drawn first; its lines counted, the short form is
+     taken only where it would run past `lines` */
+  useLayoutEffect(() => {
+    const el = box.current; if (!el || fit.key === key) return;
+    at.current = el.clientWidth;
+    const tops = new Set([...el.querySelectorAll("[data-word]")].map((w) => w.offsetTop));
+    setFit({ key, short: tops.size > lines && short !== full });
+  });
+  useEffect(() => {
+    const el = box.current; if (!el || typeof ResizeObserver === "undefined") return undefined;
+    const ro = new ResizeObserver(() => { if (at.current != null && Math.abs(el.clientWidth - at.current) > 0.5) setRev((r) => r + 1); });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const words = (useShort ? short : full).split(" ").filter(Boolean);
+  return (
+    <span ref={box} data-tile-name={full} data-short={useShort ? "1" : undefined} className="block w-full px-1.5"
+          style={{ ...TYPE.caption, fontWeight: 400, maxHeight: `${lines * 1.3}em`, overflow: "hidden", ...style }}>
+      {words.map((w, i) => (
+        <React.Fragment key={i}>{i ? " " : ""}<span data-word="" style={{ display: "inline-block", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", verticalAlign: "top" }}>{w}</span></React.Fragment>
+      ))}
+    </span>
+  );
+}
+
 function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onEveryDay, onWeather, away = false }) {
   const t = useT();
   const calendar = useCalendar();
@@ -4165,7 +4219,9 @@ function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onE
             {/* the start time alone: the length is one value for the day and
                 reads in the sheet's sub; "10:00–10:45 am" wrapped at 320 */}
             <span className="block" style={FIG}>{h}</span>
-            {bk && <span className="block w-full px-1.5" style={{ ...TYPE.caption, fontWeight: 400, color: t.faint, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{bk.who}</span>}
+            {/* who, each word whole: the name where it fits in two lines,
+                else the first name and the surname's initial (TileName) */}
+            {bk && <TileName name={bk.who} person={!(bk.group || bk.groupName || String(bk.kind || "").startsWith("Group"))} style={{ color: t.faint }} />}
             {bk && bk.status === "requested" && <span className="block w-full px-1.5" style={{ ...TYPE.caption, fontWeight: 400, color: t.sub }}>{tr("Requested")}</span>}
           </>);
           if (editing && !bk) return (

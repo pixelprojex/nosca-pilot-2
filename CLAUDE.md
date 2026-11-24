@@ -1064,8 +1064,17 @@ seeded data and no account.
   **Done** takes them off (taking the last free time off ends Edit by
   itself, so Add a time is back); a booked time carries who and no
   minus — Call off is the way out; outside Edit a tile is not a
-  button. **Add a time** (`editday-add`) is the half hours not on the
-  day as the app's `TimeGrid`, and is not drawn when there are none.
+  button. Who, on a booked or a requested tile, keeps every word whole
+  (`TileName`, 24 November): each word a box of its own, so a line only
+  breaks at a space; the whole name where it fits in two lines, else
+  the first name and the surname's initial (`nameShort`: "Maximiliano Ó
+  S.", the particle kept), and a word wider than the tile ends on an
+  ellipsis, never broken — measured as laid out, and again when the
+  width changes; a group's name is never initialled. At 320 it read
+  "Maximilian" over "o Ó…" (`edit-day.cjs` (t), which reads every line
+  off the characters' own boxes at 320 and 390). **Add a time**
+  (`editday-add`) is the half hours not on the day as the app's
+  `TimeGrid`, and is not drawn when there are none.
   The subtitle is "5 times" or nothing; an empty day reads "Nothing
   offered" as a line; an away day reads Away and offers nothing; today's
   times already gone are neither counted nor offered back ("Nothing is
