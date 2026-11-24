@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { ThemeCtx, NEUTRAL, CLUB, tr, ui, TYPE, MOTION, Button, InstallGuide, INSTALL_CSS, haptic, openAbout } from "../Nosca";
 import { RING_L, RING_R, BRAND } from "../lib/brandmark.jsx";
 import { registerSw } from "../lib/push";
+import { isStandalone } from "../lib/install";
 
 /* ADD TO HOME SCREEN — https://<site>/install
  *
@@ -21,9 +22,11 @@ import { registerSw } from "../lib/push";
  * card in the hand are one object; the app's own bottle green is the
  * icon drawn in the last step, which is what lands on the Home Screen.
  *
- * Open Nosca at the foot and the X go to the app — a sign-up for a new
- * person, the app for one who is signed in; About Nosca opens the
- * website beside it. The worker is registered here too: Chrome's
+ * The foot's quiet key, Continue in the browser, and the X go to the app
+ * in this tab — a sign-up for a new person, the app for one who is
+ * signed in; About Nosca opens the website beside it. It is the white
+ * key, not the olive: the steps are what the page is for, and a filled
+ * "Open Nosca" under "Tap Nosca on the Home Screen" read as the next step. The worker is registered here too: Chrome's
  * install criteria want one, and the app registers it only once
  * somebody is signed in. */
 
@@ -57,6 +60,16 @@ const CODE = (() => {
   }
   return d;
 })();
+/* the back's words, where scripts/business-card.py sets them: x, the baseline, the size (pt × 0.3528 mm), the weight, the colour */
+const INK_PRINT = "#1C1C1E", GREY_PRINT = "#6B6B6B";
+const BACK_WORDS = [
+  { x: 6, y: 25.0, size: 4.23, weight: 500, fill: INK_PRINT, text: "Fionn Breathnach" },
+  { x: 6, y: 29.6, size: 2.82, weight: 400, fill: GREY_PRINT, text: "Founder" },
+  { x: 6, y: 37.1, size: 2.82, weight: 500, fill: INK_PRINT, text: "Coaching, linked." },
+  { x: 6, y: 40.8, size: 2.82, weight: 400, fill: INK_PRINT, text: "One app for coach, player and parent." },
+  { x: 78, y: 43.1, size: 2.65, weight: 500, fill: INK_PRINT, text: "Scan to start", end: true },
+  { x: 6, y: 49.0, size: 2.65, weight: 400, fill: GREY_PRINT, text: "Golf · Tennis · Rowing · Squash · Padel · Equestrian" },
+];
 /* the foil, lit from the top left as the print preview lights it */
 const FOIL = [[0, "#B08630"], [0.38, "#E2BE60"], [0.5, "#FAE6A0"], [0.62, "#DEB85A"], [1, "#A07626"]];
 const TRACK = 0.42 * 3.53;   // NOSCA at 10 pt, tracked 0.42 em, in the card's millimetres
@@ -103,10 +116,10 @@ function InstallCard() {
               <path d="M39.85 0L84 30.52" pathLength="1" strokeWidth="0.5" style={draw(520, FRONT + 20)} />
               <path d="M44.15 55L0 24.48" pathLength="1" strokeWidth="0.5" style={draw(520, FRONT + 20)} />
               {STRIPES.map((d, i) => <path key={d} d={d} pathLength="1" strokeWidth="0.4" style={draw(460, FRONT + 150 + i * 14)} />)}
-              {/* the mark, 22 mm wide and centred: the two rings draw themselves */}
-              <g transform="translate(31 17.5) scale(0.55)" strokeWidth="2.75" strokeLinecap="round">
-                <path d={RING_L} pathLength="1" style={draw(820, FRONT + 260)} />
-                <path d={RING_R} pathLength="1" style={draw(820, FRONT + 400)} />
+              {/* the mark, 22 mm wide and centred, arriving whole: drawn ring after ring it read for a beat as a wink */}
+              <g transform="translate(31 17.5) scale(0.55)" strokeWidth="2.75" strokeLinecap="round" style={{ animation: `insFade 640ms ease-out ${FRONT + 260}ms backwards` }}>
+                <path d={RING_L} />
+                <path d={RING_R} />
               </g>
             </g>
             <text data-tour="wordmark" x={CARD_W / 2 + TRACK / 2} y="36.72" textAnchor="middle" fill="url(#ins-foil)"
@@ -118,13 +131,13 @@ function InstallCard() {
           <svg viewBox={`0 0 ${CARD_W} ${CARD_H}`} width="100%" height="100%" style={{ display: "block" }} focusable="false">
             <rect width={CARD_W} height={CARD_H} fill="#FFFFFF" />
             <g transform="translate(6 6) scale(0.275)" fill="none" stroke="url(#ins-foil)" strokeWidth="2.75" strokeLinecap="round"><path d={RING_L} /><path d={RING_R} /></g>
-            <text data-tour="wordmark" x={78 + TRACK} y="10.7" textAnchor="end" fill="#B99A45" style={{ fontFamily: ui, fontSize: 3.53, fontWeight: 500, letterSpacing: TRACK }}>NOSCA</text>
+            <text data-tour="wordmark" x={78 + TRACK} y="10.7" textAnchor="end" fill="url(#ins-foil)" style={{ fontFamily: ui, fontSize: 3.53, fontWeight: 400, letterSpacing: TRACK }}>NOSCA</text>
             <rect x="6" y="16.25" width="72" height="0.5" rx="0.25" fill="url(#ins-foil)" />
-            <rect x="6" y="22.6" width="31" height="2.7" rx="1.2" fill="#1C1C1E" />
-            <rect x="6" y="27.9" width="13" height="1.8" rx="0.9" fill="#AEAEB2" />
-            <rect x="6" y="35.4" width="24" height="1.8" rx="0.9" fill="#3A3A3C" />
-            <rect x="6" y="39.1" width="45" height="1.8" rx="0.9" fill="#3A3A3C" />
-            <rect x="6" y="47.4" width="52" height="1.6" rx="0.8" fill="#AEAEB2" />
+            {/* the card's own words, as printed (a picture of the card: its words are drawn at the card's scale, not read as the page's) */}
+            {BACK_WORDS.map((w) => (
+              <text key={w.text} data-drawn="" x={w.x} y={w.y} textAnchor={w.end ? "end" : "start"} fill={w.fill}
+                    style={{ fontFamily: ui, fontSize: w.size, fontWeight: w.weight, letterSpacing: w.text.length > 40 ? 0.05 : 0 }}>{w.text}</text>
+            ))}
             <path d={CODE} fill={BRAND} />
           </svg>
         </div>
@@ -140,10 +153,15 @@ function InstallCard() {
    THE LAYOUT. On a phone it is one column, and its air is measured off
    the screen's height (`vh`), so that on a 375 × 667 phone the card,
    the line and the title leave step one — numeral, words and picture —
-   on the first screen, and a tall phone gets the room it has. On a
-   computer (900 wide and over) it is two columns, composed: the card,
-   the line, the rule and the key on the left; the title and the steps
-   on the right; the whole centred on the screen. */
+   on the first screen, and a tall phone gets the room it has. From 720
+   wide (an iPad, a computer) it is two columns, composed: the card,
+   the line, the rule and the key on the left, standing still while a
+   long set of steps scrolls past on the right (`--ins-lead-h` is the
+   left column's height, so the key stands under it); the whole hung
+   from a fixed top, never centred on its own height — centred, opening
+   Change moved the very row just clicked out from under the pointer;
+   the X in the screen's corner. Installed, the right column's one line
+   stands level with the card. */
 const PAGE_CSS = `
 @keyframes insTurn{from{transform:translateY(16px) rotateY(-180deg)}to{transform:none}}
 @keyframes insDraw{from{stroke-dashoffset:1.02}to{stroke-dashoffset:0}}
@@ -157,13 +175,20 @@ const PAGE_CSS = `
 .ins-what{margin-top:clamp(18px,3vh,26px)}
 .ins-rule{margin:clamp(16px,2.6vh,24px) 0 clamp(18px,2.8vh,26px)}
 .ins-foot{margin-top:auto;padding-top:36px}
-@media (min-width:900px) and (min-height:520px){
-  .ins-shell{max-width:1000px;flex:none;margin:auto;padding:64px 0 40px;display:grid;grid-template-columns:minmax(0,420px) minmax(0,460px);grid-template-rows:auto auto minmax(0,1fr);column-gap:96px;justify-content:center;align-items:start}
+@media (min-width:720px) and (min-height:520px){
+  .ins-shell{max-width:1000px;flex:none;margin:0 auto;padding:clamp(56px,11vh,128px) 0 48px;display:grid;grid-template-columns:minmax(0,340px) minmax(0,400px);grid-template-rows:auto minmax(0,1fr);column-gap:48px;justify-content:center;align-items:start}
   .ins-x{display:contents}
   .ins-x > button{right:20px !important;top:16px !important}
-  .ins-lead{grid-column:1;grid-row:1}
-  .ins-foot{grid-column:1;grid-row:2;margin-top:0;padding-top:0}
-  .ins-main{grid-column:2;grid-row:1 / span 3}
+  .ins-lead{grid-column:1;grid-row:1;position:sticky;top:40px}
+  .ins-foot{grid-column:1;grid-row:2;margin-top:0;padding-top:0;position:sticky;top:calc(40px + var(--ins-lead-h, 0px))}
+  .ins-main{grid-column:2;grid-row:1 / span 2}
+  .ins-card{width:min(320px,100%)}
+  .ins-what{margin-top:28px}
+  .ins-rule{margin:24px 0 26px}
+  .ins-done .ins-main{align-self:center}
+}
+@media (min-width:1000px) and (min-height:520px){
+  .ins-shell{grid-template-columns:minmax(0,420px) minmax(0,460px);column-gap:96px}
   .ins-card{width:min(372px,100%)}
   .ins-what{margin-top:30px}
   .ins-rule{margin:26px 0 28px}
@@ -181,12 +206,21 @@ export default function InstallPage() {
   const open = () => { haptic(10); window.location.assign("/"); };
   /* once the app is on a Home Screen there is nothing left to add: the title goes */
   const [done, setDone] = useState(false);
+  /* the left column's height, for the key that stands under it on a wide screen */
+  const shell = useRef(null), lead = useRef(null);
+  useEffect(() => {
+    const el = lead.current, box = shell.current;
+    if (!el || !box || typeof ResizeObserver === "undefined") return undefined;
+    const ro = new ResizeObserver(() => box.style.setProperty("--ins-lead-h", `${el.offsetHeight}px`));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   return (
     <ThemeCtx.Provider value={PAGE}>
       <div className={`ins relative flex flex-col${appCalm() ? " calm" : ""}`} data-tour="install-page" style={{ minHeight: "100dvh", background: PAGE.page, overflowX: "clip" }}>
         <style>{INSTALL_CSS}{PAGE_CSS}</style>
         <div className="shrink-0" style={{ height: "env(safe-area-inset-top, 0px)" }} />
-        <div className="ins-shell">
+        <div ref={shell} className={`ins-shell${done ? " ins-done" : ""}`}>
           {/* the way out to the app — sign-up, or the app for a member */}
           <div className="ins-x">
             <button onClick={open} aria-label={tr("Close")} data-tour="install-close" className="absolute flex items-center justify-center active:opacity-60"
@@ -194,7 +228,7 @@ export default function InstallPage() {
               <X size={20} color={PAGE.ink} strokeWidth={2} />
             </button>
           </div>
-          <div className="ins-lead px-6">
+          <div ref={lead} className="ins-lead px-6">
             <InstallCard />
             {/* what Nosca is, for somebody who has only the card */}
             <p data-tour="install-what" className="ins-what text-center mx-auto" style={{ ...TYPE.body, color: PAGE.sub, textWrap: "balance", ...rise(300) }}>
@@ -212,7 +246,8 @@ export default function InstallPage() {
             </div>
           </div>
           <div className="ins-foot px-6 shrink-0" style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom, 20px))" }}>
-            <Button tone="ink" onClick={open} tour="install-open">{tr("Open Nosca")}</Button>
+            {/* the quiet key: the steps are what the page is for; inside the installed app it is the app */}
+            <Button tone="quiet" onClick={open} tour="install-open">{isStandalone() ? tr("Open Nosca") : tr("Continue in the browser")}</Button>
             {/* the company's website, as the sign-in page carries it: a quiet line under the key, 44 to a finger */}
             <button data-tour="install-about" onClick={() => { haptic(6); openAbout(); }} className="w-full active:opacity-50"
                     style={{ minHeight: 44, marginTop: 6, fontFamily: ui, fontSize: 14, fontWeight: 600, color: PAGE.sub }}>
