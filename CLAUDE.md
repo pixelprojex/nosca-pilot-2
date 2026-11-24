@@ -1311,13 +1311,16 @@ seeded data and no account.
   row's `sub`, and for the foot of a list: the diary ended on "End of
   your hours", which told a coach what they could already see, and
   carries Recurring lessons there now.
-- **Settings is a list, not a page, and it is searchable.** `Settings`
-  builds `groups` of rows ({ label, sub, icon, onTap, right, tour, keys })
-  and renders them through one loop; the search field under the profile
-  row filters every row by label, value and `keys`. Add a setting by
-  adding a row with keys; keep its `tour` id if the walkthrough rings
-  it. The search was cut once and the founder called that a big miss —
-  it stays. No text-size control: the type is set once for everyone.
+- **Settings is a list, not a page, and it is searchable.**
+  `settingsGroups` builds the groups of rows ({ label, sub, value, onTap,
+  right, pick, tour, keys }) — the one list `Settings` renders through
+  `SettingRow` and the header's search finds (below); the search field
+  under the profile row filters every row by label, value and `keys`
+  (`settingFinds`). Add a setting by adding a row with keys there, and
+  the header's search finds it too; keep its `tour` id if the
+  walkthrough rings it. The search was cut once and the founder called
+  that a big miss — it stays. No text-size control: the type is set once
+  for everyone.
 - **A coach may also be somebody's player.** `request_coach()` allows
   it, so `data.lessons` holds both what they taught and what they took.
   `taught()` is every coach-side list; `mineOnly()` is their own.
@@ -1412,6 +1415,37 @@ seeded data and no account.
 - **Search is the field and the results, nothing else.** No "Try"
   suggestions under an empty search — they were cut at the founder's
   ask — and one microphone that gives way to the clear cross.
+- **The search finds where to go, not only what was written (24
+  November).** The founder kept finding that a feature was there and
+  could not be found ("all the features are still not being offered"),
+  so a term opens a **Go to** group above Lessons, Tips, Drills, Players
+  and Messages (`search-goto`; each row `search-goto-row`, `data-goto`
+  naming it). One registry, `goToRows`: every row this person's Settings
+  draws (`settingsGroups`, the very list, so a row Settings leaves out —
+  Add to Home Screen once installed, Away for anyone but a coach — is
+  left out here too, and a toggle or a pick changes in place as it does
+  there); every action on the coach's plus by its one name (Log a lesson
+  and `COACH_ACTIONS`, whose `keys` sit beside each) through the plus's
+  own `runQuick`, Call off its red word; and the places the home, the
+  Diary and the switcher open — To log, To review, Join requests,
+  Drifting, Recurring lessons, Progress (whose, picked as the plus's Tip
+  is), All lessons, Saved and Starred for a coach; a player's own
+  Progress, a parent's each child's named on the row, Book a lesson (the
+  Diary) for whoever books, Log a practice where the Drills tab offers
+  it, Send a clip where the thread's camera is (a parent's per child),
+  Saved and Starred — each only for someone who can open it, so a junior
+  is offered nothing a junior cannot do; Your coach is found by
+  "review", the profile being where one is left. A row is a row of words
+  in Settings' own box, `.nsc-group`, which every kind of the search
+  sits in now; the drill and tip libraries carry their count as their
+  value, so the plus's Drills and the library read apart. Matching is
+  Settings' own (`findsIn`): the term anywhere in the label, the value or
+  a key, or every word of it the start of a word in any order ("hom
+  scr"), accents folded both ways, one letter the start of a word only;
+  the best match first (`goToRank`). The query, the pick unfolded and
+  the scroll are kept, so Back from where a row went is the search as it
+  was; the field takes the focus only on a fresh open. An empty field
+  still shows nothing. `scripts/e2e/search-goto.cjs`.
 - **A control for narrowing a list appears when the list needs
   narrowing, and there is only ever one of them.** The roster's search
   above eight people, the drill library's filter above eight drills, the
