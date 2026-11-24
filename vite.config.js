@@ -50,13 +50,19 @@ const buildStamp = (env) => ({
   },
 });
 
+/* OFF FOR ONE RELEASE. The first site's live page, until this release is on it, hops every page to the
+   app's own address the moment /ready.png loads there — a Home Screen app into a sheet of browser, signed
+   out. So the app's own site writes /ready.png only from the release after the one that puts the safe hop
+   on the first site, never in the same one, whichever site's deploy finishes first. */
+const READ_FIRST_SITE = false;
+
 export default defineConfig(async ({ mode, command }) => {
   const files = loadEnv(mode, process.cwd(), "VITE_");
   /* A NETLIFY BUILD THAT NAMES NO DATABASE reads the three public settings from the first site's live
      app (scripts/public-settings.mjs) and takes them whole, or not at all; set into process.env, they
      reach the bundle by Vite's own VITE_ prefix. A build that names its own — the site's variables, the
      e2e mock, a .env file — reads nothing, and neither does a build off Netlify or `vite` on a laptop. */
-  if (command === "build" && process.env.NETLIFY === "true" && !process.env.VITE_SUPABASE_URL && !files.VITE_SUPABASE_URL) {
+  if (READ_FIRST_SITE && command === "build" && process.env.NETLIFY === "true" && !process.env.VITE_SUPABASE_URL && !files.VITE_SUPABASE_URL) {
     const read = await settingsFromSite(FIRST_SITE);
     if (read) for (const [k, v] of Object.entries(read)) if (!process.env[k] && !files[k]) process.env[k] = v;
     console.log(read
