@@ -1,0 +1,37 @@
+# Credits — website/assets/photo
+
+Every photograph and every clip in this folder is from Pexels, under the Pexels Licence (https://www.pexels.com/license/): free to use, commercial use allowed, attribution not required, modification allowed. Nothing here is from Unsplash.
+
+The licence does not allow showing identifiable people in a bad light or implying that they endorse a product. No picture here shows a face to the camera, and nobody shown is a Nosca coach, player or customer: the site must never say or imply that they are.
+
+Every file was cropped where noted, resized, and brought to one grade (see MANIFEST.json). Where a legible brand mark was painted out, the row says so.
+
+## Photographs
+
+| Files | Source page | Title on Pexels | Author | Licence | Fetched | What was done |
+|---|---|---|---|---|---|---|
+| `golf-fairway-1-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/aerial-view-of-trees-on-a-golf-course-11890225/ | Aerial View of Trees on a Golf Course | Aadil Bhat | Pexels Licence | 2026-11-23 | the whole frame; graded |
+| `golf-mist-2-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/misty-golf-course-with-lush-greenery-31508581/ | Misty Golf Course with Lush Greenery | Carlos Ramón Bonilla Miranda | Pexels Licence | 2026-11-23 | cropped (0–100% across, 16–61% down); graded |
+| `golf-flag-3-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/scenic-golf-course-overlooking-the-ocean-35918456/ | Scenic Golf Course Overlooking the Ocean | Anthony | Pexels Licence | 2026-11-23 | cropped (0–100% across, 10–86% down); graded |
+| `golf-grip-4-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/person-in-white-gloves-holding-a-golf-club-9207651/ | Person in White Gloves holding a Golf Club | Mikhail Nilov | Pexels Licence | 2026-11-23 | the whole frame; graded |
+| `tennis-grass-1-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/two-person-playing-tennis-1619860/ | Two Person Playing Tennis | Mudassir Ali | Pexels Licence | 2026-11-23 | the whole frame; graded |
+| `tennis-serve-2-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/tennis-player-serves-on-clay-court-in-buenos-aires-38503139/ | Tennis Player Serves on Clay Court in Buenos Aires | Gera Cejas | Pexels Licence | 2026-11-23 | the whole frame; graded |
+| `tennis-clay-3-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/aerial-photography-of-a-tennis-court-6931243/ | Aerial Photography of a Tennis Court | Alari Tammsalu | Pexels Licence | 2026-11-23 | cropped (0–100% across, 6–95% down); graded |
+| `rowing-river-1-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/aerial-view-of-boats-on-the-river-14352328/ | Aerial View of Boats on the River | K | Pexels Licence | 2026-11-23 | the whole frame; graded |
+| `rowing-crew-2-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/aerial-view-of-people-sitting-in-a-rowboat-17787835/ | Aerial View of People Sitting in a Rowboat | Nick Gorniok | Pexels Licence | 2026-11-23 | cropped to 4:5; graded |
+| `rowing-sculler-3-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/a-man-rowing-a-boat-8976508/ | A Man Rowing a Boat | Barnabas Davoti | Pexels Licence | 2026-11-24 | the whole frame; graded |
+| `rowing-shell-4-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/four-person-rowing-boat-docked-in-calm-waters-37210679/ | Four-Person Rowing Boat Docked in Calm Waters | Diana | Pexels Licence | 2026-11-24 | the whole frame; graded |
+| `squash-court-1-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/healthy-wood-man-person-7648093/ | Young Couple Playing Squash in Modern Court | Artem Podrez | Pexels Licence | 2026-11-23 | cropped (0–62% across, 0–100% down); graded |
+| `squash-hand-2-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/a-person-holding-a-tennis-racket-and-a-ball-7648079/ | A Person Holding a Tennis Racket and a Ball | Artem Podrez | Pexels Licence | 2026-11-23 | the whole frame; graded; the maker's script and crest on the racket's throat painted out |
+| `squash-laces-3-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/a-person-tying-shoe-lace-7648086/ | A Person Tying Shoe Lace | Artem Podrez | Pexels Licence | 2026-11-23 | the whole frame; graded |
+| `padel-court-1-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/indoor-padel-court-with-blue-surface-32474981/ | Indoor Padel Court with Blue Surface | Ercan Evcimen | Pexels Licence | 2026-11-23 | the whole frame; graded; the venue's name painted out of the net tape, both net posts and the back glass, and the maker's name off the post protector |
+| `equestrian-pasture-1-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/serene-misty-pasture-with-grazing-horses-at-dawn-37110159/ | Serene Misty Pasture with Grazing Horses at Dawn | Rino Adamo | Pexels Licence | 2026-11-23 | the whole frame; graded |
+| `equestrian-school-2-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/man-riding-on-horse-in-front-of-window-3713501/ | Man Riding on Horse in Front of Window | Gantas Vaičiulėnas | Pexels Licence | 2026-11-23 | the whole frame; graded |
+| `equestrian-stirrup-3-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/black-and-brown-horse-in-close-up-photography-93489/ | Black and Brown Horse in Close Up Photography | Markus Spiske | Pexels Licence | 2026-11-23 | the whole frame; graded |
+| `equestrian-hand-4-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/person-s-hand-on-white-horse-s-face-614521/ | Person's Hand on White Horse's Face | Tiana | Pexels Licence | 2026-11-23 | the whole frame; graded |
+| `coaching-watching-1-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/woman-facing-backward-1325678/ | Woman Facing Backward | Jopwell | Pexels Licence | 2026-11-23 | the whole frame; graded; small lettering on the sleeve and on the strap of the cap painted out |
+| `coaching-lesson-2-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/woman-during-horseback-riding-lesson-7883415/ | Woman during Horseback Riding Lesson | Barbara Olsen | Pexels Licence | 2026-11-23 | cropped (0–100% across, 6–100% down); graded |
+| `coaching-notes-3-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/coach-taking-notes-during-game-19859800/ | Coach Taking Notes During Game | Victor Chijioke | Pexels Licence | 2026-11-23 | cropped (16–98% across, 0–60% down); graded; the three letters on the dial of the watch painted out |
+| `coaching-notebook-4-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/brown-pen-on-white-notebook-303532/ | Brown Pen on White Notebook | Lum3n | Pexels Licence | 2026-11-23 | the whole frame; graded |
+| `coaching-phone-5-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/person-holding-phone-3327577/ | Person Holding Phone | Jan Kopřiva | Pexels Licence | 2026-11-23 | cropped (20–100% across, 30–100% down); graded |
+| `coaching-megaphone-6-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/megaphone-and-oars-on-ground-17886382/ | Megaphone and Oars on Ground | Boris Hamer | Pexels Licence | 2026-11-24 | the whole frame; graded; the maker's name and badge painted off the megaphone's collar |
