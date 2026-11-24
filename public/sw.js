@@ -175,15 +175,15 @@ self.addEventListener("pushsubscriptionchange", (event) => {
     const after = fresh && typeof fresh.toJSON === "function" ? fresh.toJSON() : null;
     if (!before || !after || !before.keys || !after.keys || !before.keys.auth) return;
 
+    const body = JSON.stringify({
+      old: { endpoint: was.endpoint, auth: before.keys.auth },
+      new: { endpoint: fresh.endpoint, p256dh: after.keys.p256dh, auth: after.keys.auth },
+    });
+    const send = (url) => fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body });
     try {
-      await fetch("/.netlify/functions/resub", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          old: { endpoint: was.endpoint, auth: before.keys.auth },
-          new: { endpoint: fresh.endpoint, p256dh: after.keys.p256dh, auth: after.keys.auth },
-        }),
-      });
+      const res = await send("/.netlify/functions/resub");
+      /* the app's own site may hold no keys yet: the signpost's copy, which does, answers it too */
+      if (!res.ok && self.location.hostname !== "nosca-pilot-2.netlify.app") await send("https://nosca-pilot-2.netlify.app/.netlify/functions/resub");
     } catch { /* the app will put it right when it is next opened */ }
   })());
 });

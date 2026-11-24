@@ -18,9 +18,32 @@
  * The relay (push.mjs) and resub.mjs are not guarded: each is called
  * by address — the database's `push_url`, a device's own origin — and
  * answers whoever calls it.
+ *
+ * WHICHEVER SITE HOLDS THE KEYS SENDS (24 November). The secrets a
+ * sender needs live only in a site's own environment, and the app's own
+ * site was built without them: with the signpost standing down as well,
+ * the daily summary would have gone out from neither. So a site without
+ * the keys skips, and the signpost stands down only when the app's own
+ * site says it is armed (armed.mjs, appSiteArmed below).
  */
 export const SIGNPOST_SITE = "nosca-pilot-2";
 export const SIGNPOST_HOST = `${SIGNPOST_SITE}.netlify.app`;
+/* the app's own site, which the signpost sends every visitor to */
+export const APP_HOST = "nosca.netlify.app";
+
+/* Will the app's own site send what a scheduled job sends? Its armed
+   endpoint answers whether that site holds the secrets a sender needs.
+   Anything but a plain yes — no answer in five seconds, an error, a site
+   built before the endpoint existed — is no, and the signpost sends it
+   itself: one summary from the old address beats none from either. */
+export async function appSiteArmed(fetcher = fetch) {
+  try {
+    const res = await fetcher(`https://${APP_HOST}/.netlify/functions/armed`, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return false;
+    const body = await res.json();
+    return body && body.armed === true;
+  } catch { return false; }
+}
 
 const hostOf = (value) => {
   if (typeof value !== "string" || !value) return "";

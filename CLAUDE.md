@@ -2661,13 +2661,18 @@ seeded data and no account.
   Screen" (a computer, "Nosca is installed") and nothing else. The three
   ways in: **/install** (`pages/Install.jsx`, read by the gate in
   App.jsx before anything else, never in the harness) — the page the
-  card's code opens, for anyone, signed in or not, and **the card laid
+  card's code opens, for anyone, signed in or not, and **the cards laid
   on paper** (23–24 November; the founder found the first page "a bit
   anticlimactic … too much text, too much going on"): the paper is the
-  card's own back, white with a rule in gold; the card lies on it drawn
-  from the print file's numbers (`install-card`, one `role="img"`),
-  showing the white side just scanned with its printed words, and turns
-  over once; one line says what Nosca is (`install-what`); then the
+  card's own back, white with a rule in gold; the founder hands out two
+  designs — the deep green (`CARD_GREEN`, `#183D3A`, the press's render
+  of business-card.py's GREEN) and the olive (`CLUB.olive`) — so both lie
+  on it, drawn from the print file's numbers (`install-card`, one
+  `role="img"`; `OneCard`, `data-card`), the deep green in front and the
+  olive behind it with each mark in sight, each showing the white side
+  just scanned with its printed words and turning over once, the second
+  `CARD_GAP` after the first ("otherwise people might get confused",
+  `install.cjs` (a3)); one line says what Nosca is (`install-what`); then the
   guide in its card dress (`dress="card"`: the gold for the numerals,
   the thread and the ring), its last step "Sign up or sign in there" for
   a person with no account yet (the app's guide keeps "Sign in there
@@ -2717,23 +2722,52 @@ seeded data and no account.
   app threw "supabaseUrl is required" on a blank page while its icons
   loaded — and the first probe, a picture every build ships
   (`/icons/icon-192.png`), sent every scanned card there for the half
-  hour it took to see it. A card can never land on a dead page now, and
-  the hop switches itself on, with no deploy here, the moment the new
-  site is built with its settings. A Netlify variable reaches a Vite
-  build only when it is scoped to Builds and was set before the build
-  ran: a variable added later needs Trigger deploy. Only
-  that exact host hops: a deploy preview, a branch deploy and localhost
-  are other hosts and stay where they are. `netlify/functions/lib/
-  signpost.mjs` names the two, and `digest.mjs` does nothing on the
-  signpost — Netlify runs a scheduled function on both sites, and
-  everyone on "Once a day" would be sent two summaries. The relay is
-  called by address (the database's `push_url`) and answers on whichever
-  site that names. `scripts/business-card.py`'s `--site` default stays
+  hour it took to see it. A card can never land on a dead page now.
+  **No site needs a variable set by hand (24 November).** The founder,
+  busy, asked for no manual step: the database's address, its anon key
+  and the push service's public key are public by design (every
+  visitor's browser is handed them; row-level security guards the data),
+  so `vite.config.js` carries them as `PUBLISHABLE`, the production
+  build's defaults, taken whole only by a build that names no database
+  of its own — a value set on the site, in the shell or in a .env file
+  still wins, the e2e mock builds are untouched, and `vite` on a laptop
+  reads .env alone. So both sites build a working app and write
+  `/ready.png`, and the hop is on. The secrets — the service role key,
+  the VAPID private key, the webhook secret — never enter the
+  repository: they live in the old site's environment, which is why the
+  relay and the summary keep running there (below). **The move is
+  seamless.** An app on a Home Screen at the old address is left there
+  (`navigator.standalone` or `display-mode: standalone`): iOS opens
+  another address inside it as a sheet of browser, so it would bounce
+  out on every open. A browser tab carries the person across signed in:
+  their session rides in the fragment the way Supabase's own email links
+  carry one (`#access_token=…&refresh_token=…&type=signpost`; the app's
+  `detectSessionInUrl` reads it and clears it), only while the access
+  token has two minutes and more to run, so neither side refreshes it on
+  the way, and the old address's copy is cleared as the tab goes — or it
+  would later hand over, or refresh, a token the new address has since
+  rotated, and Supabase revokes the whole sign-in when a used refresh
+  token comes back. An email link's own token travels untouched. The
+  app reads `?demo`, `#demo` and `/demo` as the word itself, never four
+  letters inside a token (`isDemoUrl`). Only that exact host hops: a
+  deploy preview, a branch deploy and localhost are other hosts and stay
+  where they are. `netlify/functions/lib/signpost.mjs` names the two.
+  **Exactly one site sends.** A site without the keys skips the daily
+  summary and says so (it was a 500); the signpost stands down only when
+  the app's own site answers armed (`armed.mjs`: true or false, never a
+  value; `appSiteArmed`, five seconds, anything but yes is no) — for a
+  morning the signpost stood down regardless while the app's site held
+  no keys, and the summary would have gone out from neither. The relay is
+  called by address (the database's `push_url`, the old site's) and
+  answers there; a worker whose own site holds no keys repairs a rotated
+  subscription through the signpost's `resub`, which answers that one
+  origin across sites. `scripts/business-card.py`'s `--site` default stays
   the OLD address — it is the printed code; never "correct" it.
   `website/site.config.json` names the app and the guide by relative address (`../`, `../install`) — the site lives inside the app's own deploy, so its Open Nosca can never point at an address that is not answering (for an hour it named the new site while that stood behind a login wall). A real domain, when
   there is one, is added to the app's own site and the two names in
   `index.html` and `signpost.mjs` change together.
-  `scripts/e2e/signpost.cjs` plays a scanned card.
+  `scripts/e2e/signpost.cjs` plays a scanned card, a Home Screen app, a
+  signed-in tab and an email link, and runs the summary on both sites.
 - **The website is `website/`, shipped inside the same deploy at
   `/about/`.** Home, Product, Story and Partners, static pages built by
   `website/build.mjs` (plain Node, relative URLs; a page whose name

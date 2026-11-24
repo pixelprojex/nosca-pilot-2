@@ -44,8 +44,10 @@ const { check, summary } = M.checker("signpost");
     const READY = path.join(distDir, "ready.png");
     check("(r) a build given its database writes /ready.png, and it is a picture", fs.existsSync(READY) && fs.readFileSync(READY).slice(1, 4).toString() === "PNG");
     const PROBE = fs.existsSync(READY) ? fs.readFileSync(READY) : Buffer.alloc(0);
-    const visit = async (url, { wait = 2500, fresh = "well" } = {}) => {
+    const visit = async (url, { wait = 2500, fresh: first = "well", init = null } = {}) => {
       const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+      const state = { fresh: first };
+      if (init) await ctx.addInitScript(init);
       const page = await ctx.newPage();
       const asked = { old: [], fresh: [] };
       /* routes are tried newest first: the catch-all is registered first so the two hosts' own routes win */
@@ -66,7 +68,7 @@ const { check, summary } = M.checker("signpost");
       await ctx.route(`https://${OLD}/**`, (r) => local(r, asked.old));
       await ctx.route(`http://deploy-preview-156--${OLD}/**`, (r) => local(r, asked.old));
       await ctx.route(`https://${NEW}/**`, (r) => {
-        const u = new URL(r.request().url());
+        const u = new URL(r.request().url()), fresh = state.fresh;
         asked.fresh.push(u.pathname + (u.pathname === "/ready.png" ? "" : u.search));
         if (fresh === "gone") return r.abort("connectionrefused");
         /* Netlify's site protection: a 401 and a page of script, whatever was asked for */
@@ -82,8 +84,13 @@ const { check, summary } = M.checker("signpost");
       const at = page.url();
       const hasRoot = await page.locator("#root").count();
       const rootLen = hasRoot ? await page.evaluate(() => document.getElementById("root").innerHTML.length) : 0;
-      return { ctx, page, at, asked, hasRoot, rootLen };
+      return { ctx, page, at, asked, hasRoot, rootLen, state };
     };
+    /* a session as supabase-js keeps it under the app's storage key, its access token running `left` seconds more */
+    const seed = (left) => `(() => { try { if (location.hostname !== "${OLD}" || sessionStorage.getItem("seeded")) return; sessionStorage.setItem("seeded", "1");
+      const now = Math.round(Date.now() / 1000);
+      localStorage.setItem("nosca.auth", JSON.stringify({ access_token: "aaa.bbb.ccc", refresh_token: "r3fr35h", token_type: "bearer", expires_in: 3600, expires_at: now + ${left}, user: { id: "u1" } }));
+    } catch (e) {} })();`;
 
     /* ---------- the card ---------- */
     {
@@ -159,6 +166,39 @@ const { check, summary } = M.checker("signpost");
       await v.ctx.close();
     }
 
+    /* ---------- the move is seamless (24 November) ---------- */
+    {
+      /* an app on a Home Screen: iOS would open another address inside it as a sheet of browser, on every open */
+      const v = await visit(`http://${OLD}/`, { wait: 4000, init: "Object.defineProperty(navigator, 'standalone', { get: () => true });" });
+      check("(s) an app on a Home Screen at the old address stays there — it is never bounced into a browser sheet — and works", v.at === `http://${OLD}/` && v.asked.fresh.length === 0 && v.rootLen > 0, `${v.at} · new asked ${JSON.stringify(v.asked.fresh)} · root ${v.rootLen}`);
+      await v.ctx.close();
+    }
+    {
+      /* a browser tab signed in at the old address: it arrives at the new one signed in, and the old copy is gone */
+      const v = await visit(`http://${OLD}/?join=QW7X2M`, { init: seed(1800) });
+      const hand = (() => { try { return Object.fromEntries(new URLSearchParams(new URL(v.at).hash.slice(1))); } catch (e) { return {}; } })();
+      check("(t) a signed-in tab arrives at the new address carrying its session the way Supabase's own links do — the path and the query kept",
+        v.at.startsWith(`https://${NEW}/?join=QW7X2M#`) && hand.access_token === "aaa.bbb.ccc" && hand.refresh_token === "r3fr35h" && hand.token_type === "bearer" && Number(hand.expires_in) > 1700 && Number(hand.expires_in) <= 1800 && Number(hand.expires_at) > 0, v.at);
+      v.state.fresh = "wall";
+      await v.page.goto(`http://${OLD}/`, { waitUntil: "domcontentloaded" }).catch(() => {}); await v.page.waitForTimeout(800);
+      const left = await v.page.evaluate(() => localStorage.getItem("nosca.auth")).catch(() => "unread");
+      check("(t2) …and the old address's own copy of it is cleared as the tab leaves, so a token the new address has since rotated is never handed over, or refreshed, again", left === null, String(left).slice(0, 80));
+      await v.ctx.close();
+    }
+    {
+      /* a session about to run out is not carried: on the way, either side would refresh it */
+      const v = await visit(`http://${OLD}/install`, { init: seed(60) });
+      check("(t3) a session within two minutes of its end is not carried — the tab arrives as it was, and signs in there", v.at === `https://${NEW}/install`, v.at);
+      await v.ctx.close();
+    }
+    {
+      /* a password-reset link the database still addresses to the old site carries its own token: it travels untouched */
+      const v = await visit(`http://${OLD}/#access_token=from-email&expires_in=3600&refresh_token=x&token_type=bearer&type=recovery`, { init: seed(1800) });
+      check("(t4) an email link's own token travels with it untouched, and the stored session is not sent in its place",
+        v.at === `https://${NEW}/#access_token=from-email&expires_in=3600&refresh_token=x&token_type=bearer&type=recovery`, v.at);
+      await v.ctx.close();
+    }
+
     /* ---------- the built page itself ---------- */
     {
       const html = fs.readFileSync(path.join(distDir, "index.html"), "utf8");
@@ -177,21 +217,44 @@ const { check, summary } = M.checker("signpost");
       check("(j2) a site that says nothing of itself is not the signpost, so a single site still sends", sp.isSignpost({}) === false && sp.isSignpost() === false);
       check("(j3) a name that merely contains the old one is not it", sp.isSignpost({ SITE_NAME: "nosca-pilot-22", URL: "https://my-nosca-pilot-2.netlify.app.example.com" }) === false);
 
-      /* the function itself: on the signpost it answers before it reads a single row */
+      /* the function itself: exactly one site sends (24 November) — whichever holds the keys, the app's own when both do.
+         The signpost asks the app's own site whether it is armed; rows are counted apart from that question */
       const keep = { ...process.env };
-      const realFetch = global.fetch; let fetched = 0;
-      global.fetch = async () => { fetched += 1; return new Response("[]", { status: 200, headers: { "content-type": "application/json" } }); };
+      const realFetch = global.fetch; let fetched = 0, armedAsked = 0, armed = true;
+      global.fetch = async (u) => {
+        if (String(u).endsWith("/.netlify/functions/armed")) { armedAsked += 1; return new Response(JSON.stringify({ armed }), { status: 200, headers: { "content-type": "application/json" } }); }
+        fetched += 1; return new Response("[]", { status: 200, headers: { "content-type": "application/json" } });
+      };
       try {
         Object.assign(process.env, { SUPABASE_URL: "https://mock.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "k", VITE_VAPID_PUBLIC_KEY: "BPcZ0cGqVZ1W0n4oFqVY2rXl2bq0c2p8iX0b0m3mQ3bq5h8t5x0d6y1o2m3n4b5v6c7x8z9a0s1d2f3g4h5j6k", VAPID_PRIVATE_KEY: "k", VAPID_SUBJECT: "mailto:help@nosca.ie", PUSH_WEBHOOK_SECRET: "s" });
         const digest = (await import(pathToFileURL(path.join(M.ROOT, "netlify/functions/digest.mjs")).href)).default;
         process.env.SITE_NAME = "nosca-pilot-2"; process.env.URL = "https://nosca-pilot-2.netlify.app";
         const a = await digest(new Request("https://nosca-pilot-2.netlify.app/.netlify/functions/digest"), {});
         const aBody = await a.json().catch(() => ({}));
-        check("(k) on the signpost the digest does nothing: it answers 200 skipped and reads no row", a.status === 200 && aBody.skipped === "signpost site" && fetched === 0, `${a.status} ${JSON.stringify(aBody)} · fetched ${fetched}`);
+        check("(k) on the signpost, with the app's own site armed, the digest does nothing: it answers 200 skipped and reads no row", a.status === 200 && /^signpost site/.test(aBody.skipped || "") && fetched === 0 && armedAsked === 1, `${a.status} ${JSON.stringify(aBody)} · fetched ${fetched}`);
         process.env.SITE_NAME = "nosca"; process.env.URL = "https://nosca.netlify.app";
         const b = await digest(new Request("https://nosca.netlify.app/.netlify/functions/digest"), {});
         const bBody = await b.json().catch(() => ({}));
         check("(k2) on the app's own site it goes on to its work (it is not skipped)", bBody.skipped === undefined, `${b.status} ${JSON.stringify(bBody).slice(0, 160)} · fetched ${fetched}`);
+        /* the app's own site built without the keys: it says so and sends nothing, and the signpost sends in its place */
+        armed = false; fetched = 0;
+        process.env.SITE_NAME = "nosca-pilot-2"; process.env.URL = "https://nosca-pilot-2.netlify.app";
+        const c = await digest(new Request("https://nosca-pilot-2.netlify.app/.netlify/functions/digest"), {});
+        const cBody = await c.json().catch(() => ({}));
+        check("(k3) on the signpost, with the app's own site not armed, the digest goes on to its work, as (k2) does — one summary from the old address beats none", cBody.skipped === undefined && armedAsked === 2, `${c.status} ${JSON.stringify(cBody).slice(0, 160)} · asked ${armedAsked}`);
+        const held = process.env.SUPABASE_SERVICE_ROLE_KEY; delete process.env.SUPABASE_SERVICE_ROLE_KEY; fetched = 0;
+        process.env.SITE_NAME = "nosca"; process.env.URL = "https://nosca.netlify.app";
+        const d = await digest(new Request("https://nosca.netlify.app/.netlify/functions/digest"), {});
+        const dBody = await d.json().catch(() => ({}));
+        check("(k4) a site without the keys says so, answers 200 and reads nothing — it was a 500 every morning on the app's own site", d.status === 200 && /no keys/.test(dBody.skipped || "") && fetched === 0, `${d.status} ${JSON.stringify(dBody)}`);
+        const armedFn = (await import(pathToFileURL(path.join(M.ROOT, "netlify/functions/armed.mjs")).href)).default;
+        const no = await (await armedFn()).json();
+        process.env.SUPABASE_SERVICE_ROLE_KEY = held;
+        const yes = await (await armedFn()).json();
+        check("(k5) armed answers whether this site holds the keys, as true or false and nothing else", no.armed === false && yes.armed === true && Object.keys(no).length === 1 && Object.keys(yes).length === 1, JSON.stringify({ no, yes }));
+        /* the signpost's question, when the app's own site does not answer: no */
+        global.fetch = async () => { throw new Error("unreachable"); };
+        check("(k6) an app site that does not answer is not armed, so the signpost sends", (await sp.appSiteArmed()) === false);
       } catch (e) {
         check("(k) the digest could be run both ways", false, String(e && e.message || e));
       } finally {

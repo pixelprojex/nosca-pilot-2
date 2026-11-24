@@ -22,7 +22,24 @@ import { json, restHeaders, projectUrl } from "./lib/push-shared.mjs";
 
 const str = (v) => (typeof v === "string" ? v.trim() : "");
 
-export default async (req) => {
+/* THE APP'S OWN SITE MAY HOLD NO KEYS (24 November): its worker then asks
+   the signpost's copy of this function, across sites, so the signpost
+   answers that one origin's preflight and its POST. Nothing else changes:
+   the request still proves itself with the old subscription's secret. */
+const CROSS = "https://nosca.netlify.app";
+const cors = (req, res) => {
+  if (req.headers.get("origin") !== CROSS) return res;
+  res.headers.set("access-control-allow-origin", CROSS);
+  res.headers.set("vary", "origin");
+  return res;
+};
+
+export default async (req) => cors(req, await answer(req));
+
+async function answer(req) {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: { "access-control-allow-methods": "POST", "access-control-allow-headers": "content-type", "access-control-max-age": "86400" } });
+  }
   if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
 
   let payload;
@@ -67,4 +84,4 @@ export default async (req) => {
      either way — nothing here to move. */
   if (!Array.isArray(updated) || updated.length === 0) return json({ status: "no such subscription" }, 200);
   return json({ status: "moved" }, 200);
-};
+}

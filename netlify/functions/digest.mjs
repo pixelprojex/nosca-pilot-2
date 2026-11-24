@@ -18,15 +18,15 @@
  * inside the app is the record, and this is only a nudge towards it.
  *
  * Environment: the same names as push.mjs. No secret header — Netlify
- * only ever invokes this on its own schedule. It runs on the app's own
- * site and not on the business cards' signpost, which is built from
- * the same repository (lib/signpost.mjs) — or everyone on "Once a day"
- * would be sent two summaries.
+ * only ever invokes this on its own schedule. It runs on exactly one of
+ * the two sites built from this repository (lib/signpost.mjs): the one
+ * holding the keys, and the app's own when both do — or everyone on
+ * "Once a day" would be sent two summaries, or none.
  */
 
 import webpush from "web-push";
 import { json, restHeaders, loadSubscriptions, sendTo, tally, withVapid, useVapid, projectUrl, REQUIRED } from "./lib/push-shared.mjs";
-import { isSignpost } from "./lib/signpost.mjs";
+import { isSignpost, appSiteArmed } from "./lib/signpost.mjs";
 
 export const config = { schedule: "0 6 * * *" };
 
@@ -78,9 +78,11 @@ export default async (_req, context) => {
   const env = process.env;
   /* Two sites are built from this repository and Netlify runs this
      schedule on both; only the app's own sends (lib/signpost.mjs). */
-  if (isSignpost(env, context)) return json({ skipped: "signpost site" }, 200);
+  /* exactly one site sends: the one that holds the keys, and the app's own site when both do
+     (lib/signpost.mjs) — a site without them says so and sends nothing */
   const missing = REQUIRED.filter((name) => !env[name]);
-  if (missing.length) return json({ error: `missing environment: ${missing.join(", ")}` }, 500);
+  if (missing.length) return json({ skipped: `this site holds no keys to send with: ${missing.join(", ")}` }, 200);
+  if (isSignpost(env, context) && (await appSiteArmed())) return json({ skipped: "signpost site: the app's own site sends it" }, 200);
 
   const vapid = useVapid(webpush, env);
   if (vapid.error) return json({ error: vapid.error }, 500);
