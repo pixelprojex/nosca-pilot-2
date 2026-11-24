@@ -1,19 +1,27 @@
-<footer class="foot g-world" data-header="world">
-  <!-- @include pins class="pins--band" attrs="data-pins" -->
-  <div class="foot__in wrap">
-    <div class="foot__brand">
-      <!-- @include mark class="foot__mark mark--foil" attrs="data-draw" -->
-      <p class="wordmark foot__word t-gold">NOSCA</p>
-      <p class="foot__tag">Coaching, linked.</p>
+<footer class="foot g-green" data-header="green">
+  <div class="foot__card">
+    <!-- @include pins attrs="data-stripes" -->
+    <div class="foot__lock">
+      <!-- @include mark class="foot__mark" foil="d" attrs="data-draw" -->
+      <p class="wordmark foot__word">NOSCA</p>
     </div>
-    <p class="sports foot__sports"><span>Golf</span> <span>Tennis</span> <span>Rowing</span> <span>Squash</span> <span>Padel</span> <span>Equestrian</span></p>
-    <nav class="foot__nav" aria-label="Footer">
-      <a href="product.html"{{cur:product}}>Product</a>
-      <a href="story.html"{{cur:story}}>Story</a>
-      <a href="partners.html"{{cur:partners}}>Partners</a>
-      <a href="{{appUrl}}" rel="noopener">Open Nosca</a>
-      <a href="{{installUrl}}" rel="noopener">Add to Home Screen</a>
-    </nav>
+  </div>
+  <div class="foot__base wrap">
+    <hr class="rule-gold" data-rule>
+    <div class="foot__cols">
+      <div class="foot__say">
+        <p class="foot__tag">Coaching, linked.</p>
+        <p class="foot__name">From the Irish <i lang="ga">nascadh</i>, linking.</p>
+        <p class="sports foot__sports"><span>Golf</span> <span>Tennis</span> <span>Rowing</span> <span>Squash</span> <span>Padel</span> <span>Equestrian</span></p>
+      </div>
+      <nav class="foot__nav" aria-label="Footer">
+        <a href="product.html"{{cur:product}}>Product</a>
+        <a href="{{appUrl}}" rel="noopener">Open Nosca</a>
+        <a href="story.html"{{cur:story}}>Story</a>
+        <a href="{{installUrl}}" rel="noopener">Add to Home Screen</a>
+        <a href="partners.html"{{cur:partners}}>Partners</a>
+      </nav>
+    </div>
     <div class="foot__small">
       <p>© {{year}} Nosca · Made in Ireland</p>
       <p>Screens show the app with its demo data. The names are fictional.</p>
