@@ -123,7 +123,7 @@ Site.ready(function (S) {
     S.film(el, function (tl, s) {
       S.inkFill(s.$('.st-proven__h'), { tl: tl, at: 2, duration: 20 });
       var num = s.$('.st-proven__n .t-numeral');
-      if (num) tl.fromTo(num, { clipPath: 'inset(-20% 100% -20% -12%)' }, { clipPath: 'inset(-20% -12% -20% -12%)', duration: 12, ease: 'power1.inOut' }, 16);
+      if (num) tl.fromTo(num, { clipPath: 'inset(-20% 100% -20% 0%)' }, { clipPath: 'inset(-20% -12% -20% -12%)', duration: 12, ease: 'power1.inOut' }, 16);
       S.rise(s.$('.st-proven__l'), { tl: tl, at: 20, duration: 12 });
       S.rise(s.$('.st-proven__crawl'), { tl: tl, at: 28, duration: 8 });
       tl.fromTo(s.$('.st-crawl__shot'), { y: function () { return s.vh() * 0.08; }, scale: 0.96 }, { y: 0, scale: 1, duration: 28, ease: 'power2.out' }, 0);

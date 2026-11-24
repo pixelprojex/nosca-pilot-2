@@ -136,8 +136,10 @@ html.motion .st-built__steps>li{min-height:clamp(150px,30vh,300px)}
   html.motion .st-proven__h{font-size:clamp(34px,10vw,44px)}
   html.motion .st-proven__n .t-numeral{font-size:44px}
   html.motion .st-proven__l{font-size:17px}
-  html.motion .st-proven__crawl{display:none}
-  html.motion .st-crawl__shot{--shot-w:min(44vw,calc((100vh - var(--hdr-h) - 430px)/2.165));--shot-w:min(44vw,calc((100svh - var(--hdr-h) - 430px)/2.165))}
+  html.motion .st-proven__crawl{font-size:15px}
+  html.motion .st-proven__n{grid-template-columns:auto minmax(0,1fr);column-gap:14px;align-items:center}
+  html.motion .st-crawl__shot{--shot-w:min(44vw,calc((100vh - var(--hdr-h) - 440px)/2.165));--shot-w:min(44vw,calc((100svh - var(--hdr-h) - 440px)/2.165))}
+  html.motion .st-crawl{gap:12px}
 }
 html:not(.motion) .st-proven__in{padding-block:clamp(96px,12vw,160px)}
 
@@ -150,7 +152,7 @@ html:not(.motion) .st-proven__in{padding-block:clamp(96px,12vw,160px)}
 .st-swatch__top .wordmark{font-size:13px;font-weight:500;color:var(--gold-text-on-white)}
 .st-swatch__chips{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 12px}
 .st-swatch__chips li{display:grid;gap:3px;min-width:0}
-.st-swatch__chips i{display:block;aspect-ratio:1.6;border-radius:3px;background:var(--c);margin-bottom:6px}
+.st-swatch__chips i{display:block;height:18px;border-radius:2px;background:var(--c);margin-bottom:8px}
 .st-swatch__chips b{font:600 14px/1.2 var(--display);color:var(--ink)}
 .st-swatch__chips span{font:400 13px/1.2 var(--display);color:var(--faint)}
 .st-table{margin:0;display:grid}
@@ -183,3 +185,10 @@ html:not(.motion) .st-climate .photo + .photo{margin-top:2px}
 .st-close__card .bcard{--card-w:min(88vw,560px)}
 @media (min-width:900px){.st-close__card{justify-items:end}}
 html.motion .st-climate:not(.is-built) .film__stage>.photo~.photo{visibility:hidden}
+/* a photograph's film opens out of the page before it: the margins round the opening picture are that page's ground */
+html.motion .st-stand{background:var(--ground-paper)}
+html.motion .st-climate{background:var(--ground-rest)}
+@media (max-width:719px){
+  .st-date{font-size:clamp(84px,24vw,120px)}
+  html.motion .st-built__steps>li{min-height:210px}
+}
