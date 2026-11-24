@@ -27,11 +27,20 @@ html.motion .hm-open__cue{display:block}
 .hm-open__cue::before{content:"";position:absolute;inset:0;background:var(--gold-pin);transform:translateY(-101%);animation:hm-cue 2.6s 2.6s cubic-bezier(.65,0,.35,1) infinite}
 @keyframes hm-cue{0%{transform:translateY(-101%)}50%{transform:none}100%{transform:translateY(101%)}}
 @media (max-height:560px){.hm-open__cue{display:none!important}}
-/* the opening waits, unseen, for index.js to play it once: the rings, the word, the two lines */
-html.motion .hm-open:not(.is-go) .hm-open__card .weave,html.motion .hm-open:not(.is-go) .bcard__word{opacity:0}
-html.motion .hm-open:not(.is-go) .hm-open__title>span,html.motion .hm-open:not(.is-go) .hm-open__sub>span{transform:translateY(120%)}
-html.motion .hm-open:not(.is-go) .hm-open__card .pins path{stroke-dasharray:1 1.2;stroke-dashoffset:1.06}
+/* the opening waits, unseen, for index.js to play it once: the rings, the word, the two lines. Never for long: a
+   second into the visit (index.html's line of script) .is-late lets the finished card arrive on its own, softly, and
+   index.js skips the opening when it comes */
+html.motion .hm-open:not(.is-go):not(.is-late) .hm-open__card .weave,html.motion .hm-open:not(.is-go):not(.is-late) .bcard__word{opacity:0}
+html.motion .hm-open:not(.is-go):not(.is-late) .hm-open__title>span,html.motion .hm-open:not(.is-go):not(.is-late) .hm-open__sub>span{transform:translateY(120%)}
+html.motion .hm-open:not(.is-go):not(.is-late) .hm-open__card .pins path{stroke-dasharray:1 1.2;stroke-dashoffset:1.06}
+html.motion .hm-open.is-late:not(.is-go) .hm-open__card .weave,html.motion .hm-open.is-late:not(.is-go) .bcard__word{transition:opacity .9s ease-out}
+html.motion .hm-open.is-late:not(.is-go) .hm-open__title>span,html.motion .hm-open.is-late:not(.is-go) .hm-open__sub>span{transition:transform 1s cubic-bezier(.2,.7,.2,1)}
+html.motion .hm-open.is-late:not(.is-go) .hm-open__sub>span{transition-delay:.12s}
+html.motion .hm-open.is-late:not(.is-go) .hm-open__card .bcard__front .pins path{stroke-dasharray:1 1.2;stroke-dashoffset:0;transition:stroke-dashoffset 1.4s cubic-bezier(.45,0,.2,1)}
 html.motion .hm-open.is-live .bcard__flip{will-change:transform}
+/* the white the card's back becomes: it opens from the card's own rectangle to the whole screen, every side at once
+   (index.js), under the card so the two whites are one; the header reads paper the moment it is under its foot */
+.hm-open__white{position:absolute;z-index:1;inset:0;background:var(--ground-paper);visibility:hidden;clip-path:inset(50% 50% 50% 50%)}
 /* without motion the first screen is the card's front, full bleed, with its wedges in the screen's own corners */
 html:not(.motion) .hm-open__card .bcard__front .pins{inset:auto;left:50%;top:50%;width:100vw;height:var(--vs);margin:calc(var(--vs)/-2) 0 0 -50vw;border-radius:0;--pins-w:clamp(200px,46vw,640px);--pin-sw:.22}
 @media (min-width:520px){html:not(.motion) .hm-open__card .bcard__front .pins{--pin-sw:.15}}
@@ -55,8 +64,10 @@ html:not(.motion) .hm-open__card .bcard__back{display:none}
 }
 /* the page begins before the card has let go: its first words rise onto the white the card's back has just become, so
    no screen is ever empty between the two. Its own ground starts below the overlap. */
-html.motion .hm-what{z-index:1;margin-top:-34vh;padding-top:9vh;background:linear-gradient(rgba(255,255,255,0) 34vh,#fff 34vh)}
-@supports (height:1lvh){html.motion .hm-what{margin-top:-34lvh;padding-top:9lvh;background:linear-gradient(rgba(255,255,255,0) 34lvh,#fff 34lvh)}}
+html.motion .hm-what{--ov:46vh;z-index:1;margin-top:calc(var(--ov)*-1);padding-top:9vh;background:linear-gradient(rgba(255,255,255,0) var(--ov),#fff var(--ov))}
+@supports (height:1lvh){html.motion .hm-what{--ov:46lvh;padding-top:9lvh}}
+/* the opening is longer on a desk, so the overlap is too: the eyebrow comes in as the white is completing */
+@media (min-width:720px){html.motion .hm-what{--ov:68vh}@supports (height:1lvh){html.motion .hm-what{--ov:68lvh}}}
 
 /* ───────── 3 and 4. the two films: the phone stays, the scroll plays the app through it ───────── */
 .hm-film{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:center;justify-items:center;padding:calc(var(--hdr-h) + 18px) var(--gut) 44px;max-width:1240px;margin-inline:auto}
@@ -67,34 +78,62 @@ html.motion .hm-what{z-index:1;margin-top:-34vh;padding-top:9vh;background:linea
 .hm-film__copy .t-lede{margin-top:10px}
 .hm-film__copy .link{margin-top:6px}
 .hm-film__phone{--phone-w:min(60vw,300px)}
-html.motion .hm-film{grid-template-rows:auto minmax(0,1fr)}
-html.motion .hm-film__phone{--phone-w:min(60vw,calc((100vh - var(--hdr-h) - 306px)/2.2));--phone-w:min(60vw,calc((100svh - var(--hdr-h) - 306px)/2.2));align-self:start}
+/* at rest each caption carries its own screen (the phone is for the film), two to a row past a phone's width */
+.hm-rest{--shot-w:min(100%,220px);margin:0 0 18px;order:-1}
+html:not(.motion) .hm-film{padding-block:clamp(72px,10vw,120px)}
+html:not(.motion) .hm-film__copy{max-width:none}
+html:not(.motion) .hm-film .film__steps>[data-step]{display:flex;flex-direction:column;min-width:0}
+html:not(.motion) .hm-film__copy .t-h2{font-size:clamp(26px,2.4vw,34px);line-height:1.1;letter-spacing:-.02em}
+html:not(.motion) .hm-film__copy .t-lede{font-size:17px}
+@media (min-width:560px){html:not(.motion) .hm-film .film__steps{grid-template-columns:repeat(2,minmax(0,1fr));gap:56px clamp(28px,4vw,56px)}}
+@media (min-width:1100px){html:not(.motion) .hm-film .film__steps{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* with motion, on a phone: the caption is compact (its numeral beside its headline, the lede only where the screen is
+   tall enough) and the phone is sized from the height that is really left, never under half the width: on a short
+   screen it runs off the foot of the stage, as a device is cropped, rather than shrinking to a stamp */
+html.motion .hm-film{grid-template-rows:auto minmax(0,1fr);align-content:start}
+html.motion .hm-film__phone{align-self:start}
 @media (max-width:719px){
-  html.motion .hm-film__copy .film__steps>[data-step]{min-height:150px}
-  html.motion .hm-film__copy .t-lede{font-size:17px}
+  html.motion .hm-film{padding:calc(var(--hdr-h) + 14px) var(--gut) 0;gap:14px;justify-items:stretch}
+  html.motion .hm-film__copy .film__steps{margin-top:10px}
+  html.motion .hm-film__copy .film__steps>[data-step]{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:12px;align-items:baseline;align-content:start}
+  html.motion .hm-film__copy .t-numeral{grid-row:1/span 3;font-size:30px;line-height:1}
+  html.motion .hm-film__copy .t-h2{margin:0;font-size:clamp(25px,7.2vw,30px);line-height:1.06}
+  html.motion .hm-film__copy .t-lede{margin-top:6px;font-size:16px;line-height:1.32}
+  html.motion .hm-film__copy .link{margin-top:2px;font-size:15px}
+  html.motion .hm-film__copy [data-step]>p:has(.link){margin:0}
+  html.motion .hm-film__phone{justify-self:center;--phone-w:clamp(min(54vw,210px),calc((100vh - var(--hdr-h) - 262px)/2.1),64vw);--phone-w:clamp(min(54vw,210px),calc((100svh - var(--hdr-h) - 262px)/2.1),64vw)}
+}
+@media (max-width:719px) and (max-height:699px){
+  html.motion .hm-film__copy .t-lede{display:none}
+  html.motion .hm-film__phone{--phone-w:clamp(min(54vw,210px),calc((100vh - var(--hdr-h) - 186px)/2.1),64vw);--phone-w:clamp(min(54vw,210px),calc((100svh - var(--hdr-h) - 186px)/2.1),64vw)}
 }
 @media (min-width:720px){
   .hm-film{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,5vw,80px)}
+  html:not(.motion) .hm-film{grid-template-columns:minmax(0,1fr)}
   .hm-film--flip .hm-film__phone{order:-1}
   .hm-film--flip .hm-film__copy{justify-self:start}
-  html.motion .hm-film{grid-template-rows:minmax(0,1fr)}
+  html.motion .hm-film{grid-template-rows:minmax(0,1fr);align-content:stretch}
   html.motion .hm-film__phone{--phone-w:min(30vw,400px,calc((100vh - var(--hdr-h) - 110px)/2.2));--phone-w:min(30vw,400px,calc((100svh - var(--hdr-h) - 110px)/2.2));align-self:center}
 }
 /* a tablet held upright has the height for a larger phone than a third of its width */
 @media (min-width:720px) and (max-width:1099px) and (min-aspect-ratio:1/2) and (max-aspect-ratio:1/1){
   html.motion .hm-film__phone{--phone-w:min(40vw,340px,calc((100vh - var(--hdr-h) - 110px)/2.2));--phone-w:min(40vw,340px,calc((100svh - var(--hdr-h) - 110px)/2.2))}
 }
-html:not(.motion) .hm-film{padding-block:clamp(72px,10vw,120px)}
-/* at rest a phone shows one screen, so the player's other screens stand in a row under it */
-.hm-film__rest{display:flex;flex-wrap:wrap;justify-content:center;gap:clamp(10px,2vw,20px);grid-column:1/-1;--shot-w:clamp(96px,20vw,170px);margin-top:clamp(20px,4vw,48px)}
 
 /* ───────── 5. six sports: a horizontal passage ───────── */
 .hm-sports__track{--rail-gap:clamp(40px,7vw,128px);--pw:min(74vw,340px)}
 .hm-sports__lead{display:grid;gap:16px;max-width:min(80vw,32em)}
-.hm-sport{display:grid;gap:clamp(14px,2.2vh,24px);margin:0;width:var(--pw);margin-right:calc(var(--pw)*.17)}
+.hm-sport{display:grid;grid-template-columns:minmax(0,1fr);gap:clamp(14px,2.2vh,24px);margin:0;width:var(--pw);margin-right:calc(var(--pw)*.17)}
 .hm-sport__pics{position:relative}
 .hm-sport .photo{aspect-ratio:4/5;width:var(--pw)}
 .hm-sport__shot{position:absolute;right:calc(var(--pw)*-.17);bottom:calc(var(--pw)*-.07);--shot-w:calc(var(--pw)*.4)}
+/* squash's subject (the hands at the laces) is on the right: its screen stands on the left, and the court's red line
+   along the very top is cropped by a zoom held to the foot of the picture */
+.hm-sport--l{margin-right:0;margin-left:calc(var(--pw)*.17)}
+.hm-sport--l .hm-sport__shot{right:auto;left:calc(var(--pw)*-.17)}
+.hm-sport--sq .photo img{transform-origin:50% 100%}
+html:not(.motion) .hm-sport--sq .photo img{transform:scale(1.09)}
 .hm-sport figcaption{display:grid;gap:4px;padding-right:calc(var(--pw)*.26)}
 .hm-sport figcaption .t-h2{display:flex;align-items:center;gap:.3em}
 .hm-sport figcaption .t-body{margin:0;color:var(--fg-2)}
@@ -138,6 +177,11 @@ html:not(.motion) .hm-name__in{padding-block:clamp(96px,14vw,200px)}
 .hm-door__go .arrow{width:22px;height:22px}
 @media (hover:hover){.hm-door__a:hover .hm-door__go{transform:translateX(8px)}}
 .hm-door__a:focus-visible{outline:2px solid var(--focus);outline-offset:6px;border-radius:6px}
+@media (max-width:359px){
+  .hm-door__a{grid-template-columns:minmax(0,1fr)}
+  .hm-door__n{padding-top:0}
+  .hm-door__go{display:none}
+}
 @media (min-width:720px){
   .hm-door__a{grid-template-columns:clamp(60px,9vw,120px) minmax(0,1fr) clamp(170px,21vw,264px) 44px}
   .hm-door__pic{display:block;--dw:clamp(170px,21vw,264px);width:var(--dw);aspect-ratio:84/55;position:relative}
@@ -159,8 +203,21 @@ html:not(.motion) .hm-name__in{padding-block:clamp(96px,14vw,200px)}
 .hm-close__card{display:grid;gap:18px;justify-items:start}
 .hm-close__card .bcard{--card-w:min(86vw,460px)}
 .hm-close__note{margin:0;color:var(--fg-3);max-width:26em}
+.hm-close .bcard__word{color:var(--gold-text-on-green)}
 @media (min-width:900px){
   .hm-close__copy{grid-column:1/span 6}
   .hm-close__card{grid-column:8/span 5}
   .hm-close__card .bcard{--card-w:min(36vw,460px)}
 }
+
+/* ───────── the card's sports line, on Home's two cards: a small card breaks it after Rowing, never before a dot ───────── */
+@container (max-width:419px){
+  .hm-open .bcard__sports,.hm-close .bcard__sports{width:12.4em;right:auto}
+}
+/* the footer's sports on Home: one line on a desk; where it wraps, the dot stays at the end of its word */
+[data-page="index"] .foot__sports{max-width:none}
+[data-page="index"] .foot__sports>span+span::before{content:none}
+[data-page="index"] .foot__sports>span:not(:last-child)::after{content:"·";margin:0 .2em 0 .5em;opacity:.7}
+
+/* ───────── a ground arriving on the card's diagonal (index.js): the photograph's film, and the footer ───────── */
+.hm-diag__edge{position:absolute;z-index:6;left:0;top:0;height:1.5px;width:150vmax;margin-top:-.75px;background:var(--gold-pin);transform-origin:0 50%;pointer-events:none;opacity:0}
