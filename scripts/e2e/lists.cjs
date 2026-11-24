@@ -270,10 +270,20 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       await tap(page, '[aria-label="Today"]', 900);
       await tap(page, '[data-tour="quick"]', 900);
       await page.locator("[data-sheet] button", { hasText: /^New group$/ }).first().click(); await page.waitForTimeout(900);
-      const pp = await rowsOf(page, "[data-sheet]", `return [...root.querySelectorAll('button[aria-pressed][aria-label]')].filter((b) => ["Cian Murphy", "Aoife Doyle", "Eoin Breathnach", "Saoirse Kelly"].includes(b.getAttribute("aria-label")));`);
-      const ppA = await audit(page, "[data-sheet]", EDGE.golf);
+      /* 24 November: several are chosen, so the people are the rows of ONE grouped box — Settings' own
+         group, the card's line round it and the group's rule between the rows — each ending on a tick
+         box; they were a box a person with a round radio ring in each */
+      const pg = await page.evaluate((names) => {
+        const s = document.querySelector("[data-sheet]"); if (!s) return null;
+        const rows = [...s.querySelectorAll("button[aria-pressed][aria-label]")].filter((b) => names.includes(b.getAttribute("aria-label")));
+        const groups = [...new Set(rows.map((b) => b.closest(".nsc-group")).filter(Boolean))], g = groups[0], cs = g ? getComputedStyle(g) : null;
+        return { n: rows.length, groups: groups.length, inList: rows.some((b) => !!b.closest(".nsc-list")), edge: cs && cs.borderTopColor, bw: cs && cs.borderTopWidth, radius: cs && cs.borderTopLeftRadius,
+                 rules: g ? [...g.children].slice(0, -1).map((r) => `${getComputedStyle(r).borderBottomWidth} ${getComputedStyle(r).borderBottomColor}`) : [],
+                 last: g && g.lastElementChild ? getComputedStyle(g.lastElementChild).borderBottomWidth : null, ticks: rows.filter((b) => b.querySelector("[data-tick-box]")).length };
+      }, ["Cian Murphy", "Aoife Doyle", "Eoin Breathnach", "Saoirse Kelly"]);
       await shot("t-new-group-people");
-      check("(t) New group's people (PersonPicker) are boxed rows on the card's edge, no rule inside", boxedRows(pp, EDGE.golf) && pp.length === 4 && fine(ppA), `${rowSaid(pp)} · ${said(ppA)}`);
+      check("(t) New group's people (PersonPicker) are the rows of one grouped box on the card's edge — the group's rule between them, none under the last, a tick box on each — never a box a person",
+        !!pg && pg.n === 4 && pg.groups === 1 && !pg.inList && pg.edge === EDGE.golf && parseFloat(pg.bw) >= 1 && pg.rules.length === 3 && pg.rules.every((r) => r === `1.5px ${EDGE.golf}`) && parseFloat(pg.last) === 0 && pg.ticks === 4, JSON.stringify(pg));
       await closeSheet(page);
 
       /* (y) the push prompt at the head of the alerts */

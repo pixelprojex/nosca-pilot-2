@@ -9312,18 +9312,37 @@ const TimeGrid = ({ times, picked, onToggle, cols = 4, tour, cellTour, disabled 
   );
 };
 
-/* people: a face, a name, a tick. Never a tile, never a pill. */
-const PersonPicker = ({ people, picked, onToggle, caption, tour }) => {
+/* ONE TICK BOX: a choice of several in a list — a Settings row's, a drill
+   to set, a member of a group. The strong grey ring at rest (3:1 on
+   white, the only thing that says where it is), the sport's colour filled
+   with a white tick once ticked; square-cornered, because a round ring is
+   a radio's, the one answer of many (24 November) */
+const TickBox = ({ on, radio = false }) => {
   const t = useT();
+  return (
+    <span data-tick-box={on ? "on" : "off"} className="flex items-center justify-center shrink-0"
+          style={{ width: 22, height: 22, borderRadius: radio ? 11 : 7, border: `1.5px solid ${on ? t.accent : LINE_STRONG}`, background: on ? t.accent : "transparent",
+                   transition: "background 160ms, border-color 160ms" }}>
+      {on && <Check size={13} color="#fff" strokeWidth={2.1} />}
+    </span>
+  );
+};
+
+/* PEOPLE PICKED, SEVERAL OF THEM: one grouped box, the people as rows
+   inside it on the group's rule — a face, the name, a tick box on the
+   right (24 November). It was a box a person with a round ring in each,
+   seven boxes and seven radio rings for a choice of many; the register
+   and Settings' groups hold their rows in one box the same way. */
+const PersonPicker = ({ people, picked, onToggle, caption, tour }) => {
   const ids = new Set(picked || []);
   return (
-    <div data-tour={tour} className="nsc-list">
+    <div data-tour={tour} className="nsc-group" data-group="" data-picker="people">
       {people.map((p) => {
         const on = ids.has(p.id);
         const sub = caption && caption(p);
         return (
           <PersonRow key={p.id} attrs={{ "aria-pressed": on, "aria-label": p.name }} name={p.name} group={p.group} src={avatarUrl(p.avatarPath)}
-                     sub={sub || undefined} trailing={<WizCircle on={on} />} onTap={() => { haptic(7); soft(); onToggle(p); }} />
+                     sub={sub || undefined} trailing={<TickBox on={on} />} onTap={() => { haptic(7); soft(); onToggle(p); }} />
         );
       })}
     </div>
@@ -9579,12 +9598,7 @@ function Row({ label, sub, value, valueColor, checked, onToggle, radio, last, ch
       {/* a tick box for a row that is a choice; never on a red row (the
           family's Leave), which read as an option left unticked — it is
           the red word alone, as iOS's Leave Family is */}
-      {onToggle && !chevron && !icon && !right && !danger && (
-        <span className="flex items-center justify-center shrink-0"
-              style={{ width: 22, height: 22, borderRadius: radio ? 11 : 7, border: `1.5px solid ${checked ? t.accent : LINE_STRONG}`, background: checked ? t.accent : "transparent" }}>
-          {checked && <Check size={13} color="#fff" strokeWidth={2.1} />}
-        </span>
-      )}
+      {onToggle && !chevron && !icon && !right && !danger && <TickBox on={!!checked} radio={radio} />}
       <span className="flex-1 min-w-0">
         {/* one line while both fit — the label left, the value right — and
             the value on a line of its own under the label where they do not */}
@@ -16305,12 +16319,20 @@ function ImportRoster({ close, say, noun, nouns, code }) {
 /* A coach making a group. They run it — adding, removing and setting
    the group's own drills — which is why the group is created
    from their side and never a player's. */
-function CreateGroup({ roster, nouns, onCreate, close, say }) {
+function CreateGroup({ roster, nouns, times: own, onCreate, close, say }) {
   const t = useT();
+  /* THE COACH'S OWN TIMES (24 November). It offered a fixed eight — 8:00 to
+     11:00, then 2:00, 3:30, 4:30 and 5:30 — so a coach whose hours are 9:00,
+     10:30, 12:00, 2:00, 4:00 and 5:00 could pick two of their six and none
+     after half five. `times` is their start times (Hours' pool and every
+     time a day holds); with none set, nine to eight on the hour, the pool a
+     day switched on takes. Saturday at two stays the opening pick where two
+     is one of them, else the first time. */
+  const times = (own && own.length ? own : DEFAULT_SLOTS).slice().sort((a, b) => (parseTime(a) ?? 0) - (parseTime(b) ?? 0));
   const [name, setName] = useState("");
   const [members, setMembers] = useState([]);
   const [day, setDay] = useState(5);
-  const [time, setTime] = useState("2:00 pm");
+  const [time, setTime] = useState(() => (times.includes("2:00 pm") ? "2:00 pm" : times[0]));
   const [weeks, setWeeks] = useState(6);
   /* picked by id: two players with one name are two members */
   const toggle = (id) => { haptic(6); soft(); setMembers(members.includes(id) ? members.filter((x) => x !== id) : [...members, id]); };
@@ -16341,8 +16363,9 @@ function CreateGroup({ roster, nouns, onCreate, close, say }) {
         })}
       </div>
       <div className="mb-5">
-        {/* every time, not the first six: a junior clinic is after school */}
-        <TimeGrid cols={4} times={ALL_TIMES} picked={time} onToggle={setTime} />
+        {/* every one of the coach's times, not the first six: a junior
+            clinic is after school; a grid fills its rows (evenCols) */}
+        <TimeGrid tour="group-times" cols={evenCols(times.length)} times={times} picked={time} onToggle={setTime} />
       </div>
 
       <div className="flex items-center justify-between mb-6">
@@ -23485,6 +23508,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               done(tr("Sent"), tr("Your coach will confirm.")); }}
                                             close={() => setSheet(null)} />
               : sheet === "newGroup" ? <CreateGroup roster={roster} nouns={cfg.nouns}
+                                            /* the coach's own start times: Hours' pool (nine to
+                                               eight until they set one) and every time a day holds */
+                                            times={[...new Set([...(slots || []), ...Object.values(myAvail || {}).flat().filter(Boolean)])]}
                                             onCreate={(g) => { if (data) { createGroup(g); return; }
                                               setGroups((gs) => ({ ...gs, [coachSport]: [...(gs[coachSport] || []), { id: Date.now(), ...g }] }));
                                               done(tr("Group created"), `${g.name} · ${g.members.length}`); }}

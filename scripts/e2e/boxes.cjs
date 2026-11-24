@@ -622,7 +622,13 @@ const metaOf = (page, title) => page.evaluate((title) => {
         /* the picker's rows: buttons whose edge is the list's own rule, not an inline style, so
            `audit` vouches for the edge and the colour and only the ratio is read off each */
         const people = only(grp, /Cian|Saoirse|Aoife|Eoin/);
-        check("(s11) the roster's New group row opens the one New group sheet: its people rows on the wash under \"Group name\" — no chips, no second sheet", fine(ng) && (await page.locator('[data-sheet] button[aria-pressed][aria-label]').count()) >= 2 && /New group/.test(ngText) && !/Saturday clinic|Name it and pick|picked/.test(ngText) && (await page.locator('[data-sheet] input[placeholder="Group name"]').count()) === 1, `${said(ng)} · ${told(grp).slice(0, 200)} · ${ngText.slice(0, 80)}`);
+        /* since 24 November the people are the rows of ONE grouped box, a tick box each — several are chosen —
+           where they were a boxed person row each with a round ring */
+        const ngGroup = await page.evaluate(() => { const sh = document.querySelector("[data-sheet]"); if (!sh) return null; const rows = [...sh.querySelectorAll("button[aria-pressed][aria-label]")];
+          return { groups: sh.querySelectorAll(".nsc-group").length, rows: rows.length, inGroup: rows.filter((b) => b.closest(".nsc-group")).length, ticks: rows.filter((b) => b.querySelector("[data-tick-box]")).length }; });
+        check("(s11) the roster's New group row opens the one New group sheet: its people the rows of one grouped box under \"Group name\", a tick box each — no chips, no second sheet, no box a person",
+          !!ng && ng.bad.length === 0 && ng.rules.length === 0 && !!ngGroup && ngGroup.groups === 1 && ngGroup.rows >= 2 && ngGroup.inGroup === ngGroup.rows && ngGroup.ticks === ngGroup.rows && /New group/.test(ngText) && !/Saturday clinic|Name it and pick|picked/.test(ngText) && (await page.locator('[data-sheet] input[placeholder="Group name"]').count()) === 1,
+          `${said(ng)} · ${JSON.stringify(ngGroup)} · ${told(grp).slice(0, 200)} · ${ngText.slice(0, 80)}`);
         await closeSheet(page);
         /* ONE SHEET TITLE: every sheet's h2 is TYPE.title (19px) — nine were 24 or 25 */
         const h2Size = () => page.evaluate(() => { const h = document.querySelector("[data-sheet] h2"); return h ? getComputedStyle(h).fontSize : null; });

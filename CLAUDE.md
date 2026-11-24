@@ -3231,30 +3231,42 @@ seeded data and no account.
   is `CreateGroup` (the `newGroup` sheet) from every control that opens
   it — the roster's tile, the roster's Groups-half foot row
   (`roster-newgroup`, which reads New group, not "Create a group") and
-  the plus: "Group name", the people as `PersonPicker`'s boxed rows
-  picked by id, the week as a day row with the chosen day in ink (it was
-  the success green; the accent is spent on Create group), every one of
-  `ALL_TIMES` (it offered the first six, ending at half three, and a
-  junior clinic is after school), the weeks, Create group. The foot row
-  opened a second sheet (`GroupCreate`) of round chips, "e.g. Saturday
-  clinic", four times to a row and "Create · 8 Fridays from now" — one
-  thing drawn two ways under two names, carried as found since
-  9 November; it is gone. `JoinRequests` is one boxed list of
-  `PersonRow`s (`request-card`): the face, the whole name, one grey line
-  of the facts — the sport, Under 18, the day they asked in the app's
-  form (`Thu 12 Nov`, off `createdAt`; the hook's `when` read "8 Nov")
-  — and Accept · Decline as the row's text actions, Accept in the
-  sport's colour (a text action that acts, since 21 November; it was
-  ink), Decline in `t.faint`, as Today's booking requests and the bell's;
-  beside the name where it fits, a line of their own under it at 320.
-  With nothing waiting the screen is the line "Nothing waiting" and no
-  subtitle. The empty state was a card with a tick in a disc and a
-  sentence, and each request a card with a 46px face, a filled STEADY
-  Accept and an outlined Decline — the one person in the app drawn as a
-  card. Instagram's follow requests are rows with Confirm · Delete
-  beside each name; Material 3's list item carries its actions in the
-  trailing slot. `scripts/e2e/new-group.cjs`,
-  `scripts/e2e/join-requests.cjs`; `boxes.cjs` (s1), (s11).
+  the plus: "Group name", the people as the rows of ONE grouped box
+  (`PersonPicker`: Settings' own `.nsc-group`, the card's line round it
+  and the group's rule between the rows), each ending on a square tick
+  box (`TickBox`, the one `Row` draws: the strong grey ring at rest, the
+  sport's colour with a white tick once ticked), picked by id — several
+  are chosen, so never a box a person with a round radio ring, which it
+  was until 24 November — the week as a day row with the chosen day in
+  ink (it was the success green; the accent is spent on Create group),
+  the coach's own start times — Hours' pool and every time a day holds,
+  in order, `evenCols` across, nine to eight on the hour
+  (`DEFAULT_SLOTS`) for a coach with none set, two o'clock picked where
+  it is one of them and else the first (until 24 November a fixed eight,
+  `ALL_TIMES`, so a coach whose hours are 9:00, 10:30, 12:00, 2:00, 4:00
+  and 5:00 could pick two of their six; before that the first six,
+  ending at half three, and a junior clinic is after school) — the
+  weeks, Create group. The foot row opened a second sheet
+  (`GroupCreate`) of round chips, "e.g. Saturday clinic", four times to
+  a row and "Create · 8 Fridays from now" — one thing drawn two ways
+  under two names, carried as found since 9 November; it is gone.
+  `JoinRequests` is one boxed list of `PersonRow`s (`request-card`): the
+  face, the whole name, one grey line of the facts — the sport, Under
+  18, the day they asked in the app's form (`Thu 12 Nov`, off
+  `createdAt`; the hook's `when` read "8 Nov") — and Accept · Decline as
+  the row's text actions, Accept in the sport's colour (a text action
+  that acts, since 21 November; it was ink), Decline in `t.faint`, as
+  Today's booking requests and the bell's; beside the name where it
+  fits, a line of their own under it at 320. With nothing waiting the
+  screen is the line "Nothing waiting" and no subtitle. The empty state
+  was a card with a tick in a disc and a sentence, and each request a
+  card with a 46px face, a filled STEADY Accept and an outlined Decline
+  — the one person in the app drawn as a card. Instagram's follow
+  requests are rows with Confirm · Delete beside each name; Material 3's
+  list item carries its actions in the trailing slot.
+  `scripts/e2e/new-group.cjs`, `scripts/e2e/join-requests.cjs`;
+  `boxes.cjs` (s1), (s11); `new-group.cjs` (b3), (b4), (f0), (g2), (i2),
+  (j), (k); `lists.cjs` (t).
 - **One sheet title, and empty states are lines.** Every sheet's `h2`
   is `TYPE.title` (19px, the ladder's title): New group, Invite
   players, New message, Next time, the recurring Set up sheet, Your
