@@ -44,7 +44,7 @@ const { check, summary } = M.checker("signpost");
     const READY = path.join(distDir, "ready.png");
     check("(r) a build given its database writes /ready.png, and it is a picture", fs.existsSync(READY) && fs.readFileSync(READY).slice(1, 4).toString() === "PNG");
     const PROBE = fs.existsSync(READY) ? fs.readFileSync(READY) : Buffer.alloc(0);
-    const visit = async (url, { wait = 2500, fresh: first = "well", init = null } = {}) => {
+    const visit = async (url, { wait = 2500, fresh: first = "well", init = null, user = false } = {}) => {
       const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
       const state = { fresh: first };
       if (init) await ctx.addInitScript(init);
@@ -56,6 +56,9 @@ const { check, summary } = M.checker("signpost");
         if (u.hostname === "localhost") return r.continue();
         return r.fulfill({ status: 204, body: "" });   // the mock Supabase and anything else: quiet
       });
+      /* an email link's token is good: the auth server knows whose it is, so an app that reads the link signs in with it */
+      if (user) await ctx.route("**/auth/v1/user", (r) => r.fulfill({ status: 200, contentType: "application/json",
+        body: JSON.stringify({ id: "u-link", aud: "authenticated", role: "authenticated", email: "link@nosca.test", app_metadata: {}, user_metadata: {} }) }));
       const local = async (r, list) => {
         const u = new URL(r.request().url());
         list.push(u.pathname + u.search);
@@ -67,7 +70,7 @@ const { check, summary } = M.checker("signpost");
       await ctx.route(`http://${OLD}/**`, (r) => local(r, asked.old));
       await ctx.route(`https://${OLD}/**`, (r) => local(r, asked.old));
       await ctx.route(`http://deploy-preview-156--${OLD}/**`, (r) => local(r, asked.old));
-      await ctx.route(`https://${NEW}/**`, (r) => {
+      await ctx.route(`https://${NEW}/**`, async (r) => {
         const u = new URL(r.request().url()), fresh = state.fresh;
         asked.fresh.push(u.pathname + (u.pathname === "/ready.png" ? "" : u.search));
         if (fresh === "gone") return r.abort("connectionrefused");
@@ -76,6 +79,8 @@ const { check, summary } = M.checker("signpost");
         /* a build with no database settings has every other file, the icons too, and no /ready.png: the catch-all answers it with index.html */
         if (fresh === "bare" && u.pathname === "/ready.png") return r.fulfill({ status: 200, contentType: "text/html", body: `<!doctype html><title>Nosca</title><div id="root"></div>` });
         if (u.pathname === "/icons/icon-192.png") return r.fulfill({ status: 200, contentType: "image/png", body: PROBE });
+        /* slow: the picture comes a second and a half on, so the old page's app is up and running before the hop */
+        if (fresh === "slow" && u.pathname === "/ready.png") await new Promise((done) => setTimeout(done, 1500));
         if (u.pathname === "/ready.png") return r.fulfill({ status: 200, contentType: "image/png", body: PROBE });
         return r.fulfill({ status: 200, contentType: "text/html", body: `<!doctype html><title>new</title><p id="at">reached</p>` });
       });
@@ -196,6 +201,38 @@ const { check, summary } = M.checker("signpost");
       const v = await visit(`http://${OLD}/#access_token=from-email&expires_in=3600&refresh_token=x&token_type=bearer&type=recovery`, { init: seed(1800) });
       check("(t4) an email link's own token travels with it untouched, and the stored session is not sent in its place",
         v.at === `https://${NEW}/#access_token=from-email&expires_in=3600&refresh_token=x&token_type=bearer&type=recovery`, v.at);
+      await v.ctx.close();
+    }
+    const LINK = "#access_token=from-email&expires_in=3600&refresh_token=x&token_type=bearer&type=recovery";
+    {
+      /* the same link while the new address is slow to answer, the old page's app up and running first. It read the link,
+         kept a copy and cleared it from the address — and the copy was then handed on as a plain sign-in, so a reset never
+         reached "set a new password", and a copy kept at the old address could later be refreshed against the new one's */
+      const v = await visit(`http://${OLD}/${LINK}`, { fresh: "slow", user: true, wait: 3500 });
+      check("(t5) an email link while the new address is slow arrives there whole — its own token and its type, nothing in its place", v.at === `https://${NEW}/${LINK}`, v.at);
+      v.state.fresh = "wall";
+      await v.page.goto(`http://${OLD}/`, { waitUntil: "domcontentloaded" }).catch(() => {}); await v.page.waitForTimeout(800);
+      const left = await v.page.evaluate(() => localStorage.getItem("nosca.auth")).catch(() => "unread");
+      check("(t5b) …and the old address kept no copy of the link's sign-in", left === null, String(left).slice(0, 80));
+      await v.ctx.close();
+    }
+    {
+      /* a join code while the new address is slow: the old page's app takes the code out of its own address as it starts */
+      const v = await visit(`http://${OLD}/?join=QW7X2M`, { fresh: "slow", wait: 3500 });
+      check("(t6) a join link while the new address is slow keeps its code: what is handed on is the page as it was opened, not as the app under the hop tidied it", v.at === `https://${NEW}/?join=QW7X2M`, v.at);
+      await v.ctx.close();
+    }
+    {
+      /* the new address does not answer: the link goes back in the address and the page opens on it again, once, and the
+         app where it has always been takes it — the reset still reaches its own screen */
+      const v = await visit(`http://${OLD}/${LINK}`, { fresh: "wall", user: true, wait: 4500 });
+      const stored = await v.page.evaluate(() => { try { return JSON.parse(localStorage.getItem("nosca.auth") || "null"); } catch (e) { return null; } }).catch(() => null);
+      const opened = v.asked.old.filter((p) => p === "/").length;
+      const setPw = await v.page.getByText("Confirm password").count().catch(() => 0);
+      check("(t7) an email link while the new address does not answer: the page opens on it again, once, and the app at the old address takes it — the reset's own screen",
+        v.at.startsWith(`http://${OLD}/`) && !!stored && stored.access_token === "from-email" && opened === 2 && v.asked.fresh.length === 1 && setPw > 0,
+        `${v.at} · stored ${stored && stored.access_token} · opened ${opened} · new asked ${JSON.stringify(v.asked.fresh)} · set password ${setPw}`);
+      await v.page.screenshot({ path: path.join(outDir, "04-link-stays.png") });
       await v.ctx.close();
     }
 

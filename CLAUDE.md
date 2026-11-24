@@ -2747,7 +2747,17 @@ seeded data and no account.
   the way, and the old address's copy is cleared as the tab goes — or it
   would later hand over, or refresh, a token the new address has since
   rotated, and Supabase revokes the whole sign-in when a used refresh
-  token comes back. An email link's own token travels untouched. The
+  token comes back. **What is handed on is the page as it was opened,**
+  read before the app's bundle runs: the old page's app starts while the
+  picture is asked for and tidies its own address (a join code, a
+  notification's screen), and a slow answer handed on the tidied page.
+  **An email link's own sign-in is taken out of the old address before
+  its app can read it, and travels whole**: read there, the reset link
+  was kept, cleared from the address and handed on as a plain
+  `type=signpost` sign-in, so a password reset never reached "set a new
+  password" (`signpost.cjs` (t5), (t6) reproduced both). If the new
+  address does not answer, the link goes back and the page opens on it
+  again once (`signpost=stay`), and the old address's app takes it (t7). The
   app reads `?demo`, `#demo` and `/demo` as the word itself, never four
   letters inside a token (`isDemoUrl`). Only that exact host hops: a
   deploy preview, a branch deploy and localhost are other hosts and stay
