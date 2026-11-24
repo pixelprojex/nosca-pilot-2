@@ -17397,8 +17397,57 @@ function AwayScreen({ ranges, onChange, booked, isoOf, pop, say, onCallOff }) {
   );
 }
 
+/* A DOOR IN A SHEET: the word on the box's own inset, its value in the sub
+   grey, the chevron — the player file's foot rows' shape, a box of its own
+   in the sheet's list. The value is never cut: beside the word while both
+   fit, whole on the line under it where they do not (a span of days away
+   at 320). `danger` is the red word (Call off): a red row is told by its
+   word, never by a tile. No glyph stands before the word. */
+function DoorRow({ label, value, danger = false, onPress, tour, attrs }) {
+  const t = useT();
+  return (
+    <button data-tour={tour} data-row-door="" {...(attrs || {})} onClick={() => { haptic(8); soft(); onPress && onPress(); }}
+            className="w-full flex items-center gap-3.5 text-left" style={{ minHeight: 60 }}>
+      <span className="flex-1 min-w-0 flex flex-wrap items-baseline justify-between" style={{ columnGap: 14 }}>
+        <span data-row-label="" style={{ ...TYPE.body, color: danger ? DANGER : t.ink, maxWidth: "100%" }}>{label}</span>
+        {value && <span data-row-value="" className="min-w-0" style={{ ...TYPE.body, color: t.sub, maxWidth: "100%", overflowWrap: "break-word" }}>{value}</span>}
+      </span>
+      <ChevronRight size={15} color={t.trace || t.faint} />
+    </button>
+  );
+}
+
+/* THE COACH'S DIARY HAS ONE DOOR TO WHAT RUNS IT (24 November). Recurring
+   lessons sat at the foot of the List view, a fortnight of days down; Hours
+   and Away lived in Settings, Call off on the plus — the founder kept
+   finding that a thing existed and could not be found from the Diary that
+   it runs. Manage, one word in the Diary's head, opens this: each row does
+   exactly what its Settings row or the plus does, its value in the sub
+   grey — the week's days, the next span away, the arrangements running,
+   the confirmed lessons ahead — and nothing where there is nothing (never
+   a nought). Add to phone calendar is not there with nothing to add, as
+   Settings › Calendar is not. */
+function DiaryManage({ hours, away, recurring, calendar, onHours, onAway, onRecurring, onCallOff, onCalendar }) {
+  const t = useT();
+  const rows = [
+    { id: "hours", label: tr("Hours"), value: hours, act: onHours },
+    { id: "away", label: tr("Away"), value: away, act: onAway },
+    { id: "recurring", label: tr("Recurring lessons"), value: recurring, act: onRecurring },
+    { id: "calloff", label: tr("Call off"), act: onCallOff, danger: true },
+    calendar && onCalendar ? { id: "calendar", label: tr("Add to phone calendar"), value: calendar, act: onCalendar } : null,
+  ].filter(Boolean);
+  return (
+    <>
+      <h2 className="mb-5" data-tour="manage-sheet" style={{ ...TYPE.title, color: t.ink }}>{tr("Manage")}</h2>
+      <div className="nsc-list">
+        {rows.map((r) => <DoorRow key={r.id} tour="manage-row" attrs={{ "data-manage": r.id }} label={r.label} value={r.value || null} danger={!!r.danger} onPress={r.act} />)}
+      </div>
+    </>
+  );
+}
+
 function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seedBooked, onBook, onCancel,
-                          say, push, right, family, duration, recurrence, setRecurrence, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, extra = [], selfCanBook = true, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now, parent, forName, onClearFor, kids, onBookFor, lessonsFor, away = null, landing = null, onLanded, onGroupOut, me = null, onMove, onAccept = null, onDecline = null }) {
+                          say, push, right, family, duration, recurrence, setRecurrence, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, extra = [], selfCanBook = true, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now, parent, forName, onClearFor, kids, onBookFor, lessonsFor, away = null, landing = null, onLanded, onGroupOut, me = null, onMove, onAccept = null, onDecline = null, onManage = null }) {
   const t = useT();
   const live = useLive();
   /* the tree's calendar: the real months for a real account, the
@@ -17467,7 +17516,14 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
   })();
 
   return (
-    <Screen title={forName ? `${tr("Book for")} ${forName}` : L_CAL(role, readOnly)} right={right} meta={role === "coach" ? "" : conn ? `with ${conn.coach}` : ""}>
+    <Screen title={forName ? `${tr("Book for")} ${forName}` : L_CAL(role, readOnly)} right={right} meta={role === "coach" ? "" : conn ? `with ${conn.coach}` : ""}
+            /* the coach's one door to what runs the Diary: a word beside the
+               title, as the family screen's Manage is — never a glyph, never
+               the accent, which is a lesson's */
+            action={role === "coach" && onManage ? (
+              <button data-tour="diary-manage" onClick={() => { haptic(6); onManage(); }} className="shrink-0 active:opacity-50"
+                      style={{ minHeight: 44, ...TYPE.body, fontWeight: 500, color: t.ink }}>{tr("Manage")}</button>
+            ) : null}>
       {/* Who this is for. An adult in a family books for the children as
           well as themselves, so the person is picked first and the hours
           shown are that person's coach's. The request then carries the
@@ -23148,6 +23204,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                             onEditDay={(day) => { setEditDay(day); setSheet("editDay"); }}
                                                             onBookInto={(day, h) => { setBookSlot({ day, time: h }); setAskNote(""); setSheet(role === "coach" ? "bookWho" : "bookSelf"); }}
                                                             onRecurring={() => push("recurring")}
+                                                            onManage={role === "coach" ? () => setSheet("manage") : null}
                                                             kids={data ? (data.dependants || []).map((k) => { const h = (data.hoursByPlayer || {})[k.id] || {}; return { ...k, canBook: !!k.coachId && (Object.values(h.days || {}).some((x) => x && x.length) || datedOf(h.extra, calendar).some((x) => !isPast(x.m, x.d, calendar))), ahead: aheadFor(k.id) }; }) : null}
                                                             selfCanBook={data ? !!data.hasCoach : true}
                                                             /* the For strip's own tile is the adult by name — the face
@@ -23756,6 +23813,18 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               return {};
                                             }}
                                             close={() => setSheet(null)} />
+              : sheet === "manage" && role === "coach" ? <DiaryManage
+                                            /* each row is what its Settings row or the plus does, its value what that row says */
+                                            hours={(() => { const n = [0, 1, 2, 3, 4, 5, 6].filter((d) => ((myAvail || {})[d] || []).length).length; return n ? `${n} ${n === 1 ? tr("day") : tr("days")}` : null; })()}
+                                            away={awaySub || null}
+                                            recurring={(() => { const n = (data ? mySeries : series).filter((x) => !x.ended).length; return n ? `${n} ${tr("running")}` : null; })()}
+                                            calendar={(() => { const n = data ? calendarEvents().length : 0; return n ? `${n} ${n === 1 ? tr("lesson") : tr("lessons")}` : null; })()}
+                                            onHours={() => { setSheet(null); push("availability"); }}
+                                            onAway={() => { setSheet(null); push("away"); }}
+                                            onRecurring={() => { setSheet(null); push("recurring"); }}
+                                            onCallOff={() => { setCallOffFor(null); setSheet("weather"); }}
+                                            /* inside the tap, as Settings' row: the share sheet needs the gesture */
+                                            onCalendar={data ? () => { setSheet(null); addToCalendar(); } : null} />
               : sheet === "weather" ? <CallOff days={callOffDays()} duration={duration}
                                             startKeys={[key((callOffFor || todayMD).m, (callOffFor || todayMD).d)]}
                                             verify={data ? data.verifyPassword : async () => ({})}

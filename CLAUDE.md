@@ -1072,6 +1072,25 @@ seeded data and no account.
   that never asked"). Calendly's date-specific hours, Acuity's override
   hours for specific days, PGA Coach's Open Time and Blocked Times
   beside its recurring hours. `scripts/e2e/edit-day.cjs`.
+- **The coach's Diary has one door to what runs it (24 November).**
+  Recurring lessons sat at the foot of the List, a fortnight of days
+  down, and Hours, Away and Call off lived in Settings and on the plus:
+  the founder kept finding that a thing existed and could not be found
+  from the Diary it runs. **Manage** (`diary-manage`) is one word beside
+  the Diary's title — the family screen's Manage in the same place, in
+  ink, never a glyph and never the accent — and a coach's alone; a
+  player's Diary is as it was. It opens the app's one sheet
+  (`DiaryManage`): Hours · Away · Recurring lessons · Call off · Add to
+  phone calendar (`manage-row`, `data-manage` naming each), rows of words
+  (`DoorRow`: the word, its value in the sub grey, the chevron; the
+  value never cut — beside the word while both fit, whole on the line
+  under it where they do not), each doing exactly what its Settings row
+  or the plus does. The values: the week's days ("5 days"), the next
+  span away, the arrangements running ("1 running"), nothing on Call off
+  (its word the red), the confirmed lessons ahead ("3 lessons") —
+  nothing where there is nothing, never a nought, and Add to phone
+  calendar not there with nothing to add, as Settings › Calendar is not.
+  The List's Recurring lessons foot stays. `scripts/e2e/diary-manage.cjs`.
 - **The mark sits top-left on every root screen, as tall as the icons
   across from it.** `Screen` puts `Mark` (`HEADER_MARK`: 36 wide at a
   weight of 3, so the rings stand the 18px the search and the bell's
