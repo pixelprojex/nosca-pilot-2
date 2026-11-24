@@ -52,11 +52,9 @@ import {
   ChevronLeft, ChevronRight, Check, Play, Pause, Plus, Minus, X, Mic, Square, Home,
   Calendar, CalendarDays, MessageCircle, Send, Users, User, ArrowRight, QrCode, Share2,
   Delete, Lock, Mail, Camera, Video as VideoIcon, Image as ImageIcon, ChevronDown, Search, Bell, FileText,
-  HelpCircle, LogOut, Trash2, ShieldCheck, ExternalLink, Tag, Phone, Paperclip, Clock,
+  Trash2, ShieldCheck, ExternalLink, Tag, Phone, Paperclip, Clock,
   ListChecks, Download, Palette, Eye, Minimize2, Lightbulb, Volume2, VolumeX, UserPlus, Pencil, MoveUpRight, Undo2, Circle, Ruler,
-  Edit3, Trophy, Star, CalendarX, CloudRain, Copy, Settings2, BellOff, Columns2, ArrowLeftRight, WifiOff, TrendingUp, Grid3X3, Film, Repeat,
-  Plane, RefreshCw, Info, Globe, Smartphone, Link2, Compass, LayoutGrid, Vibrate, Accessibility, ClipboardCheck, BarChart3, Hourglass,
-  GraduationCap, AppWindow, Copyright, AlarmClock } from "lucide-react";
+  Edit3, Trophy, Star, CalendarX, CloudRain, Copy, Columns2, ArrowLeftRight, WifiOff, Grid3X3, Film, Repeat } from "lucide-react";
 
 /* ==================================================================
    BRAND · NOSCA — an anglicised spelling of the Irish nascadh, linking
@@ -7457,19 +7455,20 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
               ))}
             </div>
             {/* A DOOR IS A ROW, NEVER A BUTTON: the rest of the lessons and the
-                child's Progress are HomeRows, each a box of its own with its
-                glyph on its square, the count as a value and the chevron — as
-                All lessons and Progress are on the player's file and All
-                drills on the Drills tab. They were two white keys, 46 tall on
-                the control's corner under the 52-tall Book · Message pair */}
+                child's Progress are HomeRows, each a box of its own — the
+                word, the count as a value and the chevron, no glyph (23
+                November) — as All lessons and Progress are on the player's
+                file and All drills on the Drills tab. They were two white
+                keys, 46 tall on the control's corner under the 52-tall Book ·
+                Message pair */}
             {(mine.length > shown.length || onProgress) && (
               <div className="nsc-list mb-7">
                 {mine.length > shown.length && (
                   <HomeRow boxed tour="kid-all-lessons" label={tr("All lessons")} value={String(mine.length)}
-                           icon={<IconSq Icon={Film} bg={HUE.brand} />} onPress={() => onAllLessons && onAllLessons()} />
+                           onPress={() => onAllLessons && onAllLessons()} />
                 )}
                 {onProgress && (
-                  <HomeRow boxed tour="kid-progress" label={tr("Progress")} icon={<IconSq Icon={TrendingUp} bg={HUE.green} />} onPress={onProgress} />
+                  <HomeRow boxed tour="kid-progress" label={tr("Progress")} onPress={onProgress} />
                 )}
               </div>
             )}
@@ -7976,12 +7975,7 @@ function RescheduleOffer({ lesson, slots, duration, onPick, close }) {
   const [sel, setSel] = useState(null);
   return (
     <>
-      <div className="flex items-center gap-3 mb-4">
-        <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 40, height: 40, background: t.wash }}>
-          <CloudRain size={18} color={t.sub} strokeWidth={2} />
-        </span>
-        <h2 style={{ fontFamily: display, fontSize: 22, letterSpacing: "-0.025em", color: t.ink }}>{tr("Called off for weather")}</h2>
-      </div>
+      <h2 className="mb-4" style={{ fontFamily: display, fontSize: 22, letterSpacing: "-0.025em", color: t.ink }}>{tr("Called off for weather")}</h2>
       <p className="mb-6" style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.6, color: t.sub }}>
         {lesson} {tr("won't go ahead. Pick a new time that suits you.")}
       </p>
@@ -9067,8 +9061,13 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
                        boxShadow: p.rest, border: `${EDGE_W}px solid ${fill ? "transparent" : quietTile ? KEY_RING(t) : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`, animation: enter,
                        transition: `background ${MOTION.settle}ms, box-shadow 140ms ease-out, transform 140ms ease-out` }}>
         <Icon size={fill ? 24 : 22} color={fg} strokeWidth={fill ? 2 : quietTile || calm ? 1.8 : 2} className="shrink-0" />
-        <span className={wrap ? "min-w-0" : "min-w-0 max-w-full truncate"}
-              style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, letterSpacing: "-0.01em", lineHeight: 1.2, color: fg }}>{label}</span>
+        {/* NOTHING IS CUT AT 320: where the glyph and the word share a line
+            (the roster's Add player · New group) the word takes a second
+            line at its space before an ellipsis — two across at 320 the
+            keys read "Add pl…" and "New g…" */}
+        <span className={wrap ? "min-w-0" : stacked ? "min-w-0 max-w-full truncate" : "min-w-0"}
+              style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, letterSpacing: "-0.01em", lineHeight: 1.2, color: fg,
+                       ...(!wrap && !stacked ? { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" } : null) }}>{label}</span>
         {badge}
       </button>
     );
@@ -9160,14 +9159,22 @@ const TileGrid = ({ children, cols = 3, stagger = 22 }) => (
    was five of these stacked down the player's home: a page of labels. */
 /* `boxed`: inside a .nsc-list the box is the edge, so the row draws no
    foot rule of its own (the peek's All lessons) */
-const HomeRow = ({ label, value, tone, onPress, tour, boxed = false, icon = null }) => {
+/* A ROW OF WORDS CARRIES NO ICON (23 November). For two days every door
+   led with a glyph on a coloured tile — Film beside "All lessons", a
+   chart beside "Progress" — and the founder: "I don't want you to have
+   the icons in the settings, as it makes it look very tacky, and a lot
+   of the icons throughout could just be gotten rid of." The word says
+   what the row is; the row is the label on the box's own inset, the
+   value in the sub grey, the chevron. `danger` is the one row told apart
+   by colour (the Diary's call-off): the red is in its word, where it was
+   in its tile. */
+const HomeRow = ({ label, value, tone, onPress, tour, boxed = false, danger = false }) => {
   const t = useT();
   return (
-    <button data-tour={tour} onClick={() => { haptic(8); soft(); onPress && onPress(); }}
+    <button data-tour={tour} data-row-door="" onClick={() => { haptic(8); soft(); onPress && onPress(); }}
             className={`w-full flex items-center gap-3.5 text-left ${boxed ? "" : "active:opacity-50"}`}
             style={{ minHeight: 60, borderBottom: boxed ? undefined : RULE.hair(t.ink) }}>
-      {icon}
-      <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
+      <span data-row-label="" className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: danger ? DANGER : t.ink }}>{label}</span>
       <span className="shrink-0 truncate" style={{ ...TYPE.body, color: tone || t.sub, maxWidth: "55%" }}>{value}</span>
       <ChevronRight size={15} color={t.trace || t.faint} />
     </button>
@@ -9453,13 +9460,25 @@ function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", s
     </Tag>
   );
 }
-function Row({ label, sub, value, valueColor, checked, onToggle, radio, last, chevron, dot, icon, danger, right, tour }) {
+/* `icon` is a FACE, or the value itself drawn (a colour's swatch) — never
+   a glyph beside words that already say it: a row of words carries no
+   icon (23 November; every Settings row led with a glyph on a coloured
+   tile for two days, and the founder found it "very tacky"). The label
+   sits on the row's own inset, the value in the sub grey on the right,
+   the chevron after it. */
+/* THE VALUE IS NEVER CUT. It sits on the label's line, at the right; where
+   the row cannot hold both (a span of days at 320, a long address) the
+   value takes the line under the label, whole — the row's own way of
+   giving, as a person row's actions drop under the name. It was cut at
+   58% of the row ("Mon 23 Nov · 9…" on Version at 320). `wrap` lets a
+   label that is a sentence take a second line rather than an ellipsis. */
+function Row({ label, sub, value, valueColor, checked, onToggle, radio, last, chevron, dot, icon, danger, right, tour, wrap = false }) {
   const t = useT();
   const Tag = onToggle ? "button" : "div";
   return (
-    <Tag data-tour={tour} onClick={onToggle ? () => { haptic(6); onToggle(); } : undefined}
+    <Tag data-tour={tour} data-row="" onClick={onToggle ? () => { haptic(6); onToggle(); } : undefined}
          className={`w-full flex items-center gap-3.5 px-5 text-left ${onToggle ? "active:opacity-50" : ""}`}
-         style={{ minHeight: 56, borderBottom: last ? "none" : `1px solid ${t.hair}`,
+         style={{ minHeight: 56, paddingTop: 6, paddingBottom: 6, borderBottom: last ? "none" : `1px solid ${t.hair}`,
                   transition: "transform 130ms cubic-bezier(.22,1,.36,1)" }}>
       {icon}
       {/* a tick box for a row that is a choice; never on a red row (the
@@ -9472,14 +9491,18 @@ function Row({ label, sub, value, valueColor, checked, onToggle, radio, last, ch
         </span>
       )}
       <span className="flex-1 min-w-0">
-        <span className="flex items-center gap-2">
-          <span className="truncate" style={{ ...TYPE.body, color: danger ? DANGER : t.ink }}>{label}</span>
-          {/* the unread dot in the sport's colour, as everywhere since 21 November */}
-          {dot && <span className="rounded-full shrink-0" style={{ width: 7, height: 7, background: t.accent }} />}
+        {/* one line while both fit — the label left, the value right — and
+            the value on a line of its own under the label where they do not */}
+        <span className="flex flex-wrap items-baseline justify-between" style={{ columnGap: 14 }}>
+          <span className="flex items-center gap-2 min-w-0" style={{ maxWidth: "100%" }}>
+            <span data-row-label="" className={wrap ? "" : "truncate"} style={{ ...TYPE.body, color: danger ? DANGER : t.ink, ...(wrap ? { lineHeight: 1.3 } : null) }}>{label}</span>
+            {/* the unread dot in the sport's colour, as everywhere since 21 November */}
+            {dot && <span className="rounded-full shrink-0" style={{ width: 7, height: 7, background: t.accent }} />}
+          </span>
+          {value && <span data-row-value="" className="min-w-0" style={{ ...TYPE.body, color: valueColor || t.sub, maxWidth: "100%", overflowWrap: "anywhere" }}>{value}</span>}
         </span>
         {sub && <span className="block truncate mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{sub}</span>}
       </span>
-      {value && <span className="shrink-0 truncate" style={{ ...TYPE.body, color: valueColor || t.faint, maxWidth: "58%" }}>{value}</span>}
       {right}
       {chevron && <ChevronRight size={17} color={t.trace || t.faint} />}
       {checked && icon && <Check size={18} color={STEADY} strokeWidth={2.1} />}
@@ -9558,63 +9581,19 @@ const faceTone = (t, name) => {
   const c = set[h % set.length];
   return darkPage(t) ? { bg: c, ring: LIP(c), fg: clothOf(c) } : { bg: clothOf(c), ring: null, fg: onCloth(c) };
 };
-/* SETTINGS AS iOS LAYS IT OUT, IN NOSCA'S COLOURS: every row leads with
-   its own coloured square, so a row is found by colour before it is read
-   (21 November; the rows carried no glyph for a long time, "Settings rows
-   carry no glyph at all") — the squares in the app's own palette (HUE) */
-/* a glyph of its own a row: Default view and Opens on, Reviews and Review
-   prompt, Terms and Licences, Reminder and Notifications, Setup and
-   Walkthrough each shared one; and a coach's Lessons as a player (or
-   Lessons you've taken) had no square, its label 44px left of every
-   other */
-const SETTINGS_GLYPHS = {
-  "Default view": [LayoutGrid, HUE.purple], "Opens on": [AppWindow, HUE.teal], "Reminder": [AlarmClock, HUE.wine],
-  "Reviews": [Star, HUE.gold], "Review prompt": [Send, HUE.gold], "Paperwork": [FileText, HUE.slate],
-  "Requests": [UserPlus, HUE.blue], "Hours": [Clock, HUE.green], "Away": [Plane, HUE.blue],
-  "Roster & groups": [Users, HUE.brand], "Shortcuts": [Grid3X3, HUE.teal], "Drills": [ListChecks, HUE.purple],
-  "Lesson logs": [Film, HUE.brand], "Downloads": [Download, HUE.blue], "Calendar": [CalendarDays, HUE.wine],
-  "Branding": [Palette, HUE.purple], "Invite code": [QrCode, HUE.teal], "This month": [BarChart3, HUE.teal],
-  "Family": [Home, HUE.green], "Your coach": [User, HUE.blue], "Coaches & profiles": [User, HUE.blue],
-  "Notifications": [Bell, HUE.wine], "Data & permissions": [ShieldCheck, HUE.slate], "Photo": [Camera, HUE.slate],
-  "Personal details": [User, HUE.slate], "Your sporting record": [Trophy, HUE.gold], "Connections": [Link2, HUE.brand],
-  "Walkthrough": [Compass, HUE.green], "Add to Home Screen": [Smartphone, HUE.blue], "Attendance": [ClipboardCheck, HUE.green],
-  "Register": [ClipboardCheck, HUE.green], "Contact us": [Mail, HUE.blue], "Terms": [FileText, HUE.slate],
-  "Privacy": [Lock, HUE.slate], "Licences": [Copyright, HUE.slate], "Version": [Info, HUE.slate], "About Nosca": [Globe, HUE.brand], "Sync": [RefreshCw, HUE.green],
-  "Sound": [Volume2, HUE.wine], "Haptics": [Vibrate, HUE.purple], "Reduce motion": [Accessibility, HUE.blue],
-  "Sign out": [LogOut, HUE.slate], "Delete account": [Trash2, HUE.red], "Password": [Lock, HUE.slate],
-  "Set yourself up": [Settings2, HUE.teal], "Setup": [Settings2, HUE.teal],
-  "Lessons as a player": [GraduationCap, HUE.orange], "Lessons you've taken": [GraduationCap, HUE.orange],
-};
-const settingsGlyph = (label) => { const g = SETTINGS_GLYPHS[label]; return g ? <IconSq Icon={g[0]} bg={g[1]} size={30} /> : null; };
-/* THE GLYPH TILE, NOSCA'S TWIST ON iOS's SQUARE: one of the app's own
-   colours, the glyph in white, a softer corner than Apple's, and standing
-   on a two-point ledge of its own colour made deeper — the same 3D the
-   keys and the cards stand on, so even the smallest coloured thing in the
-   app is a Nosca object, not a copy of Settings */
-/* the tile takes its role's colour in this sport (`hueOf`), the glyph
-   white, or the ink on the card's gold. For an evening every tile was
-   the sport's one colour, and the founder: "I do want variation in
-   colors. I don't want all the same green." */
-/* A TILE LEADING A ROW IS ITS ROLE'S LIGHT COLOUR (23 November): the
-   cloth tone as the face, the hue's own ink as the glyph, a ledge of the
-   same hue. It was the full deep colour with a white glyph (twenty of
-   them down Settings read "dark and heavy", the founder's words), then
-   for a morning the pale at lightness 0.93, which read as nothing ("tiny
-   icons"). `deep` keeps the full colour with a white glyph for the one
-   place a tile is itself the signal. On a dark page the tile is the deep
-   colour and the glyph its cloth tone. */
-const IconSq = ({ Icon, bg, size = 30, deep = false }) => {
-  const t = useT();
-  const c = hueOf(t, bg);
-  const dark = darkPage(t);
-  const f = deep || dark ? { face: c, fg: dark ? clothOf(c) : onHue(c), lip: LIP(c) } : fillOf(t, bg);
-  return (
-    <span aria-hidden="true" className="inline-flex items-center justify-center shrink-0" data-tile-hue={c}
-          style={{ width: size, height: size, borderRadius: Math.round(size * 0.32), background: f.face, boxShadow: `0 2px 0 ${f.lip}` }}>
-      <Icon size={Math.round(size * 0.56)} color={f.fg} strokeWidth={2.2} />
-    </span>
-  );
-};
+/* NO GLYPH LEADS A ROW OF WORDS (23 November). From 21 November every
+   Settings row, every door (All lessons, Progress, All drills), the home's
+   Actions, the switcher's rows and the player file's foot led with a
+   glyph on a coloured tile (`IconSq`, a table of forty named
+   `SETTINGS_GLYPHS`) — first the full deep colour, then the pale, then the
+   cloth tone. The founder, 23 November: "I don't want you to have the
+   icons in the settings, as it makes it look very tacky, and a lot of the
+   icons throughout could just be gotten rid of … completely simplify it …
+   more classy, more professional." The tile and the table are gone: a row
+   is its label on the row's own inset, its value in the sub grey, its
+   chevron. An icon stays only where it IS the control — the tab bar, the
+   header, a filled key, a tick, a chevron, the download disc — or a face
+   (and the bell's kind badge on one). */
 const Avatar = ({ name, size = 44, group, tint, src, bg, fg }) => {
   const t = useT();
   const faces = useContext(FaceCtx);
@@ -10678,25 +10657,26 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
       )}
 
       <Card tour="family-rows">
-        {/* every row leads with its glyph on the app's own coloured square,
-            as Settings' rows do — they were bare grey glyphs beside a
-            Settings row with none */}
+        {/* the word and the chevron, no glyph (23 November): each row led
+            with a glyph on a coloured square for two days, bare grey glyphs
+            before that — a row of words carries no icon, and the faces
+            above are the only pictures on the sheet */}
         {/* A coach's groups live on the coach's own preferences, which
             a player cannot read, so this row led somewhere that was
             always empty on a real account. It is the harness's until
             a player's groups are something the database can answer. */}
         {!live && (
-          <Row label={tr("Your groups")} sub={tr("Sessions you train with others")} chevron icon={<IconSq Icon={Users} bg={HUE.brand} />}
+          <Row label={tr("Your groups")} sub={tr("Sessions you train with others")} chevron
                onToggle={() => { close(); onViewGroups && onViewGroups(); }} />
         )}
         {/* it opens the next step, so it carries the chevron Photos, Family, Progress and Settings do */}
-        {!(live && hasCoach) && <Row label={tr("Add a coach")} chevron icon={<IconSq Icon={UserPlus} bg={HUE.blue} />} onToggle={() => setStage(live ? "code" : "sport")} />}
-        <Row label={tr("Photos")}  chevron icon={settingsGlyph("Photo")} onToggle={() => { close(); setTimeout(() => onPhoto && onPhoto(), 220); }} />
-        <Row label={tr("Family")} chevron last={!onSettings && !onProgress} icon={settingsGlyph("Family")} onToggle={() => { close(); onFamily && onFamily(); }} />
+        {!(live && hasCoach) && <Row label={tr("Add a coach")} chevron onToggle={() => setStage(live ? "code" : "sport")} />}
+        <Row label={tr("Photos")}  chevron onToggle={() => { close(); setTimeout(() => onPhoto && onPhoto(), 220); }} />
+        <Row label={tr("Family")} chevron last={!onSettings && !onProgress} onToggle={() => { close(); onFamily && onFamily(); }} />
         {/* the journey so far, read off the lessons — the player's own
             Progress, the same screen the coach has on their file */}
-        {onProgress && <Row label={tr("Progress")} tour="sheet-progress" last={!onSettings} chevron icon={<IconSq Icon={TrendingUp} bg={HUE.green} />} onToggle={() => { close(); onProgress(); }} />}
-        {onSettings && <Row label={tr("Settings")} tour="sheet-settings" last chevron icon={<IconSq Icon={Settings2} bg={HUE.slate} />} onToggle={() => { close(); onSettings(); }} />}
+        {onProgress && <Row label={tr("Progress")} tour="sheet-progress" last={!onSettings} chevron onToggle={() => { close(); onProgress(); }} />}
+        {onSettings && <Row label={tr("Settings")} tour="sheet-settings" last chevron onToggle={() => { close(); onSettings(); }} />}
       </Card>
     </>
   );
@@ -11356,7 +11336,8 @@ function LessonStage({ item, onAnnotate, onCompare, onStudy }) {
   if (item.type === "audio") {
     return (
       <div className="flex flex-col items-center justify-center gap-4 px-6" style={{ borderRadius: 16, height: 150, background: t.wash }}>
-        <span className="flex items-center gap-2" style={{ ...TYPE.eyebrow, color: t.sub }}><Mic size={13} color={t.sub} strokeWidth={2} />{tr("Voice note")}</span>
+        {/* the words alone: a 13px microphone led them, beside a label that says Voice note (23 November) */}
+        <span style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Voice note")}</span>
         <audio key={item.url} src={item.url} controls preload="metadata" className="w-full" style={{ maxWidth: 320 }} />
       </div>
     );
@@ -13681,15 +13662,15 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
         {(() => {
           const jobs = [
             /* a clip a player sent and the coach has not looked at yet */
-            toReview.length > 0 && { glyph: [VideoIcon, HUE.purple], key: "review", tour: "today-review", label: tr("To review"), n: toReview.length,
+            toReview.length > 0 && { key: "review", tour: "today-review", label: tr("To review"), n: toReview.length,
               go: () => onReview && onReview() },
-            toLog.length > 0 && { glyph: [Pencil, HUE.orange], key: "write", tour: "today-writeup", label: tr("To log"), n: toLog.length,
+            toLog.length > 0 && { key: "write", tour: "today-writeup", label: tr("To log"), n: toLog.length,
               go: () => (onWriteUp ? onWriteUp() : push("unlogged")) },
-            (requests || []).length > 0 && { glyph: [UserPlus, HUE.blue], key: "join", tour: "today-requests", label: tr("Join requests"), n: requests.length,
+            (requests || []).length > 0 && { key: "join", tour: "today-requests", label: tr("Join requests"), n: requests.length,
               go: () => push("requests") },
-            unread > 0 && { glyph: [MessageCircle, HUE.green], key: "msg", label: tr("Messages"), n: unread, go: () => go("messages") },
-            drifting > 0 && { glyph: [Hourglass, HUE.wine], key: "drift", label: tr("Drifting"), n: drifting, go: () => push("atrisk") },
-            events.length > 0 && { glyph: [Trophy, HUE.gold], key: "event", label: tr("Competitions"), n: events.length, go: () => push("events") },
+            unread > 0 && { key: "msg", label: tr("Messages"), n: unread, go: () => go("messages") },
+            drifting > 0 && { key: "drift", label: tr("Drifting"), n: drifting, go: () => push("atrisk") },
+            events.length > 0 && { key: "event", label: tr("Competitions"), n: events.length, go: () => push("events") },
           ].filter(Boolean);
           if (!asks.length && !jobs.length) return null;
           /* the kinds of thing here */
@@ -13729,9 +13710,9 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
                              <TextBtn quiet color={t.faint} onClick={() => { haptic(9); onDecline && onDecline(r); }}>{tr("Decline")}</TextBtn>
                            </>} />
               ))}
+              {/* the kind and its count, no glyph: the word says which (23 November) */}
               {shownJobs.map((j) => (
-                <HomeRow boxed key={j.key} tour={j.tour} label={j.label} value={String(j.n)} onPress={j.go}
-                         icon={j.glyph ? <IconSq Icon={j.glyph[0]} bg={j.glyph[1]} /> : null} />
+                <HomeRow boxed key={j.key} tour={j.tour} label={j.label} value={String(j.n)} onPress={j.go} />
               ))}
             </Ruled>
           </>);
@@ -13741,8 +13722,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
             its own row, on its own */}
         {lessonCount > 0 && (
           <Ruled style={{ marginBottom: SPACE.section }}>
-            <HomeRow boxed tour="today-archive" label={tr("All lessons")} value={String(lessonCount)} onPress={() => push("archive")}
-                     icon={<IconSq Icon={Film} bg={HUE.brand} />} />
+            <HomeRow boxed tour="today-archive" label={tr("All lessons")} value={String(lessonCount)} onPress={() => push("archive")} />
           </Ruled>
         )}
 
@@ -14352,7 +14332,6 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                   <p className="text-center py-8" style={{ ...TYPE.body, color: t.faint }}>{searching ? `${tr("Nobody called")} “${q.trim()}”` : tr("No players yet")}</p>
                   {onAddPlayer && (
                     <button onClick={() => { haptic(8); onAddPlayer(); }} className="w-full flex items-center gap-3.5 text-left active:opacity-50" style={{ minHeight: 56, borderTop: hair, borderBottom: hair }}>
-                      <UserPlus size={17} color={t.ink} strokeWidth={1.7} />
                       <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Add a player")}</span>
                       <ChevronRight size={16} color={t.trace || t.faint} />
                     </button>
@@ -14722,30 +14701,33 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
               of faces with a glyph in a disc the size of an avatar, so
               it read as a third player called All lessons. It is a box
               of its own under the players, as on the coach's home. */}
+          {/* the door every All lessons is — the home's own HomeRow, 60 tall,
+              the count in the sub grey (it was drawn here by hand at 56 with
+              the count a step fainter) */}
           {lessonCount > 0 && (
             <div className="nsc-list" style={{ marginTop: SPACE.block }}>
-              <button data-tour="roster-archive" onClick={() => { haptic(7); soft(); push("archive"); }}
-                      className="w-full flex items-center gap-3 text-left active:opacity-50"
-                      style={{ minHeight: 56 }}>
-                <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{tr("All lessons")}</span>
-                <span className="shrink-0" style={{ ...TYPE.body, color: t.faint }}>{lessonCount}</span>
-                <ChevronRight size={15} color={t.trace || t.faint} />
-              </button>
+              <HomeRow boxed tour="roster-archive" label={tr("All lessons")} value={String(lessonCount)} onPress={() => push("archive")} />
             </div>
           )}
-        </>) : (
+        </>) : (<>
           <div className="nsc-list">
             {groups.map((g) => row(g.id, "roster-group", () => { haptic(6); push("group:" + g.name); }, <Avatar name={g.name} size={PERSON_FACE} group />, g.name,
                 /* the members still on the roster — the picker's count and the
                    page's list, one number on all three; never a nought */
                 [countOf(membersOnRoster(g, all).length, nouns || "players"), `${(DAY_NAMES[g.day] || String(g.day || "")).slice(0, 3)} ${g.time}`].filter((x) => x.trim()).join(" · ")))}
-            {/* the one New group sheet, under the one name: it opened a second
-                sheet of chips headed the same, and read "Create a group" */}
-            {row("new", "roster-newgroup", () => { hapticCommit(); sheet("newGroup"); },
-                <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: PERSON_FACE, height: PERSON_FACE, background: t.wash }}><Plus size={17} color={t.sub} strokeWidth={2} /></span>,
-                tr("New group"), null)}
           </div>
-        )}
+          {/* the one New group sheet, under the one name: it opened a second
+              sheet of chips headed the same, and read "Create a group" */}
+          {/* NEW GROUP IS A ROUTE, NOT A GROUP (23 November). It sat in the
+              column of groups with a plus in a disc the size of a face, so it
+              read as one more group called New group — All lessons' mistake
+              in the other half. A row of words carries no icon: it is a door
+              in a box of its own under the groups, the word and the chevron,
+              as All lessons is under the players. */}
+          <div className="nsc-list" style={{ marginTop: SPACE.block }}>
+            <HomeRow boxed tour="roster-newgroup" label={tr("New group")} onPress={() => sheet("newGroup")} />
+          </div>
+        </>)}
       </div>
     </Screen>
   );
@@ -15150,7 +15132,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               lessons is on the home and the roster — it was a button */}
           {past.length > 0 && (
             <div className="nsc-list" style={{ marginBottom: SPACE.block }}>
-              <HomeRow boxed tour="player-all-lessons" label={tr("All lessons")} value={String(live ? f.done : past.length)} icon={<IconSq Icon={Film} bg={HUE.brand} />}
+              <HomeRow boxed tour="player-all-lessons" label={tr("All lessons")} value={String(live ? f.done : past.length)}
                        onPress={() => { onAllLessons ? onAllLessons() : push("history:" + (r.id || name)); }} />
             </div>
           )}
@@ -15177,14 +15159,16 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               ...(onNote ? [[tr("Notes"), onNote, note ? String(note).split("\n")[0] : null]] : []),
               [tr("Recurring lessons"), () => onRecurring(name), seriesFor ? `${DAY_NAMES[seriesFor.day].slice(0, 3)} ${seriesFor.time}` : null],
               ...(live ? [] : [[sportTool ? sportTool.label : tr("Sport record"), () => push("tool"), null]])].map(([lbl, act, val]) => (
-              <button key={lbl} data-tour={lbl === tr("Progress") ? "player-progress" : lbl === tr("Notes") ? "player-notes" : undefined} onClick={() => { haptic(6); soft(); act(); }} className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-                      style={{ minHeight: 56 }}>
-                {lbl === tr("Progress") ? <IconSq Icon={TrendingUp} bg={HUE.green} /> : lbl === tr("Notes") ? <IconSq Icon={Pencil} bg={HUE.orange} />
-                  : lbl === tr("Recurring lessons") ? <IconSq Icon={Repeat} bg={HUE.blue} /> : <IconSq Icon={Trophy} bg={HUE.gold} />}
-                <span className="shrink-0" style={{ ...TYPE.body, color: t.ink }}>{lbl}</span>
+              /* the word, its value, the chevron — no glyph (23 November) — and
+                 the door's own 60, as All lessons above them (they stood 56 with
+                 a tile each: a chart, a pencil, a loop, a trophy). The word never
+                 gives way; a long note's first line is cut beside it */
+              <button key={lbl} data-row-door="" data-tour={lbl === tr("Progress") ? "player-progress" : lbl === tr("Notes") ? "player-notes" : lbl === tr("Recurring lessons") ? "player-recurring" : undefined} onClick={() => { haptic(6); soft(); act(); }} className="w-full flex items-center gap-3.5 text-left active:opacity-50"
+                      style={{ minHeight: 60 }}>
+                <span data-row-label="" className="shrink-0" style={{ ...TYPE.body, color: t.ink }}>{lbl}</span>
                 {val && <span className="flex-1 min-w-0 truncate text-right" style={{ ...TYPE.body, color: t.sub }}>{val}</span>}
                 {!val && <span className="flex-1" />}
-                <ChevronRight size={14} color={t.trace || t.faint} />
+                <ChevronRight size={15} color={t.trace || t.faint} />
               </button>
             ))}
           </div>
@@ -15277,12 +15261,12 @@ function FilterRow({ options, value, onChange, label, last, plain, inset = false
   return (
     <div style={{ borderBottom: last && !plain ? hair : "none" }}>
       {/* inset, it is a Settings row standing in a list of its own (the
-          Drills tab's Reminder): its glyph, the label in ink and the value
-          grey, as Settings draws the same row; a filter reads the other way */}
+          Drills tab's Reminder): the label in ink on the row's inset and the
+          value grey, no glyph, as Settings draws the same row (23 November);
+          a filter reads the other way */}
       <button onClick={() => { haptic(6); setOpen(!open); }} className={`w-full flex items-center ${inset ? "gap-3.5" : "gap-3"} text-left active:opacity-50 ${inset ? "" : "px-6"}`}
               style={{ minHeight: inset ? 56 : 52, borderTop: plain ? "none" : hair, ...(inset ? { paddingLeft: 16, paddingRight: 16 } : {}) }}>
-        {inset && settingsGlyph(label)}
-        <span className="shrink-0" style={{ ...TYPE.body, color: inset ? t.ink : t.sub }}>{label}</span>
+        <span data-row-label="" className="shrink-0" style={{ ...TYPE.body, color: inset ? t.ink : t.sub }}>{label}</span>
         <span data-filter-value="" className="flex-1 min-w-0 text-right"
               style={{ ...TYPE.body, fontWeight: inset ? 400 : 600, color: inset ? t.sub : t.ink, overflowWrap: "break-word",
                        ...(facts ? { marginRight: `-${SEP_HANG}`, clipPath: `inset(0 ${SEP_HANG} 0 0)` } : null) }}>
@@ -15301,8 +15285,7 @@ function FilterRow({ options, value, onChange, label, last, plain, inset = false
             <button key={o} aria-pressed={value === o} onClick={() => { haptic(5); onChange(o); setOpen(false); }}
                     className={`w-full flex items-center ${inset ? "gap-3.5" : "gap-3"} text-left active:opacity-50 ${inset ? "" : "px-6"}`}
                     style={{ minHeight: inset ? 50 : 46, borderTop: hair, ...(inset ? { paddingLeft: 16, paddingRight: 16, background: t.surface } : {}) }}>
-              {inset && settingsGlyph(label) && <span className="shrink-0" style={{ width: 30 }} />}
-              <span className="flex-1 min-w-0" style={{ ...TYPE.body, fontWeight: value === o ? 600 : 400, color: t.ink, overflowWrap: "break-word" }}>{o}</span>
+              <span data-row-option="" className="flex-1 min-w-0" style={{ ...TYPE.body, fontWeight: value === o ? 600 : 400, color: t.ink, overflowWrap: "break-word" }}>{o}</span>
               {value === o && <Check size={14} color={t.accent} strokeWidth={2.4} className="shrink-0" />}
             </button>
           ))}
@@ -16165,7 +16148,6 @@ function ImportRoster({ close, say, noun, nouns, code }) {
         <button onClick={() => { haptic(8); pickContacts(); }}
                 className="w-full flex items-center gap-3.5 px-5 n-key"
                 style={{ minHeight: 56, borderRadius: R.surface, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}>
-          <Users size={17} color={t.sub} strokeWidth={1.6} />
           <span className="flex-1 text-left" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{tr("Pick from Contacts")}</span>
           <ChevronRight size={15} color={t.trace || t.faint} />
         </button>
@@ -16396,7 +16378,7 @@ function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder, onLo
               words, under the list */}
           {onAll && (
             <div className="px-6 pt-3"><div className="nsc-list">
-              <HomeRow boxed tour="drills-all" label={tr("All drills")} value={String(items.length)} onPress={onAll} icon={<IconSq Icon={ListChecks} bg={HUE.purple} />} />
+              <HomeRow boxed tour="drills-all" label={tr("All drills")} value={String(items.length)} onPress={onAll} />
             </div></div>
           )}
         </>
@@ -16502,12 +16484,11 @@ function CoachPractice({ items, sheet, push, right, live, roster, drills, onRemo
     <Screen title={tr("Drills")} right={right}>
       <div className="px-6 mb-6">
         <button onClick={() => { haptic(10); sheet(); }} className="w-full p-5 flex items-center gap-4 text-left n-key" style={{ borderRadius: R.surface, border: `${EDGE_W}px solid ${KEY_RING(t)}`, position: "relative", zIndex: 1, borderLeft: `2px solid ${t.accent}` }}>
-          <ListChecks size={19} color={t.accent} strokeWidth={1.6} />
           <span className="flex-1"><span className="block" style={{ fontFamily: display, fontSize: 20, color: t.ink }}>{tr("Set drills")}</span><span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{tr("Choose who, and what they practise")}</span></span>
           <ChevronRight size={17} color={t.trace || t.faint} />
         </button>
       </div>
-      <div className="px-6 mb-6"><Card><Row label={tr("Drill library")} sub={tr("Your reusable drills")} chevron last icon={<ListChecks size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => push("library")} /></Card></div>
+      <div className="px-6 mb-6"><Card><Row label={tr("Drill library")} sub={tr("Your reusable drills")} chevron last onToggle={() => push("library")} /></Card></div>
       <Eyebrow>{tr("This week")}</Eyebrow>
       <div className="px-6 pb-2">{live && rows.length === 0 ? (<EmptyLine>{tr("No one on your roster yet")}</EmptyLine>) : <Card>{rows.map((r, i) => { const none = r.total === 0; const isOpen = live && open === r.id; return (
         <div key={r.id}>
@@ -16855,10 +16836,10 @@ function AwayLine({ role, name, booked = 0, onEdit }) {
   if (role === "coach") return (
     /* the column's own box — the list's white card on its line and
        ledge, as the lesson boxes under it (21 November; it was the wash
-       at 8px) — its glyph Settings' Away, its line in the label grey */
+       at 8px) — the word and its line in the label grey, no plane on a
+       tile beside them (23 November: a row of words carries no icon) */
     <div className="nsc-list mb-4">
       <div data-tour="cal-away" className="flex items-center gap-3.5" style={{ minHeight: 62 }}>
-        <IconSq Icon={Plane} bg={HUE.blue} />
         <span className="flex-1 min-w-0">
           <span className="block" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{tr("Away")}</span>
           <span className="block truncate" style={{ ...TYPE.small, color: t.sub }}>{booked ? `${booked} ${booked === 1 ? tr("lesson still booked") : tr("lessons still booked")}` : tr("Nothing offered")}</span>
@@ -17312,18 +17293,15 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
 
             {booked.length > 0 && (
               <div className="nsc-list mb-4">
-              <button data-tour="cal-weather" onClick={() => { haptic(9); onWeatherDay && onWeatherDay({ m: mo.idx, d: sel }); }}
-                      className="w-full flex items-center gap-3.5"
-                      style={{ minHeight: 58 }}>
-                {/* a calendar with an X on the plus's red square: a coach calls
-                    off for a closed course as often as for rain. The list's white
-                    card, sinking under the finger (21 November; the wash at 8px) */}
-                <IconSq Icon={CalendarX} bg={HUE.red} />
-                <span className="flex-1 text-left" style={{ ...TYPE.body, color: t.ink }}>
-                  {mo.idx === T.m && sel === T.d ? tr("Call today off") : `${tr("Call off")} ${DAY_NAMES[dowOf(mo.idx, sel, cx)].slice(0, 3)} ${sel}`}
-                </span>
-                <ChevronRight size={16} color={t.trace || t.faint} />
-              </button>
+                {/* THE RED IS IN THE WORD (23 November). The row led with a
+                    calendar-and-X on a red tile and read in ink, so the tile
+                    alone said it takes lessons away; a row of words carries no
+                    icon now, and a row told apart by its tile's colour is told
+                    by its word's — the family's red, as the plus sheet's Call
+                    off and the peek's are. The list's white card, a door's 60,
+                    sinking under the finger. */}
+                <HomeRow boxed danger tour="cal-weather" onPress={() => onWeatherDay && onWeatherDay({ m: mo.idx, d: sel })}
+                         label={mo.idx === T.m && sel === T.d ? tr("Call today off") : `${tr("Call off")} ${DAY_NAMES[dowOf(mo.idx, sel, cx)].slice(0, 3)} ${sel}`} />
               </div>
             )}
 
@@ -17980,7 +17958,6 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
     </div>
   );
   const age = f.dob ? (() => { const b = localDate(f.dob), n = new Date(); let a = n.getFullYear() - b.getFullYear(); if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) a--; return isNaN(a) ? null : a; })() : null;
-  const I = ({ C, danger }) => <C size={17} color={danger ? DANGER : t.sub} strokeWidth={1.6} />;
 
   return (
     <SwipeBack onBack={pop}>
@@ -18071,9 +18048,11 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
               sign-in, your password, leaving, and going for good. */}
           <Eyebrow>{tr("Sign-in")}</Eyebrow>
           <Card className="mb-6" tour="profile-account">
-            {account && account.email && <Row label={tr("Email")} value={account.email} icon={<I C={Mail} />} />}
-            <Row label={tr("Change password")} chevron icon={<I C={Lock} />} onToggle={onChangePassword} />
-            <Row tour="profile-delete" label={tr("Delete account")} sub={tr("Everything, permanently")} danger last icon={<I C={Trash2} danger />} onToggle={onDelete} />
+            {/* the words alone (23 November): an envelope, a padlock and a red
+                bin led these three, and the red word is enough */}
+            {account && account.email && <Row label={tr("Email")} value={account.email} />}
+            <Row label={tr("Change password")} chevron onToggle={onChangePassword} />
+            <Row tour="profile-delete" label={tr("Delete account")} sub={tr("Everything, permanently")} danger last onToggle={onDelete} />
           </Card>
           <div style={{ height: 26 }} />
         </div>
@@ -18092,19 +18071,20 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
      Every row in Settings is one of three shapes and this is the second
      of them. */
   const [openPick, setOpenPick] = useKept("pick", null);
-  const choice = (id, label, value, options, onPick, Ico) => {
+  const choice = (id, label, value, options, onPick) => {
     const cur = options.find((o) => o.id === value) || options[0];
     const isOpen = openPick === id;
     return (
       <div>
         {/* the head is a row of the group like any other: 56 tall, 16 in
             and Row's 17px chevron — it stood 6 taller and 2 further left
-            than the rows round it */}
-        <button onClick={() => { haptic(6); setOpenPick(isOpen ? null : id); }}
+            than the rows round it. No glyph leads it (23 November), so the
+            options under it start where its label does: they sat 44 further
+            in behind a spacer the width of the tile */}
+        <button onClick={() => { haptic(6); setOpenPick(isOpen ? null : id); }} data-row=""
                 className="w-full flex items-center gap-3.5 text-left active:opacity-50" style={{ minHeight: 56, paddingLeft: 16, paddingRight: 16 }}>
-          {settingsGlyph(label) || (Ico && <I C={Ico} />)}
-          <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
-          <span className="shrink-0 truncate" style={{ ...TYPE.body, color: t.sub, maxWidth: "50%" }}>{cur && cur.label}</span>
+          <span data-row-label="" className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
+          <span data-row-value="" className="shrink-0 truncate" style={{ ...TYPE.body, color: t.sub, maxWidth: "50%" }}>{cur && cur.label}</span>
           <ChevronRight size={17} color={t.trace || t.faint} style={{ transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 200ms" }} />
         </button>
         {isOpen && (
@@ -18113,8 +18093,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
               <button key={o.id} aria-pressed={value === o.id} onClick={() => { haptic(6); onPick(o.id); setOpenPick(null); }}
                       className="w-full flex items-center gap-3.5 text-left active:opacity-50"
                       style={{ minHeight: 50, paddingLeft: 16, paddingRight: 16, borderTop: `1px solid ${t.hair}` }}>
-                {(settingsGlyph(label) || Ico) && <span className="shrink-0" style={{ width: settingsGlyph(label) ? 30 : 17 }} />}
-                <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: value === o.id ? 600 : 400, color: t.ink }}>{o.label}</span>
+                <span data-row-option="" className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: value === o.id ? 600 : 400, color: t.ink }}>{o.label}</span>
                 {value === o.id && <Check size={15} color={t.accent} strokeWidth={2.4} />}
               </button>
             ))}
@@ -18125,12 +18104,11 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
   };
   const setPref = (k, v) => setPrefs && setPrefs((p) => ({ ...p, [k]: v }));
   const sub = role === "coach" ? (brandName ? `${cfg.label} coach · ${brandName}` : `${cfg.label} coach`) : (conn?.coach ? `${cfg.label} · ${conn.coach}` : cfg.label);
-  const I = ({ C }) => <C size={17} color={t.sub} strokeWidth={1.6} />;
 
   /* Every setting is a row in a group, so the list can be searched and
-     nothing here is drawn twice. A row is { label, sub, value, icon,
-     onTap, right, tour, keys } — `keys` are words someone might type
-     for it that are not in its label. */
+     nothing here is drawn twice. A row is { label, sub, value, onTap,
+     right, tour, keys, danger } — `keys` are words someone might type
+     for it that are not in its label. No row carries a glyph. */
   const T = (on, set, extra) => <Toggle on={on} onChange={(v) => { set(v); extra && extra(v); }} />;
   const groups = [
     role === "coach" ? { title: tr("Coaching"), tour: "settings-coaching", rows: [
@@ -18173,13 +18151,15 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
       { label: tr("Lesson logs"), tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["export", "file", "save"] },
       live && { label: tr("Downloads"), sub: downloadsSub || null, tour: "settings-downloads", onTap: () => push("saved:downloads"), keys: ["download", "offline", "saved", "phone", "storage"] },
       live && onCalendar && calendarSub && { label: tr("Calendar"), sub: calendarSub, tour: "settings-calendar", onTap: () => onCalendar(), keys: ["ical", "ics", "export", "google", "apple", "outlook", "sync", "diary", "events", "bookings", "add", "phone"] },
-      !live && { label: tr("Subscription"), sub: tr("Free — your coach's plan covers you"), icon: ShieldCheck },
+      !live && { label: tr("Subscription"), sub: tr("Free — your coach's plan covers you") },
     ] },
     { title: tr("App"), tour: "settings-appearance", rows: [
       live && (startOptions || []).length > 1 && { label: tr("Opens on"), keys: ["start", "home", "first screen"],
         /* SETTINGS ROWS CARRY NO GLYPH. Two of forty did — a tick on
            Take attendance and a house on Opens on — which is the sort
-           of thing you only notice as a wobble in a straight line. */
+           of thing you only notice as a wobble in a straight line.
+           (Every row carried one on a coloured tile from 21 to 23
+           November; the founder found it tacky and they are gone.) */
         custom: choice("startOn", tr("Opens on"), startOn || "auto", startOptions, setStartOn) },
       { label: L.sound, right: T(soundState, setSoundState, (v) => { setSoundOn(v); if (v) chime(); }), keys: ["tones", "audio", "mute"] },
       { label: L.haptics, right: T(hapticsOn, setHapticsOn, setHapticsEnabled), keys: ["vibrate", "vibration", "feedback", "tap"] },
@@ -18264,13 +18244,16 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
             <div className="px-6 mb-6" data-tour={g.tour}><div className="nsc-group" data-group="">
               {g.rows.map((r, i) => r.custom
                 ? <div key={r.label} className="nsc-flush" data-tour={r.tour}>{r.custom}</div>
-                : <Row key={r.label} tour={r.tour} label={r.label} sub={r.sub} value={r.value} danger={r.danger} chevron={!!r.onTap && !r.right}
+                /* LABEL · VALUE · CHEVRON, and nothing leading it (23 November).
+                   What a row holds — the family's name, the coach, the days
+                   away, the address — is its value, in the sub grey on the
+                   right, where List and 8:00 am and the invite code already
+                   stood: it was a small line under the label on half the rows
+                   and a value on the right on the other half. A red row
+                   (Delete account) is told by its red word, where it was told
+                   by a bin on a red tile. */
+                : <Row key={r.label} tour={r.tour} label={r.label} value={r.value || r.sub || undefined} danger={r.danger} chevron={!!r.onTap && !r.right}
                        last={i === g.rows.length - 1} right={r.right}
-                       /* Every row leads with its glyph on its coloured tile
-                          (SETTINGS_GLYPHS, 21 November). A red row the table
-                          has not named still carries the bin, on the app's own
-                          red — never Apple's system red */
-                       icon={settingsGlyph(r.label) || (r.danger ? <IconSq Icon={Trash2} bg={HUE.red} /> : undefined)}
                        onToggle={r.onTap} />)}
             </div></div>
           </React.Fragment>
@@ -18326,7 +18309,7 @@ function Details({ role, pop, say, me, onSave, onChangePassword }) {
             <p className="px-2 mb-5" style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.6, color: t.faint }}>{tr("Signed in as")} {me.email}</p>
           )}
           {role === "player" && (<p className="px-2 mb-5" style={{ fontFamily: ui, fontSize: 12, lineHeight: 1.6, color: t.faint }}>Handicap and WTN now live under your stats — tap "Edit stats" on your home screen.</p>)}
-          {onChangePassword && <Card><Row label={tr("Change password")} chevron last icon={<Lock size={17} color={t.sub} strokeWidth={1.6} />} onToggle={onChangePassword} /></Card>}
+          {onChangePassword && <Card><Row label={tr("Change password")} chevron last onToggle={onChangePassword} /></Card>}
         </div>
       </Screen>
     </SwipeBack>
@@ -18376,9 +18359,9 @@ function Notifications({ role, pop, pushOn, setPushOn, live, notify, setNotify, 
     <SwipeBack onBack={pop}>
       <Screen title={tr("Notifications")} onBack={pop}>
         <div className="px-6 mb-2 mt-2"><Card tour="notif-push">
-          <Row label={tr("Tell me even when Nosca is closed")} sub={subscribed ? tr("On for this device") : why ? null : tr("Push notifications")}
-               last right={<Toggle on={subscribed} onChange={(v) => { if (!why || subscribed) flip(v); else { hapticWarn(); say && say(why); } }} />}
-               icon={subscribed ? <Bell size={17} color={t.accent} strokeWidth={1.8} /> : <BellOff size={17} color={t.sub} strokeWidth={1.6} />} />
+          <Row wrap label={tr("Tell me even when Nosca is closed")} sub={subscribed ? tr("On for this device") : why ? null : tr("Push notifications")}
+               /* the switch says whether it is on: a bell, struck through when off, said it a second time */
+               last right={<Toggle on={subscribed} onChange={(v) => { if (!why || subscribed) flip(v); else { hapticWarn(); say && say(why); } }} />} />
         </Card></div>
         {why && !subscribed && <p className="px-8 mb-6" style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.6, color: t.faint }}>{why}</p>}
         {!why && <div style={{ height: 22 }} />}
@@ -18936,8 +18919,8 @@ function Support({ pop, say, live }) {
         <div className="px-6 pb-2">
           {!live && (<><Eyebrow>{tr("Common questions")}</Eyebrow><Card className="mb-6">{faqs.map((f, i) => <Row key={f} label={f} chevron last={i === faqs.length - 1} onToggle={() => {}} />)}</Card></>)}
           <Eyebrow>{tr("Get in touch")}</Eyebrow><Card>
-            <Row label={tr("Email support")} sub={live ? SUPPORT_EMAIL : "help@nosca.app"} chevron icon={<Mail size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => (live ? mail(`${BRAND}: ${tr("a question")}`) : say("Opens your mail app"))} />
-            <Row label={tr("Report a problem")} chevron last icon={<HelpCircle size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => (live ? mail(`${BRAND}: ${tr("a problem")}`) : say("Thanks — we'll look into it"))} />
+            <Row label={tr("Email support")} sub={live ? SUPPORT_EMAIL : "help@nosca.app"} chevron onToggle={() => (live ? mail(`${BRAND}: ${tr("a question")}`) : say("Opens your mail app"))} />
+            <Row label={tr("Report a problem")} chevron last onToggle={() => (live ? mail(`${BRAND}: ${tr("a problem")}`) : say("Thanks — we'll look into it"))} />
           </Card>
         </div>
       </Screen>
@@ -19068,11 +19051,14 @@ function SearchScreen({ role, cfg, library, tips, pop, go, push, lessons: given,
           {/* nothing until there is a term: the field is the whole screen */}
           {!term ? null : total === 0 ? (<EmptyLine className="px-6">Nothing matching “{q}”</EmptyLine>
           ) : (<>
-            {lessons.length > 0 && (<><Eyebrow>{tr("Lessons")}</Eyebrow><div className="px-6 mb-6"><Card>{lessons.map((l, i) => (<Row key={l.id} label={l.focus} sub={[`${l.d} ${l.m}`, (l.subs || []).join(", ")].filter(Boolean).join(" · ")} chevron icon={<FileText size={17} color={t.sub} strokeWidth={1.6} />} last={i === lessons.length - 1} onToggle={() => push(role === "coach" ? `clesson:${l.id}:${l.who}` : `lesson:${l.id}`)} />))}</Card></div></>)}
-            {tipHits.length > 0 && (<><Eyebrow>{tr("Tips")}</Eyebrow><div className="px-6 mb-6"><Card>{tipHits.map((x, i) => (<Row key={x.id} label={x.title} sub={x.body} chevron icon={<Lightbulb size={17} color={t.sub} strokeWidth={1.6} />} last={i === tipHits.length - 1} onToggle={() => push("tips")} />))}</Card></div></>)}
-            {drills.length > 0 && (<><Eyebrow>{tr("Drills")}</Eyebrow><div className="px-6 mb-6"><Card>{drills.map((d, i) => (<Row key={d.t} label={d.t} sub={d.d || null} chevron icon={<ListChecks size={17} color={t.sub} strokeWidth={1.6} />} last={i === drills.length - 1} onToggle={() => go("practice")} />))}</Card></div></>)}
+            {/* the heading says the kind, so no row repeats it as a grey glyph
+                (a page, a bulb, a list, a bubble — 23 November); a person is
+                their face, in Players and in Messages alike */}
+            {lessons.length > 0 && (<><Eyebrow>{tr("Lessons")}</Eyebrow><div className="px-6 mb-6"><Card>{lessons.map((l, i) => (<Row key={l.id} label={l.focus} sub={[`${l.d} ${l.m}`, (l.subs || []).join(", ")].filter(Boolean).join(" · ")} chevron last={i === lessons.length - 1} onToggle={() => push(role === "coach" ? `clesson:${l.id}:${l.who}` : `lesson:${l.id}`)} />))}</Card></div></>)}
+            {tipHits.length > 0 && (<><Eyebrow>{tr("Tips")}</Eyebrow><div className="px-6 mb-6"><Card>{tipHits.map((x, i) => (<Row key={x.id} label={x.title} sub={x.body} chevron last={i === tipHits.length - 1} onToggle={() => push("tips")} />))}</Card></div></>)}
+            {drills.length > 0 && (<><Eyebrow>{tr("Drills")}</Eyebrow><div className="px-6 mb-6"><Card>{drills.map((d, i) => (<Row key={d.t} label={d.t} sub={d.d || null} chevron last={i === drills.length - 1} onToggle={() => go("practice")} />))}</Card></div></>)}
             {people.length > 0 && (<><Eyebrow>{tr("Players")}</Eyebrow><div className="px-6 mb-6"><Card>{people.map((r, i) => (<Row key={r.id || r.name} label={r.name} sub={`${r.lessons} ${r.lessons === 1 ? tr("lesson") : tr("lessons")}${r.since ? ` · ${tr("since")} ${r.since}` : ""}`} chevron icon={<Avatar name={r.name} size={38} />} last={i === people.length - 1} onToggle={() => push("player:" + (r.id || r.name))} />))}</Card></div></>)}
-            {msgs.length > 0 && (<><Eyebrow>{tr("Messages")}</Eyebrow><div className="px-6 pb-4"><Card>{msgs.map((c, i) => (<Row key={c.id || c.name} label={c.name} sub={c.text} chevron icon={<MessageCircle size={17} color={t.sub} strokeWidth={1.6} />} last={i === msgs.length - 1} onToggle={() => push("thread:" + (c.id || c.name))} />))}</Card></div></>)}
+            {msgs.length > 0 && (<><Eyebrow>{tr("Messages")}</Eyebrow><div className="px-6 pb-4"><Card>{msgs.map((c, i) => (<Row key={c.id || c.name} label={c.name} sub={c.text} chevron icon={<Avatar name={c.name} size={38} />} last={i === msgs.length - 1} onToggle={() => push("thread:" + (c.id || c.name))} />))}</Card></div></>)}
           </>)}
         </div>
       </div>
@@ -19506,12 +19492,9 @@ function LessonDeleteBody({ lesson, mediaCount = 0, onConfirm, say, close }) {
   const [err, setErr] = useState("");
   return (
     <>
-      <div className="flex items-center gap-3 mb-4">
-        <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 40, height: 40, background: `${DANGER}14` }}>
-          <Trash2 size={18} color={DANGER} strokeWidth={2} />
-        </span>
-        <h2 style={{ ...TYPE.title, color: t.ink }}>{tr("Delete this lesson")}</h2>
-      </div>
+      {/* the sheet's title, as every sheet's is: a red bin on a disc led it,
+          beside words that already say Delete (23 November) */}
+      <h2 className="mb-4" style={{ ...TYPE.title, color: t.ink }}>{tr("Delete this lesson")}</h2>
       <p className="mb-5" style={{ ...TYPE.body, lineHeight: 1.6, color: t.sub }}>
         {lesson.focus} · {lesson.who} · {lesson.d} {lesson.m}.
         {mediaCount > 0 ? ` ${mediaCount} ${mediaCount === 1 ? tr("file goes with it") : tr("files go with it")}.` : ""}

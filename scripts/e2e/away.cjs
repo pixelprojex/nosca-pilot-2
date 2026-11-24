@@ -107,6 +107,11 @@ const { check, results, summary } = M.checker("away");
       const aw = await page.locator('[data-tour="cal-away"]').first().evaluate((el) => { const cs = getComputedStyle(el); const line = el.querySelector("span span:last-child"); return { r: cs.borderRadius, pl: cs.paddingLeft, c: line ? getComputedStyle(line).color : null }; }).catch(() => null);
       /* the list's white card since 21 November (it was the wash at 8px, 14 in), its line in the sub grey, #5F5F65 */
       check("(c) the Away row is the column's white card (14px, 16 in) with its line in t.sub", !!aw && aw.r === "14px" && aw.pl === "16px" && aw.c === "rgb(95, 95, 101)", JSON.stringify(aw));
+      /* 23 November: a row of words carries no icon — the plane on its blue tile is gone, and the word Away starts on the
+         box's own inset with nothing before it; Edit stays, the row's one action */
+      const lead = await page.locator('[data-tour="cal-away"]').first().evaluate((el) => { const w = [...el.querySelectorAll("span")].find((s) => s.children.length === 0 && s.textContent.trim() === "Away"), r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+        return { svgs: el.querySelectorAll("svg").length, lead: w ? Math.round(w.getBoundingClientRect().left - r.left - parseFloat(cs.borderLeftWidth) - parseFloat(cs.paddingLeft)) : null, h: Math.round(r.height), edit: !!el.querySelector("button") }; }).catch(() => null);
+      check("(c) …and it leads with its word: no plane, no glyph at all, Away on the box's inset, Edit on the right", !!lead && lead.svgs === 0 && lead.lead === 0 && lead.edit && lead.h >= 62, JSON.stringify(lead));
       await tap(page, `[data-day="${dayOf(dayPlus(db, 3))}"]`, 700);
       const t3 = await text();
       check("(c) a booked day inside the span reads Away · 1 lesson still booked, the lesson under it, Call off under that", /1 lesson still booked/.test(t3) && /Cian Murphy/.test(t3) && (await page.locator('[data-tour="cal-weather"]').count()) === 1, t3.slice(0, 220));

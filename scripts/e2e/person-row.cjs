@@ -187,8 +187,10 @@ const { check, results, summary } = M.checker("person-row");
                    recurwho375: at("coach@375", "recurwho").filter((r) => r.sheet), recurwho320: at("coach@320", "recurwho").filter((r) => r.sheet),
                    pickwho375: at("coach@375", "pickwho").filter((r) => r.sheet), pickwho320: at("coach@320", "pickwho").filter((r) => r.sheet),
                    notices375: at("coach@375", "alerts").filter((r) => !r.acts), notices320: at("coach@320", "alerts").filter((r) => !r.acts) };
+    /* the Groups half holds the fixture's one group as a person row; New group under it is a door in a box of its own
+       since 23 November — it was a second "person" of the column, a plus in a disc the size of a face (boxes.cjs (f3)) */
     check("(a) the twelve surfaces carry the one row, at 375 and at 320: Today's requests, the roster's players and groups, Chat, the message picker, New group's people, the recurring sheet's who, the pick-a-player sheet, Drifting, the bell's requests and its notices, the family's children",
-      found.asks375.length >= 2 && found.roster375.length >= 3 && found.groups375.length >= 2 && found.ask375.length >= 1 && found.kids375.length >= 2 && found.drift375.length >= 1 && chat.at375.length >= 4 && more.picker375.length >= 3 && more.newgroup375.length >= 3 && more.recurwho375.length >= 3 && more.pickwho375.length >= 3 && more.notices375.length >= 3
+      found.asks375.length >= 2 && found.roster375.length >= 3 && found.groups375.length === 1 && found.groups375[0].tour === "roster-group" && found.ask375.length >= 1 && found.kids375.length >= 2 && found.drift375.length >= 1 && chat.at375.length >= 4 && more.picker375.length >= 3 && more.newgroup375.length >= 3 && more.recurwho375.length >= 3 && more.pickwho375.length >= 3 && more.notices375.length >= 3
       && found.asks320.length >= 2 && found.roster320.length >= 3 && found.ask320.length >= 1 && found.kids320.length >= 2 && found.drift320.length >= 1 && chat.at320.length >= 4 && more.picker320.length >= 3 && more.newgroup320.length >= 3 && more.recurwho320.length >= 3 && more.pickwho320.length >= 3 && more.notices320.length >= 3,
       JSON.stringify(Object.fromEntries(Object.entries({ ...found, ...more }).map(([k, v]) => [k, v.length]))));
     /* Chat's list is Messages' (21 November): a 54 face over a plain list; every other row the one 44 */

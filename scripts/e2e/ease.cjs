@@ -138,6 +138,14 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
          the heading (four tiles naming Requests · Join requests · Messages stood over rows that named themselves) */
       const act1 = await actionsOf(page);
       check("(c2) Actions with more than two kinds but a handful of rows carries no filter — the rows sit straight under the heading", !!act1 && act1.kinds > 2 && act1.rows <= 6 && !act1.filter && act1.gap !== null && act1.gap <= 16, JSON.stringify(act1));
+      /* 23 November: a row of words carries no icon. An Actions row is its word, its count in the sub grey and the
+         chevron, on the box's 16 inset, 60 tall — each led with a glyph on a coloured tile for two days (a pencil, a
+         person-and-plus, a bubble, an hourglass, a trophy, a camera) — and All lessons under them the same door */
+      const nJobs = await page.locator('[data-scroll="screen"] .nsc-ruled > [data-row-door]').count(), jobs = [];
+      for (let i = 0; i < nJobs; i++) jobs.push(await M.rowLead(page, '[data-scroll="screen"] .nsc-ruled > [data-row-door]', i));
+      check("(c2b) the home's Actions rows and All lessons lead with their word: no glyph before any, the chevron after, 60 tall on the box's inset",
+        jobs.length >= 3 && jobs.every((j) => M.plainRow(j) && j.h === 60 && j.inset === 16 && j.color === "rgb(28, 28, 30)") && jobs.some((j) => j.label === "Join requests") && jobs.some((j) => j.label === "Messages") && jobs[jobs.length - 1].label === "All lessons",
+        JSON.stringify(jobs.map((j) => j && `${j.label} lead ${j.lead} before ${j.before} [${j.glyphs}] h${j.h}`)));
       {
         /* the same coach on a heavy morning: three requests, a join request, a message, a lesson to log, somebody drifting */
         const db2 = freshDb();
@@ -174,13 +182,44 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
                  rules: kids.slice(0, -1).filter((k) => getComputedStyle(k).borderBottomWidth === "1px").length, lastRule: kids.length ? getComputedStyle(kids[kids.length - 1]).borderBottomWidth : null }; }));
       check("(f) Settings' rows sit in groups: each a white box at 16px, iOS's grouped list, the rows inside on a fine rule, the last with none",
         groups.length >= 3 && groups.reduce((n, g) => n + g.n, 0) >= 8 && groups.every((g) => g.bg === CARD && g.radius === "16px" && g.own === 0 && g.rules === g.n - 1 && g.lastRule === "0px"), JSON.stringify(groups).slice(0, 300));
+      /* 23 November: "I don't want you to have the icons in the settings, as it makes it look very tacky." A Settings row
+         is label · value · chevron and nothing leading it: the label on the group's 16 inset with nothing before it, 56
+         tall, the only glyph a chevron (none beside a switch or a value that opens nothing); what a row holds is its
+         value, whole, in the sub grey on the label's line at the right — never a small line under the label on some rows
+         and a value on the right on others */
+      const nRows = await page.locator('[data-scroll="screen"] .nsc-group > *').count(), srows = [];
+      for (let i = 0; i < nRows; i++) srows.push(await M.rowLead(page, '[data-scroll="screen"] .nsc-group > *', i));
+      const badLead = srows.filter((r) => !r || r.lead !== 0 || r.before !== 0 || r.inset !== 16 || r.h !== 56 || r.glyphs.some((g) => g !== "chevron-right") || r.glyphs.length > 1 || r.size !== "16px");
+      check("(f2) no Settings row leads with a glyph: every row is its label on the group's 16 inset, 56 tall, and its only glyph a chevron",
+        srows.length >= 8 && badLead.length === 0 && srows.filter((r) => r.glyphs.length === 1).length >= 6, `${srows.length} rows · ` + JSON.stringify(badLead.slice(0, 3)));
+      const valued = srows.filter((r) => r && r.value), subs = await page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] .nsc-group [data-row] span')].filter((s) => s.children.length === 0 && s.textContent.trim() && getComputedStyle(s).fontSize === "13px").map((s) => s.textContent.trim()));
+      check("(f3) a Settings row's value sits on the label's line at the right, whole, in the sub grey — Default view, the invite code, the build — and no row carries a small line under its label",
+        valued.length >= 3 && valued.every((r) => r.valueLine === "beside" && !r.valueCut && r.valueColor === "rgb(95, 95, 101)") && valued.some((r) => r.label === "Invite code" && r.value === "QW7X2M") && subs.length === 0, JSON.stringify({ valued: valued.map((r) => `${r.label}: ${r.value} ${r.valueLine} ${r.valueColor}`), subs }));
       const view = page.locator('[data-tour="settings-view"]');
       if (await view.count()) {
         await view.first().click(); await page.waitForTimeout(600);
+        /* the options start where the label does: with the tile gone they are no longer pushed 44 further in */
+        const lined = await page.evaluate(() => { const r = document.querySelector('[data-tour="settings-view"]'); if (!r) return null; const lab = r.querySelector("[data-row-label]"), opts = [...r.querySelectorAll("[data-row-option]")];
+          return { label: Math.round(lab.getBoundingClientRect().left), options: opts.map((o) => Math.round(o.getBoundingClientRect().left)), glyphs: opts.map((o) => o.parentElement.querySelectorAll("svg").length), box: Math.round(r.getBoundingClientRect().left) }; });
+        check("(g0) the unfolded options line up with the row's label, 16 in from the group's edge, and carry no glyph but the chosen one's tick",
+          !!lined && lined.options.length === 2 && lined.options.every((x) => x === lined.label) && lined.label - lined.box === 16 && lined.glyphs.filter((n) => n === 1).length === 1 && lined.glyphs.filter((n) => n === 0).length === 1, JSON.stringify(lined));
         const open = await page.evaluate(() => { const r = document.querySelector('[data-tour="settings-view"]'); if (!r) return null; const inner = [...r.querySelectorAll("div")].find((d) => getComputedStyle(d).backgroundColor === "rgb(255, 255, 255)"); const g = r.closest(".nsc-group"); return { row: getComputedStyle(g || r).backgroundColor, options: inner ? "surface" : null }; });
         await shot("05-settings-open");
         check("(g) a Settings row that unfolds stays in its white group and lays its options on the surface, so the open list reads inside the row", !!open && open.row === CARD && open.options === "surface", JSON.stringify(open));
         await view.first().click(); await page.waitForTimeout(400);
+      }
+      /* the profile behind Settings' head: its Sign-in rows are the words alone (an envelope, a padlock and a red bin
+         led them) — Email with the address as its value, Change password and its chevron, Delete account told by its
+         red word, with no bin and no tick box */
+      if (await page.locator('[data-tour="settings-profile"]').count()) {
+        await tap(page, '[data-tour="settings-profile"]', 1000);
+        const acct = [];
+        for (let i = 0; i < await page.locator('[data-tour="profile-account"] > [data-row]').count(); i++) acct.push(await M.rowLead(page, '[data-tour="profile-account"] > [data-row]', i));
+        const [em, pw, del] = acct;
+        check("(g3) the profile's Sign-in rows carry no glyph: Email and its address, Change password and a chevron, Delete account in the family's red — nothing before any word",
+          acct.length === 3 && M.plainRow(em, { glyphs: [] }) && em.label === "Email" && em.value === "coach@t.ie" && !em.valueCut && M.plainRow(pw) && pw.label === "Change password"
+          && M.plainRow(del, { glyphs: [] }) && del.label === "Delete account" && del.color === "rgb(154, 50, 42)", JSON.stringify(acct.map((r) => r && `${r.label} lead ${r.lead} before ${r.before} [${r.glyphs}] ${r.color}`)));
+        await M.back(page);
       }
       await tap(page, '[aria-label="Diary"]', 1000);
       const onList = page.locator('[data-tour="cal-view"] button[aria-pressed="true"]');
@@ -207,6 +246,24 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
       await tap(page, '[aria-label="Chat"]', 900);
       const c = await plainRows(page);
       check("(k) the player's Chat is Messages' plain list too: no box per thread", messages(c), JSON.stringify(c));
+      await ctx.close();
+    }
+    /* ---------- (l) Settings as the player, the parent and the junior ---------- */
+    /* 23 November: no Settings row leads with a glyph, whoever is signed in and at either width — the label on the
+       group's 16 inset with nothing before it, a chevron the only glyph, the value whole in the sub grey: beside the
+       label, or on the line under it where the row cannot hold both (never an ellipsis) */
+    for (const [role, width] of [["adult", 390], ["parent", 390], ["junior", 390], ["adult", 320], ["parent", 320]]) {
+      const db = freshDb();
+      const { ctx, page, shot } = await boot(db, role, width);
+      await tap(page, '[data-tour="profile-pill"]', 900);
+      if (await page.locator('[data-tour="sheet-settings"]').count()) await tap(page, '[data-tour="sheet-settings"]', 900);
+      const n = await page.locator('[data-scroll="screen"] .nsc-group > *').count(), rs = [];
+      for (let i = 0; i < n; i++) rs.push(await M.rowLead(page, '[data-scroll="screen"] .nsc-group > *', i));
+      const bad = rs.filter((r) => !r || r.lead !== 0 || r.before !== 0 || r.inset !== 16 || r.glyphs.length > 1 || r.glyphs.some((g) => g !== "chevron-right") || r.labelCut || r.valueCut
+        || (r.value && r.valueColor !== "rgb(95, 95, 101)") || (r.value ? (r.valueLine === "beside" ? r.h !== 56 : r.valueLine !== "under") : r.h !== 56));
+      if (width === 320) await shot(`09-settings-${role}-320`);
+      check(`(l) ${role} at ${width}: every Settings row is label · value · chevron — nothing before the label, no glyph but the chevron, nothing cut`,
+        rs.length >= 8 && bad.length === 0 && rs.some((r) => r.label === "Default view" && r.value === "Feed") && rs.some((r) => r.label === "Sign out"), `${rs.length} rows · ` + JSON.stringify(bad.slice(0, 3)));
       await ctx.close();
     }
     /* ---------- (m) a first-run empty root tab has presence ---------- */
