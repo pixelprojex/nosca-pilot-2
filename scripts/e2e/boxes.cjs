@@ -208,7 +208,8 @@ const metaOf = (page, title) => page.evaluate((title) => {
          right as well, from the days of the hairline list */
       const inset = await page.evaluate(() => {
         const box = (el) => el.getBoundingClientRect();
-        const ends = (b) => Math.round(box(b).right - Math.max(...[...b.querySelectorAll("svg, span, button")].filter((x) => x.tagName === "svg" || !x.children.length).map((x) => box(x).right)));
+        /* the row's own content: the coloured card's foil wedge (24 November) is an ornament in the corner, not content */
+        const ends = (b) => Math.round(box(b).right - Math.max(...[...b.querySelectorAll("svg, span, button")].filter((x) => !x.closest("[data-foil]")).filter((x) => x.tagName === "svg" || !x.children.length).map((x) => box(x).right)));
         const next = document.querySelector('[data-tour="today-nextday"]');
         const rows = [...document.querySelectorAll('[data-scroll="screen"] .nsc-list > *')].filter((b) => box(b).width > 0)
           .map((b) => [b, [...b.querySelectorAll("span")].find((s) => !s.children.length && /^\d{1,2}:\d{2} [ap]m$/.test(s.textContent.trim()))]).filter(([, s]) => s)
