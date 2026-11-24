@@ -1618,10 +1618,10 @@ seeded data and no account.
   booking's own length; and a register for that lesson not yet taken
   opens with them marked Absent (`marksFor` in `Attendance`, only those
   on the roll it shows; a register already taken comes back as it was,
-  and the roll is still the roster — no `members` on a booking row,
-  `outIds` and `outNames`, and only somebody the reader can name: a
-  member who said Not going and then left the coach keeps a row the
-  coach can read and is counted nowhere).
+  and the roll is the group's members, the next bullet — no `members`
+  on a booking row, `outIds` and `outNames`, and only somebody the
+  reader can name: a member who said Not going and then left the coach
+  keeps a row the coach can read and is counted nowhere).
   A member out is not reminded the evening before, and the session
   leaves their Settings › Calendar and the family's Coming up. No
   reason, no Maybe, no deadline, no nagging: the field offers them
@@ -1631,6 +1631,29 @@ seeded data and no account.
   and every group lesson reads as before. Spond's Attending · Decline,
   Heja's Going · Not going by a parent for a child, CourtReserve's
   withdraw. `scripts/e2e/rsvp.cjs`; behaviour.sql 8h.
+- **A group's register is its members (24 November).** The roll of a
+  group booking was the whole roster — "7 to mark" for a clinic of
+  three, thirty rows for a clinic of six — because Today handed the
+  register every roster name as a group's `members`, and a group opened
+  from the Diary's peek took the first six of the roster. The register
+  works the roll out itself now (`membersOf` in `Attendance`, from the
+  `groups` it is handed): the saved group whose name the booking carries,
+  matched as `group_members()` matches it (trimmed, any case, the first
+  of the name), and its members still on the roster — `membersOnRoster()`,
+  the people a group message reaches — wherever the register is opened,
+  Today, the card, the peek. Anybody else who turns up is **Someone not
+  in the diary** under the roll (`register-roll-walkin`, the white key,
+  as the pick view's): the rest of the roster as person rows with a
+  plus, a tap putting them on the roll marked present; a register taken
+  comes back with its walk-ins on it (anyone on the roster the marks
+  name). A group whose members cannot be known — no saved group of that
+  name, or none of its members still on the roster — keeps the roster:
+  a roll is never empty (an empty `members` list once emptied every
+  register in the diary, above). A booking row still carries no
+  `members`; `realToday` no longer writes one. The head-count slice is
+  the harness's seeded groups only. `rsvp.cjs` (f6)–(f9); `boxes.cjs`
+  (b), (r1) — its clinic names Eoin among its three, so the register
+  still reads his whole name.
 - **Call off is a reason, the days, the lessons, the password.**
   `CallOff` (the `weather` sheet, opened from the plus, the peek and the
   diary) has nothing to do with weather in its name or its glyph — a

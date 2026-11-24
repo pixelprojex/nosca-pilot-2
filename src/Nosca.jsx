@@ -5230,7 +5230,7 @@ function Announcement({ kind, title, body, action, actionLabel, onDismiss }) {
   );
 }
 
-function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
+function Attendance({ lessons, roster, groups = [], taken, chosen, onSubmit, close, say }) {
   const t = useT();
   const soleLive = (lessons || []).filter((l) => !l.done && (l.hoursUntil ?? 9) <= 0.5);
   /* opened from a row on Today it already knows which lesson; opened
@@ -5256,18 +5256,48 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
      entirely. Every row carries the id the mark is written against; the
      name is only what the coach reads.
 
-     A real group booking names no members, so the whole roster is
-     offered and the coach marks who came. The head-count slice is the
-     design harness's seeded groups only. */
+     A GROUP'S ROLL IS ITS MEMBERS (24 November). A group booking names
+     no players; its members are the saved group's still on the roster —
+     membersOnRoster(), as a group message reaches them, matched to the
+     booking by its name as the database's group_members() matches it —
+     and anybody else who turns up is one tap away under "Someone not in
+     the diary". It was the whole roster: "7 to mark" for a clinic of
+     three, thirty rows for a clinic of six. A group whose members cannot
+     be known (no saved group of that name, or none of them still on the
+     roster) keeps the roster: a roll is never empty — an empty members
+     list once emptied every register in the diary. The head-count slice
+     is the design harness's seeded groups only. */
   const rowFor = (n) => (roster || []).find((r) => r.name === n) || { id: n, name: n };
   /* The harness's roster rows carry no id, so without this every one of
      them marked into marks[undefined] and the register held one answer
      for the whole group. */
   const withId = (r) => (r && r.id ? r : { ...r, id: r.name });
-  const membersOf = (l) => ((l && l.members) ? l.members.map(rowFor)
-    : (l && l.kind && l.kind.startsWith("Group"))
-    ? (roster || []).slice(0, Number((l.kind.match(/\d+/) || [6])[0]))
-    : l ? [l.playerId ? { id: l.playerId, name: l.who } : rowFor(l.who)] : []).map(withId);
+  const isGroup = (l) => !!l && (!!l.group || (!!l.kind && String(l.kind).startsWith("Group")));
+  const groupOf = (l) => {
+    const nm = String((l && (l.groupName || l.who)) || "").trim().toLowerCase();
+    return nm ? (groups || []).find((g) => String((g && g.name) || "").trim().toLowerCase() === nm) || null : null;
+  };
+  const membersOf = (l) => {
+    if (!l) return [];
+    if (l.members) return l.members.map((m) => (typeof m === "string" ? rowFor(m) : m)).map(withId);
+    if (isGroup(l)) {
+      const on = membersOnRoster(groupOf(l), roster || []);
+      if (on.length) return on.map(withId);
+      const n = (String(l.kind || "").match(/\d+/) || [])[0];
+      return (n ? (roster || []).slice(0, Number(n)) : (roster || [])).map(withId);
+    }
+    return [l.playerId ? { id: l.playerId, name: l.who } : rowFor(l.who)].map(withId);
+  };
+  /* the roll shown: the members, then anybody else on the roster already
+     marked on this register (a walk-in, taken before) or added in this
+     sitting — a register taken comes back with its walk-ins on it */
+  const [added, setAdded] = useState([]);
+  const rollOf = (l, m, plus = []) => {
+    const base = membersOf(l);
+    const ids = new Set(base.map((r) => r.id));
+    const more = (roster || []).map(withId).filter((r) => !ids.has(r.id) && ((m && m[r.id]) || plus.includes(r.id)));
+    return [...base, ...more];
+  };
   /* a register already taken comes back as it was; a fresh one for a
      group lesson starts with the members who said they will not be
      there marked absent — only those on the roll it shows, so nobody
@@ -5279,11 +5309,21 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
     return Object.fromEntries(((l && l.outIds) || []).filter((id) => roll.has(id)).map((id) => [id, "out"]));
   };
   const [marks, setMarks] = useState(start ? marksFor(start) : {});
+  /* the group's own "Someone not in the diary": the rest of the roster */
+  const [rollWalkIn, setRollWalkIn] = useState(false);
 
   const open = (l) => {
     haptic(8); soft();
-    setPicked(l);
+    setPicked(l); setAdded([]); setRollWalkIn(false);
     setMarks(marksFor(l));   // reopen a register already taken
+  };
+  /* somebody who turned up for the group and is not one of it: on the
+     roll and marked present — they are there, which is why they were added */
+  const addWalkIn = (r) => {
+    hapticSuccess(); soft();
+    setAdded((a) => (a.includes(r.id) ? a : [...a, r.id]));
+    setMarks((m) => ({ ...m, [r.id]: "in" }));
+    setRollWalkIn(false);
   };
 
   const mark = (id, v) => {
@@ -5292,11 +5332,13 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
     setMarks((m) => ({ ...m, [id]: v }));
   };
 
-  const all = (v) => { haptic(10); soft(); const m = {}; membersOf(picked).forEach((r) => (m[r.id] = v)); setMarks(m); };
+  const all = (v) => { haptic(10); soft(); const m = {}; rollOf(picked, marks, added).forEach((r) => (m[r.id] = v)); setMarks(m); };
 
   /* ---------- the register ---------- */
   if (picked) {
-    const who = membersOf(picked);
+    const who = rollOf(picked, marks, added);
+    const onRoll = new Set(who.map((r) => r.id));
+    const others = isGroup(picked) ? (roster || []).map(withId).filter((r) => !onRoll.has(r.id)) : [];
     const done = who.filter((r) => marks[r.id]).length;
     const present = who.filter((r) => marks[r.id] === "in").length;
     const ready = done === who.length;
@@ -5366,6 +5408,28 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
           })}
         </div>
 
+        {/* a group's walk-in: whoever turned up who is not one of the group —
+            the white key under the roll, the rest of the roster under it once
+            tapped, a tap putting them on the roll, present */}
+        {others.length > 0 && !rollWalkIn && (
+          <div className="mt-4">
+            <Button tone="quiet" tour="register-roll-walkin" onClick={() => { soft(); setRollWalkIn(true); }}>
+              <span className="inline-flex items-center justify-center gap-2"><Plus size={18} color={t.ink} strokeWidth={2.2} />{tr("Someone not in the diary")}</span>
+            </Button>
+          </div>
+        )}
+        {others.length > 0 && rollWalkIn && (
+          <>
+            <p data-tour="register-roll-walkin-head" className="mt-5 mb-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Not in the diary")}</p>
+            <div className="nsc-list" data-tour="register-roll-others">
+              {others.map((r) => (
+                <PersonRow key={r.id} name={r.name} src={avatarUrl(r.avatarPath)} attrs={{ "data-walkin": r.name }}
+                           trailing={<Plus size={17} color={t.accent} strokeWidth={2.2} />} onTap={() => addWalkIn(r)} />
+              ))}
+            </div>
+          </>
+        )}
+
         {/* a fresh register is "3 to mark", never a large nought before
             anybody has been marked; the figure comes with the first mark */}
         <div data-tour="register-tally" className="flex items-baseline gap-2 mt-4 mb-5">
@@ -5405,7 +5469,7 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
           const key = keyOf(l);
           const reg = taken[key];
           const n = reg ? Object.values(reg).filter((x) => x === "in").length : 0;
-          const total = membersOf(l).length;
+          const total = rollOf(l, reg).length;
           const live = !l.done && (l.hoursUntil ?? 9) <= 0.5;
           return (
             <button key={key} data-tour={i === 0 ? "attend-row" : undefined} onClick={() => open(l)}
@@ -20516,8 +20580,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const TODAY_SCHEDULE = rawSchedule.map((l) => loggedKeys.has(lessonKey(l)) ? { ...l, done: false } : l);
   /* A real account's day is its confirmed bookings for the real date,
      in the shape the register and live capture already read: `done`
-     once the slot has passed and nothing has been logged for it,
-     `members` for a group so the whole roster can be marked. */
+     once the slot has passed and nothing has been logged for it. A
+     group's roll is not written here: the register reads the group's
+     members itself (Attendance's membersOf), so a group's register
+     opened from the Diary's peek reads the same roll as one opened from
+     Today — this put the whole roster on every group's roll. */
   /* WHAT HAS ALREADY BEEN WRITTEN UP. `loggedKeys` is this session's
      memory and is only added to when the log was started from the
      booking itself — log the same lesson from the plus instead and the
@@ -20534,8 +20601,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       const over = start != null && start + (b.duration || 45) <= nowMins;
       return { ...b, m: todayMD.m, d: todayMD.d, hoursUntil,
                done: over && !loggedKeys.has(lessonKey(b))
-                     && !loggedToday.has(b.playerId || b.groupName || b.who),
-               members: b.group ? (data.roster || []).map((r) => r.name) : undefined };
+                     && !loggedToday.has(b.playerId || b.groupName || b.who) };
     })
     .sort((a, b) => (parseTime(a.time) ?? 0) - (parseTime(b.time) ?? 0))) : null;
   const todayList = realToday || TODAY_SCHEDULE;
@@ -23256,7 +23322,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onLog={() => { setSheet(null); setPrefill(null); go("log"); }}
                                             onEdit={() => { setSheet(null); setTimeout(() => push("layout"), 180); }}
                                             onRun={runQuick} />
-            : sheet === "attend" ? <Attendance lessons={todayList || []} roster={roster} taken={registers} chosen={attendFor}
+            : sheet === "attend" ? <Attendance lessons={todayList || []} roster={roster} groups={myGroups} taken={registers} chosen={attendFor}
                                             onSubmit={async (l, marks) => {
                                               const n = Object.values(marks).filter((x) => x === "in").length;
                                               if (data) {
