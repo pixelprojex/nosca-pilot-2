@@ -173,6 +173,41 @@ seeded data and no account.
   change them together. Contrast: paper on it 11:1, white 12:1. The
   `theme-color` meta in index.html and the manifest's `theme_color` are
   NOT the brand: they are the paper (see below).
+- **A row of words carries no icon (23 November).** The founder, of
+  Settings: "I don't want you to have the icons in the settings, as it
+  makes it look very tacky, and a lot of the icons throughout could
+  just be gotten rid of." So a row that is a word is its label on the
+  row's own inset, its value in the sub grey, its chevron, and nothing
+  stands before the label: every Settings row, Delete account too; the
+  doors (All lessons on the home, the player file and the child's
+  screen, All drills, the player file's Progress · Notes · Recurring
+  lessons · Competitions, the drill library); the profile pill's
+  switcher (Your groups, Add a coach, Photos, Family, Progress,
+  Settings); the home's Actions (To review, To log, Join requests,
+  Messages, Drifting, Competitions); the Calendar view's Away and
+  call-off rows; the account rows (Email, Change password, Email
+  support, Report a problem, the push row); and the search's Lessons ·
+  Tips · Drills hits. `IconSq` and `SETTINGS_GLYPHS` are gone. A red
+  row is told by its red word (Call off, Delete account, Leave). A
+  person's row keeps the person's face (a message hit in the search
+  carries the sender's now) — a face is the person, not an icon — and
+  a key keeps its glyph: the plus sheet's eight, the round keys of the
+  peek and the player file, the log's Video · Photo · Voice, the
+  roster's Add player · New group (whose word takes a second line at
+  its space before an ellipsis at 320, `narrow.cjs` (d2)). The lesson
+  page's Voice note is its words, the 13px microphone gone. This
+  supersedes, where they say otherwise: "A tile leading a row
+  (`IconSq`)" and `SETTINGS_GLYPHS` in the colour study below; "A
+  Settings row leads with its glyph in white on a coloured tile … the
+  home's Actions and All lessons, the player file's foot rows and the
+  Calendar view's Away and call-off rows" in the white look; the
+  visual audit's "Every row has a glyph of its own" and the
+  switcher's "leads every row with its square" and the child's doors
+  "with their squares". `ease.cjs` (l) reads
+  Settings as the coach, the player, the parent and the junior at 390
+  and 320 — label, value, chevron, nothing before the label, nothing
+  cut; `boxes.cjs`, `calendar-day.cjs`, `away.cjs`,
+  `drill-library.cjs`, `person-row.cjs` and `sync.cjs` read the rows.
 - **The club colours, and every key filled with one (22–23 November,
   the colour study).** The founder, five times in two days. Of
   ten bright hues on the tiles and faces: "WOW! That's way too colourful.
@@ -442,10 +477,9 @@ seeded data and no account.
     chosen answer — and the six narrow to fit at 320, where the first
     and last were cut off. Every sign-up title, Arrival's and
     /install's are `TYPE.screen`.
-  - **Settings.** Every row has a glyph of its own (Default view and
-    Opens on, Reviews and Review prompt, Terms and Licences, Reminder
-    and Notifications, Setup and Walkthrough shared one; Lessons as a
-    player and Lessons you've taken had no square); the unfolding rows
+  - **Settings.** No row carries a glyph since 23 November (the bullet
+    "A row of words carries no icon"; on this day every row had a square
+    of its own); the unfolding rows
     and the inset `FilterRow` are 56 tall and 16 in with `Row`'s
     chevron; `Row`'s sub is `TYPE.caption` and its dot the sport's
     colour; a red row (the family's Leave) draws no tick box — it read
@@ -1163,7 +1197,11 @@ seeded data and no account.
   9.5`) and its unread count badge — because the bar is the one surface
   the founder asked kept as it was, and iOS's own tab labels are 10pt;
   and the sign-up wordmark
-  (`data-tour="wordmark"`, a logotype drawn, not read).
+  (`data-tour="wordmark"`, a logotype drawn, not read). The picture of
+  the business card on /install (`install-card`) is a third, outside the
+  app: one `role="img"` with its own label, its printed words drawn at
+  the card's own size, as a photograph of the card would carry them
+  (`install.cjs` (a)).
   `scripts/e2e/type-floor.cjs` walks every screen as every role and
   the sign-up with no session, reads the computed size of every element
   carrying words, and fails on anything under 12 outside those two —
@@ -1199,9 +1237,11 @@ seeded data and no account.
   that stay are the plain ones a phone already uses — plus, tick,
   camera, bell, calendar, chevron. No sparkles, no broadcast mast for
   weather, no bookshelf for a lesson. Settings rows carried no glyph
-  at all, bar the red bin on Delete account, until 21 November: each
-  now leads with its glyph on iOS's coloured square, at the founder's
-  ask for iOS (the bullet on white and Duolingo's keys).
+  at all, bar the red bin on Delete account, until 21 November, when
+  each took its glyph on iOS's coloured square at the founder's ask for
+  iOS; on 23 November the founder called the squares tacky, and every
+  row of words is its word again, Delete account's bin too (the bullet
+  "A row of words carries no icon").
 - **Anything you can type in words, you can say.** Every field a person
   writes words into carries dictation — through `VoiceInput`,
   `VoiceArea` or `InlineField`, or as a `MicBtn` beside the input. The
@@ -2514,14 +2554,14 @@ seeded data and no account.
   bell, and a project without the column; behaviour.sql 8b the
   policies and the triggers.
 - **Add to Home Screen is one guide, reached three ways, and the
-  business card's second code opens it.** `InstallGuide` in Nosca:
-  iPhone (an iPad too) · Android · Computer on the app's `Segmented`
-  (`install-platform`), opened on the device it is read on
-  (`platformOf` in `lib/install.js`), the steps as `.nsc-list` rows in
-  the phone's own words with the phone's own glyph where one helps
-  (Safari's Share square, Chrome's three dots, Samsung's three lines —
-  the plain ones a phone already uses), the one or two steps that
-  differ by browser read off `browserOf`. Where the browser offers to
+  business card's code opens it.** `InstallGuide` in Nosca:
+  iPhone (an iPad, named so) · Android · Computer on the app's
+  `Segmented` (`install-platform`, behind Change, below), opened on the
+  device it is read on (`platformOf` in `lib/install.js`), the steps in
+  the phone's own words with a drawing of the phone's own control where
+  one helps (Safari's Share square, the Page Menu's three lines, Chrome's
+  three dots — the plain ones a phone already uses), the one or two
+  steps that differ by browser read off `browserOf`. Where the browser offers to
   install (Chrome and Edge fire `beforeinstallprompt`; `lib/install.js`
   catches it at module load and keeps it, without cancelling Chrome's
   own bar) the guide leads with **Install Nosca** (`install-now`), the
@@ -2529,23 +2569,54 @@ seeded data and no account.
   Safari never offers, so an iPhone always reads the steps, and its
   last step says "sign in there once" — iOS gives a Home Screen app its
   own storage, so a person who signed up in Safari signs in again
-  inside the app. Under the platform a second `Segmented` (`install-version`)
-  picks what actually changes the taps — iOS 26 · iOS 18 or earlier (iOS 26
-  moved Share into the ⋯ menu beside the address bar, three lines on some
-  layouts; `iosMajor` reads Safari's own `Version/`, because Safari freezes
-  the OS in its user agent at 18_6), Chrome · Samsung, Chrome or Edge ·
-  Safari — opened on the one this device is, with "Settings › General ›
-  About › iOS Version" under it for a person who does not know; every tap
-  is a step, down to Open as Web App and "choose Install rather than
-  Create shortcut" (the founder found the first version skipped the
-  small ones). The page's X (`install-close`) is the way out to the app,
-  as Open Nosca is. Once the app is on a Home Screen (`isStandalone`,
-  `navigator.standalone` or `display-mode: standalone`) the guide reads
-  "Nosca is on your Home Screen" and nothing else. The three ways in:
-  **/install** (`pages/Install.jsx`, read by the gate in App.jsx before
-  anything else, never in the harness) — the page the card's second QR
-  code opens, for anyone, signed in or not, ending on Open Nosca
-  (`install-open`); **Settings › Add to Home Screen** (`settings-install`,
+  inside the app. Under the platform, the choice that actually changes
+  the taps (`install-version`: iOS 27 · iOS 26 · iOS 18 or earlier,
+  Chrome · Samsung, Chrome or Edge · Safari) sits behind one quiet row
+  naming this device's (`install-device`, Change, the two choices 44 to
+  a finger), opened on the one this device is (`installSubFor`;
+  `iosMajor` reads Safari's own `Version/`, because Safari freezes the
+  OS in its user agent at 18_6), with "Settings › General › About › iOS
+  Version" under it for a person who does not know. Only this device's
+  steps are drawn, each a numeral on a thread, a few words and a drawn
+  picture of what to tap; every tap is a step, and every step is true of
+  the phone it names (the sources and their dates are in the comment
+  over `INSTALL_TABS`). Step one names the control that Safari shows by
+  default — iOS 27's Page Menu, three lines at the left of the address
+  bar; iOS 26's More, three dots at its right; Share in the toolbar
+  before — with Share drawn beside it for the Bottom and Top layouts and
+  the line "Or Share, then go to step 3" (a step that said "three dots"
+  to an iOS 27 phone showing three lines is the mistake the founder was
+  handed); View More is one chevron; then Add, with Open as Web App on.
+  Chrome on Android carries "Install and create shortcut" and its older
+  "Add to Home screen"; Samsung is Samsung (Samsung Internet, then
+  Samsung Browser). Chrome on an iPhone reads its own Share at the right
+  of its address bar, Edge and Firefox their Share key — never Safari's
+  toolbar under another browser's name — and an app's own browser (a
+  link opened inside a messaging or social app) reads one step, "Open
+  this page in Safari". The last step draws Nosca's real icon among
+  three on a Home Screen. A dismissed install sheet says Not installed.
+  The page's X (`install-close`) is the way out to the app. Once the app
+  is on a Home Screen (`isStandalone`, `navigator.standalone` or
+  `display-mode: standalone`) the guide reads "Nosca is on your Home
+  Screen" (a computer, "Nosca is installed") and nothing else. The three
+  ways in: **/install** (`pages/Install.jsx`, read by the gate in
+  App.jsx before anything else, never in the harness) — the page the
+  card's code opens, for anyone, signed in or not, and **the card laid
+  on paper** (23–24 November; the founder found the first page "a bit
+  anticlimactic … too much text, too much going on"): the paper is the
+  card's own back, white with a rule in gold; the card lies on it drawn
+  from the print file's numbers (`install-card`, one `role="img"`),
+  showing the white side just scanned with its printed words, and turns
+  over once; one line says what Nosca is (`install-what`); then the
+  guide in its card dress (`dress="card"`: the gold for the numerals,
+  the thread and the ring), its last step "Sign up or sign in there" for
+  a person with no account yet (the app's guide keeps "Sign in there
+  once"); and at the foot the white key **Continue in the browser**
+  (`install-open`; Open Nosca once installed) over About Nosca
+  (`install-about`) — a filled Open Nosca under "Tap Nosca on the Home
+  Screen" read as the next step. From 720 wide it is two columns, the
+  card and the words standing still on the left while the steps scroll
+  on the right; **Settings › Add to Home Screen** (`settings-install`,
   found by "install", "phone", "icon", "dock"), a row that is not there
   once the app is installed; and the arrival screen's quiet line
   **Add Nosca to your Home Screen** (`arrival-install`, above Show me
