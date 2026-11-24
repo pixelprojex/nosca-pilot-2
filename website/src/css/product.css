@@ -17,16 +17,21 @@
 .pd-roles li.is-on::after{transform:none}
 .pd-top__steps .t-body{max-width:24em;color:var(--fg-2)}
 .pd-top__steps b{font-weight:600;color:var(--fg)}
-.pd-top__next{display:none;place-items:center;padding:var(--gut)}
-/* at rest: the three people, each with their screen */
+.pd-top__next{display:none}
+/* at rest: the three people, each with their screen, set off a step from one another rather than three equal cards */
 html:not(.motion) .pd-top__in{padding-bottom:clamp(40px,6vw,80px)}
-html:not(.motion) .pd-top__steps{grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:36px 28px;margin-top:clamp(20px,3vw,40px);width:100%}
+html:not(.motion) .pd-top__steps{grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:36px 28px;margin-top:clamp(20px,3vw,40px);width:100%;align-items:start}
 html:not(.motion) .pd-top__steps>[data-step]{display:flex;flex-direction:column}
 html:not(.motion) .pd-top__steps .pd-still{order:-1}
-/* with motion: the copy and the device side by side, the device a little too tall for the screen so it rises into it */
+@media (min-width:640px){
+  html:not(.motion) .pd-top__steps>[data-step]:nth-child(2){margin-top:clamp(40px,6vw,96px)}
+  html:not(.motion) .pd-top__steps>[data-step]:nth-child(3){margin-top:clamp(80px,12vw,192px)}
+}
+/* with motion: the copy and the device side by side on a desk; on a phone the copy lifts away under the header as the
+   device rises, so the phone comes to rest whole under the three people's names */
 html.motion .pd-roles{display:flex}
-html.motion .pd-top__next{display:grid}
-html.motion .pd-top{--phone-w:min(62vw,300px)}
+html.motion .pd-top__next{display:grid;place-items:center;padding:calc(var(--hdr-h) + 20px) var(--gut) 40px}
+html.motion .pd-top{--phone-w:min(64vw,300px,max(50vw,calc((100vh - var(--hdr-h) - 160px)/2.16)));--phone-w:min(64vw,300px,max(50vw,calc((100svh - var(--hdr-h) - 160px)/2.16)))}
 html.motion .pd-top__in{grid-template-rows:auto minmax(0,1fr)}
 html.motion .pd-top__dev{align-self:start;justify-self:center;margin-top:clamp(4px,1.5vh,18px)}
 html.motion .pd-top__steps>[data-step]{min-height:3.2em}
@@ -36,8 +41,16 @@ html.motion .pd-top__steps>[data-step]{min-height:3.2em}
   html.motion .pd-top__dev{align-self:center;margin-top:0}
 }
 @media (min-width:720px) and (max-width:899px){
-  html.motion .pd-top{--phone-w:min(40vw,calc((100vh - var(--hdr-h) - 430px)/1.5));--phone-w:min(40vw,calc((100svh - var(--hdr-h) - 430px)/1.5))}
+  html.motion .pd-top{--phone-w:min(46vw,calc((100vh - var(--hdr-h) - 190px)/2.16));--phone-w:min(46vw,calc((100svh - var(--hdr-h) - 190px)/2.16))}
 }
+/* the chapter card: the eight chapters drawn in gold as the rest ground closes over the opening */
+.pd-toc{width:min(100%,1080px)}
+.pd-toc ol{list-style:none;margin:clamp(18px,3vh,36px) 0 0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);column-gap:clamp(28px,5vw,80px)}
+.pd-toc li{position:relative;display:flex;align-items:baseline;gap:clamp(14px,1.6vw,22px);padding:clamp(9px,1.5vh,16px) 0}
+.pd-toc li::before{content:"";position:absolute;left:0;right:0;top:0;height:1px;background:var(--gold-line);transform-origin:0 50%;transform:scaleX(var(--drawn,1))}
+.pd-toc b{font:italic 400 clamp(24px,3vw,46px)/1 var(--serif);font-synthesis:none;color:var(--gold-text);min-width:1.6em}
+.pd-toc span{font:500 clamp(18px,2.1vw,32px)/1.2 var(--display);letter-spacing:-.012em;color:var(--fg)}
+@media (min-width:720px){.pd-toc ol{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-flow:column;grid-template-rows:repeat(4,auto)}}
 
 /* ───────────── the reel: eight chapters ───────────── */
 .pd-reel{padding:0 0 clamp(56px,8vw,112px)}
@@ -48,21 +61,18 @@ html.motion .pd-reel{display:none}
 @media (min-width:900px){
   html.motion .pd-reel{display:block;position:fixed;z-index:60;top:50%;right:max(10px,calc(var(--gut) - 46px));padding:0;background:none;color:var(--ink);transform:translateY(-50%);opacity:0;visibility:hidden;transition:opacity .5s var(--ease),visibility 0s .5s,color .4s}
   html.motion .pd-reel.is-live{opacity:1;visibility:visible;transition:opacity .5s var(--ease),color .4s}
-  html.motion .pd-reel[data-ground="green"]{color:var(--on-green);--rule:var(--gold-pin)}
+  html.motion .pd-reel[data-ground="green"]{color:var(--on-green);--rule:var(--gold-pin);--reel-bg:var(--ground-green-deep)}
+  html.motion .pd-reel[data-ground="rest"]{--reel-bg:var(--ground-rest)}
   html.motion .pd-reel .wrap{padding:0;max-width:none}
   html.motion .pd-reel__t{display:none}
   html.motion .pd-reel ol{display:block;margin:0}
   html.motion .pd-reel a{position:relative;justify-content:flex-end;align-items:center;gap:12px;min-height:0;height:26px;padding:0;border:0;color:inherit;font:600 12px/1 var(--display);letter-spacing:.18em;text-transform:uppercase}
   html.motion .pd-reel b{display:none}
-  html.motion .pd-reel span{opacity:0;transform:translateX(6px);transition:opacity .4s var(--ease),transform .4s var(--ease);white-space:nowrap;pointer-events:none}
+  html.motion .pd-reel span{opacity:0;transform:translateX(6px);transition:opacity .4s var(--ease),transform .4s var(--ease);white-space:nowrap;pointer-events:none;padding:7px 10px;border-radius:8px;background:var(--reel-bg,#fff)}
   html.motion .pd-reel a::after{content:"";flex:none;width:14px;height:1px;background:currentColor;opacity:.42;transition:width .5s var(--ease),opacity .4s,background-color .4s}
   html.motion .pd-reel li.is-on a::after{width:30px;height:1.5px;background:var(--rule);opacity:1}
   html.motion .pd-reel a:focus-visible span{opacity:1;transform:none}
-  @media (hover:hover){html.motion .pd-reel a:hover::after{opacity:1;width:22px}}
-}
-@media (min-width:1280px){
-  html.motion .pd-reel li.is-on span{opacity:.86;transform:none}
-  @media (hover:hover){html.motion .pd-reel a:hover span{opacity:1;transform:none}}
+  @media (hover:hover){html.motion .pd-reel a:hover::after{opacity:1;width:22px}html.motion .pd-reel a:hover span{opacity:1;transform:none}}
 }
 
 /* ───────────── a chapter: the copy on one side, the device on the other ───────────── */
@@ -72,13 +82,22 @@ html.motion .pd-reel{display:none}
 .pd-ch__head .t-numeral{font-size:clamp(34px,4.2vw,68px)}
 .pd-ch__copy .t-h2{max-width:10.5em}
 .pd-ch__copy .t-lede{margin-top:clamp(8px,1.4vh,16px);max-width:21em}
-.pd-ch__pins{--pins-w:clamp(170px,40vw,620px);--pin-sw:.2}
+.pd-ch__pins{--pins-w:clamp(150px,30vw,440px);--pin-sw:.2}
 @media (min-width:900px){.pd-ch__pins{--pin-sw:.12}}
+/* the pinstripes start under the header, so the whole wedge draws in sight; the feed's is kept clear of the reel */
+html.motion .pd-ch__pins.pins--tr{top:var(--hdr-h)}
+#feed .pd-ch__pins{--pins-w:clamp(150px,24vw,340px)}
+html.motion #markup .film__bar{left:calc(var(--gut) + var(--pins-w,0px))}
+#markup{--pins-w:clamp(150px,30vw,440px)}
+html:not(.motion) .pd-ch__pins{display:none}
 .pd-dev,.pd-dev__x{position:relative}
 .pd-dev__x{width:var(--phone-w,280px)}
-/* a fine gold line that draws round the control a caption is about (the app's own walkthrough rings a control so) */
+/* a fine gold line that draws round the control a caption is about (the app's own walkthrough rings a control so):
+   7px clear of the key, its corner the key's own plus that, so it reads as a ring and never as the key's border */
 .pd-rings{position:absolute;z-index:4;left:calc(var(--phone-w,280px)*.03);top:calc(var(--phone-w,280px)*.03);width:calc(var(--phone-w,280px)*.94);aspect-ratio:780/1688;pointer-events:none}
-.pd-ring{position:absolute;left:var(--x);top:var(--y);width:var(--w);height:var(--h);border:1.5px solid var(--gold-line);border-radius:calc(var(--phone-w,280px)*.05);opacity:0}
+.pd-ring{position:absolute;left:calc(var(--x) - 7px);top:calc(var(--y) - 7px);width:calc(var(--w) + 14px);height:calc(var(--h) + 14px);border:2px solid var(--gold-line);border-radius:calc(var(--phone-w,280px)*.03 + 7px);opacity:0}
+/* the level's line, large and in gold, behind the Progress phone */
+.pd-level{display:none}
 /* at rest: each caption under its own screen, in a row that wraps */
 html:not(.motion) .pd-ch__in{padding-block:clamp(72px,10vw,140px);justify-items:start}
 html:not(.motion) .pd-ch__copy{max-width:none}
@@ -87,40 +106,75 @@ html:not(.motion) .pd-ch .film__steps>[data-step]{display:flex;flex-direction:co
 html:not(.motion) .pd-ch .pd-still{order:-1}
 html:not(.motion) .pd-ch .t-h2{font-size:clamp(24px,2.6vw,34px)}
 html:not(.motion) .pd-ch .t-lede{font-size:17px}
-/* with motion */
-html.motion .pd-ch{--phone-w:min(60vw,calc((100vh - var(--hdr-h) - 296px)/2.12));--phone-w:min(60vw,calc((100svh - var(--hdr-h) - 296px)/2.12))}
-html.motion .pd-ch__in{grid-template-rows:auto minmax(0,1fr)}
-html.motion .pd-dev{align-self:start}
-html.motion .pd-ring{opacity:1;clip-path:inset(-6px 110% -6px -6px)}
-@media (max-width:719px){
-  html.motion .pd-ch .film__steps>[data-step]{min-height:138px}
-  html.motion .pd-ch__head{margin-bottom:10px}
+
+/* with motion. On a phone and a tablet held upright: the words at the top, the phone under them as large as the
+   screen allows and never under 56% of its width; where the screen is short its foot runs off the bottom. */
+html.motion .pd-ch{--phone-w:max(56vw,min(72vw,340px,calc((100vh - var(--hdr-h) - 200px)/2.16)));--phone-w:max(56vw,min(72vw,340px,calc((100svh - var(--hdr-h) - 200px)/2.16)))}
+html.motion .pd-ch__in{grid-template-rows:auto minmax(0,1fr);align-items:start;row-gap:clamp(14px,2.4vh,24px)}
+html.motion .pd-dev{align-self:start;justify-self:center}
+html.motion .pd-ring{opacity:1;clip-path:inset(-8px 110% -8px -8px)}
+html.motion .pd-ch--prog .pd-level{display:block;position:absolute;z-index:0;left:50%;top:22%;width:calc(var(--phone-w,280px)*2.9);max-width:none;height:calc(var(--phone-w,280px)*1.1);margin-left:calc(var(--phone-w,280px)*-1.45);overflow:visible;pointer-events:none}
+html.motion .pd-level path{fill:none;stroke:var(--gold-line);stroke-width:1.1;stroke-linecap:round;stroke-linejoin:round}
+html.motion .pd-ch--prog .phone{position:relative;z-index:1}
+html.motion .pd-ch--prog .pd-dev__x>.phone{scale:.86}
+/* the Progress screen scrolled under its own tab bar and compact header */
+.pd-fix{position:absolute;inset:0;z-index:3;width:100%;height:100%;object-fit:cover;pointer-events:none}
+@media (max-width:899px) and (orientation:portrait),(max-width:719px){
+  html.motion .pd-ch__copy{max-width:36em}
+  html.motion .pd-ch__head{margin-bottom:8px}
+  html.motion .pd-ch__head .t-numeral{font-size:34px}
   html.motion .pd-ch__copy .t-h2{font-size:clamp(27px,7.6vw,31px)}
-  html.motion .pd-ch__copy .t-lede{font-size:17px;line-height:1.36}
+  html.motion .pd-ch__copy .t-lede{font-size:17px;line-height:1.36;margin-top:6px}
 }
-@media (min-width:720px){
+@media (max-width:719px) and (max-height:700px){
+  html.motion .pd-ch__in{padding-top:calc(var(--hdr-h) + 10px);row-gap:10px}
+  html.motion .pd-ch__head{margin-bottom:4px}
+  html.motion .pd-ch__head .t-numeral{font-size:28px}
+  html.motion .pd-ch__copy .t-h2{font-size:26px}
+  html.motion .pd-ch__copy .t-lede{font-size:15px;line-height:1.32}
+}
+@media (min-width:720px) and (max-width:899px) and (orientation:portrait){
+  html.motion .pd-ch{--phone-w:min(46vw,360px,calc((100vh - var(--hdr-h) - 260px)/2.16));--phone-w:min(46vw,360px,calc((100svh - var(--hdr-h) - 260px)/2.16))}
+  html.motion .pd-ch__copy{text-align:center}
+  html.motion .pd-ch__head{justify-content:center}
+  html.motion .pd-ch__copy .t-h2,html.motion .pd-ch__copy .t-lede{margin-inline:auto}
+  html.motion .pd-ch__copy .t-h2{font-size:48px}
+  html.motion .pd-ch__copy .t-lede{font-size:21px}
+}
+@media (min-width:900px),(min-width:720px) and (orientation:landscape){
   html.motion .pd-ch{--phone-w:min(30vw,360px,calc((100vh - var(--hdr-h) - 104px)/2.14));--phone-w:min(30vw,360px,calc((100svh - var(--hdr-h) - 104px)/2.14))}
-  html.motion .pd-ch__in{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr);gap:clamp(24px,5vw,96px)}
+  html.motion .pd-ch__in{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr);gap:clamp(24px,5vw,96px);align-items:center}
   html.motion .pd-dev{align-self:center}
   html.motion .pd-ch--pl .pd-dev{order:-1}
   html.motion .pd-ch--pr .pd-ch__copy{justify-self:end}
   html.motion .pd-ch--pl .pd-ch__copy{justify-self:start}
+  html.motion .pd-ch--prog .pd-level{top:12%;width:calc(var(--phone-w,280px)*2.1);margin-left:calc(var(--phone-w,280px)*-1.05)}
 }
+/* the family: three phones in one place, parting into a fan */
+html.motion .pd-fan{position:relative;width:var(--phone-w,280px);transform-style:preserve-3d}
+html.motion .pd-fan__p+.pd-fan__p{position:absolute;left:0;top:0;width:100%}
+@media (max-width:719px){html.motion .pd-ch--fan{--phone-w:max(50vw,min(62vw,300px,calc((100svh - var(--hdr-h) - 200px)/2.16)))}}
 
-/* ───────────── a photograph between chapters ───────────── */
+/* ───────────── a photograph (or a clip) between chapters ───────────── */
 .pd-inter__copy{align-self:center}
 .pd-inter .photo-wrap{margin:0}
+.pd-inter__vid{--ar:4/3!important;aspect-ratio:4/3;border-radius:2px}
 .pd-inter__under{margin-top:clamp(28px,4.4vw,64px);align-items:end}
 .pd-inter__under .t-h1{max-width:9.6em}
 @media (max-width:899px){.pd-inter--wide .photo--wide{--ar:3/2!important;aspect-ratio:3/2}}
 
 /* ───────────── the one behaviour, on a photograph ───────────── */
-.pd-moment .photo{--veil:.56}
-.pd-moment__in{display:grid;grid-template-rows:auto minmax(0,1fr);align-items:end;justify-items:start;gap:20px;padding:calc(var(--hdr-h) + clamp(20px,5vh,64px)) var(--gut) clamp(44px,9vh,96px);max-width:1440px;margin-inline:auto}
+.pd-moment .photo{--veil:.62;--focus:47% 50%}
+.pd-moment__in{display:grid;align-items:start;justify-items:start;padding:calc(var(--hdr-h) + clamp(20px,5vh,64px)) var(--gut) clamp(44px,9vh,96px);max-width:1440px;margin-inline:auto}
+.pd-moment__words{display:grid;gap:clamp(16px,2.4vh,28px)}
 .pd-moment__q{color:var(--on-green);max-width:15.5em}
-.pd-moment__p{color:var(--on-green)}
-@media (min-width:900px){.pd-moment__q{max-width:min(11.2em,40vw)}}
-html:not(.motion) .pd-moment__in{padding-block:clamp(40px,7vw,96px);grid-template-rows:auto}
+.pd-moment__p{color:var(--on-green);max-width:20em}
+/* on a desk the words stand on the sky at the upper left, clear of the cap; on a phone they stand at the foot,
+   on the dark shirt and the shade, and leave before the white comes up */
+@media (min-width:900px){.pd-moment__q{max-width:min(9.5em,34vw)}.pd-moment__p{max-width:min(16em,34vw)}}
+@media (max-width:899px){html.motion .pd-moment__in{align-items:end}}
+html:not(.motion) .pd-moment__in{padding-block:clamp(40px,7vw,96px)}
+html:not(.motion) .pd-moment .photo--veil::after{opacity:0}
 
 /* ───────────── six sports: a horizontal passage ───────────── */
 .pd-sports__track{--rail-gap:clamp(44px,8vw,150px);--sp-w:100%}
@@ -130,31 +184,44 @@ html:not(.motion) .pd-moment__in{padding-block:clamp(40px,7vw,96px);grid-templat
 .pd-sport{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:clamp(14px,2vw,28px);width:var(--sp-w);--shot-w:calc(var(--sp-w)*.3);margin:0}
 .pd-sport__pic{grid-column:1/-1}
 .pd-sport__pic .photo{--ar:4/3!important;aspect-ratio:4/3}
-.pd-sport__shot{grid-column:2;grid-row:2;z-index:2;margin:calc(var(--shot-w)*-1.25) clamp(10px,2.2vw,30px) 0 0}
+/* the screen stands on the photograph's lower edge, never over its subject */
+.pd-sport__shot{grid-column:2;grid-row:2;z-index:2;margin:calc(var(--shot-w)*-.62) clamp(10px,2.2vw,30px) 0 0}
 .pd-sport__cap{grid-column:1;grid-row:2;display:grid;gap:8px;align-content:start;padding-top:clamp(16px,2.4vh,26px);min-width:0}
 .pd-sport__cap .t-h2{display:flex;align-items:center;gap:.34em;font-size:clamp(28px,3.4vw,52px)}
 .pd-sport__ladder{margin:0;font:500 clamp(16px,1.3vw,19px)/1.35 var(--display);color:var(--fg)}
-html:not(.motion) .pd-sports__track{padding-block:clamp(72px,10vw,140px);grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:64px clamp(28px,4vw,56px);max-width:calc(1160px + var(--gut)*2);margin-inline:auto}
+html:not(.motion) .pd-sports__track{padding-block:clamp(72px,10vw,140px);grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:64px clamp(28px,4vw,56px);max-width:calc(1160px + var(--gut)*2);margin-inline:auto}
 html:not(.motion) .pd-sports__lead{grid-column:1/-1}
 html:not(.motion) .pd-sport{--shot-w:104px}
+html:not(.motion) .pd-sport__cap .t-h2{font-size:clamp(26px,2.3vw,38px)}
 html.motion .pd-sports__track{--sp-w:min(78vw,660px,calc((100vh - var(--hdr-h) - 250px)*1.333));--sp-w:min(78vw,660px,calc((100svh - var(--hdr-h) - 250px)*1.333))}
 html.motion .pd-sports__lead{width:min(80vw,34em)}
-@media (max-width:719px){.pd-sport{--shot-w:calc(var(--sp-w)*.36)}}
+@media (max-width:719px){.pd-sport{--shot-w:calc(var(--sp-w)*.34)}}
 
-/* ───────────── the rest, as a quiet index ───────────── */
-.pd-index__grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(36px,5vw,56px) clamp(24px,3vw,48px);margin-top:clamp(48px,7vw,104px)}
-@media (max-width:1099px){.pd-index__grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:599px){.pd-index__grid{grid-template-columns:minmax(0,1fr)}}
-.pd-index__col h3{margin:18px 0 10px}
+/* ───────────── the rest, as a quiet index: the group's name in a rail on the left, its items in two columns ───────────── */
+.pd-index__grid{display:grid;gap:clamp(36px,5vw,64px);margin-top:clamp(48px,7vw,104px)}
+.pd-index__col{display:grid;grid-template-columns:minmax(0,1fr);column-gap:clamp(24px,3vw,48px)}
+.pd-index__col hr{grid-column:1/-1;margin:0}
+.pd-index__col h3{margin:18px 0 6px}
 .pd-index__col ul{list-style:none;margin:0;padding:0}
-.pd-index__col li{padding:13px 0;border-bottom:1px solid var(--line);font-size:17px;line-height:1.38;color:var(--fg)}
+.pd-index__col li{padding:13px 0;border-bottom:1px solid var(--line);font-size:17px;line-height:1.38;color:var(--fg);break-inside:avoid}
 .pd-index__col li:last-child{border-bottom:0}
+@media (min-width:900px){
+  .pd-index__col{grid-template-columns:minmax(0,3fr) minmax(0,9fr)}
+  .pd-index__col h3{grid-column:1;margin:20px 0 0}
+  .pd-index__col ul{grid-column:2;columns:2;column-gap:clamp(24px,3vw,48px);margin-top:6px}
+  .pd-index__col li:last-child{border-bottom:1px solid var(--line)}
+}
 
 /* ───────────── the close ───────────── */
 .pd-close .cols{align-items:center}
 .pd-close__copy{--stack:clamp(18px,2.4vw,30px)}
+.pd-close__h{font-size:clamp(46px,7.2vw,112px);max-width:7em}
 .pd-close__links{display:flex;flex-wrap:wrap;gap:4px 28px}
-.pd-close__card{display:grid;gap:18px;justify-items:start}
+.pd-close__card{display:grid;gap:18px;justify-items:start;min-width:0}
 .pd-close__card .bcard{--card-w:min(84vw,460px)}
-.pd-close__card .t-caption{max-width:26em}
-@media (min-width:900px){.pd-close__card{justify-items:end}.pd-close__card .t-caption{text-align:right}}
+.pd-close__card .t-caption{max-width:min(100%,26em)}
+@media (min-width:900px){.pd-close__card{justify-items:end}.pd-close__card .t-caption{text-align:right}.pd-close__card .bcard{--card-w:min(460px,36vw)}}
+
+/* ───────────── the footer's six sports on this page: a line never starts with its dot (the app's SEP_HANG) ───────────── */
+[data-page="product"] .foot__sports{display:flex;flex-wrap:wrap;max-width:27.2em;margin-left:-1.2em;clip-path:inset(-4px -4px -4px 1.2em)}
+[data-page="product"] .foot__sports>span::before{content:"\00B7";display:inline-block;width:1.2em;margin:0;text-align:center;opacity:.7}

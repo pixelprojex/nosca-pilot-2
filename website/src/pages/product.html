@@ -8,7 +8,7 @@ header: paper
 <!-- ═════════════ THE FIRST SCREEN IS A FILM ═════════════
      White first. The headline stands; the phone rises, turns through the three people who use it and the
      caption steps with it. Then the rest ground opens through the card's diagonal and chapter one begins. -->
-<section class="film g-paper pd-top" id="top" data-film data-span="0,70" style="--len:3.2;--len-sm:2.6" data-header="paper">
+<section class="film g-paper pd-top" id="top" data-film data-span="0,64" style="--len:3.4;--len-sm:2.9" data-header="paper">
   <div class="film__stage">
     <div class="film__safe pd-top__in">
       <div class="pd-top__copy">
@@ -25,18 +25,26 @@ header: paper
         </div>
       </div>
       <div class="pd-top__dev only-motion">
-        <!-- @include phone screens="coach-today-golf,player-feed,parent-family" alts="A golf coach's day in Nosca, the lesson on now as the one card|A player's home: the lesson feed|A parent's home: the family and what is coming up" eager="1" class="pd-top__phone" attrs="data-device data-swap='6' data-turn='-22,8,2' data-turn-to='13,-3,-1'" -->
+        <!-- @include phone screens="coach-today-golf,player-feed,parent-family" alts="A golf coach's day in Nosca, the lesson on now as the one card|A player's home: the lesson feed|A parent's home: the family and what is coming up" eager="1" class="pd-top__phone" mode="slide" attrs="data-device='slide' data-swap='7' data-turn='-22,8,2' data-turn-to='13,-3,-1'" -->
       </div>
     </div>
     <div class="shift-layer g-rest pd-top__next" data-header="rest" aria-hidden="true">
-      <p class="eyebrow eyebrow--rule">In eight chapters</p>
+      <div class="pd-toc">
+        <p class="eyebrow eyebrow--rule pd-toc__t">In eight chapters</p>
+        <ol>
+          <li><b>01</b><span>Log a lesson</span></li><li><b>02</b><span>The feed</span></li>
+          <li><b>03</b><span>Mark it up</span></li><li><b>04</b><span>Drills and practice</span></li>
+          <li><b>05</b><span>The diary</span></li><li><b>06</b><span>Messages</span></li>
+          <li><b>07</b><span>Family and juniors</span></li><li><b>08</b><span>Progress</span></li>
+        </ol>
+      </div>
     </div>
   </div>
 </section>
 
 <!-- the reel: eight chapters. A plain list at rest; with motion on a desk, fine gold ticks at the right edge. -->
 <nav class="pd-reel g-paper" aria-label="Chapters"><div class="wrap">
-  <p class="eyebrow eyebrow--rule pd-reel__t">Eight chapters</p>
+  <p class="eyebrow eyebrow--rule pd-reel__t">In eight chapters</p>
   <ol>
     <li><a href="#log"><b>01</b><span>Log a lesson</span></a></li>
     <li><a href="#feed"><b>02</b><span>The feed</span></a></li>
@@ -50,32 +58,32 @@ header: paper
 </div></nav>
 
 <!-- ═════════════ 01 · LOG A LESSON ═════════════
-     The phone starts a screen tall and draws back into its frame; then the real app runs frame for frame. -->
-<section class="film g-rest pd-ch pd-ch--pr" id="log" data-film data-ch="1" style="--len:5;--len-sm:4.2" data-header="rest">
+     The phone starts close and draws back into its frame; then the real app runs frame for frame. -->
+<section class="film g-rest pd-ch pd-ch--pr" id="log" data-film data-ch="1" data-step-y="0" data-step-fade="0.8" style="--len:5;--len-sm:4.2" data-header="rest">
   <div class="film__stage">
     <div class="film__safe pd-ch__in">
       <div class="pd-ch__copy">
         <div class="pd-ch__head" data-after-lead><p class="t-numeral" aria-hidden="true">01</p><h2 class="eyebrow">Log a lesson</h2></div>
         <div class="film__steps">
           <div data-step data-frame="0"><h3 class="t-h2">Start at the plus.</h3><p class="t-lede">Everything a coach does mid-lesson sits behind it.</p><figure class="shot pd-still only-rest"><img src="assets/coach-plus-golf.webp" width="780" height="1688" alt="The plus sheet over a coach's day: Log a lesson across the top, eight more actions under it" loading="lazy" decoding="async"></figure></div>
-          <div data-step data-frame="11"><h3 class="t-h2">Pick a face.</h3><p class="t-lede">Whoever is on now comes first.</p><figure class="shot pd-still only-rest"><img src="assets/coach-log-who.webp" width="780" height="1688" alt="Who: today's players as face tiles, then the groups" loading="lazy" decoding="async"></figure></div>
+          <div data-step data-frame="11"><h3 class="t-h2">Pick a face.</h3><p class="t-lede">Whoever is on now comes first.</p><figure class="shot pd-still only-rest"><img src="assets/seq/log/f018.webp" width="660" height="1428" alt="Who: today's players as face tiles, then the groups" loading="lazy" decoding="async"></figure></div>
           <div data-step data-frame="19"><h3 class="t-h2">Tap what was worked&nbsp;on.</h3><p class="t-lede">Each area in the sport's own words.</p><figure class="shot pd-still only-rest"><img src="assets/coach-log-golf.webp" width="780" height="1688" alt="The log for a golf lesson: Chipping and Putting chosen, Video, Photo and Voice under them, Log it at the foot" loading="lazy" decoding="async"></figure></div>
           <div data-step data-frame="36"><h3 class="t-h2">Log it.</h3><p class="t-lede">The lesson is written and the player is told.</p><figure class="shot pd-still only-rest"><img src="assets/seq/log/f057.webp" width="660" height="1428" alt="Logged: a tick, the player and what was worked on" loading="lazy" decoding="async"></figure></div>
         </div>
       </div>
       <div class="pd-dev only-motion"><div class="pd-dev__x" data-pd-out="16,0,-1">
-        <!-- @include phone seq="log" seqalt="Logging a lesson in Nosca: the plus, Who, what was worked on, Logged" class="pd-ch__phone" attrs="data-device data-zoom='tall' data-turn='-18,6,1.5'" -->
+        <!-- @include phone seq="log" seqalt="Logging a lesson in Nosca: the plus, Who, what was worked on, Logged" seqattrs="data-drive='manual'" class="pd-ch__phone" attrs="data-device data-zoom='tall' data-turn='-16,6,1.5' data-turn-to='9,-2,-0.5'" -->
       </div></div>
       <i class="film__bar"><i></i></i>
     </div>
   </div>
 </section>
 
-<!-- a photograph settles: capture -->
-<section class="section g-paper pd-inter" id="capture">
+<!-- a clip that plays as it settles: capture -->
+<section class="section g-rest pd-inter" id="capture">
   <div class="wrap cols">
     <div class="pd-inter__pic" style="--span:7">
-      <!-- @include photo name="coaching-phone-5" attrs="data-settle" sizes="(min-width:900px) 56vw, 100vw" credit="1" -->
+      <!-- @include loop name="loop-tennis-hands-2" class="pd-inter__vid" attrs="data-settle" -->
     </div>
     <div class="stack pd-inter__copy" style="--at:9;--span:4">
       <p class="eyebrow eyebrow--rule">Capture</p>
@@ -86,21 +94,22 @@ header: paper
 </section>
 
 <!-- ═════════════ 02 · THE FEED ═════════════
-     White gives way to the card's green through its diagonal. The player's feed runs frame for frame. -->
-<section class="film g-green pd-ch pd-ch--pl" id="feed" data-film data-ground-shift data-ch="2" style="--len:3.8;--len-sm:3.2" data-header="green">
+     The rest ground gives way to the card's green through its diagonal. The player's feed runs frame for frame,
+     then the lesson page slides in and the camera moves in on it. -->
+<section class="film g-green pd-ch pd-ch--pl" id="feed" data-film data-ground-shift data-ch="2" data-step-y="0" data-step-fade="0.8" style="--len:3.6;--len-sm:3" data-header="green">
   <div class="film__stage">
-    <!-- @include pins class="pins--tr pd-ch__pins" attrs="data-stripes data-at='0' data-len='70'" -->
+    <!-- @include pins class="pins--tr pd-ch__pins" attrs="data-stripes data-at='0' data-len='60'" -->
     <div class="film__safe pd-ch__in">
       <div class="pd-ch__copy">
         <div class="pd-ch__head"><p class="t-numeral" aria-hidden="true">02</p><h2 class="eyebrow">The feed</h2></div>
         <div class="film__steps">
           <div data-step data-frame="0"><h3 class="t-h2">Every lesson, kept.</h3><p class="t-lede">A player's home is the feed. Each lesson fills the screen.</p><figure class="shot pd-still only-rest"><img src="assets/player-feed.webp" width="780" height="1688" alt="A player's lesson feed: a clip filling the screen, Chipping and Putting, View lesson" loading="lazy" decoding="async"></figure></div>
           <div data-step data-frame="14"><h3 class="t-h2">One lesson to the&nbsp;next.</h3><p class="t-lede">A flick of the thumb, as far back as the first.</p><figure class="shot pd-still only-rest"><img src="assets/seq/feed/f028.webp" width="660" height="1428" alt="The feed two lessons on" loading="lazy" decoding="async"></figure></div>
-          <div data-step data-frame="28"><h3 class="t-h2">The lesson page.</h3><p class="t-lede">The clip, the coach's note, the tip and the drills.</p><figure class="shot pd-still only-rest"><img src="assets/player-lesson.webp" width="780" height="1688" alt="A lesson page: the day and the coach, Chipping and Putting, the clip, Compare and Study under it" loading="lazy" decoding="async"></figure></div>
+          <div data-step data-frame="28" data-cam="50% 22% 1.16" data-cam-screen="1"><h3 class="t-h2">The lesson page.</h3><p class="t-lede">The clip, the coach's note, the tip and the drills.</p><figure class="shot pd-still only-rest"><img src="assets/player-lesson.webp" width="780" height="1688" alt="A lesson page: the day and the coach, Chipping and Putting, the clip, Compare and Study under it" loading="lazy" decoding="async"></figure></div>
         </div>
       </div>
       <div class="pd-dev only-motion" data-pd-in="24,5,-2"><div class="pd-dev__x" data-pd-out="-18,0,1.5">
-        <!-- @include phone seq="feed" seqalt="A player's lesson feed in Nosca, one lesson to the next, then a lesson page" screens="player-lesson" mode="slide" class="pd-ch__phone" attrs="data-device='slide'" -->
+        <!-- @include phone seq="feed" seqalt="A player's lesson feed in Nosca, one lesson to the next, then a lesson page" screens="player-lesson" mode="slide" class="pd-ch__phone" attrs="data-device='slide' data-turn='8,3,-1' data-turn-to='-7,-2,0.5'" -->
       </div></div>
       <i class="film__bar"><i></i></i>
     </div>
@@ -108,71 +117,74 @@ header: paper
 </section>
 
 <!-- ═════════════ 03 · MARK IT UP, COMPARE, STUDY ═════════════
-     Still on the green. The picture opens close on the drawing and pulls back to the tools. -->
-<section class="film g-green pd-ch pd-ch--pr" id="markup" data-film data-ch="3" style="--len:3.2;--len-sm:2.7" data-header="green">
+     Still on the green. The picture opens close on the drawing and pulls back to the tools; Compare slides in. -->
+<section class="film g-green pd-ch pd-ch--pr" id="markup" data-film data-ch="3" data-step-y="0" data-step-fade="0.8" style="--len:3;--len-sm:2.6" data-header="green">
   <div class="film__stage">
-    <!-- @include pins class="pins--bl pd-ch__pins" attrs="data-stripes data-at='0' data-len='70'" -->
+    <!-- @include pins class="pins--bl pd-ch__pins" attrs="data-stripes data-at='0' data-len='60'" -->
     <div class="film__safe pd-ch__in">
       <div class="pd-ch__copy">
         <div class="pd-ch__head"><p class="t-numeral" aria-hidden="true">03</p><h2 class="eyebrow">Mark it up · Compare · Study</h2></div>
         <div class="film__steps">
           <div data-step><h3 class="t-h2">Mark it up.</h3><p class="t-lede">Lines, arrows, circles and angles, drawn on the clip. With a voice or without.</p><figure class="shot pd-still only-rest"><img src="assets/coach-markup.webp" width="780" height="1688" alt="Mark it up: a clip with a line, an angle of nine degrees and a ring drawn on it, the tools under it" loading="lazy" decoding="async"></figure></div>
-          <div data-step><h3 class="t-h2">Compare.</h3><p class="t-lede">Two clips side by side, frame for frame. Study slows one down and loops it.</p><figure class="shot pd-still only-rest"><img src="assets/coach-compare.webp" width="780" height="1688" alt="Compare: two clips of the same player side by side over one transport" loading="lazy" decoding="async"></figure></div>
+          <div data-step data-cam="50% 34% 1.14"><h3 class="t-h2">Compare.</h3><p class="t-lede">Two clips side by side, frame for frame. Study slows one down and loops it.</p><figure class="shot pd-still only-rest"><img src="assets/coach-compare.webp" width="780" height="1688" alt="Compare: two clips of the same player side by side over one transport" loading="lazy" decoding="async"></figure></div>
         </div>
       </div>
       <div class="pd-dev only-motion" data-pd-in="-24,5,2"><div class="pd-dev__x" data-pd-out="14,0,-1">
-        <!-- @include phone screens="coach-markup,coach-compare" alts="Mark it up: a clip with a line, an angle and a ring drawn on it|Compare: two clips side by side over one transport" mode="slide" class="pd-ch__phone" attrs="data-device='slide' data-swap='7'" -->
+        <!-- @include phone screens="coach-markup,coach-compare" alts="Mark it up: a clip with a line, an angle and a ring drawn on it|Compare: two clips side by side over one transport" mode="slide" class="pd-ch__phone" attrs="data-device='slide' data-swap='8' data-turn='-8,3,1' data-turn-to='7,-2,-0.5'" -->
       </div></div>
       <i class="film__bar"><i></i></i>
     </div>
   </div>
 </section>
 
-<!-- a photograph as a film's ground: the one behaviour every coach screen is judged against -->
-<section class="film g-green pd-moment" id="moment" data-film style="--len:2.6;--len-sm:2.2" data-header="none">
+<!-- a photograph as a film's ground: the one behaviour every coach screen is judged against. The words rise, hold and
+     leave before the film ends, so the white that arrives through the card's diagonal crosses only the picture. -->
+<section class="film g-green pd-moment" id="moment" data-film style="--len:2.5;--len-sm:2.2" data-header="none">
   <div class="film__stage">
     <!-- @include photo name="coaching-watching-1" class="photo--bleed photo--veil" attrs="data-settle='none'" sizes="100vw" -->
     <div class="film__safe pd-moment__in">
-      <p class="t-quote pd-moment__q" data-rise data-at="6" data-len="56">A coach picks up the phone mid-lesson, does one thing in seconds and puts it&nbsp;down.</p>
-      <p class="t-lede pd-moment__p" data-rise="lines" data-at="64" data-len="18">Every coach screen is judged against that.</p>
+      <div class="pd-moment__words">
+        <p class="t-quote pd-moment__q">A coach picks up the phone mid-lesson, does one thing in seconds and puts it&nbsp;down.</p>
+        <p class="t-lede pd-moment__p">Every coach screen is judged against that.</p>
+      </div>
     </div>
   </div>
 </section>
 
 <!-- ═════════════ 04 · DRILLS AND PRACTICE ═════════════ the white returns through the diagonal -->
-<section class="film g-paper pd-ch pd-ch--pl" id="drills" data-film data-ground-shift data-ch="4" style="--len:3.2;--len-sm:2.7" data-header="paper">
+<section class="film g-paper pd-ch pd-ch--pl" id="drills" data-film data-ground-shift data-ch="4" data-step-y="0" data-step-fade="0.8" style="--len:2.7;--len-sm:2.4" data-header="paper">
   <div class="film__stage">
     <div class="film__safe pd-ch__in">
       <div class="pd-ch__copy">
         <div class="pd-ch__head"><p class="t-numeral" aria-hidden="true">04</p><h2 class="eyebrow">Drills and practice</h2></div>
         <div class="film__steps">
-          <div data-step><h3 class="t-h2">Drills that carry a&nbsp;day.</h3><p class="t-lede">Set by the coach, each with the day it is due.</p><figure class="shot pd-still only-rest"><img src="assets/player-drills.webp" width="780" height="1688" alt="A player's Drills: Gate drill by Fri 27 Nov, Clock drill, Ladder drill, one ticked off, Log a practice under them" loading="lazy" decoding="async"></figure></div>
-          <div data-step><h3 class="t-h2">Log a practice.</h3><p class="t-lede">A player's own session in a few taps. The coach reads it.</p><figure class="shot pd-still only-rest"><img src="assets/junior-drills.webp" width="780" height="1688" alt="A junior's Drills: one drill with its day, Log a practice, and a reminder at 8:00 am" loading="lazy" decoding="async"></figure></div>
+          <div data-step data-cam="50% 20% 1.14"><h3 class="t-h2">Drills that carry a&nbsp;day.</h3><p class="t-lede">Set by the coach, each with the day it is due.</p><figure class="shot pd-still only-rest"><img src="assets/player-drills.webp" width="780" height="1688" alt="A player's Drills: Gate drill by Fri 27 Nov, Clock drill, Ladder drill, one ticked off, Log a practice under them" loading="lazy" decoding="async"></figure></div>
+          <div data-step data-cam="50% 48.2% 1.24"><h3 class="t-h2">Log a practice.</h3><p class="t-lede">A player's own session in a few taps. The coach reads it.</p><figure class="shot pd-still only-rest"><img src="assets/junior-drills.webp" width="780" height="1688" alt="A junior's Drills: one drill with its day, Log a practice, and a reminder at 8:00 am" loading="lazy" decoding="async"></figure></div>
         </div>
       </div>
       <div class="pd-dev only-motion" data-pd-in="22,5,-2"><div class="pd-dev__x" data-pd-out="-14,0,1">
-        <!-- @include phone screens="player-drills,junior-drills" alts="A player's Drills, each with the day it is due|A junior's Drills: Log a practice and the reminder's hour" class="pd-ch__phone" attrs="data-device" -->
-        <div class="pd-rings" aria-hidden="true"><i class="pd-ring" data-ring="1" style="--x:6%;--y:44.8%;--w:88%;--h:6.8%"></i></div>
+        <!-- @include phone screens="player-drills,junior-drills" alts="A player's Drills, each with the day it is due|A junior's Drills: Log a practice and the reminder's hour" mode="slide" class="pd-ch__phone" attrs="data-device='slide' data-swap='8' data-turn='7,3,-1' data-turn-to='-6,-2,0.5'" -->
+        <div class="pd-rings" aria-hidden="true"><i class="pd-ring" data-ring="1" style="--x:6.2%;--y:45%;--w:87.6%;--h:6%"></i></div>
       </div></div>
       <i class="film__bar"><i></i></i>
     </div>
   </div>
 </section>
 
-<!-- ═════════════ 05 · THE DIARY ═════════════ -->
-<section class="film g-rest pd-ch pd-ch--pr" id="diary" data-film data-ch="5" style="--len:3.8;--len-sm:3.2" data-header="rest">
+<!-- ═════════════ 05 · THE DIARY ═════════════ the phone lies flat on the page and is picked up -->
+<section class="film g-paper pd-ch pd-ch--pr pd-ch--diary" id="diary" data-film data-ch="5" data-step-y="0" data-step-fade="0.8" style="--len:3;--len-sm:2.6" data-header="paper">
   <div class="film__stage">
     <div class="film__safe pd-ch__in">
       <div class="pd-ch__copy">
         <div class="pd-ch__head"><p class="t-numeral" aria-hidden="true">05</p><h2 class="eyebrow">The diary</h2></div>
         <div class="film__steps">
-          <div data-step><h3 class="t-h2">The diary.</h3><p class="t-lede">Bookings and free times, a day to a box.</p><figure class="shot pd-still only-rest"><img src="assets/coach-diary-list.webp" width="780" height="1688" alt="The coach's Diary as a list: today's lessons and free times in one box, tomorrow under it" loading="lazy" decoding="async"></figure></div>
-          <div data-step><h3 class="t-h2">The month.</h3><p class="t-lede">Set the week's hours once. Mark the days away.</p><figure class="shot pd-still only-rest"><img src="assets/coach-diary-calendar.webp" width="780" height="1688" alt="The Diary as a calendar: November, today chosen, six booked and one free" loading="lazy" decoding="async"></figure></div>
-          <div data-step><h3 class="t-h2">Call off.</h3><p class="t-lede">For weather or any reason. Everyone affected is told before they travel.</p><figure class="shot pd-still only-rest"><img src="assets/coach-calloff.webp" width="780" height="1688" alt="Call off: Why, with Weather chosen from the reasons, then Next" loading="lazy" decoding="async"></figure></div>
+          <div data-step data-cam="50% 40% 1.12"><h3 class="t-h2">The diary.</h3><p class="t-lede">Bookings and free times, a day to a box.</p><figure class="shot pd-still only-rest"><img src="assets/product-diary-list.webp" width="780" height="1688" alt="The coach's Diary as a list: today's lessons and free times in one box, tomorrow under it" loading="lazy" decoding="async"></figure></div>
+          <div data-step data-cam="50% 30% 1.16"><h3 class="t-h2">The month.</h3><p class="t-lede">Set the week's hours once. Mark the days away.</p><figure class="shot pd-still only-rest"><img src="assets/coach-diary-calendar.webp" width="780" height="1688" alt="The Diary as a calendar: November, today chosen, six booked and one free" loading="lazy" decoding="async"></figure></div>
+          <div data-step data-cam="50% 46% 1.14"><h3 class="t-h2">Call off.</h3><p class="t-lede">For weather or any reason. Everyone affected is told before they travel.</p><figure class="shot pd-still only-rest"><img src="assets/coach-calloff.webp" width="780" height="1688" alt="Call off: Why, with Weather chosen from the reasons, then Next" loading="lazy" decoding="async"></figure></div>
         </div>
       </div>
-      <div class="pd-dev only-motion" data-pd-in="-22,5,2"><div class="pd-dev__x" data-pd-out="14,0,-1">
-        <!-- @include phone screens="coach-diary-list,coach-diary-calendar,coach-calloff" alts="The coach's Diary as a list|The Diary as a calendar|Call off, with Weather chosen" class="pd-ch__phone" attrs="data-device" -->
+      <div class="pd-dev only-motion" data-pd-in="0,64,0"><div class="pd-dev__x" data-pd-out="14,0,-1">
+        <!-- @include phone screens="product-diary-list,coach-diary-calendar,coach-calloff" alts="The coach's Diary as a list|The Diary as a calendar|Call off, with Weather chosen" mode="slide" class="pd-ch__phone" attrs="data-device='slide' data-swap='8' data-turn='-6,10,0' data-turn-to='6,-3,0'" -->
       </div></div>
       <i class="film__bar"><i></i></i>
     </div>
@@ -182,7 +194,7 @@ header: paper
 <!-- a photograph settles: the link -->
 <section class="section g-paper pd-inter pd-inter--wide" id="linked">
   <div class="wrap wrap--wide">
-    <!-- @include photo name="coaching-lesson-2" class="photo--wide" attrs="data-settle='12% 9% 12% 9%'" sizes="100vw" credit="1" -->
+    <!-- @include photo name="coaching-lesson-2" class="photo--wide" attrs="data-settle='12% 9% 12% 9%'" sizes="100vw" -->
     <div class="cols pd-inter__under">
       <h2 class="t-h1" style="--span:7" data-ink>A coach, a player and a family, linked.</h2>
       <p class="t-lede" style="--at:9;--span:4" data-rise="lines">The lesson a coach logs is the lesson a player keeps and a parent reads.</p>
@@ -190,8 +202,8 @@ header: paper
   </div>
 </section>
 
-<!-- ═════════════ 06 · MESSAGES ═════════════ -->
-<section class="film g-rest pd-ch pd-ch--pl" id="messages" data-film data-ch="6" style="--len:3.2;--len-sm:2.7" data-header="rest">
+<!-- ═════════════ 06 · MESSAGES ═════════════ close on the conversations, drawing back to the whole phone -->
+<section class="film g-paper pd-ch pd-ch--pl pd-ch--close" id="messages" data-film data-ch="6" data-step-y="0" data-step-fade="0.8" style="--len:2.7;--len-sm:2.4" data-header="paper">
   <div class="film__stage">
     <div class="film__safe pd-ch__in">
       <div class="pd-ch__copy">
@@ -201,36 +213,40 @@ header: paper
           <div data-step><h3 class="t-h2">A thread.</h3><p class="t-lede">Seen sits under the last line once it has been opened.</p><figure class="shot pd-still only-rest"><img src="assets/coach-thread.webp" width="780" height="1688" alt="A thread between a coach and a player, Seen under the coach's last line" loading="lazy" decoding="async"></figure></div>
         </div>
       </div>
-      <div class="pd-dev only-motion" data-pd-in="22,5,-2"><div class="pd-dev__x" data-pd-out="-14,0,1">
-        <!-- @include phone screens="coach-chat,coach-thread" alts="Chat: a coach's conversations|A thread between a coach and a player" mode="slide" class="pd-ch__phone" attrs="data-device='slide' data-swap='7'" -->
+      <div class="pd-dev only-motion" data-pd-in="16,4,-1"><div class="pd-dev__x" data-pd-out="-14,0,1">
+        <!-- @include phone screens="coach-chat,coach-thread" alts="Chat: a coach's conversations|A thread between a coach and a player" mode="slide" class="pd-ch__phone" attrs="data-device='slide' data-swap='8' data-turn='5,2,0' data-turn-to='-5,-1,0'" -->
       </div></div>
       <i class="film__bar"><i></i></i>
     </div>
   </div>
 </section>
 
-<!-- ═════════════ 07 · FAMILY AND JUNIORS ═════════════ the phone turns slowly through the whole chapter -->
-<section class="film g-paper pd-ch pd-ch--pr" id="family" data-film data-ch="7" style="--len:3.8;--len-sm:3.2" data-header="paper">
+<!-- ═════════════ 07 · FAMILY AND JUNIORS ═════════════ three phones, one household: they part, and each comes forward in turn -->
+<section class="film g-paper pd-ch pd-ch--pr pd-ch--fan" id="family" data-film data-ch="7" data-step-y="0" data-step-fade="0.8" style="--len:3;--len-sm:2.6" data-header="paper">
   <div class="film__stage">
     <div class="film__safe pd-ch__in">
       <div class="pd-ch__copy">
         <div class="pd-ch__head"><p class="t-numeral" aria-hidden="true">07</p><h2 class="eyebrow">Family and juniors</h2></div>
         <div class="film__steps">
-          <div data-step><h3 class="t-h2">A parent's home.</h3><p class="t-lede">The children, and what is coming up for each.</p><figure class="shot pd-still only-rest"><img src="assets/parent-family.webp" width="780" height="1688" alt="A parent's home: Next up, the children, and Coming up" loading="lazy" decoding="async"></figure></div>
-          <div data-step><h3 class="t-h2">A parent's words.</h3><p class="t-lede">Labelled the parent's in a child's thread. Never read as the child's.</p><figure class="shot pd-still only-rest"><img src="assets/coach-thread-junior.webp" width="780" height="1688" alt="A junior's thread as her coach reads it: two lines labelled Orla, parent" loading="lazy" decoding="async"></figure></div>
-          <div data-step><h3 class="t-h2">A junior's own account.</h3><p class="t-lede">Their lessons and their drills. A parent does the booking.</p><figure class="shot pd-still only-rest"><img src="assets/junior-home.webp" width="780" height="1688" alt="An under-18's own home in Nosca: her lesson feed" loading="lazy" decoding="async"></figure></div>
+          <div data-step data-cam="50% 30% 1.1"><h3 class="t-h2">A parent's home.</h3><p class="t-lede">The children, and what is coming up for each.</p><figure class="shot pd-still only-rest"><img src="assets/parent-family.webp" width="780" height="1688" alt="A parent's home: Next up, the children, and Coming up" loading="lazy" decoding="async"></figure></div>
+          <div data-step data-cam="50% 42% 1.12"><h3 class="t-h2">A parent's words.</h3><p class="t-lede">Labelled the parent's in a child's thread. Never read as the child's.</p><figure class="shot pd-still only-rest"><img src="assets/coach-thread-junior.webp" width="780" height="1688" alt="A junior's thread as her coach reads it: two lines labelled Orla, parent" loading="lazy" decoding="async"></figure></div>
+          <div data-step data-cam="50% 36% 1.1"><h3 class="t-h2">A junior's own account.</h3><p class="t-lede">Their lessons and their drills. A parent does the booking.</p><figure class="shot pd-still only-rest"><img src="assets/junior-home.webp" width="780" height="1688" alt="An under-18's own home in Nosca: her lesson feed" loading="lazy" decoding="async"></figure></div>
         </div>
       </div>
-      <div class="pd-dev only-motion" data-pd-in="-22,5,2"><div class="pd-dev__x" data-pd-out="14,0,-1">
-        <!-- @include phone screens="parent-family,coach-thread-junior,junior-home" alts="A parent's home in Nosca|A junior's thread, a parent's lines labelled|An under-18's own lesson feed" class="pd-ch__phone" attrs="data-device data-turn='9,0,0' data-turn-to='-9,0,0'" -->
+      <div class="pd-dev only-motion" data-pd-in="-18,5,2"><div class="pd-dev__x" data-pd-out="12,0,-1">
+        <div class="pd-fan">
+          <!-- @include phone screens="parent-family" alts="A parent's home in Nosca" class="pd-ch__phone pd-fan__p" -->
+          <!-- @include phone screens="coach-thread-junior" alts="A junior's thread, a parent's lines labelled" class="pd-ch__phone pd-fan__p" -->
+          <!-- @include phone screens="junior-home" alts="An under-18's own lesson feed" class="pd-ch__phone pd-fan__p" -->
+        </div>
       </div></div>
       <i class="film__bar"><i></i></i>
     </div>
   </div>
 </section>
 
-<!-- ═════════════ 08 · PROGRESS ═════════════ the one screen, scrolled -->
-<section class="film g-rest pd-ch pd-ch--pl" id="progress" data-film data-ch="8" style="--len:3.2;--len-sm:2.7" data-header="rest">
+<!-- ═════════════ 08 · PROGRESS ═════════════ the level's line drawn large in gold; the screen scrolled under its own tab bar -->
+<section class="film g-paper pd-ch pd-ch--pl pd-ch--prog" id="progress" data-film data-ch="8" data-step-y="0" data-step-fade="0.8" style="--len:2.8;--len-sm:2.5" data-header="paper">
   <div class="film__stage">
     <div class="film__safe pd-ch__in">
       <div class="pd-ch__copy">
@@ -240,8 +256,9 @@ header: paper
           <div data-step><h3 class="t-h2">Attendance.</h3><p class="t-lede">Counted from the coach's registers, the same for player, parent and coach.</p><figure class="shot pd-still only-rest"><img src="assets/player-progress-attendance.webp" width="780" height="1688" alt="Progress, further down: lessons a month, attendance of seven lessons in eight, drills done" loading="lazy" decoding="async"></figure></div>
         </div>
       </div>
-      <div class="pd-dev only-motion" data-pd-in="22,5,-2"><div class="pd-dev__x" data-pd-out="-10,0,1">
-        <!-- @include phone screens="player-progress,player-progress-attendance" alts="Progress: the level over time|Progress: attendance and drills" mode="push" class="pd-ch__phone" attrs="data-device='push' data-swap='12'" -->
+      <div class="pd-dev only-motion" data-pd-in="18,5,-2"><div class="pd-dev__x" data-pd-out="-10,0,1">
+        <svg class="pd-level" viewBox="0 0 600 260" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M0 18 L86 40 L172 64 L258 98 L344 122 L430 158 L516 190 L600 236"/></svg>
+        <!-- @include phone screens="player-progress,player-progress-attendance" alts="Progress: the level over time|Progress: attendance and drills" mode="push" class="pd-ch__phone" -->
       </div></div>
       <i class="film__bar"><i></i></i>
     </div>
@@ -258,32 +275,32 @@ header: paper
         <p class="t-lede">Levels and terms are the ones each sport's governing body uses.</p>
       </div>
       <article class="pd-sport">
-        <div class="pd-sport__pic"><!-- @include photo name="golf-flag-3" attrs="data-settle" sizes="(min-width:720px) 46vw, 78vw" --></div>
+        <div class="pd-sport__pic"><!-- @include photo name="golf-flag-3" focus="62% 40%" attrs="data-settle" sizes="(min-width:720px) 46vw, 78vw" --></div>
         <figure class="shot pd-sport__shot" data-rail-z="0.07"><img src="assets/coach-log-golf.webp" width="780" height="1688" alt="The log for a golf lesson, with golf's own areas" loading="lazy" decoding="async"></figure>
         <div class="pd-sport__cap" data-rail-in><h3 class="t-h2">Golf <i class="sport-dot" data-sport="golf"></i></h3><p class="pd-sport__ladder">Handicap Index</p><p class="t-small">Full swing, short game, on course</p></div>
       </article>
       <article class="pd-sport">
-        <div class="pd-sport__pic"><!-- @include photo name="tennis-serve-2" attrs="data-settle" sizes="(min-width:720px) 46vw, 78vw" --></div>
+        <div class="pd-sport__pic"><!-- @include photo name="tennis-grass-1" focus="0% 50%" attrs="data-settle" sizes="(min-width:720px) 46vw, 78vw" --></div>
         <figure class="shot pd-sport__shot" data-rail-z="0.07"><img src="assets/coach-log-tennis.webp" width="780" height="1688" alt="The log for a tennis lesson, with tennis's own areas" loading="lazy" decoding="async"></figure>
         <div class="pd-sport__cap" data-rail-in><h3 class="t-h2">Tennis <i class="sport-dot" data-sport="tennis"></i></h3><p class="pd-sport__ladder">Red, Orange, Green and Yellow ball, then WTN</p><p class="t-small">Serve, return, rally, net</p></div>
       </article>
       <article class="pd-sport">
-        <div class="pd-sport__pic"><!-- @include photo name="rowing-river-1" attrs="data-settle" sizes="(min-width:720px) 46vw, 78vw" --></div>
+        <div class="pd-sport__pic"><!-- @include photo name="rowing-river-1" focus="40% 70%" attrs="data-settle" sizes="(min-width:720px) 46vw, 78vw" --></div>
         <figure class="shot pd-sport__shot" data-rail-z="0.07"><img src="assets/coach-log-rowing.webp" width="780" height="1688" alt="The log for a rowing session, with rowing's own areas" loading="lazy" decoding="async"></figure>
         <div class="pd-sport__cap" data-rail-in><h3 class="t-h2">Rowing <i class="sport-dot" data-sport="rowing"></i></h3><p class="pd-sport__ladder">J13 to J18, Novice to Senior</p><p class="t-small">Technique, rhythm, racing, erg</p></div>
       </article>
       <article class="pd-sport">
-        <div class="pd-sport__pic"><!-- @include photo name="squash-hand-2" attrs="data-settle" sizes="(min-width:720px) 46vw, 78vw" --></div>
+        <div class="pd-sport__pic"><!-- @include photo name="squash-hand-2" focus="100% 60%" attrs="data-settle" sizes="(min-width:720px) 46vw, 78vw" --></div>
         <figure class="shot pd-sport__shot" data-rail-z="0.07"><img src="assets/coach-log-squash.webp" width="780" height="1688" alt="The log for a squash lesson, with squash's own areas" loading="lazy" decoding="async"></figure>
         <div class="pd-sport__cap" data-rail-in><h3 class="t-h2">Squash <i class="sport-dot" data-sport="squash"></i></h3><p class="pd-sport__ladder">The ball's dot</p><p class="t-small">Drives, volleys, front court, movement</p></div>
       </article>
       <article class="pd-sport">
-        <div class="pd-sport__pic"><!-- @include photo name="padel-shadows-3" attrs="data-settle" sizes="(min-width:720px) 46vw, 78vw" --></div>
+        <div class="pd-sport__pic"><!-- @include photo name="padel-court-1" focus="50% 40%" attrs="data-settle" sizes="(min-width:720px) 46vw, 78vw" --></div>
         <figure class="shot pd-sport__shot" data-rail-z="0.07"><img src="assets/coach-log-padel.webp" width="780" height="1688" alt="The log for a padel lesson, with padel's own areas" loading="lazy" decoding="async"></figure>
         <div class="pd-sport__cap" data-rail-in><h3 class="t-h2">Padel <i class="sport-dot" data-sport="padel"></i></h3><p class="pd-sport__ladder">Levels 0 to 7</p><p class="t-small">Net game, overheads, walls</p></div>
       </article>
       <article class="pd-sport">
-        <div class="pd-sport__pic"><!-- @include photo name="equestrian-stirrup-3" attrs="data-settle" sizes="(min-width:720px) 46vw, 78vw" --></div>
+        <div class="pd-sport__pic"><!-- @include photo name="equestrian-stirrup-3" focus="60% 40%" attrs="data-settle" sizes="(min-width:720px) 46vw, 78vw" --></div>
         <figure class="shot pd-sport__shot" data-rail-z="0.07"><img src="assets/coach-log-equestrian.webp" width="780" height="1688" alt="The log for a riding lesson, with the horse and riding's own areas" loading="lazy" decoding="async"></figure>
         <div class="pd-sport__cap" data-rail-in><h3 class="t-h2">Equestrian <i class="sport-dot" data-sport="equestrian"></i></h3><p class="pd-sport__ladder">Pony Club tests and riding-school stages</p><p class="t-small">Flatwork, poles, jumping, cross-country</p></div>
       </article>
@@ -293,7 +310,7 @@ header: paper
 </section>
 
 <!-- ═════════════ THE REST, AS A QUIET INDEX ═════════════ -->
-<section class="section g-rest pd-index" id="more">
+<section class="section g-rest pd-index" id="more" data-ground-shift>
   <div class="wrap">
     <div class="cols">
       <div class="stack" style="--span:6">
@@ -352,12 +369,11 @@ header: paper
 </section>
 
 <!-- ═════════════ THE CLOSE: the card turns to its back ═════════════ -->
-<section class="section g-paper pd-close" id="open">
+<section class="section g-paper pd-close" id="open" data-ground-shift>
   <div class="wrap cols">
     <div class="stack pd-close__copy" style="--span:6">
-      <p class="eyebrow eyebrow--rule">In pilot, in Ireland</p>
-      <h2 class="t-display" data-ink>Coaching, linked.</h2>
-      <p class="t-lede" data-rise="lines">One app for coach, player and parent.</p>
+      <h2 class="t-display pd-close__h" data-ink>In pilot, in&nbsp;Ireland.</h2>
+      <p class="t-lede" data-rise="lines">Open it in the browser, or add it to the Home Screen.</p>
       <div class="keys">
         <a class="key key--lg" href="{{appUrl}}" rel="noopener" data-magnet>Open Nosca <!-- @include arrow --></a>
         <a class="key key--paper key--lg" href="{{installUrl}}" rel="noopener" data-magnet>Add to Home Screen</a>
