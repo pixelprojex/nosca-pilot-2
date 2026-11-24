@@ -2727,13 +2727,25 @@ seeded data and no account.
   busy, asked for no manual step: the database's address, its anon key
   and the push service's public key are public by design (every
   visitor's browser is handed them; row-level security guards the data),
-  so `vite.config.js` carries them as `PUBLISHABLE`, the production
-  build's defaults, taken whole only by a build that names no database
-  of its own — a value set on the site, in the shell or in a .env file
-  still wins, the e2e mock builds are untouched, and `vite` on a laptop
-  reads .env alone. So both sites build a working app and write
-  `/ready.png`, and the hop is on. The secrets — the service role key,
-  the VAPID private key, the webhook secret — never enter the
+  so a Netlify build that names no database reads the three off the old
+  site's live app, as a browser would, and takes them only once each
+  checks out — a Supabase project's address, an anon key of that same
+  project (never a service key, never another project's), a P-256 point
+  (`scripts/public-settings.mjs`, called from `vite.config.js` when
+  `NETLIFY` is true). A value set on the site, in the shell or in a .env
+  file wins and then nothing is read; the e2e mock builds are untouched;
+  a build off Netlify reads nothing. **They are never written into the
+  repository**: the old site holds the same three as variables, and
+  Netlify's secret scanning fails a build that finds a site variable's
+  value in a repository file — written into `vite.config.js` for an
+  hour, the old site's deploy failed while the new one built the same
+  commit. Leaving that file out of the scan is the founder's call, not a
+  session's. **A build left with no database never shows a blank page at
+  the app's own address**: it forwards `nosca.netlify.app` to the same
+  page of the old site (`forwardScript`), and writes no `/ready.png`, so
+  the old site never hops back to it. So both sites build a working app
+  and write `/ready.png`, and the hop is on. The secrets — the service
+  role key, the VAPID private key, the webhook secret — never enter the
   repository: they live in the old site's environment, which is why the
   relay and the summary keep running there (below). **The move is
   seamless.** An app on a Home Screen at the old address is left there

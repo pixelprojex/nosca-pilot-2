@@ -237,15 +237,58 @@ const { check, summary } = M.checker("signpost");
     }
 
     /* ---------- the built page itself ---------- */
+    const { pathToFileURL } = require("url");
+    const ps = await import(pathToFileURL(path.join(M.ROOT, "scripts/public-settings.mjs")).href);
     {
       const html = fs.readFileSync(path.join(distDir, "index.html"), "utf8");
       const hop = html.indexOf(OLD), bundle = html.search(/<script[^>]+type="module"/);
       check("(h) the hop is in the built page's head, ahead of the app's bundle", hop > 0 && bundle > 0 && hop < bundle && html.includes(`https://${NEW}`), `hop ${hop} · bundle ${bundle}`);
+      check("(h2) a build given its database does not forward its own address anywhere", !html.includes(ps.forwardScript()));
+    }
+
+    /* ---------- the app's own site, built with no variables: its three public settings read off the first site's app ---------- */
+    {
+      const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
+      const jwt = (claims) => `${b64({ alg: "HS256", typ: "JWT" })}.${b64(claims)}.c2lnbmF0dXJl`;
+      const REF = "abcdefghijklmnopqrst", URL1 = `https://${REF}.supabase.co`;
+      const ANON = jwt({ iss: "supabase", ref: REF, role: "anon", iat: 1, exp: 2 });
+      const SERVICE = jwt({ iss: "supabase", ref: REF, role: "service_role", iat: 1, exp: 2 });
+      const OTHER = jwt({ iss: "supabase", ref: "zyxwvutsrqponmlkjihg", role: "anon", iat: 1, exp: 2 });
+      const VAPID = Buffer.concat([Buffer.from([4]), Buffer.alloc(64, 7)]).toString("base64url");
+      const bundle = (key) => `const a="${URL1}",b="${key}";const v="${VAPID}";export{a,b,v};`;
+      const got = ps.settingsFromScripts([bundle(ANON)]);
+      check("(p) the address, the anon key and the push key are read off the app's own scripts",
+        got && got.VITE_SUPABASE_URL === URL1 && got.VITE_SUPABASE_ANON_KEY === ANON && got.VITE_VAPID_PUBLIC_KEY === VAPID, JSON.stringify(got));
+      check("(p2) a service key is never taken for the anon key — nothing is taken at all", ps.settingsFromScripts([bundle(SERVICE)]) === null);
+      check("(p3) nor another project's anon key beside this project's address", ps.settingsFromScripts([bundle(OTHER)]) === null);
+      check("(p4) a page whose scripts carry no database gives nothing", ps.settingsFromScripts(["const x=1;"]) === null && ps.settingsFromScripts([]) === null);
+      const page = `<!doctype html><head><script type="module" crossorigin src="/assets/index-AbC123.js"></script><link rel="modulepreload" crossorigin href="/assets/vendor-XyZ.js"></head>`;
+      check("(p5) the page's scripts are the module and its preloads", JSON.stringify(ps.scriptsOf(page)) === JSON.stringify(["/assets/index-AbC123.js", "/assets/vendor-XyZ.js"]), JSON.stringify(ps.scriptsOf(page)));
+      const served = { "/": page, "/assets/index-AbC123.js": bundle(ANON), "/assets/vendor-XyZ.js": "export const z=0;" };
+      const fetcher = async (u) => { const p = new URL(u).pathname; return p in served ? new Response(served[p], { status: 200 }) : new Response("no", { status: 404 }); };
+      const site = await ps.settingsFromSite("https://first.example", fetcher);
+      check("(p6) read from the first site the way a browser reads it", site && site.VITE_SUPABASE_ANON_KEY === ANON && site.VITE_SUPABASE_URL === URL1, JSON.stringify(site));
+      const down = await ps.settingsFromSite("https://first.example", async () => { throw new Error("down"); });
+      const gone = await ps.settingsFromSite("https://first.example", async () => new Response("no", { status: 404 }));
+      check("(p7) a first site down or missing gives nothing, and never throws", down === null && gone === null);
+    }
+    {
+      /* a build with no database at the app's own address: the person lands on the same page of the first site */
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+      const page = await ctx.newPage();
+      await ctx.route("**/*", (r) => r.fulfill({ status: 204, body: "" }));
+      await ctx.route(`https://${NEW}/**`, (r) => r.fulfill({ status: 200, contentType: "text/html", body: `<!doctype html><html><head>${ps.forwardScript()}</head><body><div id="root"></div></body></html>` }));
+      await ctx.route(`https://${OLD}/**`, (r) => r.fulfill({ status: 200, contentType: "text/html", body: `<!doctype html><title>first</title><p>the app</p>` }));
+      await ctx.route(`https://deploy-preview-159--${NEW}/**`, (r) => r.fulfill({ status: 200, contentType: "text/html", body: `<!doctype html><html><head>${ps.forwardScript()}</head><body>preview</body></html>` }));
+      await page.goto(`https://${NEW}/install?ref=card#steps`, { waitUntil: "domcontentloaded" }).catch(() => {}); await page.waitForTimeout(800);
+      check("(p8) the app's own address, built with no database, sends a person to the same page of the first site — never a blank page", page.url() === `https://${OLD}/install?ref=card#steps`, page.url());
+      await page.goto(`https://deploy-preview-159--${NEW}/`, { waitUntil: "domcontentloaded" }).catch(() => {}); await page.waitForTimeout(500);
+      check("(p9) …and only that address: a preview of it stays where it is", page.url() === `https://deploy-preview-159--${NEW}/`, page.url());
+      await ctx.close();
     }
 
     /* ---------- the daily digest runs on one site ---------- */
     {
-      const { pathToFileURL } = require("url");
       const sp = await import(pathToFileURL(path.join(M.ROOT, "netlify/functions/lib/signpost.mjs")).href);
       check("(i) the signpost is recognised by its site name", sp.isSignpost({ SITE_NAME: "nosca-pilot-2" }) === true);
       check("(i2) … by its address", sp.isSignpost({ URL: "https://nosca-pilot-2.netlify.app" }) === true);
