@@ -31,6 +31,10 @@
           nothing: the one write lands on no row
    d12    the decline fits the request's own length, not the coach's
    d13    a request caught by a weather call-off reads Request declined
+   q1-q9  the request holds its hour in the coach's Diary: a row on the List
+          and a box on the Calendar view, Requested, Accept · Decline as
+          Today's (the decline sheet with them; Accept from either view),
+          no plus on it, no free count counting it
 
    Usage: node offer-times.cjs <distDir> <port> <outDir> */
 const path = require("path"), fs = require("fs");
@@ -350,6 +354,82 @@ function freshDb({ hours = true, away = null, family = false, requestFor = "adul
       await cancelFromPeek(page, "Cian Murphy");
       const times = await offerButtons(page);
       check("(o9) an hour-long lesson is offered only where it fits: 9:00 am, not 9:30 am, which runs into Saoirse's 10:00", JSON.stringify(times) === JSON.stringify(["9:00 am"]), times.join(", ") || "none");
+      await ctx.close();
+    }
+
+    /* ---------- (q) the request holds its hour in the coach's Diary (24 November) ----------
+       Tomorrow's request at 10:00 am was on Today and nowhere in the Diary: the hour read
+       free, carried a plus, and the day read "1 booked · 4 free". It is a row in its hour on
+       the List and a box among the lessons on the Calendar view, Requested, with Accept ·
+       Decline — Today's handlers, the decline sheet with them — and held: no plus on it,
+       no free count counting it. */
+    {
+      const db = freshDb();
+      const { ctx, page, shot } = await boot(db);
+      await M.tap(page, '[aria-label="Diary"]', 1000);
+      const lb = page.locator('[data-tour="cal-view"] [aria-label="List"]'); if (await lb.count()) await M.tap(page, '[data-tour="cal-view"] [aria-label="List"]', 700);
+      const tomorrow = page.locator("div.mb-6").filter({ has: page.locator("span", { hasText: /^Tomorrow$/ }) }).first();
+      const ask = tomorrow.locator('[data-tour="agenda-ask"]');
+      const askText = (await ask.count()) ? M.norm(await ask.first().innerText()) : "";
+      const plusRows = await tomorrow.locator("button").evaluateAll((els) => els.filter((b) => b.querySelector("svg.lucide-plus")).map((b) => b.textContent.trim()));
+      await shot("08-diary-list-request");
+      check("(q1) the List carries the request in its hour: 10:00 am, Cian Murphy, Requested, Accept · Decline",
+            (await ask.count()) === 1 && /^10:00 am Cian Murphy Requested Accept Decline$/.test(askText), askText || "no row");
+      check("(q2) …and the hour is held: tomorrow's plus rows are 9:00 am, 11:00 am and 5:00 pm — never 10:00 am",
+            JSON.stringify(plusRows) === JSON.stringify(["9:00 am", "11:00 am", "5:00 pm"]), JSON.stringify(plusRows));
+      /* Decline from the Diary opens Today's own decline sheet */
+      await ask.first().locator('[data-tour="agenda-decline"]').click(); await page.waitForTimeout(900);
+      const dt = await offerButtons(page), st = await sheetText(page);
+      check("(q3) Decline in the Diary opens the decline sheet Today opens — Decline request, Cian Murphy, that day's open times 9:00 am, 11:00 am, 5:00 pm",
+            /^Decline request Cian Murphy/.test(st) && JSON.stringify(dt) === JSON.stringify(["9:00 am", "11:00 am", "5:00 pm"]), `${st.slice(0, 100)} · ${dt.join(", ")}`);
+      await page.locator("[data-sheet] button", { hasText: /^Just decline$/ }).first().click(); await page.waitForTimeout(1500);
+      const req = db.bookings.find((b) => b.id === CC06);
+      const told = toldFor(db, IDS.adult, CC06);
+      check("(q4) …and Just decline declines it: the row cancelled, the player told Request declined, the row gone from the Diary and the hour offered again",
+            !!req && req.status === "cancelled" && told.length === 1 && /^Request declined/.test(told[0]) && (await tomorrow.locator('[data-tour="agenda-ask"]').count()) === 0
+            && (await tomorrow.locator("button").evaluateAll((els) => els.filter((b) => b.querySelector("svg.lucide-plus")).map((b) => b.textContent.trim()))).includes("10:00 am"),
+            JSON.stringify({ status: req && req.status, told }));
+      await ctx.close();
+    }
+    {
+      const db = freshDb();
+      const { ctx, page, shot } = await boot(db);
+      await openDay(page, db, dayPlus(db, 1));
+      const head = await page.evaluate(() => { const d = document.querySelector("[data-cal-day]"); const spans = d ? d.firstElementChild.querySelectorAll("span") : []; return spans.length > 1 ? spans[1].textContent.trim() : ""; });
+      const free = await page.evaluate(() => [...document.querySelectorAll("[data-cal-day] .nsc-day button")].map((b) => b.textContent.trim()));
+      const blk = page.locator('[data-tour="cal-ask"]');
+      const bt = (await blk.count()) ? M.norm(await blk.first().innerText()) : "";
+      await shot("09-diary-calendar-request");
+      check("(q5) the Calendar view holds it too: the day reads 1 booked · 3 free, its free times 9:00, 11:00 and 5:00 — no 10:00",
+            head === "1 booked · 3 free" && free.length === 3 && free.every((x) => !/^10:00/.test(x)), JSON.stringify({ head, free }));
+      check("(q6) …and the request is a box among the day's lessons: Cian Murphy, 10:00–10:45 am · Requested, Decline · Accept",
+            (await blk.count()) === 1 && /(^| )Cian Murphy 10:00–10:45 am · Requested Decline Accept$/.test(bt), bt || "no box");
+      /* in time order: the request's box sits before the 4:00 pm lesson's */
+      const order = await page.evaluate(() => [...document.querySelectorAll('[data-tour="cal-ask"], [data-tour="cal-block"]')].map((b) => b.getAttribute("data-tour")));
+      check("(q7) …in its hour: the request at ten stands before Saoirse's four o'clock", JSON.stringify(order) === JSON.stringify(["cal-ask", "cal-block"]), JSON.stringify(order));
+      await blk.first().locator('[data-tour="cal-accept"]').click(); await page.waitForTimeout(1800);
+      const req = db.bookings.find((b) => b.id === CC06);
+      const after = await page.evaluate(() => ({ asks: document.querySelectorAll('[data-tour="cal-ask"]').length, blocks: [...document.querySelectorAll('[data-tour="cal-block"]')].map((b) => b.innerText.replace(/\s+/g, " ").slice(0, 60)) }));
+      const told = toldFor(db, IDS.adult, CC06);
+      check("(q8) Accept in the Diary is Today's accept: the request confirmed, the player told, and it stands as a lesson in its hour",
+            !!req && req.status === "confirmed" && told.some((x) => /^Lesson confirmed/.test(x)) && after.asks === 0 && after.blocks.some((x) => /Cian Murphy/.test(x) && /10:00–10:45 am/.test(x)),
+            JSON.stringify({ status: req && req.status, told, after }));
+      await ctx.close();
+    }
+    /* the List's Accept is the same accept: the hour becomes the lesson's row */
+    {
+      const db = freshDb();
+      const { ctx, page } = await boot(db);
+      await M.tap(page, '[aria-label="Diary"]', 1000);
+      const lb = page.locator('[data-tour="cal-view"] [aria-label="List"]'); if (await lb.count()) await M.tap(page, '[data-tour="cal-view"] [aria-label="List"]', 700);
+      const tomorrow = page.locator("div.mb-6").filter({ has: page.locator("span", { hasText: /^Tomorrow$/ }) }).first();
+      await tomorrow.locator('[data-tour="agenda-ask"] [data-tour="agenda-accept"]').first().click(); await page.waitForTimeout(1800);
+      const req = db.bookings.find((b) => b.id === CC06);
+      const told = toldFor(db, IDS.adult, CC06);
+      const rows = await tomorrow.locator('[data-tour="agenda-row"]').evaluateAll((els) => els.map((b) => b.textContent.replace(/\s+/g, " ").trim()));
+      check("(q9) Accept on the List is the same accept: the request confirmed, the player told, and the hour a lesson row of the day with no Requested row left",
+            !!req && req.status === "confirmed" && told.some((x) => /^Lesson confirmed/.test(x)) && (await tomorrow.locator('[data-tour="agenda-ask"]').count()) === 0 && rows.some((x) => /^10:00 am\s*Cian Murphy/.test(x)),
+            JSON.stringify({ status: req && req.status, told, rows }));
       await ctx.close();
     }
 

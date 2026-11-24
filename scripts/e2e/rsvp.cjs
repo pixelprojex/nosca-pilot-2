@@ -277,6 +277,64 @@ const { check, results, summary } = M.checker("rsvp");
       check("(f5) a register already taken comes back as taken — the member out stays where the coach marked her", marks["Saoirse Kelly"] === "in" && marks["Cian Murphy"] === "out", JSON.stringify(marks));
       await ctx.close();
     }
+    /* (f6)–(f9) A GROUP'S ROLL IS ITS MEMBERS (24 November). The clinic's register
+       listed the whole roster — "7 to mark" for a clinic of three. Its roll is the
+       saved group's members still on the roster (Cian and Saoirse: Eoin has left,
+       Aoife is not one of it), from the Diary's peek and from Today's alike; anybody
+       else who turns up is "Someone not in the diary" under the roll; and a group
+       whose members cannot be known keeps the roster — a roll is never empty */
+    {
+      const db = freshDb({ popup: true });
+      const roll = (page) => page.evaluate(() => [...document.querySelectorAll("[data-sheet] [data-reg-row]")].map((r) => [r.getAttribute("data-reg-row"), r.getAttribute("data-mark")]));
+      const head = async (page) => M.norm(await page.locator("[data-sheet]").first().innerText());
+      const { ctx, page, shot } = await boot(db, "coach");
+      /* from the Diary's List: the clinic's peek, then Register */
+      await tap(page, '[aria-label="Diary"]', 600);
+      const lb = page.locator('[data-tour="cal-view"] button[aria-label="List"]'); if (await lb.count()) { await lb.first().click(); await page.waitForTimeout(700); }
+      await page.locator('[data-tour="agenda-row"]', { hasText: "Saturday clinic" }).first().dispatchEvent("click"); await page.waitForTimeout(900);
+      await tap(page, '[data-tour="peek-register"]', 1200);
+      const r1 = await roll(page), h1 = await head(page);
+      const tally1 = M.norm(await page.locator('[data-tour="register-tally"]').innerText().catch(() => ""));
+      await shot("11-coach-group-register");
+      check("(f6) the clinic's register is its two members still on the roster — Cian and Saoirse, not Aoife (not one of it), not Eoin (gone from the roster) — \"4:00 pm · 2 people\", \"2 to mark\"",
+        JSON.stringify(r1.map((x) => x[0]).sort()) === JSON.stringify(["Cian Murphy", "Saoirse Kelly"]) && /4:00 pm · 2 people/.test(h1) && tally1 === "2 to mark", `${JSON.stringify(r1)} · ${tally1} · ${h1.slice(0, 120)}`);
+      /* the walk-in: the rest of the roster, one tap onto the roll, present */
+      const walk = page.locator('[data-tour="register-roll-walkin"]');
+      const hadWalk = await walk.count();
+      if (hadWalk) await walk.first().click(); await page.waitForTimeout(500);
+      const others = await page.locator('[data-tour="register-roll-others"] [data-walkin]').evaluateAll((els) => els.map((e) => e.getAttribute("data-walkin")));
+      await shot("12-coach-group-walkin");
+      check("(f7) \"Someone not in the diary\" sits under the clinic's roll and opens the rest of the roster — Aoife alone", hadWalk === 1 && JSON.stringify(others) === JSON.stringify(["Aoife Doyle"]), JSON.stringify({ hadWalk, others }));
+      await page.locator('[data-tour="register-roll-others"] [data-walkin="Aoife Doyle"]').first().click(); await page.waitForTimeout(600);
+      const r2 = await roll(page), h2 = await head(page);
+      check("(f7) …a tap puts her on the roll after the members, marked present, and the list of the rest goes", r2.length === 3 && JSON.stringify(r2[2]) === JSON.stringify(["Aoife Doyle", "in"]) && JSON.stringify(r2.slice(0, 2).sort()) === JSON.stringify([["Cian Murphy", ""], ["Saoirse Kelly", ""]]) && /4:00 pm · 3 people/.test(h2) && (await page.locator('[data-tour="register-roll-others"]').count()) === 0 && (await walk.count()) === 0,
+        `${JSON.stringify(r2)} · ${h2.slice(0, 80)}`);
+      for (const who of ["Cian Murphy", "Saoirse Kelly"]) await page.locator(`[data-sheet] [data-reg-row="${who}"] button`, { hasText: "Present" }).click();
+      const before = db.marks.length;
+      await page.getByRole("button", { name: /Submit register/ }).click().catch(() => {}); await page.waitForTimeout(1500);
+      const written = db.marks.slice(before).map((m) => `${m.player_id === IDS.adult ? "Cian" : m.player_id === IDS.junior ? "Saoirse" : m.player_id === IDS.aoife ? "Aoife" : m.player_id}:${m.state}`).sort();
+      check("(f7) …and Submit writes the three — the members and the walk-in, all present — and nobody else", JSON.stringify(written) === JSON.stringify(["Aoife:in", "Cian:in", "Saoirse:in"]), JSON.stringify(written));
+      await ctx.close();
+    }
+    {
+      const db = freshDb({ popup: true });
+      const roll = (page) => page.evaluate(() => [...document.querySelectorAll("[data-sheet] [data-reg-row]")].map((r) => r.getAttribute("data-reg-row")));
+      const { ctx, page } = await boot(db, "coach");
+      /* from Today: the clinic's row, its peek, Register — the same roll as the Diary's */
+      await tap(page, '[aria-label="Today"]', 900);
+      await page.locator('[data-scroll="screen"] button', { hasText: "Saturday clinic" }).first().dispatchEvent("click"); await page.waitForTimeout(900);
+      await tap(page, '[data-tour="peek-register"]', 1200);
+      const fromToday = await roll(page);
+      check("(f8) opened from Today the clinic's register reads the same two — Today handed it the whole roster", JSON.stringify(fromToday.slice().sort()) === JSON.stringify(["Cian Murphy", "Saoirse Kelly"]), JSON.stringify(fromToday));
+      await page.locator("[data-sheet-scrim]").first().click({ position: { x: 20, y: 20 }, timeout: 3000 }).catch(() => {}); await page.waitForTimeout(700);
+      /* a group nobody saved: its members cannot be known, so the roster — never an empty roll */
+      await page.locator('[data-scroll="screen"] button', { hasText: "Pop-up clinic" }).first().dispatchEvent("click"); await page.waitForTimeout(900);
+      await tap(page, '[data-tour="peek-register"]', 1200);
+      const popup = await roll(page);
+      check("(f9) a group nobody saved keeps the roster: Cian, Aoife and Saoirse — never an empty roll — and offers no walk-in, there being nobody else",
+        JSON.stringify(popup.slice().sort()) === JSON.stringify(["Aoife Doyle", "Cian Murphy", "Saoirse Kelly"]) && (await page.locator('[data-tour="register-roll-walkin"]').count()) === 0, JSON.stringify(popup));
+      await ctx.close();
+    }
     /* (g) a session somebody is out of leaves the phone's calendar and the family's Coming up */
     {
       const db = memberDb();

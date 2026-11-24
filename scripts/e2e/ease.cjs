@@ -254,10 +254,15 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
       const diary = await rows(page, '[data-scroll="screen"]'); await shot("06-diary-list");
       check("(h) the Diary's List view: a day's box — a container of times — stands on the light grey line; any list row beside it is the white card", !!diary && diary.some((r) => r.kind === "day") && diary.filter((r) => r.kind === "day").every((r) => r.edges[0].endsWith(EDGE) && parseFloat(r.edges[0]) >= 1) && diary.filter((r) => r.kind === "row").every(soft), say(diary));
       await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-group"]', 1000);
-      const pick = await rows(page, "[data-sheet]"); await shot("07-sheet-people");
-      /* the ground the rows sit on: the first painted ancestor of a row inside the sheet — the panel, never the wash */
-      const sheet = await page.evaluate(() => { const row = document.querySelector("[data-sheet] .nsc-list > *"); let el = row && row.parentElement; while (el && getComputedStyle(el).backgroundColor === "rgba(0, 0, 0, 0)") el = el.parentElement; return el ? getComputedStyle(el).backgroundColor : null; });
-      check("(i) inside a sheet the people rows are white cards on their line and ledge, so the rows read as objects on the white sheet", !!pick && pick.filter((r) => r.kind === "row").length >= 3 && pick.filter((r) => r.kind === "row").every(soft) && !!sheet && sheet === CARD, `${say(pick)} · ground ${sheet}`);
+      await shot("07-sheet-people");
+      /* since 24 November New group's people — several are chosen — are the rows of ONE grouped box (Settings' own),
+         where they were a white card each: the box is the white card on its line and ledge, and the ground it sits
+         on, the first painted ancestor, is the panel, never the wash */
+      const grp = await page.evaluate(() => { const g = document.querySelector("[data-sheet] .nsc-group"); if (!g) return null; const cs = getComputedStyle(g);
+        let el = g.parentElement; while (el && getComputedStyle(el).backgroundColor === "rgba(0, 0, 0, 0)") el = el.parentElement;
+        return { rows: g.querySelectorAll("[data-person-row]").length, bg: cs.backgroundColor, edge: cs.borderTopColor, bw: cs.borderTopWidth, ledge: cs.boxShadow, ground: el ? getComputedStyle(el).backgroundColor : null }; });
+      check("(i) inside a sheet the people are one white box on its line and ledge, the rows inside it — an object on the white sheet",
+        !!grp && grp.rows >= 3 && grp.bg === CARD && grp.edge === EDGE && parseFloat(grp.bw) >= 1 && grp.ledge.includes(EDGE) && grp.ground === CARD, JSON.stringify(grp));
       await closeSheet(page);
       await ctx.close();
     }
