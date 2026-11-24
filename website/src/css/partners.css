@@ -88,7 +88,7 @@ html.motion .pt-film__phone{--phone-w:min(60vw,calc((100vh - var(--hdr-h) - 300p
 
 /* ───────────── 5. climate: a photograph as the film's ground ───────────── */
 .pt-still .photo{--veil:.56}
-.pt-still__eb{color:var(--on-green-2)}
+.pt-still__eb{color:var(--on-green)}
 .pt-still__in{display:grid;align-content:end;justify-items:start;gap:clamp(12px,2vh,22px);padding:calc(var(--hdr-h) + 24px) var(--gut) clamp(48px,11vh,128px);max-width:1360px;margin-inline:auto}
 .pt-still__h{max-width:8.6em;--fg-dim:rgba(244,246,243,.34)}
 .pt-still__p{max-width:24em;color:var(--on-green)}

@@ -54,7 +54,7 @@ Site.ready(function (S) {
      Each frame draws its hairline round itself, top, right, foot, left, and then its mark, one frame after another. */
   (function frames() {
     var wall = $('.pt-frames'); if (!wall) return;
-    var tl = gsap.timeline({ defaults: { ease: 'none' }, scrollTrigger: { trigger: wall, start: 'top 86%', end: 'bottom 58%', scrub: 0.6 } });
+    var tl = gsap.timeline({ defaults: { ease: 'none' }, scrollTrigger: { trigger: wall, start: 'top 88%', end: 'bottom 74%', scrub: 0.6 } });
     $$('.pframe', wall).forEach(function (f, i) {
       var at = i * 9, t = $('.pt-edge--t', f), r = $('.pt-edge--r', f), b = $('.pt-edge--b', f), l = $('.pt-edge--l', f);
       tl.fromTo(t, { scaleX: 0 }, { scaleX: 1, duration: 5, ease: 'power1.in' }, at)
