@@ -279,6 +279,12 @@ const { check, summary } = M.checker("signpost");
       check("(p11) a database is usable only as an http(s) address that parses with a key beside it",
         ps.usable("https://abc.supabase.co", "k") === true && ps.usable("abc.supabase.co", "k") === false && ps.usable("https://abc.supabase.co", "") === false
         && ps.usable("https://abc.supabase.co", "  ") === false && ps.usable("ftp://abc.supabase.co", "k") === false && ps.usable("", "k") === false && ps.usable(undefined, undefined) === false);
+      /* never a secret in a bundle every visitor is handed: a service key under the anon key's name, a private push key under the public one's */
+      const PRIVATE = Buffer.alloc(32, 9).toString("base64url");
+      check("(p12) a secret named where the bundle reads it is caught — a service key, a secret key, a private push key — and the public ones pass",
+        /service_role/.test(ps.secretNamed({ VITE_SUPABASE_ANON_KEY: SERVICE }) || "") && /secret key/.test(ps.secretNamed({ VITE_SUPABASE_ANON_KEY: "sb_secret_abc123" }) || "")
+        && /private key/.test(ps.secretNamed({ VITE_VAPID_PUBLIC_KEY: PRIVATE }) || "")
+        && ps.secretNamed({ VITE_SUPABASE_ANON_KEY: ANON, VITE_VAPID_PUBLIC_KEY: VAPID }) === null && ps.secretNamed({ VITE_SUPABASE_ANON_KEY: "mock" }) === null && ps.secretNamed({}) === null);
     }
     {
       /* a build with no database at the app's own address: the person lands on the same page of the first site */

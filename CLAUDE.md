@@ -2738,7 +2738,11 @@ seeded data and no account.
   the REST endpoint and a trailing slash go), and an address that still
   will not parse, or no key beside it, is no database (`usable`), so the
   three are read in its place and no build writes `/ready.png` over an
-  app that throws on its first line. The e2e mock builds are untouched;
+  app that throws on its first line. **A secret named where the bundle
+  reads it stops the build** (`secretNamed`): a service key under
+  `VITE_SUPABASE_ANON_KEY`, an `sb_secret_` key, or the push service's
+  private key under `VITE_VAPID_PUBLIC_KEY` would be handed to every
+  visitor; the last good deploy is served instead. The e2e mock builds are untouched;
   a build off Netlify reads nothing. **They are never written into the
   repository**: the old site holds the same three as variables, and
   Netlify's secret scanning fails a build that finds a site variable's

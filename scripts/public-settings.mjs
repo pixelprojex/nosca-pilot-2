@@ -97,6 +97,26 @@ export function usable(url, key) {
   try { return /^https?:$/.test(new URL(url).protocol); } catch { return false; }
 }
 
+/* NEVER A SECRET IN A BUNDLE. Whatever is named VITE_SUPABASE_ANON_KEY and VITE_VAPID_PUBLIC_KEY is
+   handed to every visitor. A service key pasted under the anon key's name, or the push service's private
+   key under the public one's — easy slips on a settings page that lists them side by side — would be
+   published. The build stops instead (vite.config.js), and the last good deploy keeps being served.
+   Returns what is wrong, or null. */
+export function secretNamed(env = {}) {
+  const key = String(env.VITE_SUPABASE_ANON_KEY || "").trim();
+  if (/^sb_secret_/i.test(key)) return "VITE_SUPABASE_ANON_KEY holds a secret key";
+  const parts = key.split(".");
+  if (parts.length === 3) {
+    try {
+      const claims = JSON.parse(fromB64url(parts[1]).toString("utf8"));
+      if (claims && claims.role && claims.role !== "anon") return `VITE_SUPABASE_ANON_KEY holds a ${claims.role} key`;
+    } catch { /* not a JWT: nothing to read */ }
+  }
+  const vapid = String(env.VITE_VAPID_PUBLIC_KEY || "").trim();
+  if (vapid && fromB64url(vapid).length === 32) return "VITE_VAPID_PUBLIC_KEY holds a private key";
+  return null;
+}
+
 /* a build with no database: its own address sends a person to the same page of the first site, before anything loads */
 export const forwardScript = (host = APP_HOST, to = FIRST_SITE) =>
   `<script>(function (l) { if (l.hostname === ${JSON.stringify(host)}) l.replace(${JSON.stringify(to)} + l.pathname + l.search + l.hash); })(location);</script>`;

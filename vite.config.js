@@ -1,7 +1,7 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { readFileSync } from "node:fs";
-import { FIRST_SITE, settingsFromSite, forwardScript, cleanUrl, usable } from "./scripts/public-settings.mjs";
+import { FIRST_SITE, settingsFromSite, forwardScript, cleanUrl, usable, secretNamed } from "./scripts/public-settings.mjs";
 
 /* THE BUILD KNOWS WHEN IT WAS MADE. The time is stamped into the bundle
    (Settings › Version reads it) and written to /version.json beside
@@ -69,6 +69,9 @@ export default defineConfig(async ({ mode, command }) => {
       : `nosca: no usable database named, and none could be read from ${FIRST_SITE} — this build sends its own address there`);
   }
   const env = { ...files, ...process.env };
+  /* a secret named where the bundle reads it would be handed to every visitor: the build stops */
+  const secret = command === "build" ? secretNamed(env) : null;
+  if (secret) throw new Error(`nosca: ${secret}. A bundle is handed to every visitor, so this build stops; the last good deploy is still served.`);
   const configured = usable(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY);
   return {
     plugins: [react(), buildStamp(env), forwardUnlessConfigured(configured)],
