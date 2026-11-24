@@ -78,7 +78,7 @@ html.motion .hm-film__phone{--phone-w:min(60vw,calc((100vh - var(--hdr-h) - 306p
   .hm-film--flip .hm-film__phone{order:-1}
   .hm-film--flip .hm-film__copy{justify-self:start}
   html.motion .hm-film{grid-template-rows:minmax(0,1fr)}
-  html.motion .hm-film__phone{--phone-w:min(30vw,340px,calc((100vh - var(--hdr-h) - 110px)/2.2));--phone-w:min(30vw,340px,calc((100svh - var(--hdr-h) - 110px)/2.2));align-self:center}
+  html.motion .hm-film__phone{--phone-w:min(30vw,400px,calc((100vh - var(--hdr-h) - 110px)/2.2));--phone-w:min(30vw,400px,calc((100svh - var(--hdr-h) - 110px)/2.2));align-self:center}
 }
 /* a tablet held upright has the height for a larger phone than a third of its width */
 @media (min-width:720px) and (max-width:1099px) and (min-aspect-ratio:1/2) and (max-aspect-ratio:1/1){
