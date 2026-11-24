@@ -16475,7 +16475,8 @@ function CreateGroup({ roster, nouns, times: own, onCreate, close, say }) {
       <div className="mb-5"><VoiceInput value={name} onChange={setName} ph={tr("Group name")} autoFocus /></div>
 
       <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.sub }}>
-        {members.length ? `${members.length} ${nouns}` : tr("Members")}
+        {/* "1 player", never "1 players" (countOf) */}
+        {members.length ? countOf(members.length, nouns) : tr("Members")}
       </div>
       <div className="mb-5">
         <PersonPicker people={roster.map((r) => ({ id: r.id || r.name, name: r.name }))}

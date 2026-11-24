@@ -154,6 +154,9 @@ const brief = (sh) => sh ? `${sh.title} · "${sh.ph}" · ${sh.people.length} peo
       /* and it creates the group by id, on the day and at the time picked */
       await page.locator('[data-sheet] input[placeholder="Group name"]').fill("Thursday juniors");
       await page.locator('[data-sheet] button[aria-label="Saoirse Kelly"]').click(); await page.waitForTimeout(200);
+      /* the count over the box is countOf's: it read "1 players" */
+      const one = await page.evaluate(() => { const s = document.querySelector("[data-sheet]"); return s ? s.innerText : ""; });
+      check("(g0) one person picked reads \"1 player\" over the box, never \"1 players\"", /(^|\n)1 player(\n|$)/.test(one) && !/\b1 players\b/.test(one), (one.match(/\d+ players?/) || ["no count"])[0]);
       await page.locator('[data-sheet] button[aria-label="Eoin Breathnach"]').click(); await page.waitForTimeout(200);
       const C4 = await shape(page);
       check("(g) two people picked read as pressed rows and Create group wakes", !!C4 && C4.people.filter((p) => p.on).map((p) => p.name).sort().join("|") === "Eoin Breathnach|Saoirse Kelly" && C4.create[0] && !C4.create[0].disabled && /2 players/.test(C4.text), C4 ? `${C4.people.filter((p) => p.on).length} on · ${C4.create[0] && C4.create[0].disabled}` : "no sheet");

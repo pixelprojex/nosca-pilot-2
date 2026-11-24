@@ -3291,18 +3291,19 @@ seeded data and no account.
   (`PersonPicker`: Settings' own `.nsc-group`, the card's line round it
   and the group's rule between the rows), each ending on a square tick
   box (`TickBox`, the one `Row` draws: the strong grey ring at rest, the
-  sport's colour with a white tick once ticked), picked by id — several
-  are chosen, so never a box a person with a round radio ring, which it
-  was until 24 November — the week as a day row with the chosen day in
-  ink (it was the success green; the accent is spent on Create group),
-  the coach's own start times — Hours' pool and every time a day holds,
-  in order, `evenCols` across, nine to eight on the hour
-  (`DEFAULT_SLOTS`) for a coach with none set, two o'clock picked where
-  it is one of them and else the first (until 24 November a fixed eight,
-  `ALL_TIMES`, so a coach whose hours are 9:00, 10:30, 12:00, 2:00, 4:00
-  and 5:00 could pick two of their six; before that the first six,
-  ending at half three, and a junior clinic is after school) — the
-  weeks, Create group. The foot row opened a second sheet
+  sport's colour with a white tick once ticked), picked by id and
+  counted over the box as `countOf` counts ("1 player"; it read
+  "1 players") — several are chosen, so never a box a person with a
+  round radio ring, which it was until 24 November — the week as a day
+  row with the chosen day in ink (it was the success green; the accent
+  is spent on Create group), the coach's own start times — Hours' pool
+  and every time a day holds, in order, `evenCols` across, nine to eight
+  on the hour (`DEFAULT_SLOTS`) for a coach with none set, two o'clock
+  picked where it is one of them and else the first (until 24 November a
+  fixed eight, `ALL_TIMES`, so a coach whose hours are 9:00, 10:30,
+  12:00, 2:00, 4:00 and 5:00 could pick two of their six; before that
+  the first six, ending at half three, and a junior clinic is after
+  school) — the weeks, Create group. The foot row opened a second sheet
   (`GroupCreate`) of round chips, "e.g. Saturday clinic", four times to
   a row and "Create · 8 Fridays from now" — one thing drawn two ways
   under two names, carried as found since 9 November; it is gone.
@@ -3321,8 +3322,8 @@ seeded data and no account.
   requests are rows with Confirm · Delete beside each name; Material 3's
   list item carries its actions in the trailing slot.
   `scripts/e2e/new-group.cjs`, `scripts/e2e/join-requests.cjs`;
-  `boxes.cjs` (s1), (s11); `new-group.cjs` (b3), (b4), (f0), (g2), (i2),
-  (j), (k); `lists.cjs` (t).
+  `boxes.cjs` (s1), (s11); `new-group.cjs` (b3), (b4), (f0), (g0), (g2),
+  (i2), (j), (k); `lists.cjs` (t); `ease.cjs` (i).
 - **One sheet title, and empty states are lines.** Every sheet's `h2`
   is `TYPE.title` (19px, the ladder's title): New group, Invite
   players, New message, Next time, the recurring Set up sheet, Your
