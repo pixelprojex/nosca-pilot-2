@@ -232,6 +232,26 @@ const { check, results, summary } = M.checker("narrow");
       await ctx.close();
     }
 
+    /* ---------- (d2) the roster's two keys, whole ---------- */
+    /* Add player · New group share a line with their glyph on a 60 key, two
+       across: at 320 the word had 59px and the keys read "Add pl…" and
+       "New g…" (seen on the 23 November pass). The word takes a second line
+       at its space before an ellipsis, and the key stays 60 tall; from 360
+       up it is one line as it was */
+    for (const width of [320, 360, 375]) {
+      const { ctx, page, shot } = await boot("coach", width);
+      await tap(page, '[aria-label="Roster"]', 900);
+      const keys = await page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] [data-tile]')].map((b) => {
+        const s = b.querySelector("span"), cs = getComputedStyle(s), lh = parseFloat(cs.lineHeight) || 18;
+        return { text: s.textContent.trim(), h: Math.round(b.getBoundingClientRect().height), lines: Math.round(s.getBoundingClientRect().height / lh), glyph: !!b.querySelector("svg"),
+                 cut: s.scrollWidth > s.clientWidth + 1 || s.scrollHeight > s.clientHeight + 1, inside: s.getBoundingClientRect().right <= b.getBoundingClientRect().right - 8 };
+      }));
+      if (width === 320) await shot("04b-roster-keys");
+      check(`(d2) at ${width} the roster's Add player · New group read whole beside their glyph on a 60 key${width === 320 ? " — the word on a second line, never an ellipsis" : ", on one line"}`,
+        keys.length === 2 && keys.map((k) => k.text).join(" · ") === "Add player · New group" && keys.every((k) => !k.cut && k.inside && k.glyph && k.h === 60 && (width === 320 ? k.lines <= 2 : k.lines === 1)), JSON.stringify(keys));
+      await ctx.close();
+    }
+
     /* ---------- (e) the child's Next row, whole ---------- */
     /* the parent's screen for a child: Next reads the day and the time,
        each fact whole, and breaks only at the dot — which hangs, clipped,

@@ -248,6 +248,24 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
       check("(k) the player's Chat is Messages' plain list too: no box per thread", messages(c), JSON.stringify(c));
       await ctx.close();
     }
+    /* ---------- (l) Settings as the player, the parent and the junior ---------- */
+    /* 23 November: no Settings row leads with a glyph, whoever is signed in and at either width — the label on the
+       group's 16 inset with nothing before it, a chevron the only glyph, the value whole in the sub grey: beside the
+       label, or on the line under it where the row cannot hold both (never an ellipsis) */
+    for (const [role, width] of [["adult", 390], ["parent", 390], ["junior", 390], ["adult", 320], ["parent", 320]]) {
+      const db = freshDb();
+      const { ctx, page, shot } = await boot(db, role, width);
+      await tap(page, '[data-tour="profile-pill"]', 900);
+      if (await page.locator('[data-tour="sheet-settings"]').count()) await tap(page, '[data-tour="sheet-settings"]', 900);
+      const n = await page.locator('[data-scroll="screen"] .nsc-group > *').count(), rs = [];
+      for (let i = 0; i < n; i++) rs.push(await M.rowLead(page, '[data-scroll="screen"] .nsc-group > *', i));
+      const bad = rs.filter((r) => !r || r.lead !== 0 || r.before !== 0 || r.inset !== 16 || r.glyphs.length > 1 || r.glyphs.some((g) => g !== "chevron-right") || r.labelCut || r.valueCut
+        || (r.value && r.valueColor !== "rgb(95, 95, 101)") || (r.value ? (r.valueLine === "beside" ? r.h !== 56 : r.valueLine !== "under") : r.h !== 56));
+      if (width === 320) await shot(`09-settings-${role}-320`);
+      check(`(l) ${role} at ${width}: every Settings row is label · value · chevron — nothing before the label, no glyph but the chevron, nothing cut`,
+        rs.length >= 8 && bad.length === 0 && rs.some((r) => r.label === "Default view" && r.value === "Feed") && rs.some((r) => r.label === "Sign out"), `${rs.length} rows · ` + JSON.stringify(bad.slice(0, 3)));
+      await ctx.close();
+    }
     /* ---------- (m) a first-run empty root tab has presence ---------- */
     /* (22 November, art direction) the coach's day before a player, a player's Lessons and Drills before anything
        is logged or set, Chat before anything is said: the screen's glyph on an 88px disc of the wash, the line as a

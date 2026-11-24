@@ -9017,8 +9017,13 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
                        boxShadow: p.rest, border: `${EDGE_W}px solid ${fill ? "transparent" : quietTile ? KEY_RING(t) : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`, animation: enter,
                        transition: `background ${MOTION.settle}ms, box-shadow 140ms ease-out, transform 140ms ease-out` }}>
         <Icon size={fill ? 24 : 22} color={fg} strokeWidth={fill ? 2 : quietTile || calm ? 1.8 : 2} className="shrink-0" />
-        <span className={wrap ? "min-w-0" : "min-w-0 max-w-full truncate"}
-              style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, letterSpacing: "-0.01em", lineHeight: 1.2, color: fg }}>{label}</span>
+        {/* NOTHING IS CUT AT 320: where the glyph and the word share a line
+            (the roster's Add player · New group) the word takes a second
+            line at its space before an ellipsis — two across at 320 the
+            keys read "Add pl…" and "New g…" */}
+        <span className={wrap ? "min-w-0" : stacked ? "min-w-0 max-w-full truncate" : "min-w-0"}
+              style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, letterSpacing: "-0.01em", lineHeight: 1.2, color: fg,
+                       ...(!wrap && !stacked ? { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" } : null) }}>{label}</span>
         {badge}
       </button>
     );
