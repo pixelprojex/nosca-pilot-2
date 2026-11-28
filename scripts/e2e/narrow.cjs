@@ -143,12 +143,13 @@ const { check, results, summary } = M.checker("narrow");
       const o = await compactTitle(page);
       const pill = await pillOf(page);
       await shot(`01-${role}-diary-compact`);
-      /* the parent's Diary is titled "Book for Saoirse" — the carried
-         decision (24 Oct) — and sixteen letters do not fit the 80px a
-         root screen's row leaves at 320 whatever the pill does; the
-         title is measured where the title is the tab's name */
+      /* the parent's Diary, booking for Saoirse, was titled "Book for
+         Saoirse" (the carried decision of 24 October), and sixteen letters
+         did not fit the 80px a root screen's row leaves at 320 whatever the
+         pill did. Since 28 November it is "Book", the child named on the
+         grey line under it, and it is measured like every other title */
       if (role !== "parent") check(`(a) ${role}'s Diary at 320: the compact header's title reads whole once the screen has scrolled — never "D…"`, !!o && o.text === "Diary" && !o.cut && o.w >= 60, said(o));
-      else console.log(`      note  the parent's Diary at 320: ${said(o)} — the title is the carried "Book for" decision`);
+      else check("(a) the parent's Diary at 320, booking for Saoirse: the compact header's title reads Book, whole once the screen has scrolled", !!o && o.text === "Book" && !o.cut && o.w >= 40, said(o));
       check(`(a1) ${role}'s pill at 320 is the face and the chevron — no first name, under 70px`, !!pill && pill.narrow && pill.w <= 70 && pill.name === null, JSON.stringify(pill));
       await ctx.close();
     }

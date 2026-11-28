@@ -18011,7 +18011,14 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
   })();
 
   return (
-    <Screen title={forName ? `${tr("Book for")} ${forName}` : L_CAL(role, readOnly)} right={right} meta={role === "coach" ? "" : conn ? `with ${conn.coach}` : ""}
+    /* BOOKING FOR A CHILD IS "BOOK", AND THE CHILD IS NAMED UNDER IT (28
+       November). It read "Book for Saoirse" — the carried decision of 24
+       October — and sixteen letters do not fit the 80px a root screen's
+       compact header leaves at 320, so it was cut there whatever the pill
+       did. The verb stays the title ("Book", as the request sheet's), and
+       who it is for is the grey line under it, as the For strip names each
+       face: the whole name of whoever is being booked for, never cut */
+    <Screen title={forName ? tr("Book") : L_CAL(role, readOnly)} right={right} meta={role === "coach" ? "" : forName ? `${tr("For")} ${forName}` : conn ? `with ${conn.coach}` : ""}
             /* the coach's one door to what runs the Diary: a word beside the
                title, as the family screen's Manage is — never a glyph, never
                the accent, which is a lesson's */
