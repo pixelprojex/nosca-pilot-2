@@ -11,6 +11,7 @@ import { FOCUS } from "./lib/taxonomy";
 import { importJob, importBusy } from "./lib/importJob";
 import { useSyncExternalStore } from "react";
 import { listImports, clearImports } from "./lib/offline";
+import { isNative, nativeHaptic, nativeShareFile, keepCopy, openExternal, onNativeOpen, PUBLIC_ORIGIN } from "./lib/native";
 import { Mark, BrandLoader, RING_L, RING_R, RING_LEN, BRAND as BRAND_COLOUR, BRAND_PAPER } from "./lib/brandmark.jsx";
 /* THE LIST'S OWN RULES, shared with the pages that render without
    Nosca mounted (pages/Install.jsx): a list is a column of soft rows,
@@ -59,6 +60,11 @@ export const LIST_CSS = `    .nsc-list { border: none !important; padding-bottom
        head's label lines up with every other row */
     .nsc-list > .nsc-flush { padding: 0 !important; overflow: hidden; }
     .nsc-list > .nsc-swipe > div:last-child { background: var(--card, var(--surface, #fff)) !important; padding-left: 15px; padding-right: 15px; }
+    /* …and in a group (the bell's day, 28 November): the sliding surface is
+       the group's white and carries the inset, so the red behind it runs
+       to the group's edge and the rule between rows stays the group's */
+    .nsc-group > .nsc-swipe { padding: 0 !important; overflow: hidden; }
+    .nsc-group > .nsc-swipe > div:last-child { background: var(--surface, #fff) !important; padding-left: 16px; padding-right: 16px; }
 `;
 
 import {
@@ -80,7 +86,11 @@ export const BRAND = "NOSCA";
    find it." It opens beside the app, never over it: in a browser a new
    tab, on a Home Screen the phone's own in-app page with its way back. */
 export const ABOUT_URL = "/about/";
-export const openAbout = () => { try { window.open(ABOUT_URL, "_blank", "noopener"); } catch { /* a browser with no window.open has no second tab to give */ } };
+export const openAbout = () => {
+  /* inside the App Store shell the page is localhost, which carries no website: the public one, in the phone's browser */
+  if (isNative()) { openExternal(PUBLIC_ORIGIN + ABOUT_URL); return; }
+  try { window.open(ABOUT_URL, "_blank", "noopener"); } catch { /* a browser with no window.open has no second tab to give */ }
+};
 /* Where "Email support" goes. Unset in a build, and the help rows are
    not shown — nothing offers a route that leads nowhere. */
 const SUPPORT_EMAIL = (import.meta.env && import.meta.env.VITE_SUPPORT_EMAIL) || "";
@@ -1803,6 +1813,8 @@ const _vibrate = (pattern) => {
 export const haptic = (ms = 8) => {
   if (!HAPTICS_ON) return;
   try {
+    /* inside the App Store shell, the phone's own haptic engine (lib/native.js) */
+    if (nativeHaptic("tap", ms)) return;
     if (_vibrate(ms)) return;
     _iosTick();
   } catch (e) {}
@@ -1811,9 +1823,10 @@ export const haptic = (ms = 8) => {
 /* Distinct patterns, so the hand learns the difference between a tap,
    a commitment, and something going wrong. On iOS we can only fire the
    one tick, so patterns become a short burst of them. */
-const buzz = (pattern) => {
+const buzz = (pattern, kind) => {
   if (!HAPTICS_ON) return;
   try {
+    if (nativeHaptic(kind || "commit")) return;
     if (_vibrate(pattern)) return;
     /* iOS only honours the switch trick inside the user's gesture, and a
        setTimeout — even of 0 — is outside it. Every pattern used to be
@@ -1824,9 +1837,9 @@ const buzz = (pattern) => {
     for (let i = 1; i < beats; i++) setTimeout(_iosTick, i * 70);
   } catch (e) {}
 };
-export const hapticSuccess = () => buzz([14, 40, 26]);
-export const hapticWarn    = () => buzz([28, 60, 28]);
-export const hapticCommit  = () => buzz([10, 30, 10, 30, 22]);
+export const hapticSuccess = () => buzz([14, 40, 26], "success");
+export const hapticWarn    = () => buzz([28, 60, 28], "warning");
+export const hapticCommit  = () => buzz([10, 30, 10, 30, 22], "commit");
 
 /* The harness's roster. Every row has an id because two of them are
    called Tom Beckett — which is the whole point of them: the app must
@@ -5820,6 +5833,8 @@ function Attendance({ lessons, roster, groups = [], taken, chosen, onSubmit, clo
    depends on that copy being there, and says nothing it cannot see. */
 function saveToDevice(file, name) {
   try {
+    /* the App Store shell has no downloads: the app's own Documents (lib/native.js) */
+    if (isNative()) return keepCopy(file, name);
     if (!file || !("download" in HTMLAnchorElement.prototype)) return false;
     const url = URL.createObjectURL(file);
     const a = document.createElement("a");
@@ -11843,6 +11858,13 @@ function icsOf(events) {
   return lines.join("\r\n") + "\r\n";
 }
 async function shareTextFile({ text, name, type, title, say }) {
+  /* the App Store shell: the file goes to the phone's share sheet from the app's cache —
+     its WebView has no share for files and a download there goes nowhere */
+  if (isNative()) {
+    const r = await nativeShareFile({ text, name, title });
+    if (r === "failed") say && say(tr("Couldn't share"));
+    return;
+  }
   const file = new File([text], name, { type });
   try {
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -19595,8 +19617,8 @@ function Notifications({ role, pop, pushOn, setPushOn, live, notify, setNotify, 
                    ["digest",  tr("Once a day"),     tr("One summary each morning")],
                    ["quiet",   tr("Only urgent"),    tr("Cancellations, bookings, requests and messages")]];
   const why = support === "ios-home-screen" ? tr("On an iPhone, add Nosca to your Home Screen first (Share → Add to Home Screen) and open it from there.")
-    : support === "denied" ? tr("Notifications are blocked for this site in your browser's settings. Allow them there, then come back.")
-    : support === "unsupported" ? tr("This browser can't receive notifications while the app is closed.")
+    : support === "denied" ? (isNative() ? tr("Notifications are off for Nosca in the phone's Settings. Turn them on there, then come back.") : tr("Notifications are blocked for this site in your browser's settings. Allow them there, then come back."))
+    : support === "unsupported" ? (isNative() ? tr("Notifications aren't set up in this build of the app yet.") : tr("This browser can't receive notifications while the app is closed."))
     : null;
   if (live) return (
     <SwipeBack onBack={pop}>
@@ -20126,10 +20148,28 @@ function InstallScreen({ pop }) {
 }
 /* THE IMPORT'S PARAGRAPH (docs/import/SPEC.md), a draft for legal review: Privacy and
    Messaging gain it, and the EU-servers sentence its exception — only once the region and
-   the confirmed retention are filled in at switch-on, so nothing reads a placeholder */
-const IMPORT_LEGAL = { region: null, retention: null };
+   the confirmed retention are filled in at switch-on, so nothing reads a placeholder.
+   Filled for the launch (28 November): the region is Netlify Functions' default, which the
+   founder has not changed; the retention is Anthropic's privacy centre's for the API (inputs
+   and outputs deleted within 30 days unless flagged under its usage policy or kept longer by
+   law, never used for training — the paragraph says that part itself), and its DPA with the
+   SCCs is part of its Commercial Terms, so Anthropic is a processor under it. The Terms gain
+   their Import section and Data & permissions its line on the same switch, so the import's
+   words are on every page or none */
+const IMPORT_LEGAL = {
+  region: "the United States",
+  retention: "Anthropic acts as Nosca's processor, under a data processing agreement that includes the European Commission's standard contractual clauses. It deletes the messages and its answers within 30 days, unless they are flagged under its usage policy or the law requires them to be kept longer.",
+};
+const IMPORT_TERMS = "You may import a chat into Nosca only if you took part in it and are free to share it, and by importing one you confirm both. The chat is sorted into lessons automatically and the sorting can be wrong, so nothing is added until you tick it. Every imported lesson says it was imported, and by whom. The coach, the player if they are 16 or over, and an adult who looks after the player can remove an import at any time, and its files are removed with it.";
+const IMPORT_DATA = "A chat you import is read on your phone. Nosca keeps only the lessons you choose and their files, nothing of the chat.";
 const withImportLegal = (d, key) => {
-  if (!IMPORT_LEGAL.region || !IMPORT_LEGAL.retention || (key !== "privacy" && key !== "messaging")) return d;
+  if (!IMPORT_LEGAL.region || !IMPORT_LEGAL.retention) return d;
+  /* the Terms' section sits after Content, the line after the other lines of what is kept, before Your data */
+  const put = (at, after, row) => { const i = d.body.findIndex(([h]) => h === at); const k = i < 0 ? d.body.length : i + (after ? 1 : 0);
+    return { ...d, body: [...d.body.slice(0, k), row, ...d.body.slice(k)] }; };
+  if (key === "terms") return put("Content", true, ["Import", IMPORT_TERMS]);
+  if (key === "data") return put("Your data", false, ["Import", IMPORT_DATA]);
+  if (key !== "privacy" && key !== "messaging") return d;
   const para = `If you import a chat, it is read on your phone. To sort it into lessons, only the coach's messages from it are sent, through Nosca's server (Netlify, ${IMPORT_LEGAL.region}), to Anthropic, which processes them in the United States. Before they leave your phone, names Nosca can recognise, phone numbers, email addresses, links and places are taken out, and lines with common health and payment words are held back. No other person's messages and no video, photo or voice note is sent. ${IMPORT_LEGAL.retention} Anthropic does not use them to train its models. Nosca keeps none of the chat, only the lessons you choose to import. A player or parent can import a chat with their coach only if the coach allows it, and every lesson they import is marked as theirs. We do this in our legitimate interest in keeping the coaching record the coach and the family asked for. Anyone an import is about can remove it, which also removes its files from Nosca.`;
   return { ...d, body: [...d.body.map(([h, p]) => [h, p.replace("on servers in the European Union.", "on servers in the European Union, except as described under Import.")]), ["Import", para]] };
 };
@@ -20452,7 +20492,8 @@ function PushPrompt({ userId, say }) {
     else { say && say((r && r.reason) || tr("Couldn't turn that on")); }
   };
   return (
-    <div className="nsc-list mb-5"><div className="flex items-center gap-3" data-tour="push-prompt"
+    /* on Settings' white group, as the bell's days are (it was a pale card of its own) */
+    <div className="nsc-group" data-group="" style={{ marginBottom: SPACE.block }}><div className="flex items-center gap-3" data-tour="push-prompt"
          style={{ minHeight: 56 }}>
       <span className="flex-1 min-w-0" style={{ ...TYPE.small, color: t.ink }}>
         {state === "ios" ? tr("Add to Home Screen for notifications") : tr("Phone notifications")}
@@ -20474,15 +20515,36 @@ function PushPrompt({ userId, say }) {
    happened. The first is a short section of rows carrying their own
    Accept and Decline, because a notification you have to navigate away
    from in order to answer is a to-do list wearing an inbox's clothes.
-   The second is the notifications table: Today, then Earlier, newest
-   first, a tap opens the thing and a swipe clears it.
+   The second is the notifications table, newest first: a tap opens the
+   thing it is about and a swipe clears it.
 
    There were two complete implementations in here — one for a real
    account and a second, drawn differently, for the harness, with
    coloured discs and count pills of the kind that were taken out of
    every other screen. A screen that looks like two screens depending on
    who is looking at it cannot be designed, so the harness now hands in
-   the same shape the database does and there is one list. */
+   the same shape the database does and there is one list.
+
+   A LIST THAT CAN RUN TO HUNDREDS (28 November). The founder, of the
+   bell: "the notifications place is still very messy and things don't
+   all fit on one line", and then, of the card a notice had become, "a
+   little bit over the top … imagine someone has hundreds of
+   notifications, they don't want it this format". Every notice was a
+   pale card of its own on a ledge, the title wrapping round a time
+   column on its right, and a request's "Tue 1 Dec" sat over its "9:00
+   am" beside Accept · Decline. Now a day is ONE white card (Settings'
+   own group) under its day — Today, Yesterday, then the date — and a
+   notice is a compact row on the card's rule: the face with the kind on
+   its corner, the title whole across the row's full width, and under it
+   the detail, each fact kept whole and broken only at its dot, with the
+   time at the right. Requests stay on top in a card of their own: the
+   name, the day and the time of a lesson asked for on one line, the
+   player's note, and Accept · Decline beside the name only where the
+   name fits whole beside them — a line of their own under the request
+   where it does not. Thirty are drawn, the newest; Show earlier draws
+   thirty more, so three hundred are never laid out at once. The
+   catch-up draws the same rows (CatchUpBody). notifications.cjs (f),
+   person-row.cjs (q). */
 /* WHAT KIND, IN THE SPORT'S CLUB COLOURS: the badge on a face and the
    disc where nobody is named carry the kind's glyph on its role's colour
    — a message or a lesson the lead, a request and its answer the people's
@@ -20493,10 +20555,169 @@ function PushPrompt({ userId, say }) {
 const KIND_ROLE = { message: HUE.green, lesson: HUE.green, request: HUE.teal, accepted: HUE.teal, declined: HUE.teal, family: HUE.teal,
                     booking: HUE.wine, weather: HUE.red, tip: HUE.gold, rating: HUE.gold, comp: HUE.gold,
                     drill: HUE.purple, practice: HUE.purple, clip: HUE.blue };
+/* the face of a row of the bell, and how many rows are drawn at a time */
+const BELL_FACE = 40, BELL_SHOWN = 30;
+/* the day a notice landed, as the bell heads it: Today, Yesterday, then
+   the date (with the year only when it is not this one); a notice with
+   no time on it (the harness's) sits under no head */
+const bellDay = (n, now) => {
+  const d = n && n.createdAt ? new Date(n.createdAt) : null;
+  if (!d || Number.isNaN(d.getTime())) return { key: "-", label: null };
+  const same = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  const y = new Date(now); y.setDate(y.getDate() - 1);
+  return { key: `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`,
+           label: same(d, now) ? tr("Today") : same(d, y) ? tr("Yesterday") : fmtDayYear(d, now.getFullYear()) };
+};
+/* the time it landed, on the clock: the day is the card's head, so a row
+   under Yesterday reads "6:40 pm", never "Yesterday" again */
+const bellClock = (n) => {
+  const d = n && n.createdAt ? new Date(n.createdAt) : null;
+  return d && !Number.isNaN(d.getTime()) ? fmtTime(d.getHours() * 60 + d.getMinutes()) : (n && n.when) || "";
+};
+/* WHOSE IS IT. Almost everything here happened because of a person, and a
+   face is read before any word beside it; the badge on its corner says
+   which kind of thing it was without the line spelling it out. A bare
+   glyph stands in only where nobody is named — a competition, a weather
+   call-off — and then it is the disc itself, with no badge (that would
+   be the same fact twice). */
+function BellFace({ n, face }) {
+  const t = useT();
+  const K = NOTIF_ICON[n.kind] || Bell;
+  const hue = hueOf(t, KIND_ROLE[n.kind] || HUE.slate);
+  return (
+    <span className="relative shrink-0" style={{ width: BELL_FACE, height: BELL_FACE }}>
+      {face
+        ? <Avatar name={face.name} size={BELL_FACE} src={face.src} />
+        : <span className="flex items-center justify-center"
+                style={{ width: BELL_FACE, height: BELL_FACE, borderRadius: BELL_FACE / 2, background: clothOf(hue) }}>
+            {/* a disc that stands where a face would is a face's: the kind's light colour, its glyph the hue's ink */}
+            <K size={18} color={onCloth(hue)} strokeWidth={2} />
+          </span>}
+      {face && (
+        <span className="absolute flex items-center justify-center"
+              style={{ right: -3, bottom: -3, width: 17, height: 17, borderRadius: 9, background: hue, boxShadow: `0 0 0 2px ${t.surface}` }}>
+          <K size={9.5} color={onHue(hue)} strokeWidth={2.4} />
+        </span>
+      )}
+    </span>
+  );
+}
+/* ONE NOTICE. The title is the fact and reads whole across the row; the
+   detail under it keeps each fact whole (it breaks only at its dot, which
+   rides at the head of the next line), and the time sits at the right of
+   that line, or of a line of its own where the detail fills it. Unread is
+   the bold title and the sport's dot by the time — the one unread signal
+   here, as Chat's is. */
+function BellRow({ n, face, onOpen }) {
+  const t = useT();
+  const unread = !n.readAt;
+  const parts = n.body ? String(n.body).split(" · ").filter(Boolean) : [];
+  return (
+    <button data-bell-row="" data-unread={unread ? "1" : undefined} onClick={() => { haptic(8); soft(); onOpen && onOpen(n); }}
+            className="w-full flex items-start gap-3 text-left active:opacity-50" style={{ paddingTop: 12, paddingBottom: 12 }}>
+      <BellFace n={n} face={face} />
+      <span className="flex-1 min-w-0" style={{ paddingTop: 1 }}>
+        <span data-bell-title="" className="block" style={{ ...TYPE.body, lineHeight: 1.3, fontWeight: unread ? 700 : 600, color: t.ink, overflowWrap: "break-word" }}>{n.title}</span>
+        <span className="flex flex-wrap items-baseline" style={{ columnGap: 10, marginTop: 3 }}>
+          {parts.length > 0 && <Facts parts={parts} attrs={{ "data-bell-body": "" }}
+                                      style={{ ...TYPE.small, color: t.sub, flex: "1 1 auto", minWidth: 0, maxWidth: "100%" }} />}
+          <span data-bell-time="" className="shrink-0 ml-auto flex items-center gap-1.5" style={{ ...TYPE.caption, ...FIG, color: t.faint, whiteSpace: "nowrap" }}>
+            {bellClock(n)}
+            {unread && <span data-bell-dot="" className="rounded-full" style={{ width: 8, height: 8, background: t.accent }} />}
+          </span>
+        </span>
+      </span>
+    </button>
+  );
+}
+/* how wide a line of words would be on one line, in an element's own type
+   (a canvas measures it; nothing is laid out twice) */
+const textWidthOf = (() => {
+  let ctx = null;
+  return (text, el) => {
+    try {
+      if (!ctx) ctx = document.createElement("canvas").getContext("2d");
+      const cs = window.getComputedStyle(el);
+      ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+      return ctx.measureText(String(text || "")).width;
+    } catch (e) { return Infinity; }
+  };
+})();
+/* A QUESTION STILL OPEN, answered here. The name; the day and the time of
+   a lesson asked for as ONE fact on one line (beside Accept · Decline the
+   grey line had a hundred pixels, and "Tue 1 Dec" sat over "9:00 am"),
+   then the player's note, whole; and Accept · Decline beside the name
+   where the whole name fits on its line beside them, a line of their own
+   at the foot of the request, on the right, where it does not. */
+function BellAsk({ w }) {
+  const t = useT();
+  const col = useRef(null), nameEl = useRef(null), acts = useRef(null);
+  const [beside, setBeside] = useState(false);
+  useLayoutEffect(() => {
+    const el = col.current;
+    if (!el) return undefined;
+    const fit = () => {
+      if (!nameEl.current || !acts.current) return;
+      setBeside(textWidthOf(w.who, nameEl.current) + 4 <= el.clientWidth - acts.current.offsetWidth - 12);
+    };
+    fit();
+    if (typeof ResizeObserver === "undefined") return undefined;
+    const ro = new ResizeObserver(fit); ro.observe(el);
+    return () => ro.disconnect();
+  }, [w.who]);
+  /* 44 to a finger; beside the name they stand in the row's air rather than making the name's line 44 tall */
+  const actions = (
+    <span ref={acts} data-ask-actions="" className="shrink-0 flex items-stretch gap-1"
+          style={{ minHeight: 44, ...(beside ? { marginTop: -11, marginBottom: -12 } : null) }}>
+      <TextBtn quiet color={t.accent} onClick={() => { hapticCommit(); soft(); w.onAccept(); }}>{tr("Accept")}</TextBtn>
+      <TextBtn quiet color={t.faint} onClick={() => { haptic(7); w.onDecline(); }}>{tr("Decline")}</TextBtn>
+    </span>
+  );
+  return (
+    <div data-bell-ask="" data-beside={beside ? "1" : "0"} className="w-full flex items-start gap-3" style={{ paddingTop: 12, paddingBottom: beside ? 12 : 6 }}>
+      <Avatar name={w.who} size={BELL_FACE} src={w.avatar} />
+      <span ref={col} className="flex-1 min-w-0" style={{ paddingTop: 1 }}>
+        <span className="flex items-start justify-between" style={{ columnGap: 12 }}>
+          <span ref={nameEl} data-name="" className="min-w-0" style={{ ...TYPE.body, lineHeight: 1.3, fontWeight: 600, color: t.ink, overflowWrap: "break-word" }}>{w.who}</span>
+          {beside && actions}
+        </span>
+        {w.facts && w.facts.length > 0 && <Facts parts={w.facts} attrs={{ "data-ask-facts": "" }} style={{ ...TYPE.small, color: t.sub, marginTop: 3 }} />}
+        {!beside && <span className="flex justify-end" style={{ marginTop: 2 }}>{actions}</span>}
+      </span>
+    </div>
+  );
+}
+/* A DAY IS ONE CARD: its head, then its notices on the card's rule */
+function BellDays({ items, row, head }) {
+  const t = useT();
+  const now = new Date();
+  const days = [];
+  const at = {};
+  items.forEach((n) => {
+    const d = bellDay(n, now);
+    if (at[d.key] == null) { at[d.key] = days.length; days.push({ ...d, items: [] }); }
+    days[at[d.key]].items.push(n);
+  });
+  return days.map((d) => (
+    <section key={d.key} data-bell-day={d.label || ""} style={{ marginBottom: SPACE.block }}>
+      {d.label && <h2 className="px-1" data-bell-head="" style={head || { ...TYPE.head, fontSize: 20, color: t.ink, marginBottom: 9 }}>{d.label}</h2>}
+      <div className="nsc-group" data-group="" data-bell-card="">{d.items.map(row)}</div>
+    </section>
+  ));
+}
+/* Show earlier: thirty more, a quiet line at the foot */
+function BellEarlier({ onTap, tour }) {
+  const t = useT();
+  return (
+    <button data-tour={tour} onClick={() => { haptic(6); onTap(); }} className="w-full flex items-center justify-center active:opacity-50"
+            style={{ minHeight: 48, ...TYPE.subhead, color: t.sub }}>
+      {tr("Show earlier")}
+    </button>
+  );
+}
 function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAll,
                        onMarkAllRead, userId, say, faceFor }) {
   const t = useT();
-  const hair = RULE.hair(t.ink);
   const unread = items.filter((n) => !n.readAt).length;
 
   /* opening the bell is reading it: the dots stay while you look, and
@@ -20525,70 +20746,10 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
   const kinds = [...new Set(list.map((n) => BUCKET[n.kind]).filter(Boolean))];
   const canFilter = list.length > 8 && kinds.length > 1;
   const shownList = canFilter && only !== tr("Everything") ? list.filter((n) => BUCKET[n.kind] === only) : list;
-
-  const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
-  const startOfYesterday = new Date(startOfToday); startOfYesterday.setDate(startOfYesterday.getDate() - 1);
-  const at = (n) => (n.createdAt ? new Date(n.createdAt) : startOfToday);
-  const today = shownList.filter((n) => at(n) >= startOfToday);
-  const yesterday = shownList.filter((n) => at(n) < startOfToday && at(n) >= startOfYesterday);
-  const earlier = shownList.filter((n) => at(n) < startOfYesterday);
-
-  const Eyeb = ({ children }) => (
-    /* the bell's Requests · Today · Yesterday · Earlier are the page's
-       sections, in the titles' serif as Settings' groups are (28 November) */
-    <h2 className="px-1" data-bell-head="" style={{ ...TYPE.head, fontSize: 20, color: t.ink, marginBottom: 9 }}>{children}</h2>
-  );
-
-  /* WHOSE IS IT. Almost everything here happened because of a person,
-     and a face is read before any word of the line beside it. A bare
-     glyph stands in only where nobody is named — a competition, a
-     weather call-off. */
-  const Line = ({ n }) => {
-    const face = faceFor ? faceFor(n) : null;
-    const K = NOTIF_ICON[n.kind] || Bell;
-    const hue = hueOf(t, KIND_ROLE[n.kind] || HUE.slate), on = onHue(hue);
-    return (
-      <SwipeRow deleteLabel={tr("Clear")} onDelete={() => onClear && onClear(n.id)}>
-        <PersonRow className="py-3" nameLines={0} onTap={() => { haptic(8); soft(); onOpen && onOpen(n); }}
-                   name={n.title} bold={!n.readAt} sub={n.body || undefined}
-                   meta={<span className="flex items-center gap-2">
-                     <span style={{ ...TYPE.caption, color: t.faint }}>{n.when}</span>
-                     {/* one unread signal a surface: the dot here, the number in the bar —
-                         the sport's 10px dot, as Chat's is */}
-                     {!n.readAt && <span className="rounded-full" style={{ width: 10, height: 10, background: t.accent }} />}
-                   </span>}
-                   face={<span className="relative shrink-0" style={{ width: PERSON_FACE, height: PERSON_FACE }}>
-            {face
-              ? <Avatar name={face.name} size={PERSON_FACE} src={face.src} />
-              : <span className="flex items-center justify-center"
-                      style={{ width: PERSON_FACE, height: PERSON_FACE, borderRadius: PERSON_FACE / 2, background: clothOf(hue) }}>
-                  {/* a disc that stands where a face would is a face's: the kind's light colour, its glyph the hue's ink */}
-                  <K size={20} color={onCloth(hue)} strokeWidth={2} />
-                </span>}
-            {/* WHO, THEN WHAT. The face is read before any word beside it;
-                the badge says which kind of thing it was without the line
-                having to spell it out. No badge where the disc is already
-                the glyph — that would be the same fact twice. */}
-            {face && (
-              <span className="absolute flex items-center justify-center"
-                    style={{ right: -3, bottom: -3, width: 18, height: 18, borderRadius: 9,
-                             background: hue, boxShadow: `0 0 0 2px ${t.page}` }}>
-                <K size={10} color={on} strokeWidth={2.4} />
-              </span>
-            )}
-          </span>} />
-      </SwipeRow>
-    );
-  };
-
-  /* still a question, so it is answered here rather than somewhere else */
-  const Ask = ({ w }) => (
-    <PersonRow className="pr-1" name={w.who} src={w.avatar} sub={w.what} textMin={w.note ? 180 : undefined} subLines={w.note ? 0 : undefined}
-               actions={<>
-                 <TextBtn quiet color={t.accent} onClick={() => { hapticCommit(); soft(); w.onAccept(); }}>{tr("Accept")}</TextBtn>
-                 <TextBtn quiet color={t.faint} onClick={() => { haptic(7); w.onDecline(); }}>{tr("Decline")}</TextBtn>
-               </>} />
-  );
+  /* thirty at a time, the newest first; Back keeps how far down it was */
+  const [limit, setLimit] = useKept("limit", BELL_SHOWN);
+  const drawn = shownList.slice(0, limit);
+  const more = shownList.length - drawn.length;
 
   const nothing = list.length === 0 && waiting.length === 0;
   return (
@@ -20606,28 +20767,28 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
             </div>
           ) : (<>
             {waiting.length > 0 && (
-              <div style={{ marginBottom: SPACE.block }}>
-                <Eyeb>{tr("Requests")}</Eyeb>
-                <div className="nsc-list" style={cardOf(t, HUE.blue)}>{waiting.map((w) => <Ask key={w.id} w={w} />)}</div>
-              </div>
+              <section data-bell-day="requests" style={{ marginBottom: SPACE.block }}>
+                {/* the bell's Requests and its days are the page's sections, in
+                    the titles' serif as Settings' groups are (28 November) */}
+                <h2 className="px-1" data-bell-head="" style={{ ...TYPE.head, fontSize: 20, color: t.ink, marginBottom: 9 }}>{tr("Requests")}</h2>
+                <div className="nsc-group" data-group="" data-bell-card="requests">{waiting.map((w) => <BellAsk key={w.id} w={w} />)}</div>
+              </section>
             )}
             {canFilter && (
               <div style={{ marginBottom: SPACE.block }}>
-                <FilterBox label={tr("Show")} value={only} onChange={setOnly}
+                <FilterBox label={tr("Show")} value={only} onChange={(v) => { setOnly(v); setLimit(BELL_SHOWN); }}
                            options={[tr("Everything"), ...kinds]} />
               </div>
             )}
             {shownList.length === 0 && waiting.length === 0 && (
               <EmptyLine>{tr("Nothing here")}</EmptyLine>
             )}
-            {[[tr("Today"), today], [tr("Earlier"), [...yesterday, ...earlier]]].map(([label, group]) =>
-              group.length === 0 ? null : (
-                <div key={label} style={{ marginBottom: SPACE.block }}>
-                  {/* the split is worth a head only when both halves exist */}
-                  {today.length > 0 && yesterday.length + earlier.length > 0 && <Eyeb>{label}</Eyeb>}
-                  <div className="nsc-list">{group.map((n) => <Line key={n.id} n={n} />)}</div>
-                </div>
-              ))}
+            <BellDays items={drawn} row={(n) => (
+              <SwipeRow key={n.id} deleteLabel={tr("Clear")} onDelete={() => onClear && onClear(n.id)}>
+                <BellRow n={n} face={faceFor ? faceFor(n) : null} onOpen={onOpen} />
+              </SwipeRow>
+            )} />
+            {more > 0 && <BellEarlier tour="alerts-earlier" onTap={() => setLimit((x) => x + BELL_SHOWN)} />}
           </>)}
         </div>
       </Screen>
@@ -20665,11 +20826,56 @@ const useImportLib = () => {
 /* the player file opens on Feed once, after an import has landed the coach there */
 let IMPORT_FEED_FOR = null;
 const importFeedFirst = (id) => { if (id && IMPORT_FEED_FOR === id) { IMPORT_FEED_FOR = null; return "feed"; } return null; };
-/* the steps, in each phone's own words (rewritten from the founder's own phones before ship) */
+/* the steps, in each phone's own words (rewritten from the founder's own phones before ship); a control
+   with no name of its own is drawn in the sentence, as the Home Screen guide draws it ({dotsV}) */
 const IMPORT_STEPS = {
-  iPhone: ["Open the chat in WhatsApp", "Tap the name at the top", "Export Chat", "Attach Media", "Save to Files"],
-  Android: ["Open the chat in WhatsApp", "⋮ › More › Export chat", "Include media", "Save the file"],
+  iPhone: ["Open the chat in WhatsApp", "Tap the name at the top", "Tap Export Chat", "Tap Attach Media", "Tap Save to Files"],
+  Android: ["Open the chat in WhatsApp", "Tap {dotsV:the three dots}, then More", "Tap Export chat", "Tap Include media", "Save the file"],
 };
+/* THE OPENING PAGE (28 November, the launch). The founder asked for it "very professional, very classy", and to
+   say how the chat is kept safe. So it is the app's own page: the titles' serif, a Lares card a subject — what
+   happens in three steps in the lessons' own family, what keeps the chat private in the sky of what is sent,
+   WhatsApp's own steps in the record's gold — and one deep key, Choose file, held at the foot where the thumb is
+   while the page above it scrolls. Each safeguard is a plain fact of the code: the chat is read on the phone
+   (lib/chatImport/source.js); only the coach's lines are sent, with the names Nosca knows, numbers and links
+   taken out (scrub in the shared rules); no file is ever sent to be sorted; a day is added only once ticked; the
+   other side reads nothing until the batch is done; whoever the import is about can remove it */
+const IMPORT_HOW = [
+  ["Export the chat from WhatsApp", "With its media"],
+  ["Nosca sorts it into lessons", "Day by day, with what was worked on and that day's clips"],
+  ["Tick the ones to keep", "Each is filed on its own day"],
+];
+const importSafe = (coachSide) => [
+  ["The chat is read on your phone"],
+  [coachSide ? "Only your words go to the AI" : "Only the coach's words go to the AI", "Names Nosca knows, numbers and links are taken out first"],
+  ["Videos, photos and voice notes never go to the AI"],
+  ["Nothing is added until you tick it"],
+  ["Nobody else sees it until it is finished"],
+  ["It can be removed at any time"],
+];
+/* one card of lines: a numeral on a white chip in the card's own ink where the lines are steps; the words wrap,
+   never cut, at any width */
+function ImportLines({ hue, tour, rows, numbered = false, strong = false }) {
+  const t = useT();
+  const ink = inkOf(hueOf(t, hue));
+  return (
+    <div className="nsc-day nsc-rows" data-tour={tour} style={cardOf(t, hue)}>
+      {rows.map(([head, sub], i) => (
+        <div key={head} data-import-line="" className={`flex ${numbered ? "items-start" : "items-center"}`}
+             style={{ gap: 14, padding: "14px 16px", minHeight: 56, borderBottom: i === rows.length - 1 ? "none" : "1.5px solid" }}>
+          {numbered && (
+            <span className="shrink-0 flex items-center justify-center"
+                  style={{ width: 28, height: 28, borderRadius: 14, background: "#FFFFFF", border: "1.5px solid var(--card-ring)", fontFamily: ui, fontSize: 14, fontWeight: 700, color: ink, fontVariantNumeric: "tabular-nums" }}>{i + 1}</span>
+          )}
+          <span className="flex-1 min-w-0" style={{ paddingTop: numbered ? 2 : 0 }}>
+            <span className="block" style={{ ...TYPE.body, fontWeight: strong ? 600 : 400, color: t.ink }}>{insSay(tr(head))}</span>
+            {sub && <span className="block" style={{ ...TYPE.small, color: t.sub, marginTop: 2 }}>{tr(sub)}</span>}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
 const importMonYear = (iso) => { const [y, m] = String(iso || "").split("-").map(Number); return y && m ? `${WIZ_MONTHS[m - 1]} ${y}` : ""; };
 const importSpanOf = (a, b) => (!a ? "" : importMonYear(a) === importMonYear(b || a) ? importMonYear(a) : `${importMonYear(a)} – ${importMonYear(b)}`);
 const nOf = (n, one, more) => `${n} ${n === 1 ? tr(one) : tr(more)}`;
@@ -20990,23 +21196,14 @@ function ImportScreen({ data, me, role, cfg, pop, push, say, done, openSheet, cl
     const running = mine && mine.phase === "uploading";
     const rs = paused ? mine.resume || {} : null;
     const who = paused ? ((people.find((p) => p.id === (rs.forId || mine.forId)) || {}).name || "") : "";
+    const idle = !running && !paused;
     return (
       <SwipeBack onBack={pop}>
         <Screen title={tr("Import")} onBack={pop}>
+          <style>{INSTALL_CSS}</style>
           <div className="px-6 pb-8">
-            {coachSide && (
-              <div className="nsc-list" style={{ marginBottom: SPACE.block }}>
-                <div className="flex items-center justify-between gap-3" data-tour="import-players" style={{ minHeight: 56 }}>
-                  <span style={{ ...TYPE.body, color: t.ink }}>{tr("Imports from players")}</span>
-                  <Toggle on={!!(data.prefs && data.prefs.player_imports)} onChange={(v) => {
-                    if (v) openSheet(<ImportAllowBody close={closeSheet} onAllow={async () => { const r = await data.setPlayerImports(true); if (r && r.error) { say(r.error.message || tr("That didn't save")); return r; } done(tr("Allowed")); return {}; }} />);
-                    else data.setPlayerImports(false);
-                  }} />
-                </div>
-              </div>
-            )}
             {running && (
-              <div className="nsc-day px-4 py-4" data-tour="import-running" style={{ marginBottom: SPACE.block }}>
+              <div className="nsc-day px-4 py-4" data-tour="import-running">
                 <ImportBanner pill={false} />
                 <p className="mt-2" style={{ ...TYPE.small, color: t.sub }}>{tr("Keep Nosca open until this is done")}</p>
                 <div className="mt-3"><Button tone="dangerQuiet" tour="import-stop" onClick={() => {
@@ -21017,7 +21214,7 @@ function ImportScreen({ data, me, role, cfg, pop, push, say, done, openSheet, cl
               </div>
             )}
             {paused && (
-              <div className="nsc-day px-4 py-4" data-tour="import-resume" style={{ marginBottom: SPACE.block }}>
+              <div className="nsc-day px-4 py-4" data-tour="import-resume">
                 <p style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{who}</p>
                 <p className="mt-0.5" style={{ ...TYPE.small, color: t.sub }}>{`${rs.lessonsIn || 0} ${tr("of")} ${nOf(rs.lessons || 0, "lesson", "lessons")} · ${rs.filesUp || 0} ${tr("of")} ${nOf(rs.files || 0, "file", "files")}`}</p>
                 <div className="mt-3"><Button tour="import-choose-same" onClick={pick}>{mine.reading ? tr("Reading…") : tr("Choose the same file")}</Button></div>
@@ -21032,8 +21229,30 @@ function ImportScreen({ data, me, role, cfg, pop, push, say, done, openSheet, cl
                 )}
               </div>
             )}
+            {idle && (
+              <>
+                <ImportLines hue={HUE.green} tour="import-how" rows={IMPORT_HOW} numbered strong />
+                <div style={{ marginTop: SPACE.section }}>
+                  <RowHead>{tr("Privacy and security")}</RowHead>
+                  <ImportLines hue={HUE.blue} tour="import-safe" rows={importSafe(coachSide)} />
+                  <div className="mt-3"><TextBtn tour="import-start-privacy" color={t.accent} onClick={() => push("legal:privacy")}>{tr("Privacy Policy")}</TextBtn></div>
+                </div>
+                <div style={{ marginTop: SPACE.section }}>
+                  <RowHead>{tr("In WhatsApp")}</RowHead>
+                  <Segmented tour="import-platform" options={["iPhone", "Android"]} value={platform} onChange={setPlatform} />
+                  <div style={{ marginTop: SPACE.row }}><ImportLines hue={HUE.gold} tour="import-steps" rows={IMPORT_STEPS[platform].map((s) => [s])} numbered /></div>
+                </div>
+                {/* the one deep key, at the foot where the thumb is while the page scrolls above it; a refusal is one red line under it */}
+                <div className="sticky bottom-0 -mx-6 px-6" data-tour="import-foot" style={{ background: t.page, paddingTop: 14, paddingBottom: 16, marginTop: SPACE.block, zIndex: 2 }}>
+                  {/* what scrolls under the key fades into the page, never a hard cut through a card */}
+                  <span aria-hidden="true" className="absolute left-0 right-0 pointer-events-none" style={{ top: -20, height: 20, background: `linear-gradient(to bottom, ${t.page}00, ${t.page})` }} />
+                  <Button tour="import-choose" disabled={!lib || (mine && mine.reading)} onClick={pick}>{mine && mine.reading ? tr("Reading…") : tr("Choose file")}</Button>
+                  {mine && mine.error && <p className="mt-3" data-tour="import-error" style={{ ...TYPE.small, color: DANGER }}>{mine.error}</p>}
+                </div>
+              </>
+            )}
             {batches.length > 0 && (
-              <div style={{ marginBottom: SPACE.block }}>
+              <div style={{ marginTop: SPACE.section }}>
                 <RowHead>{tr("Imported")}</RowHead>
                 <div className="nsc-list">
                   {batches.map((b) => {
@@ -21048,20 +21267,16 @@ function ImportScreen({ data, me, role, cfg, pop, push, say, done, openSheet, cl
                 </div>
               </div>
             )}
-            {!running && !paused && (
-              <>
-                <Segmented tour="import-platform" options={["iPhone", "Android"]} value={platform} onChange={setPlatform} />
-                <div className="nsc-list" style={{ marginTop: SPACE.tight, marginBottom: SPACE.block }}>
-                  {IMPORT_STEPS[platform].map((s, i) => (
-                    <div key={s} className="flex items-center gap-3" style={{ minHeight: 52 }}>
-                      <span className="shrink-0 flex items-center justify-center rounded-full" style={{ width: 26, height: 26, background: t.wash, ...TYPE.caption, fontWeight: 600, color: t.sub }}>{i + 1}</span>
-                      <span style={{ ...TYPE.body, color: t.ink }}>{tr(s)}</span>
-                    </div>
-                  ))}
+            {coachSide && (
+              <div className="nsc-group" style={{ marginTop: SPACE.section }}>
+                <div className="flex items-center justify-between gap-3" data-tour="import-players" style={{ minHeight: 56 }}>
+                  <span className="flex-1 min-w-0" style={{ ...TYPE.body, color: t.ink }}>{tr("Imports from players")}</span>
+                  <Toggle on={!!(data.prefs && data.prefs.player_imports)} onChange={(v) => {
+                    if (v) openSheet(<ImportAllowBody close={closeSheet} onAllow={async () => { const r = await data.setPlayerImports(true); if (r && r.error) { say(r.error.message || tr("That didn't save")); return r; } done(tr("Allowed")); return {}; }} />);
+                    else data.setPlayerImports(false);
+                  }} />
                 </div>
-                <Button tour="import-choose" disabled={!lib || (mine && mine.reading)} onClick={pick}>{mine && mine.reading ? tr("Reading…") : tr("Choose file")}</Button>
-                {mine && mine.error && <p className="mt-3" data-tour="import-error" style={{ ...TYPE.small, color: DANGER }}>{mine.error}</p>}
-              </>
+              </div>
             )}
             <input ref={input} type="file" multiple className="hidden" data-tour="import-file" onChange={(e) => onFiles(e.target.files)} />
           </div>
@@ -21173,7 +21388,7 @@ function ImportScreen({ data, me, role, cfg, pop, push, say, done, openSheet, cl
               {showFor && <ImportDoor label={tr("For")} tour="import-day-for" value={forP ? forP.name : null}
                                       onTap={() => openSheet(<ImportWhoBody people={coachImport ? people : people.filter((p) => kids.some((k) => k.id === p.id))} label={lib.mainSide(mine) || ""} close={closeSheet} onPick={(id) => lib.setDayFor(r.iso, id)} />)} />}
             </div>
-            <div style={{ marginTop: SPACE.block }}>
+            <div style={{ marginTop: SPACE.block }} data-focus-ids={(r.focusIds || []).join(",")}>
               <RowHead>{tr("Worked on")}</RowHead>
               <FocusGrid areas={areas} picked={r.focusIds} cols={2} h={46} tour="import-day-focus"
                          onToggle={(id) => lib.setDayFocus(r.iso, r.focusIds.includes(id) ? r.focusIds.filter((x) => x !== id) : [...r.focusIds, id])} />
@@ -21191,12 +21406,13 @@ function ImportScreen({ data, me, role, cfg, pop, push, say, done, openSheet, cl
                 <div className="nsc-list">
                   {r.files.map((x) => (
                     /* a tap opens the file from the zip; its tick is its own key */
-                    <div key={x.name} data-tour="import-day-file" data-file={x.name} data-on={x.ticked ? "1" : "0"} className="flex items-center gap-2" style={{ minHeight: 56 }}>
+                    <div key={x.name} data-tour="import-day-file" data-file={x.name} data-src={x.src} data-on={x.ticked ? "1" : "0"} className="flex items-center gap-2" style={{ minHeight: 56 }}>
                       <button onClick={() => { haptic(6); openSheet(<ImportFileBody lib={lib} file={x} />); }} className="flex-1 min-w-0 text-left active:opacity-60" style={{ paddingTop: 6, paddingBottom: 6 }}>
                         <span className="block" style={{ ...TYPE.body, color: t.ink }}>{x.kind === "video" ? tr("Video") : x.kind === "photo" ? tr("Photo") : tr("Voice note")}</span>
-                        <Facts parts={[x.time, firstOfName(x.who), x.reason]} style={{ ...TYPE.small, color: x.reason ? CAUTION : t.sub }} />
+                        {/* a recap day's file names the day it was sent, on the lesson it joins */}
+                        <Facts parts={[x.day, x.time, firstOfName(x.who), x.reason]} style={{ ...TYPE.small, color: x.reason ? CAUTION : t.sub }} />
                       </button>
-                      <button data-tour="import-day-file-tick" aria-label={tr("In the import")} onClick={() => { haptic(6); lib.setDayFile(r.iso, x.name, !x.ticked); }}
+                      <button data-tour="import-day-file-tick" aria-label={tr("In the import")} onClick={() => { haptic(6); lib.setDayFile(x.into || r.iso, x.name, !x.ticked); }}
                               className="shrink-0 flex items-center justify-center" style={{ width: 44, height: 44 }}><TickBox on={x.ticked} /></button>
                     </div>
                   ))}
@@ -21427,55 +21643,37 @@ function UploadStatus({ uploads, onRetry, onDismiss }) {
   );
 }
 
-/* SINCE YOU WERE AWAY
-
-   What landed while the app was closed, shown once on opening, over
-   everything: a lesson logged, a request answered, a booking
-   confirmed. Tap one to go there, or clear the lot. */
-function CatchUp({ items, onOpen, onDone }) {
+/* SINCE YOU WERE AWAY (28 November). What landed while the app was
+   closed, shown once on opening. It was a dark takeover over everything —
+   six rows cut to a line each, "and 4 more under the bell", a Dismiss pill
+   — and the founder found it "not very simplified … it doesn't contain the
+   full notification, it's only a shortened version. And then when you
+   click on it, it just brings you into the main app." It is the app's one
+   sheet now, in the app's own light: the title in the serif, the count,
+   and the bell's own rows on their days' white cards, every notice whole —
+   the title and the detail wrap, nothing is cut — and a tap opens what the
+   notice is about (openNotification) and marks that one read. Done is the
+   one key: it marks every one read, as Dismiss did, and closes the sheet;
+   the scrim and a pull on the handle do the same. Thirty are drawn, Show
+   earlier the next thirty. notifications.cjs (a), (b), (f). */
+function CatchUpBody({ items, faceFor, onOpen, onDone }) {
   const t = useT();
-  const tone = (k) => k === "weather" || k === "declined" ? DANGER : k === "accepted" || k === "lesson" ? STEADY : k === "request" || k === "booking" ? CAUTION : t.accent;
-  const shown = items.slice(0, 6);
+  const [limit, setLimit] = useState(BELL_SHOWN);
+  const drawn = items.slice(0, limit), more = items.length - drawn.length;
   return (
-    <div className="absolute inset-0 flex flex-col" style={{ zIndex: 70, background: t.ink, animation: "fadeIn 320ms ease-out both" }}>
-      <div className="flex-1 min-h-0 flex flex-col justify-center px-7">
-        <span style={{ ...TYPE.eyebrow, color: t.accent,
-                       animation: "streakUp 520ms cubic-bezier(.22,1,.36,1) 120ms both" }}>
-          {tr("While you were away")}
-        </span>
-        <h2 className="mt-3" style={{ ...TYPE.screen, color: "#F4F6F3",
-                                       animation: "streakUp 520ms cubic-bezier(.22,1,.36,1) 220ms both" }}>
-          {items.length === 1 ? tr("One thing happened") : `${items.length} ${tr("things happened")}`}
-        </h2>
-        <div className="mt-7" data-tour="catchup-list" style={{ borderTop: "0.5px solid rgba(244,246,243,0.18)" }}>
-          {shown.map((n, i) => (
-            <button key={n.id} onClick={() => { haptic(8); soft(); onOpen(n); }}
-                    className="w-full flex items-start gap-3.5 py-3.5 text-left active:opacity-60"
-                    style={{ borderBottom: "0.5px solid rgba(244,246,243,0.18)",
-                             animation: `settle 420ms cubic-bezier(.22,1,.36,1) ${320 + i * 70}ms both` }}>
-              <span className="rounded-full shrink-0" style={{ width: 8, height: 8, marginTop: 7, background: tone(n.kind) }} />
-              <span className="flex-1 min-w-0">
-                <span className="block truncate" style={{ ...TYPE.body, color: "#F4F6F3" }}>{n.title}</span>
-                {n.body && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: "rgba(244,246,243,0.55)" }}>{n.body}</span>}
-              </span>
-              <span className="shrink-0" style={{ ...TYPE.caption, color: "rgba(244,246,243,0.4)", marginTop: 3 }}>{n.when}</span>
-            </button>
-          ))}
-          {items.length > shown.length && (
-            <p className="pt-3" style={{ ...TYPE.caption, color: "rgba(244,246,243,0.5)" }}>{tr("and")} {items.length - shown.length} {tr("more under the bell")}</p>
-          )}
-        </div>
+    <div data-tour="catchup">
+      <h2 style={{ ...TYPE.head, color: t.ink }}>{tr("While you were away")}</h2>
+      <p className="mt-1" data-tour="catchup-count" style={{ ...TYPE.small, color: t.sub }}>{items.length} {tr("new")}</p>
+      <div className="mt-5" data-tour="catchup-list">
+        <BellDays items={drawn} head={{ ...TYPE.subhead, color: t.sub, marginBottom: 8 }}
+                  row={(n) => <BellRow key={n.id} n={n} face={faceFor ? faceFor(n) : null} onOpen={onOpen} />} />
+        {more > 0 && <BellEarlier tour="catchup-earlier" onTap={() => setLimit((x) => x + BELL_SHOWN)} />}
       </div>
-      <div className="px-7 shrink-0" style={{ paddingBottom: "max(28px, env(safe-area-inset-bottom, 28px))", animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) 700ms both" }}>
-        {/* Dismiss: the bell is cleared (every one of these is marked
-            read); the badges on Chat, the diary and the rest stay until
-            the thing itself is looked at, because they count the thing,
-            not the notice. */}
-        <button onClick={() => { haptic(10); onDone(); }} className="w-full active:opacity-70"
-                style={{ minHeight: 52, borderRadius: R.pill, background: "transparent", border: "1px solid rgba(244,246,243,0.35)",
-                         fontFamily: ui, fontSize: 15, fontWeight: 600, letterSpacing: "0.01em", color: "#F4F6F3" }}>
-          {tr("Dismiss")}
-        </button>
+      {/* the one key stays in reach while a long list scrolls under it: it
+          stands on the sheet's own foot (its 28 of padding), so nothing of
+          the list shows under the key, and gives the foot back at the end */}
+      <div className="sticky" style={{ bottom: -28, background: t.surface, paddingTop: SPACE.tight, paddingBottom: 28, marginBottom: -28 }}>
+        <Button tour="catchup-done" onClick={onDone}>{tr("Done")}</Button>
       </div>
     </div>
   );
@@ -22055,11 +22253,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [diaryLanding, setDiaryLanding] = useState(null);
   const pendingLanding = useRef(null);
   const screenNow = stack[stack.length - 1];
-  const landOnDay = (at, b) => {
+  /* `kid`: the notice was a child's (an adult's "Saoirse's Saturday clinic
+     called off"), so a group's lesson opens on the child it named, never
+     on the adult's own diary where the clinic is not */
+  const landOnDay = (at, b, kid) => {
     pendingLanding.current = null;
     /* the Diary's kept scroll would put it back where it was */
     SCREEN_MEMORY.delete("1:calendar|scroll");
-    if (role !== "coach") setBookFor(((data && data.dependants) || []).find((k) => b && k.id === b.playerId) || null);
+    if (role !== "coach") setBookFor(((data && data.dependants) || []).find((k) => b && (k.id === b.playerId || (kid && !b.playerId && (b.forIds || []).includes(k.id)))) || null);
     setDiaryLanding(at);
   };
   /* the booking a notice named arrives with a load: land on it then, if
@@ -22072,7 +22273,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const at = b ? landingDay(b.date) : null;
     if (!at) return;
     pendingLanding.current = null;
-    if (screenNow === "calendar") landOnDay(at, b);
+    if (screenNow === "calendar") landOnDay(at, b, p.kid);
   }, [data && data.bookings]);
   useEffect(() => { if (screenNow !== "calendar" && bookFor) setBookFor(null); }, [screenNow]);
   /* a booking still on its way lands only on the Diary it was asked from */
@@ -22097,6 +22298,21 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const unread = (data.notifications || []).filter((n) => !n.readAt);
     if (unread.length) setCatchUp(unread);
   }, [!!data]);
+  /* the catch-up is the app's one sheet: it rises once the splash has
+     gone and nothing else holds the screen (the walkthrough, a coach's
+     setup, the join screen, another sheet) */
+  const catchUpShown = useRef(false);
+  useEffect(() => {
+    if (!catchUp) { catchUpShown.current = false; return; }
+    if (sheet === "catchUp") { catchUpShown.current = true; return; }
+    /* shown once: whatever closed it, it does not come back */
+    if (catchUpShown.current) { setCatchUp(null); return; }
+    if (catchUp.length && !tour && !splash && !setup && !joined && !announce && !sheet) setSheet("catchUp");
+  }, [catchUp, tour, splash, setup, joined, announce, sheet]);
+  /* Done, the scrim or the handle: everything in it is read, as Dismiss
+     made it; the badges on Chat, the diary and the rest stay until the
+     thing itself is looked at, because they count the thing, not the notice */
+  const closeCatchUp = () => { if (data) data.markNotificationsRead(); setCatchUp(null); setSheet(null); };
   const openNotificationRef = useRef(null);
   const seenClips = useRef(new Set());                 // sent clips this sitting has opened
   /* a clip on its way to the coach: whose thread it goes to, then the file */
@@ -22120,10 +22336,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
         setTimeout(() => openNotificationRef.current && openNotificationRef.current({ data: { screen: open, ...(oid ? { id: oid } : {}), ...(oday ? { remind_day: oday } : {}) } }), 300);
       }
     } catch (e) { /* no history API */ }
-    if (typeof navigator === "undefined" || !navigator.serviceWorker) return;
+    /* inside the App Store shell a tapped notification comes from the phone, with the worker's own keys */
+    const offNative = isNative() ? onNativeOpen((m) => openNotificationRef.current && openNotificationRef.current({ data: { screen: m.screen, ...(m.data || {}) } })) : null;
+    if (typeof navigator === "undefined" || !navigator.serviceWorker) return offNative || undefined;
     const onMsg = (e) => { const m = e && e.data; if (m && m.type === "nosca:open" && openNotificationRef.current) openNotificationRef.current({ data: { screen: m.screen, ...(m.data || {}) } }); };
     navigator.serviceWorker.addEventListener("message", onMsg);
-    return () => navigator.serviceWorker.removeEventListener("message", onMsg);
+    return () => { navigator.serviceWorker.removeEventListener("message", onMsg); if (offNative) offNative(); };
   }, [!!data]);
 
   /* A NEW BUILD TAKES EFFECT WHEN THE APP COMES BACK. A home-screen app
@@ -24071,18 +24289,103 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't send that request.")); return; }
     hapticSuccess(); done(tr("Asked"), `${kid.name.split(" ")[0]} · ${tr("the coach will confirm")}`);
   };
+  /* A notification names the person it is about first — "Cian Murphy
+     asked for…", "Niamh Byrne logged your lesson" — so the face can be
+     found from the title without the database carrying one. The bell
+     and the catch-up read it alike. */
+  const notifFaceFor = (n) => {
+    if (!data || !n) return null;
+    const faces = [
+      ...(data.roster || []).map((r) => ({ name: r.name, path: r.avatarPath })),
+      /* somebody asking to join is not on the roster yet, and theirs is
+         the one line on this screen that is about a stranger */
+      ...(openRequests || []).map((r) => ({ name: r.name, path: r.avatarPath })),
+      /* everyone else the person can read: their coach, their family,
+         their children's coaches */
+      ...(data.people || []).map((r) => ({ name: r.name, path: r.avatarPath })),
+      ...(myCoachName ? [{ name: myCoachName, path: (data.coach && data.coach.avatarPath) || null }] : []),
+    ].filter((p) => p.name);
+    const title = String(n.title || "");
+    /* the whole name, or the first name a trigger opens with ("Cian sent a clip") when only one person carries it */
+    const hit = faces.find((p) => title.startsWith(p.name))
+      || (() => { const f = faces.filter((p) => title.startsWith(`${p.name.split(" ")[0]} `)); return new Set(f.map((p) => p.name)).size === 1 ? f[0] : null; })();
+    if (hit) return { name: hit.name, src: avatarUrl(hit.path) };
+    /* And where the title names nobody, the kind does. A tip, a lesson,
+       a drill and a rating reach a player from one person — their coach
+       — so "Trust the shallow" wears their coach's face rather than a
+       bulb in a grey disc. A coach's own list keeps the glyph: theirs
+       come from everywhere. */
+    if (!data.isCoach && myCoachName && ["tip", "lesson", "drill", "rating"].includes(n.kind)) {
+      return { name: myCoachName, src: avatarUrl((data.coach && data.coach.avatarPath) || null) };
+    }
+    return null;
+  };
+  /* EVERY NOTICE OPENS WHAT IT IS ABOUT (28 November). The founder, of
+     the catch-up: "when you click on it, it just brings you into the main
+     app". A notice carries a screen and an id, written by its trigger in
+     nosca.sql; this reads both, and only a notice about nothing in
+     particular lands on a tab:
+       a lesson, a clip, a practice, a reply on a clip — its page;
+       a join request — Requests; a message — its thread;
+       a booking (confirmed, cancelled, moved, called off, a reminder, a
+         group's) — the Diary on its day, the Calendar view, its block;
+       a coach's "asked for a lesson" or "asked to move" — that request in
+         its hour (Decline · Accept on its block), and Today's request
+         row once the Diary no longer holds it;
+       an adult's notice about a child — the child's lesson, the child's
+         day in the Diary (For the child), the child's own screen for a
+         drill, a tip or an import taken away, else Family;
+       "accepted you" — the coach's profile; "can't take you on" — Add
+         your coach, where the next ask is made;
+       a junior's "messaged your family" — Family, where their adults are;
+       an import's — its newest lesson, or for the coach the player's file.
+     A push opened cold carries the screen, the id and the day (sw.js's
+     open, oid, oday) and lands the same way. notifications.cjs (g). */
   const openNotification = (n) => {
     if (!data) return;
     if (n && n.id && !n.readAt) data.markNotificationsRead([n.id]);
     const d = (n && n.data) || {};
     const scr = d.screen;
+    const kind = n && n.kind;
     const home = role === "coach" ? "today" : (account && account.accountType === "parent") ? "family" : "home";
     setCatchUp(null);
+    /* the catch-up is the app's one sheet: a tap on one of its notices
+       closes it; any other sheet open under a push tapped from the phone
+       keeps what was typed in it, as before */
+    if (sheet === "catchUp") setSheet(null);
     /* the newest notice wins over one still waiting for its booking */
     pendingLanding.current = null;
     /* a screen a notification lands on starts at its top; the root under
        it keeps its place */
     const land = (st) => { dropDeeperMemory(1); setStack(st); };
+    const hasTab = (id) => tabs.some((tb) => tb.id === id);
+    /* A BOOKING'S NOTICE OPENS ON ITS DAY. "Lesson confirmed · Thu 24
+       Sep" opened the Diary wherever it had last been — today, or the
+       month last looked at — and the lesson it named was a hunt away.
+       It lands on that day's Calendar view, where the lesson's own
+       block is; the coach's "3 lessons tomorrow" on tomorrow. A booking
+       made a moment ago may not be in the diary yet (the phone was
+       asleep when it was written): the Diary opens, a fresh load is
+       asked for, and it lands the moment the row arrives. A booking the
+       diary never holds opens the Diary as it was. */
+    const toDay = (id, kid, wait = true) => {
+      if (!hasTab("calendar")) return false;
+      const b = id ? (liveBookingRows || []).find((x) => x && x.id === id) : null;
+      const at = b ? landingDay(b.date) : !kid && d.remind_day ? landingDay(d.remind_day) : null;
+      if (at) { landOnDay(at, b, kid); go("calendar"); return true; }
+      if (!id || !wait) return false;
+      go("calendar"); pendingLanding.current = { id, until: Date.now() + 15000, kid }; if (data.reload) data.reload();
+      return true;
+    };
+    /* the child an adult's notice is about, by the first name its title
+       opens with ("Saoirse has a new drill") when one child carries it —
+       a notice written before the trigger carried the child's id */
+    const kids = data.dependants || [];
+    const kidNamed = () => {
+      const title = String((n && n.title) || "");
+      const named = kids.filter((k) => { const f = String(k.name || "").split(" ")[0]; return !!f && (title.startsWith(`${f} `) || title.startsWith(`${f}'s `)); });
+      return named.length === 1 ? named[0] : null;
+    };
     if (scr === "lesson" && d.id) { land([home, role === "coach" ? `clesson:${d.id}` : `lesson:${d.id}`]); return; }
     if (scr === "requests") { land(["roster", "requests"]); return; }
     /* the thread route takes the player's id — the same key for a coach,
@@ -24092,25 +24395,35 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     /* an import's notices: the coach on the player's file, the importer on Import */
     if (scr === "player" && d.id && role === "coach") { land(["roster", `player:${d.id}`]); return; }
     if (scr === "chatImport") { land([home, "chatImport"]); return; }
-    /* A BOOKING'S NOTICE OPENS ON ITS DAY. "Lesson confirmed · Thu 24
-       Sep" opened the Diary wherever it had last been — today, or the
-       month last looked at — and the lesson it named was a hunt away.
-       It lands on that day's Calendar view, where the lesson's own
-       block is; the coach's "3 lessons tomorrow" on tomorrow. A booking
-       the diary no longer holds (past its window) falls through to the
-       Diary as it was. */
-    if (scr === "calendar" && tabs.some((tb) => tb.id === "calendar")) {
-      const b = d.id ? (liveBookingRows || []).find((x) => x && x.id === d.id) : null;
-      const at = b ? landingDay(b.date) : d.remind_day ? landingDay(d.remind_day) : null;
-      if (at) { landOnDay(at, b); go("calendar"); return; }
-      /* a booking made a moment ago may not be in the diary yet (the
-         phone was asleep when it was written): open the Diary, ask for
-         a fresh load, and land the moment the row arrives */
-      if (d.id) { pendingLanding.current = { id: d.id, until: Date.now() + 15000 }; if (data.reload) data.reload(); }
+    if (scr === "calendar" && toDay(d.id, false)) return;
+    /* the coach's "asked for a lesson", "asked to move a lesson": the
+       request in its hour; answered and gone from the diary, Today */
+    if (scr === "today" && d.id && role === "coach" && toDay(d.id, false, false)) return;
+    if (scr === "family" && role !== "coach") {
+      /* an adult's notice about a child: the child's lesson, the child's day, the child */
+      if (d.id && (data.lessons || []).some((l) => l && l.id === d.id)) { land([home, `lesson:${d.id}`]); return; }
+      if (d.id && (liveBookingRows || []).some((x) => x && x.id === d.id) && toDay(d.id, true)) return;
+      const k = (d.id && kids.find((x) => x.id === d.id)) || null;
+      if (k && hasTab("family")) { land(["family", `familyKid:${k.id}`]); return; }
+      /* one the rows do not hold yet: a booking waits for the load that brings it, a lesson opens on its id */
+      if (d.id && (kind === "booking" || kind === "weather") && toDay(d.id, true)) return;
+      if (d.id && kind === "lesson") { land([home, `lesson:${d.id}`]); return; }
+      const named = kidNamed();
+      if (named && hasTab("family")) { land(["family", `familyKid:${named.id}`]); return; }
     }
+    /* a request answered: "accepted you" is the coach now theirs; "can't
+       take you on" is the next ask — a player with no coach opens on Add
+       your coach, the code boxes ready; a parent's is Add a coach in the
+       switcher over the family */
+    if (scr === "home" && d.id && role !== "coach") {
+      if (kind !== "declined" && data.hasCoach) { land([home, "coachProfile"]); return; }
+      if (kind !== "accepted" && !data.hasCoach) { go(home); if (home === "family") setSheet("family"); return; }
+    }
+    /* a junior told that their coach messaged the family: the family, where their adults are */
+    if (scr === "home" && kind === "message" && juvenile && hasTab("family")) { go("family"); return; }
     if (scr === "family" || scr === "home" || scr === "today" || scr === "calendar" || scr === "practice" || scr === "messages") {
       const target = scr === "home" ? home : scr;
-      if (tabs.some((tb) => tb.id === target) || target === "family") { go(target); return; }
+      if (hasTab(target) || target === "family") { go(target); return; }
     }
     if (scr === "alerts" || !scr) { push("alerts"); return; }
     go(home);
@@ -24477,44 +24790,15 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        same two buttons here saves the trip to two other screens. */
     const alertWaiting = role !== "coach" ? [] : [
       ...(openRequests || []).map((r) => ({ id: `join-${r.id || r.name}`, who: r.name,
-            avatar: avatarUrl(r.avatarPath), what: tr("wants to join"),
+            avatar: avatarUrl(r.avatarPath), facts: [tr("wants to join")],
             onAccept: () => acceptRequest(r), onDecline: () => declineRequest(r) })),
+      /* the day and the time of the lesson asked for are one fact, on one line; the note after it, whole */
       ...(liveAsks || []).map((r) => ({ id: `ask-${r.id}`, who: r.who,
             avatar: avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath),
-            what: `${askDay(r, calendar)} · ${r.time}${r.note ? ` · ${r.note}` : ""}`, note: r.note || "",
+            facts: [<span key="when" data-ask-when="" style={{ whiteSpace: "nowrap" }}>{`${askDay(r, calendar)} · ${r.time}`}</span>, r.note || null],
             onAccept: () => acceptAsk(r), onDecline: () => { setDeclining(r); setDeclineWhy(null); setDeclineNote(""); setSheet("decline"); } })),
     ];
-    /* A notification names the person it is about first — "Cian Murphy
-       asked for…", "Niamh Byrne logged your lesson" — so the face can be
-       found from the title without the database carrying one. */
-    const faces = [
-      ...(data.roster || []).map((r) => ({ name: r.name, path: r.avatarPath })),
-      /* somebody asking to join is not on the roster yet, and theirs is
-         the one line on this screen that is about a stranger */
-      ...(openRequests || []).map((r) => ({ name: r.name, path: r.avatarPath })),
-      /* everyone else the person can read: their coach, their family,
-         their children's coaches */
-      ...(data.people || []).map((r) => ({ name: r.name, path: r.avatarPath })),
-      ...(myCoachName ? [{ name: myCoachName, path: (data.coach && data.coach.avatarPath) || null }] : []),
-    ].filter((p) => p.name);
-    /* And where the title names nobody, the kind does. A tip, a lesson,
-       a drill and a rating reach a player from one person — their coach
-       — so "Trust the shallow" wears their coach's face rather than a
-       bulb in a grey disc. A coach's own list keeps the glyph: theirs
-       come from everywhere. */
-    const FROM_COACH = ["tip", "lesson", "drill", "rating"];
-    const faceFor = (n) => {
-      const title = String(n.title || "");
-      /* the whole name, or the first name a trigger opens with ("Cian sent a clip") when only one person carries it */
-      const hit = faces.find((p) => title.startsWith(p.name))
-        || (() => { const f = faces.filter((p) => title.startsWith(`${p.name.split(" ")[0]} `)); return new Set(f.map((p) => p.name)).size === 1 ? f[0] : null; })();
-      if (hit) return { name: hit.name, src: avatarUrl(hit.path) };
-      if (!data.isCoach && myCoachName && FROM_COACH.includes(n.kind)) {
-        return { name: myCoachName, src: avatarUrl((data.coach && data.coach.avatarPath) || null) };
-      }
-      return null;
-    };
-    body = <NotifCentre items={data.notifications || []} waiting={alertWaiting} pop={pop} faceFor={faceFor}
+    body = <NotifCentre items={data.notifications || []} waiting={alertWaiting} pop={pop} faceFor={notifFaceFor}
                         userId={account ? account.id : null} say={say}
                         onOpen={openNotification} onClear={(id) => data.clearNotification(id)}
                         onMarkAllRead={() => data.markNotificationsRead()}
@@ -24534,7 +24818,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const seedAlerts = [
       ...jobs.map((j) => ({ id: j.id, kind: j.kind, title: `${j.count} ${j.what}`, body: null, when: tr("Today"), readAt: null, go: j.go })),
       ...(freshAccount || role === "coach" ? [] : (NOTIFS[role] || []).map((n, i) => ({
-        id: "m" + i, kind: n.kind, title: n.what || n.title, body: n.who || null, when: n.when, readAt: i > 1 ? true : null }))),
+        id: "m" + i, kind: n.kind || n.k, title: n.what || n.title || n.t, body: n.who || n.s || null, when: n.when, readAt: i > 1 ? true : null }))),
       ...(!isParent || freshAccount ? [] : (BREATHNACH.alerts || []).map((n, i) => ({
         id: "f" + i, kind: n.kind, title: n.what, body: n.who || null, when: n.when, readAt: true }))),
     ];
@@ -25237,10 +25521,6 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           {loader && <Loader onTap={() => { haptic(8); setLoader(false); }} />}
           {announce && <Announcement {...announce} onDismiss={() => setAnnounce(null)} />}
           {joined && <JoinedCoach coachName={joined.coachName} sport={joined.sport} onDone={() => setJoined(null)} />}
-          {catchUp && !tour && !splash && (
-            <CatchUp items={catchUp} onOpen={openNotification}
-                     onDone={() => { data && data.markNotificationsRead(); setCatchUp(null); }} />
-          )}
           {setup && !tour && data && (
             <div className="absolute inset-0" style={{ zIndex: 66, background: theme.page }}>
               <CoachSetup live cfg={cfg} sport={coachSport} slots={slots}
@@ -25298,8 +25578,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
             </div>
           )}
 
-          <Sheet open={!!sheet && sheet !== "capture"} onClose={() => setSheet(null)}>
-            {sheet === "pickWho" ? <PickPerson roster={roster}
+          <Sheet open={!!sheet && sheet !== "capture"} onClose={() => { if (sheet === "catchUp") { closeCatchUp(); return; } setSheet(null); }}>
+            {sheet === "catchUp" ? (catchUp ? <CatchUpBody items={catchUp} faceFor={notifFaceFor} onOpen={openNotification} onDone={closeCatchUp} /> : null)
+            : sheet === "pickWho" ? <PickPerson roster={roster}
                                             title={pickFor === "tip" ? tr("Set a tip") : pickFor === "progress" ? tr("Progress") : tr("Set drills")}
                                             sub={tr("For")}
                                             onPick={(r) => {

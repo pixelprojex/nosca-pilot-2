@@ -104,14 +104,21 @@ function freshDb({ family = false } = {}) {
       const row = M.norm(await c.page.locator('[data-tour="today-asks"]').innerText());
       await c.shot("02-today-ask");
       await M.tap(c.page, '[aria-label="Alerts"]', 1000);
-      const bell = M.norm(await c.page.locator("[data-person-row]").filter({ hasText: "Cian Murphy" }).first().innerText());
+      const bell = M.norm(await c.page.locator("[data-bell-ask]").filter({ hasText: "Cian Murphy" }).first().innerText());
       await c.shot("03-bell-ask");
       /* the words take the row's width: nothing cut (the note whole, two lines), Accept · Decline on a
          line of their own under the name, and the face beside the name — at 390 and at 320 */
-      const rowsFit = (page) => page.evaluate(() => [...document.querySelectorAll("[data-person-row]")].filter((r) => /Cian Murphy/.test(r.textContent) && r.querySelector(":scope > .ml-auto")).map((r) => {
-        const sub = r.querySelector("[data-sub]"), name = r.querySelector("[data-name]"), acts = r.querySelector(":scope > .ml-auto"), face = r.children[0];
-        return { cut: sub.scrollHeight > sub.clientHeight + 1 || sub.scrollWidth > sub.clientWidth + 1, lines: Math.round(sub.getBoundingClientRect().height / 16),
-                 under: acts.getBoundingClientRect().top >= name.getBoundingClientRect().bottom - 1, beside: Math.abs(face.getBoundingClientRect().top - name.getBoundingClientRect().top) < 24 && name.getBoundingClientRect().left > face.getBoundingClientRect().right }; }));
+      /* Today's request row is a PersonRow; the bell's is its own since 28 November (data-bell-ask): the note
+         across the row's full width under the name, Accept · Decline beside the name where the whole name
+         fits beside them, else a line of their own at the request's foot */
+      const rowsFit = (page) => page.evaluate(() => [
+        ...[...document.querySelectorAll("[data-person-row]")].filter((r) => /Cian Murphy/.test(r.textContent) && r.querySelector(":scope > .ml-auto")).map((r) => ({ r, bellRow: false, sub: r.querySelector("[data-sub]"), acts: r.querySelector(":scope > .ml-auto") })),
+        ...[...document.querySelectorAll("[data-bell-ask]")].filter((r) => /Cian Murphy/.test(r.textContent)).map((r) => ({ r, bellRow: true, sub: r.querySelector("[data-ask-facts]"), acts: r.querySelector("[data-ask-actions]") })),
+      ].map(({ r, bellRow, sub, acts }) => {
+        const name = r.querySelector("[data-name]"), face = r.children[0], nb = name.getBoundingClientRect(), ab = acts.getBoundingClientRect(), sb = sub.getBoundingClientRect();
+        return { bell: bellRow, cut: sub.scrollHeight > sub.clientHeight + 1 || sub.scrollWidth > sub.clientWidth + 1, lines: Math.round(sb.height / 16),
+                 under: bellRow ? (r.getAttribute("data-beside") === "1" ? nb.height < 30 && ab.top < nb.bottom : ab.top >= sb.bottom - 12) : ab.top >= nb.bottom - 1,
+                 beside: Math.abs(face.getBoundingClientRect().top - nb.top) < 24 && nb.left > face.getBoundingClientRect().right }; }));
       const fit = await rowsFit(c.page);
       await c.ctx.close();
       const n = await boot(db, "coach", "09:00", 320);
@@ -119,7 +126,7 @@ function freshDb({ family = false } = {}) {
       await M.tap(n.page, '[aria-label="Alerts"]', 1000); const bell320 = await rowsFit(n.page); await n.shot("03b-bell-ask-320");
       await n.ctx.close();
       const all = [...fit, ...fit320, ...bell320];
-      check("(a4) Today's request row and the bell's carry the note under the name, whole on its own lines — nothing cut, Accept · Decline on a line of their own, the face beside the name at 390 and at 320",
+      check("(a4) Today's request row and the bell's carry the note under the name, whole on its own lines — nothing cut, Accept · Decline on a line of their own on Today (and in the bell beside a name that fits whole beside them), the face beside the name at 390 and at 320",
             row.includes(NOTE) && /\d{1,2}:\d\d [ap]m/.test(row) && bell.includes(NOTE) && /Accept/.test(bell) && fit.length >= 1 && fit320.length >= 1 && bell320.length >= 1 && all.every((f) => !f.cut && f.under && f.beside) && all.some((f) => f.lines >= 2),
             JSON.stringify({ row: row.slice(0, 120), bell: bell.slice(0, 120), fit, fit320, bell320 }));
       /* the cap is at the field: a longer note stops at 200, typed; the row never carries a cut sentence the toast called Asked */

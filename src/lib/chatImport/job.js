@@ -40,6 +40,8 @@ const todayIso = () => { const t = new Date(); return `${t.getFullYear()}-${pad(
 /* "Mon 3 Mar 2025" — the range's heading, always with its year */
 export const dayWithYear = (iso) => { const [y, m, d] = isoParts(iso); const t = new Date(y, m - 1, d); return `${DOW[t.getDay()]} ${d} ${MON[m - 1]} ${y}`; };
 const shortDay = (iso) => { const [y, m, d] = isoParts(iso); return `${d} ${MON[m - 1]} ${y}`; };
+/* "Fri 14 Mar": the day a file was sent, where it joins another day's lesson */
+const weekDay = (iso) => { const [y, m, d] = isoParts(iso); return `${DOW[new Date(y, m - 1, d).getDay()]} ${d} ${MON[m - 1]}`; };
 const first = (name) => String(name || "").split(" ")[0];
 const C = () => importJob.ctx() || {};
 const api = () => C().api || {};
@@ -418,7 +420,11 @@ function stopSorter(status) {
 }
 export function retrySorting() {
   const j = importJob.get(); if (!j || !DAYS) return;
-  /* a person's Retry gives a day not sorted a fresh go */
+  /* a person's Retry gives a day not sorted a fresh go: its parts' spent calls are let go too. The count is kept
+     in the manifest so a reload never bills a part again, but a part with no answer that has used its four calls
+     was going straight back to "Not sorted" on Retry with nothing sent (launch, 28 November) — a tap is the
+     person's own leave for four more */
+  for (const k of Object.keys(PARTV)) if (!PARTV[k].s) delete PARTV[k];
   DAYS.forEach((d) => { if ((DAYV.get(d.iso) || {}).status === "failed") DAYV.delete(d.iso); });
   importJob.patch((x) => ({ phase: "sorting", sort: { ...(x.sort || {}), status: "running", failed: 0 } }));
   runSorter();
@@ -487,8 +493,10 @@ async function ask(body) {
 }
 
 /* ---------------------------------------------------------------- the plan: every day, decided by code */
-const dayFiles = (j, day, d, ticked) => {
-  const maxB = (C().maxMb || 50) * MB; const main = mainSide(j); const e = EDITS[day.iso] || {};
+/* a day's files as the row they belong to lists them; `into` is the row a recap day's files join (below), whose
+   tick they follow and under whose edits they are ticked */
+const dayFiles = (j, day, d, ticked, into = null) => {
+  const maxB = (C().maxMb || 50) * MB; const main = mainSide(j); const e = EDITS[into || day.iso] || {};
   const out = []; let n = 0;
   day.msgs.forEach((x, mi) => {
     if (!x.file || !["video", "photo", "audio"].includes(x.file.kind)) return;
@@ -496,8 +504,8 @@ const dayFiles = (j, day, d, ticked) => {
     if (SRC && !entry) return;
     if (entry && entry.size > maxB) return;
     n += 1; if (n > PER_DAY) return;
-    const f = { name: x.file.name, kind: x.file.kind, mime: x.file.mime, ext: x.file.ext, side: x.side, who: x.who, mi, size: entry ? entry.size : 0, at: fileAt(day, x, n - 1),
-      time: `${(x.h % 12) || 12}:${pad(x.min)} ${x.h < 12 ? "am" : "pm"}`, screenshot: screenshotByName({ ext: x.file.ext, name: x.file.name }) };
+    const f = { name: x.file.name, kind: x.file.kind, mime: x.file.mime, ext: x.file.ext, side: x.side, who: x.who, mi, src: day.iso, into: into || day.iso, size: entry ? entry.size : 0, at: fileAt(day, x, n - 1),
+      day: into ? weekDay(day.iso) : null, time: `${(x.h % 12) || 12}:${pad(x.min)} ${x.h < 12 ? "am" : "pm"}`, screenshot: screenshotByName({ ext: x.file.ext, name: x.file.name }) };
     const def = fileDefault({ ...f, who: x.who }, { kind: d.kind || "private", mainSide: main });
     const own = e.files && e.files[f.name];
     f.reason = def.reason; f.ticked = own !== undefined ? own : ticked && def.ticked;
@@ -551,8 +559,18 @@ export function replan() {
     const was = r.existingId ? (C().lessons || []).find((l) => l.id === r.existingId) : null;
     r.focus = was && was.focus && e.focus === undefined ? was.focus : focusFor(j.sport, r.focusIds, r.kind);
     r.files = dayFiles(j, day, r, r.ticked);
-    r.fileCount = r.files.filter((f) => f.ticked).length;
   }
+  /* A RECAP'S FILES JOIN THE LESSON IT RECAPS, AS ITS LINES DO (launch, 28 November). The founder asked for "the
+     videos and media from that date": a clip the coach sends the morning after is that lesson's. Each keeps its
+     own day's default (the coach's ticked; the player's side's, a screenshot, a second label's not), follows the
+     lesson's tick, and is ticked in one place — the lesson's — whichever of the two days' pages it is read on; the
+     upload's hash check and the server's take a file the lesson already has once. The recap day stays Left out */
+  for (const r of Object.values(rows)) for (const iso of r.recaps || []) {
+    const joined = dayFiles(j, DAYS[IDX.get(iso)], { kind: "recap" }, r.ticked, r.iso).slice(0, Math.max(0, PER_DAY - r.files.length));
+    r.files = [...r.files, ...joined];
+    rows[iso].files = joined;
+  }
+  for (const r of Object.values(rows)) r.fileCount = r.files.filter((f) => f.ticked).length;
   const all = Object.values(rows).sort((a, b) => (a.iso < b.iso ? 1 : -1));
   importJob.patch({ rows: all.filter((r) => !r.leftOut && !r.pending), leftOut: all.filter((r) => r.leftOut && !r.pending), rowsByIso: rows });
 }
@@ -616,7 +634,7 @@ export async function importNow() {
   const lessons = j.rows.filter((r) => r.ticked).map((r) => {
     const day = DAYS[IDX.get(r.iso)];
     return { iso: r.iso, forId: r.forId, kind: r.kind === "practice" ? "practice" : "private", focus: r.focus, note: r.note || "", at: lessonAt(day), add: !!r.add, lessonId: r.existingId || null,
-      files: r.files.filter((f) => f.ticked).map((f) => ({ name: f.name, kind: f.kind, ext: f.ext, mime: f.mime, at: f.at, size: f.size, uuid: uuid(), hash: day.msgs[f.mi].file.hash || null })) };
+      files: r.files.filter((f) => f.ticked).map((f) => ({ name: f.name, kind: f.kind, ext: f.ext, mime: f.mime, at: f.at, size: f.size, uuid: uuid(), hash: (DAYS[IDX.get(f.src)] || day).msgs[f.mi].file.hash || null })) };
   });
   if (!lessons.length) return { error: "Nothing to import" };
   const batches = {};

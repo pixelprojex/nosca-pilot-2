@@ -41,6 +41,12 @@ three small items, the full verification, merge, and a dated summary in
 `docs/cycles/` that the next run reads first. Steer it with an issue
 titled "Cycle".
 
+The launch's decisions live in `docs/launch/DECISIONS.md`. When the founder decides anything about
+the launch, the prices or the marketing, write it there in the same session and update the Launch Book
+(https://claude.ai/artifact/2sK2tixQYUDmK3zG5yqDrt). The weekly task "Nosca weekly social post" (Fridays)
+keeps the Launch Book in line with that file and adds the week's post to the Nosca Social Kit
+(https://claude.ai/artifact/KoBjGQYD7vNcm7iSrUsh9Z).
+
 A deploy reaches a phone only when the app is fully relaunched: a
 home-screen app that is merely backgrounded resumes the bundle it was
 opened with. So the build stamps its time into the bundle and into
@@ -2474,16 +2480,95 @@ seeded data and no account.
   after the app loaded (the phone asleep when the coach booked) is not
   in the diary yet: the Diary opens, a fresh load is asked for, and it
   lands when the row arrives (`pendingLanding`, fifteen seconds). A
-  booking the diary never holds opens the Diary as it was; a junior's
-  adults' notices still land on Family. `notifications.cjs` (e)–(e9).
-- **The bell reads itself.** Opening the list shows Today, Yesterday and
-  Earlier with the unread ones in ink; tapping one marks it, and closing
-  the list marks the rest read. The right-hand button is "Mark all read"
-  while anything is unread and "Clear all" after. The away card's
-  Dismiss is the same mark-all.
+  booking the diary never holds opens the Diary as it was. A junior's
+  adults' notices land on the child's lesson, the child's day (the Diary
+  For the child) or the child's own screen since 28 November (the bullet
+  below); they landed on Family. `notifications.cjs` (e)–(e9).
+- **The bell is one card a day; the catch-up is the app's own sheet;
+  every notice opens what it is about (28 November).** The founder, of
+  the bell: "the notifications place is still very messy and things
+  don't all fit on one line", then "a little bit over the top … imagine
+  someone has hundreds of notifications, they don't want it this
+  format"; of the catch-up: "it doesn't look great, it's not very
+  simplified … it doesn't contain the full notification, it's only a
+  shortened version. And then when you click on it, it just brings you
+  into the main app." So:
+  - **One white card a day** (`BellDays`, Settings' own `.nsc-group`):
+    Today, Yesterday, then the date (`bellDay`; the year only when it is
+    not this one) as the serif section head, and the day's notices as
+    compact rows on the card's rule (`BellRow`, `data-bell-row`) — a 40
+    face (`BELL_FACE`) with the kind badged on its corner, the title
+    whole across the row's full width (bold while unread), and under it
+    the detail as `Facts` (each fact whole, broken only at its dot) with
+    the time on the clock at the right (`bellClock`: "6:40 pm" under
+    Yesterday, never "Yesterday" again) and the unread dot beside it. A
+    notice was a pale card of its own on a ledge, its title wrapping
+    round a time column on its right. A row swipes to Clear as before
+    (`.nsc-group > .nsc-swipe`).
+  - **Requests stay on top**, a white card of their own (`BellAsk`,
+    `data-bell-ask`): the name; the day and the time of a lesson asked
+    for as one fact on one line (`data-ask-when`, nowrap — "Tue 1 Dec"
+    sat over "9:00 am" beside Accept · Decline); the player's note,
+    whole; Accept · Decline beside the name only where the whole name
+    fits on its line beside them (measured, `textWidthOf`; `data-beside`),
+    else a line of their own at the foot of the request, on the right,
+    44 tall either way. They were a sky card each.
+  - **Thirty are drawn** (`BELL_SHOWN`), the newest; **Show earlier**
+    (`alerts-earlier`) draws thirty more, kept across a Back, so three
+    hundred are never laid out at once. A filter (`FilterBox`) still
+    appears only past eight of more than one kind, and starts the thirty
+    again.
+  - **The catch-up is the app's one sheet** (`CatchUpBody`, the
+    `catchUp` sheet): "While you were away" in the serif, the count
+    ("3 new"), the bell's own rows on their days' cards with every
+    notice whole — the title and the detail wrap, nothing is cut — thirty
+    at a time, and **Done** (`catchup-done`, the one key, kept in reach
+    at the sheet's foot while the list scrolls), which marks every one
+    read as Dismiss did. The scrim and the handle do the same. It rises
+    once the splash has gone and nothing else holds the screen, and once
+    shown it never comes back in that sitting (`catchUpShown`). It was a
+    dark takeover over everything: six rows cut to a line each, "and 4
+    more under the bell", a Dismiss pill.
+  - **Every notice opens what it is about** (`openNotification`, from the
+    catch-up, the bell, and a push opened cold): a lesson, a clip, a
+    practice, a rating asked for, a reply on a clip — its page; a join
+    request — Requests; a message — its thread; a booking — the Diary on
+    its day (above); a coach's "asked for a lesson" or "asked to move" —
+    that request in its hour on the Diary (`cal-ask`, Decline · Accept),
+    Today once the Diary no longer holds it; an adult's notice about a
+    child — the child's lesson, the child's day in the Diary For the
+    child (`landOnDay(at, b, kid)`, a group's lesson by `forIds`), or the
+    child's own screen (`familyKid:<id>`) for a drill, a tip or an import
+    taken away — the triggers carry the child's id on those three now
+    (`trg_drills_notify`, `trg_tips_notify`, `trg_lesson_imports_notify`;
+    a row written before is found by the first name its title opens
+    with); "accepted you" — the coach's profile; "can't take you on" —
+    Add your coach (a coachless player's home, the code boxes ready; a
+    parent's, Add a coach in the switcher), where the next ask is made; a
+    junior's "messaged your family" — Family; an import's — its newest
+    lesson, or for the coach the player's file. Only a notice about
+    nothing in particular lands on a tab. The face is `notifFaceFor`,
+    one lookup for the bell and the catch-up.
+  This supersedes, where they say otherwise: the bell's rows in "One
+  person row" (the badged face in PersonRow's face slot, the title
+  unclamped beside the time, the body clamped at two lines), the bell's
+  request row in "A request carries words both ways" (`textMin` 220),
+  the bell's requests in the sky card of "A hue a function", the 10px
+  dot of the visual audit's "The bell", and "a junior's adults' notices
+  still land on Family". `notifications.cjs` (a), (b), (f), (g1)–(g17),
+  (h) — a hundred and fifty notices, thirty drawn, Show earlier to the
+  end, and the time the bell takes to come up; `person-row.cjs`
+  (q1)–(q6) at 375 and 320 for the coach, an adult, a parent and a
+  junior; behaviour.sql 4 (the adult's drill notice carries the child).
+- **The bell reads itself.** Opening the list shows its days — Today,
+  Yesterday, then the date, one card each (the bullet above) — with the
+  unread ones in bold beside the sport's dot; tapping one marks it, and
+  closing the list marks the rest read. The right-hand button is "Mark
+  all read" while anything is unread and "Clear all" after. The
+  catch-up's Done is the same mark-all.
 - **An alert is a face and a badge.** Whatever happened, happened
   because of a person, and a face is read before any word beside it:
-  `faceFor` matches the name the title opens with, and falls back to the
+  `notifFaceFor` matches the name the title opens with, and falls back to the
   coach for the kinds only a coach sends a player (`tip`, `lesson`,
   `drill`, `rating`). The kind rides as a small glyph badged on the
   corner of that face, so the line does not have to spell it out; where
@@ -3425,6 +3510,68 @@ seeded data and no account.
     words, and nothing the model answers is stored as text. No file, no
     file name and no other person's words is ever sent. Nothing is
     written until the person ticks it, and an unsure day starts unticked.
+  - **A recap's files join the lesson it recaps, as its lines do (28
+    November, the launch).** The founder asked for "the videos and media
+    from that date": a clip the coach sends the morning after is that
+    lesson's. The recap day still reads Left out ("Recap · added to Thu
+    13 Mar"); its chosen lines join the lesson's note and its files the
+    lesson's files, each by its own day's default — the coach's ticked,
+    the player's side's and a screenshot not, a recap being neither a
+    lesson nor a practice day — naming the day it was sent ("Fri 14 Mar
+    · 9:06 am · Niamh"), following the lesson's tick and ticked in one
+    place, the lesson's, on either day's page. A file the lesson already
+    has comes in once: the upload's hash check and `import_lessons`'
+    `import_hash` both skip it. import.cjs (w10), (w11).
+  - **The opening page is the app's own (28 November, the launch).** The
+    founder asked for it "very professional, very classy", and to say how
+    the chat is kept safe. Under the serif title:
+    - the three steps on the lessons' Lares card (`import-how`): Export
+      the chat from WhatsApp · Nosca sorts it into lessons · Tick the ones
+      to keep;
+    - Privacy and security, six plain lines on the sky card
+      (`import-safe`): the chat is read on your phone; only the coach's
+      words go to the AI ("your words" to a coach), the names Nosca knows,
+      numbers and links taken out first; videos, photos and voice notes
+      never go to the AI; nothing is added until you tick it; nobody else
+      sees it until it is finished; it can be removed at any time — and
+      Privacy Policy under it (`import-start-privacy`). Each is a fact of
+      the code; a line that stops being true comes off;
+    - In WhatsApp, iPhone · Android (`import-platform`), the steps on the
+      gold card (`import-steps`), Android's three dots drawn in the
+      sentence as the Home Screen guide draws them;
+    - Choose file (`import-choose`), the one deep key, held at the foot
+      (`import-foot`) under a fade while the page scrolls; a refusal is
+      the red line under it. The coach's Imports from players is a white
+      group at the end. While an import runs or waits, its box is the
+      page. import.cjs (v) at 390 and 320.
+  - **Sorting never loses a day.** Per part, two whole calls, then each
+    half once, then "Not sorted": the day stays a row, unticked, its
+    words and files there to open and tick by hand.
+    - Retry sends a not-sorted day again. A part's spent calls are kept
+      in the manifest so a reload never bills it twice; the person's tap
+      lets the spent calls of a part with no answer go. It sent nothing
+      for a round and the day went straight back to Not sorted.
+    - The phone gives a sort request up at `IMPORT_FETCH_MS` (30 s, in
+      `useNoscaData`: past Netlify's 26-second ceiling) and reads it as
+      busy. A stalled mobile connection held one of the three places in
+      the queue for as long as the browser kept the socket.
+    - The function's own timeout is `min(NOSCA_IMPORT_TIMEOUT_MS or 7000,
+      NOSCA_FN_LIMIT_MS or 10000, less what it has spent and 1,500)`, so
+      it answers inside Netlify's 10 seconds. If support raises the limit
+      to 26, set both from the measured p95.
+    import.cjs (o2), (o5), (o6).
+  - **The legal words are filled in, on one switch.** `IMPORT_LEGAL`
+    holds the region (the United States, Netlify Functions' default) and
+    Anthropic's retention for the API: deleted within 30 days unless
+    flagged under its usage policy or kept longer by law, Anthropic a
+    processor under its data processing agreement with the European
+    Commission's standard contractual clauses. `withImportLegal` shows the
+    Import paragraph in Privacy and Messaging, the Terms' Import section
+    (took part and may share it, nothing added until ticked, marked as
+    imported, who may remove) and Data & permissions' line (only the
+    lessons chosen and their files, nothing of the chat). Empty
+    `IMPORT_LEGAL` and the import's words leave every page at once. It is
+    a draft for legal review. import.cjs (v8), (v10), (v11).
   - **Held until done.** Lessons are written newest first, in waves
     (`import_lessons`), each the moment its last file is up. Files go
     under `import/<batch uuid>/<uuid>.<ext>`.
@@ -4126,6 +4273,59 @@ seeded data and no account.
 - Search for `new Date(20` before trusting any date logic.
 - No pricing anywhere. No progress bar in sign-up. No region or
   language screens. Plain labels, no sales copy.
+
+## The native shell — App Store and Google Play
+
+- **The same bundle, carried by Capacitor 8; everything native is behind
+  `isNative()` (28 November).** The founder: "please build the iPhone
+  shell around it … so that the website would be optimized to move into
+  the iOS after when we get to the stage in about 2 months' time", and
+  Google Play beside it. `capacitor.config.json` (the id `ie.nosca.app`,
+  changed everywhere at once by `npm run native:id -- <id>` before the
+  first upload, never after), `ios/` (Swift Package Manager — no CocoaPods,
+  no Mac needed to generate it; iPhone only, portrait; `Info.plist` words
+  the camera, microphone, photo and dictation asks) and `android/` are
+  committed; their copies of the bundle are not. `npm run native:sync`
+  builds for the shell (`NOSCA_NATIVE=1`: the public settings are read off
+  the first site as Netlify reads them, and a build with no database
+  stops) and copies it in; `codemagic.yaml` builds, signs and uploads both
+  on Codemagic's machines; `node scripts/icons.mjs` draws the native icons
+  and launch screens from the mark's numbers with the web's.
+  `docs/native/README.md` is how it ships and the founder's list. What the
+  shell does differently is `src/lib/native.js` and nothing else, every
+  plugin a dynamic import the web never loads: the launch screen (the
+  brand and the mark) holds until something other than the white loader
+  is drawn, then fades; the status bar is read off what is drawn under it
+  (light over the splash, the feed, the camera and the dark stages, dark
+  over the white app); `haptic`, `hapticSuccess`, `hapticWarn` and
+  `hapticCommit` go to the phone's engine; `shareTextFile` and
+  `shareOrCopy` to the share sheet (Android's WebView has no Web Share,
+  and a download in a WebView goes nowhere); `saveToDevice` to the app's
+  Documents; `openAbout` to the phone's browser at the public address;
+  `joinLink` and the reset email's `redirectTo` carry
+  `PUBLIC_ORIGIN` (`https://nosca.netlify.app` — a real domain changes it
+  with index.html's and `signpost.mjs`'s), never the shell's localhost;
+  Android's back presses the topmost reachable way back — a `Close`, an
+  open sheet's `data-sheet-scrim`, a `Back` (aria-labels: a new screen's
+  Back gets it for free) — else the app goes to the background.
+  `isStandalone()` is true in the shell, so the Add to Home Screen guide,
+  its Settings row and the arrival line never show, and `registerSw()`
+  registers nothing; the signpost hops only from its own host. Push: a
+  device token is filed in `push_subscriptions` as `apns:<token>` or
+  `fcm:<token>` with no keys — no new column — through the same
+  `subscribePush`, `syncSubscription`, `unsubscribePush` and
+  `currentSubscription`; the web relay sends only to `https://` endpoints
+  (`push-relay.mjs` holds it), and the native sender is written down in
+  the README, not built, until the founder's APNs and Firebase keys exist.
+  Android's push is offered only when `android/app/google-services.json`
+  was there at build (`VITE_NATIVE_PUSH_ANDROID`): without it the push
+  library takes the app down. A tapped notification reaches Nosca through
+  `onNativeOpen` with the worker's own keys. Nothing that sells or points
+  to a purchase, ever (Apple 3.1.3(f), Google's payments policy): the
+  harness's mock plan picker is behind `?demo`, which the shell cannot
+  open. The web is unchanged — `install.cjs`, `refresh.cjs`,
+  `notifications.cjs` and `capture.cjs` on a mock build; the shell itself
+  is checked on a phone (the README's last section).
 
 ## Database
 

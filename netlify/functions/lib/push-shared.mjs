@@ -145,7 +145,11 @@ export async function loadSubscriptions(env, userId) {
   const res = await fetch(url, { headers: restHeaders(env.SUPABASE_SERVICE_ROLE_KEY) });
   if (!res.ok) throw new Error(`push_subscriptions read failed: ${res.status} ${await res.text()}`);
   const rows = await res.json();
-  return Array.isArray(rows) ? rows : [];
+  /* web push only: the App Store and Google Play app files its device token
+     in the same table as "apns:<token>" or "fcm:<token>" (src/lib/native.js),
+     and web-push has no address to send those to — they wait for the native
+     sender (docs/native/README.md, "Push"), never counted here as failed */
+  return Array.isArray(rows) ? rows.filter((r) => /^https:\/\//i.test(String((r && r.endpoint) || ""))) : [];
 }
 
 export async function removeSubscription(env, endpoint) {

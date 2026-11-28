@@ -17,6 +17,7 @@
  *   (k) a reload mid-upload, a lost file   (m) stop   (o) the runner's answers
  *   (q) a register of this year's day   (s) nothing cut at 320 and 375
  *   (t) no reload under a job, and Sync   (u) an imported file taken off
+ *   (v) the opening page, and the legal pages   (w) the founder's words, point by point
  */
 const path = require("path"), fs = require("fs");
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
@@ -38,6 +39,14 @@ fs.writeFileSync(chat("chat-dave.txt"), fs.readFileSync(chat("chat-plain.txt"), 
   let k = 0;
   const files = r.files.map((f) => (/^\d+-PHOTO-2025-03-13-17-55/.test(f.name) && !k++ ? { ...f, data: Buffer.concat([f.data, Buffer.from("more")]) } : f));
   fs.writeFileSync(chat("chat-more.zip"), FX.zip([{ name: "_chat.txt", data: Buffer.from(r.text, "utf8") }, ...files]));
+}
+/* the iPhone chat with files on 14 March, the recap of 13 March's lesson: the coach's clip, the coach's photo of the
+   day before sent again (the same bytes), the player's photo and a screenshot */
+{
+  const days = FX.DAYS.map(([iso, msgs]) => [iso, iso === "2025-03-14" ? [...msgs, ["09:06", "C", "", { kind: "video", caption: "The low runner" }], ["09:07", "C", "", { kind: "photo" }],
+    ["09:10", "P", "Mine from after", { kind: "photo" }], ["09:12", "P", "", { kind: "png" }]] : msgs]);
+  const r = FX.render("iphone", days);
+  fs.writeFileSync(chat("chat-recap.zip"), FX.zip([{ name: "_chat.txt", data: Buffer.from(r.text, "utf8") }, ...r.files]));
 }
 
 const IDS = { coach: "c0000000-0000-4000-8000-00000000c0ac", cian: "a0000000-0000-4000-8000-0000000ad017", orla: "b0000000-0000-4000-8000-0000000b0001",
@@ -62,7 +71,7 @@ function freshDb({ allow = false, noImport = false, ready = true } = {}) {
 }
 
 const { check, summary } = M.checker("import");
-/* ONLY=a,b,r,coach,h,i,n7,k,m,o,s,t runs those scenes alone (coach is c, d, e, f, p, g, j, q, l and the coach's own Remove) */
+/* ONLY=a,b,v,r,coach,h,i,n7,k,m,o,w,s,t runs those scenes alone (coach is c, d, e, f, p, g, j, q, l and the coach's own Remove) */
 const want = (k) => !process.env.ONLY || process.env.ONLY.split(",").includes(k);
 const until = async (fn, ms = 15000, every = 250) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (await fn()) return true; await new Promise((r) => setTimeout(r, every)); } return !!(await fn()); };
 const sel = (t) => `[data-tour="${t}"]`;
@@ -217,6 +226,105 @@ const cut = (page) => page.evaluate(() => {
       await openSettings(p2.page, false);
       check("(b6) off, the player's control goes and nothing is removed", (await count(p2.page, sel("settings-import"))) === 0 && db.lessons.length === 1);
       await p2.close(); await c.close();
+    }
+
+    /* ================================================================ (v) THE OPENING PAGE, AND THE LEGAL PAGES */
+    /* (launch, 28 November) the founder asked for the opening "very professional, very classy", saying how the chat
+       is kept safe: the three steps, the safeguards in plain words, WhatsApp's own steps on both phones, one deep key
+       held at the foot while the page scrolls — nothing cut at 390 or 320 — and the import's words in Privacy, the
+       Terms and Data & permissions now the region and the retention are filled in */
+    if (want("v")) {
+      for (const [who, width] of [["coach", 390], ["coach", 320], ["cian", 390], ["cian", 320]]) {
+        const coach = who === "coach", H = width === 320 ? 568 : 844, at = `${coach ? "the coach" : "a player"} at ${width}`;
+        const db = freshDb({ allow: true });
+        const c = await boot(db, who, { width, height: H });
+        await openImport(c.page, coach);
+        const lines = (t) => c.page.$$eval(`${sel(t)} [data-import-line]`, (els) => els.map((e) => e.innerText.replace(/\s+/g, " ").trim()));
+        const how = await lines("import-how"), safe = await lines("import-safe");
+        await c.shot(`v-${who}-${width}`);
+        check(`(v1) ${at}: the three steps, numbered`, how.length === 3 && /^1 Export the chat from WhatsApp With its media$/.test(how[0]) && /^2 Nosca sorts it into lessons Day by day/.test(how[1]) && /^3 Tick the ones to keep Each is filed on its own day$/.test(how[2]), JSON.stringify(how));
+        check(`(v2) ${at}: the six safeguards, said plainly`, safe.length === 6 && safe[0] === "The chat is read on your phone"
+          && safe[1] === `${coach ? "Only your words go to the AI" : "Only the coach's words go to the AI"} Names Nosca knows, numbers and links are taken out first`
+          && safe[2] === "Videos, photos and voice notes never go to the AI" && safe[3] === "Nothing is added until you tick it"
+          && safe[4] === "Nobody else sees it until it is finished" && safe[5] === "It can be removed at any time", JSON.stringify(safe));
+        /* one deep key, on the screen before any scroll and clear of the tab bar; nothing else on the page wears its colour */
+        const keys = await c.page.evaluate(() => {
+          const k = document.querySelector('[data-tour="import-choose"]'); const bar = document.querySelector('[data-tour="tabbar"]');
+          const bg = getComputedStyle(k).backgroundColor, r = k.getBoundingClientRect(), b = bar ? bar.getBoundingClientRect() : null;
+          /* a switch is not a key: the coach's Imports from players wears the colour while it is on */
+          const deep = [...document.querySelectorAll('[data-scroll="screen"] button:not([aria-pressed])')].filter((x) => x.offsetParent && getComputedStyle(x).backgroundColor === bg).length;
+          return { deep, top: r.top, bottom: r.bottom, h: window.innerHeight, bar: b ? b.top : window.innerHeight, text: k.innerText.trim() };
+        });
+        check(`(v3) ${at}: Choose file is the one deep key, on the screen at first paint above the tab bar`, keys.deep === 1 && keys.text === "Choose file" && keys.top > 0 && keys.bottom <= keys.bar + 1 && keys.bottom <= keys.h, JSON.stringify(keys));
+        /* WhatsApp's own steps on both phones; Android's three dots drawn in the sentence, said in words to a reader */
+        const steps = async () => (await lines("import-steps"));
+        const iphone = (await c.page.locator(`${sel("import-platform")} button[aria-pressed="true"]`).innerText()).trim() === "iPhone" ? await steps() : null;
+        await c.page.locator(`${sel("import-platform")} button`, { hasText: "Android" }).click(); await c.page.waitForTimeout(400);
+        const android = await steps();
+        const dots = await c.page.locator(`${sel("import-steps")} [data-glyph-in="dotsV"]`).count();
+        check(`(v4) ${at}: WhatsApp's steps, iPhone and Android`, !!iphone && iphone.join(" | ") === "1 Open the chat in WhatsApp | 2 Tap the name at the top | 3 Tap Export Chat | 4 Tap Attach Media | 5 Tap Save to Files"
+          && android.join(" | ") === "1 Open the chat in WhatsApp | 2 Tap the three dots, then More | 3 Tap Export chat | 4 Tap Include media | 5 Save the file" && dots === 1, `${(iphone || []).join(" | ")} // ${android.join(" | ")} · ${dots}`);
+        await c.page.locator(`${sel("import-platform")} button`, { hasText: "iPhone" }).click(); await c.page.waitForTimeout(300);
+        /* nothing cut: past the edge, ellipsised, or clipped inside its box; nothing under the 12px floor */
+        const clipped = await c.page.evaluate(() => {
+          const out = [];
+          document.querySelectorAll('[data-scroll="screen"] *').forEach((el) => {
+            if (!el.offsetParent || el.classList.contains("ins-sr") || ![...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) return;
+            const cs = getComputedStyle(el);
+            const hides = /hidden|clip/.test(cs.overflowY) || (cs.webkitLineClamp && cs.webkitLineClamp !== "none");
+            if (hides && el.scrollHeight > el.clientHeight + 1) out.push(`↓ ${el.textContent.trim().slice(0, 30)}`);
+          });
+          return out;
+        });
+        const all = [...(await cut(c.page)), ...clipped];
+        check(`(v5) ${at}: nothing on the opening page is cut`, all.length === 0, all.slice(0, 5).join(" | "));
+        const small = await floor(c.page);
+        check(`(v6) ${at}: …and nothing under the 12px floor`, small.length === 0, small.slice(0, 5).join(" | "));
+        /* scrolled to its end, the key rests in its place under WhatsApp's steps, the coach's switch under it */
+        await c.page.evaluate(() => { const s = document.querySelector('[data-scroll="screen"]'); s.scrollTo(0, s.scrollHeight); });
+        await c.page.waitForTimeout(400);
+        const order = await c.page.evaluate(() => {
+          const y = (t) => { const e = document.querySelector(`[data-tour="${t}"]`); return e ? Math.round(e.getBoundingClientRect().top) : null; };
+          return { steps: y("import-steps"), key: y("import-choose"), players: y("import-players") };
+        });
+        await c.shot(`v-${who}-${width}-end`);
+        check(`(v7) ${at}: at the end the key rests under the steps${coach ? ", the switch under it" : ""}`, order.key > order.steps && (coach ? order.players > order.key : order.players === null), JSON.stringify(order));
+        if (width === 390) {
+          await c.page.evaluate(() => { const s = document.querySelector('[data-scroll="screen"]'); s.scrollTo(0, 0); });
+          await c.page.locator(sel("import-start-privacy")).click(); await c.page.waitForTimeout(900);
+          const pv = await c.text();
+          check(`(v8) ${at}: Privacy Policy opens the policy, its Import paragraph filled in — the region, the processor, the retention`,
+            /Privacy Policy/.test(pv) && /Import If you import a chat, it is read on your phone\./.test(pv) && /through Nosca's server \(Netlify, the United States\), to Anthropic/.test(pv)
+            && /Anthropic acts as Nosca's processor, under a data processing agreement that includes the European Commission's standard contractual clauses\./.test(pv)
+            && /It deletes the messages and its answers within 30 days, unless they are flagged under its usage policy or the law requires them to be kept longer\. Anthropic does not use them to train its models\./.test(pv)
+            && !/null|undefined|<region>/.test(pv), pv.slice(pv.indexOf("Import If"), pv.indexOf("Import If") + 400));
+          await backBtn(c.page);
+          check(`(v9) ${at}: Back is the opening page again`, (await count(c.page, sel("import-choose"))) === 1);
+        }
+        await c.close();
+      }
+      /* the Terms' section and Data & permissions' line, from Settings, for both sides */
+      for (const who of ["coach", "orla"]) {
+        const db = freshDb({ allow: true });
+        const c = await boot(db, who);
+        if (who === "coach") await M.tap(c.page, '[aria-label="Today"]', 800); else if (await c.page.locator('[aria-label="Family"]').count()) await M.tap(c.page, '[aria-label="Family"]', 800);
+        await openSettings(c.page, who === "coach");
+        await M.tap(c.page, sel("settings-terms"), 900);
+        const terms = await c.text();
+        await backBtn(c.page);
+        await M.tap(c.page, sel("settings-data"), 900);
+        const dp = await c.text();
+        await backBtn(c.page);
+        const sect = terms.slice(terms.indexOf("Import You may"), terms.indexOf("Import You may") + 500);
+        check(`(v10) ${who}: the Terms' Import section — took part and may share it, nothing added until ticked, marked as imported, who may remove`,
+          /Content You keep ownership[^]*Import You may import a chat into Nosca only if you took part in it and are free to share it, and by importing one you confirm both\./.test(terms)
+          && /The chat is sorted into lessons automatically and the sorting can be wrong, so nothing is added until you tick it\./.test(sect)
+          && /Every imported lesson says it was imported, and by whom\./.test(sect)
+          && /The coach, the player if they are 16 or over, and an adult who looks after the player can remove an import at any time, and its files are removed with it\. Money/.test(sect), sect);
+        check(`(v11) ${who}: Data & permissions keeps only the lessons chosen and their files, nothing of the chat — and still says no payments`,
+          /Import A chat you import is read on your phone\. Nosca keeps only the lessons you choose and their files, nothing of the chat\. Your data/.test(dp) && !/payment/i.test(dp), dp.slice(0, 400));
+        await c.close();
+      }
     }
 
     /* ================================================================ (r) REFUSALS, IN WORDS */
@@ -441,7 +549,7 @@ const cut = (page) => page.evaluate(() => {
       await coachToReview(c.page);
       const rows = await rowsOf(c.page);
       const done = rows.filter((r) => r.state === "already");
-      check("(l1) the same zip again: every day it wrote reads Imported already, and cannot be ticked", done.length >= before - 2 && done.every((r) => !r.on && !r.tick && /Imported already/.test(r.text)), `${done.length} of ${before}`);
+      check("(l1) the same zip again: every day it wrote reads Imported already, and cannot be ticked", done.length >= before - 2 && done.every((r) => !r.on && !r.tick && /Imported already/.test(r.text)), `${done.length} of ${before} · not already: ${rows.filter((r) => r.state !== "already").map((r) => `${r.day} ${r.state} ${r.text}`).join(" | ").slice(0, 600)}`);
       await c.page.locator('[aria-label="Back"]').first().dispatchEvent("click"); await c.page.waitForTimeout(500);
       await c.close();
       const c2 = await boot(db, "coach");
@@ -769,6 +877,140 @@ const cut = (page) => page.evaluate(() => {
       const r = await rowOf(c3.page, "2025-04-10");
       check("(o4) review reads Check this day, and is never sent again", r && /Check this day/.test(r.text) && d3.importPosts.filter(DRIVER).length === 1, JSON.stringify(r));
       await c3.close();
+      /* (launch, 28 November) A DAY THAT TIMES OUT IS NEVER LOST: every call for it times out — the whole part twice,
+         each half once — and it stays a row, Not sorted, unticked, its files and words there to open and tick by hand;
+         Retry sends it again (it went straight back to Not sorted with nothing sent: the spent calls were kept) */
+      const APRIL10 = (b) => b.segs.some((x) => x.part === "day" && /Driver lesson today|for the drill/.test(x.text));
+      const d5 = freshDb({ allow: true }); let hold = true;
+      d5.importFail = (i, body) => (APRIL10(body) && hold ? "timeout" : null);
+      const c5 = await boot(d5, "coach");
+      await openImport(c5.page, true);
+      await coachToReview(c5.page, chat("chat-year-first.zip"));
+      const lost = await rowOf(c5.page, "2025-04-10");
+      const line5 = await c5.page.locator(sel("import-progress")).innerText().catch(() => "");
+      const sent5 = d5.importPosts.filter(APRIL10).length;
+      check("(o5) a day that times out every time is kept: Not sorted, unticked, with Retry — four requests and no more", lost && lost.state === "failed" && !lost.on && lost.tick && /Not sorted/.test(lost.text)
+        && /1 day not sorted/.test(line5) && (await count(c5.page, sel("import-sort-retry"))) === 1 && sent5 === 4, `${JSON.stringify(lost)} · ${line5} · ${sent5}`);
+      await openDay(c5.page, "2025-04-10");
+      const words5 = await c5.page.locator(sel("import-day-messages")).innerText();
+      await backBtn(c5.page);
+      check("(o5b) …and its words are there to read on its page", /Driver lesson today/.test(words5), words5.slice(0, 120));
+      hold = false;
+      await c5.page.locator(sel("import-sort-retry")).click();
+      await until(async () => { const rr = await rowOf(c5.page, "2025-04-10"); return !!rr && rr.state === "lesson"; }, 20000, 300);
+      const back5 = await rowOf(c5.page, "2025-04-10");
+      check("(o5c) Retry sends it again, and it comes in as a lesson", back5 && back5.state === "lesson" && back5.on && d5.importPosts.filter(APRIL10).length === sent5 + 1, `${JSON.stringify(back5)} · ${d5.importPosts.filter(APRIL10).length}`);
+      await c5.close();
+      /* A REQUEST THAT NEVER ANSWERS: the phone's own deadline (IMPORT_FETCH_MS, 30 s) makes it busy, and the day is
+         asked again — it held a place in the queue for as long as the browser kept the socket */
+      const d6 = freshDb({ allow: true }); let hung = 0;
+      d6.importFail = (i, body) => (DRIVER(body) && !hung++ ? "hang" : null);
+      const c6 = await boot(d6, "coach");
+      await openImport(c6.page, true);
+      const t6 = Date.now();
+      await choose(c6.page, chat("chat-year-first.zip"));
+      if (await count(c6.page, '[data-label="Cian M"][data-role=""]')) await setRole(c6.page, "Cian M", "player");
+      await setFor(c6.page, IDS.cian);
+      await c6.page.locator(sel("import-sort")).click(); await c6.page.waitForTimeout(600);
+      await until(async () => { const rr = await rowOf(c6.page, "2025-04-10"); return !!rr && rr.state === "lesson"; }, 60000, 500);
+      const got6 = await rowOf(c6.page, "2025-04-10");
+      check("(o6) a request that never answers is given up at 30 seconds and asked again: the day comes in", got6 && got6.state === "lesson" && hung >= 1 && d6.importPosts.filter(DRIVER).length === 2 && Date.now() - t6 >= 29000, `${JSON.stringify(got6)} · ${d6.importPosts.filter(DRIVER).length} · ${Date.now() - t6} ms`);
+      await c6.close();
+    }
+
+    /* ================================================================ (w) THE FOUNDER'S WORDS */
+    /* (launch, 28 November) "Pull out all the dates … what was said on those dates … use AI to create the lesson. So
+       create the title, tick all the boxes … upload all the content, the videos and media from that date, and then …
+       cut down the text and write down exactly what is useful … any other messages that are not to do with lessons,
+       just skip all of them … add all the lessons into the past library" — each read off the screens and the rows */
+    if (want("w")) {
+      const db = freshDb({ allow: true });
+      const c = await boot(db, "coach");
+      await openImport(c.page, true);
+      await coachToReview(c.page);
+      const rows = await rowsOf(c.page);
+      const leftN = Number(((await c.page.locator(sel("import-leftout")).innerText().catch(() => "")).match(/(\d+) days?/) || [])[1] || 0);
+      const dates = new Set(FX.DAYS.map(([iso]) => iso));
+      check("(w1) every date pulled out: each day of the chat is a row on its own date, or Left out", rows.length + leftN === dates.size && rows.every((r) => dates.has(r.day)), `${rows.length} + ${leftN} of ${dates.size}`);
+      /* the title is the areas the coach's words name, and those are the tiles ticked on the day */
+      await openDay(c.page, "2025-06-14");
+      const ids = ((await c.page.locator("[data-focus-ids]").getAttribute("data-focus-ids")) || "").split(",").filter(Boolean);
+      const labels = ids.map((id) => (M.IMPORT_FOCUS.golf.find((a) => a.id === id) || {}).label);
+      const tiles = await c.page.$$eval(`${sel("import-day-focus")} button[aria-label]`, (els) => els.map((e) => [e.getAttribute("aria-label"), getComputedStyle(e).backgroundColor]));
+      const onBg = new Set(tiles.filter(([l]) => labels.includes(l)).map((x) => x[1])), offBg = new Set(tiles.filter(([l]) => !labels.includes(l)).map((x) => x[1]));
+      const files14 = await c.page.$$eval(sel("import-day-file"), (els) => els.map((e) => ({ on: e.dataset.on === "1", text: e.innerText.replace(/\s+/g, " ") })));
+      await c.shot("w2-day");
+      await backBtn(c.page);
+      const row14 = await rowOf(c.page, "2025-06-14");
+      check("(w2) the title is the areas the coach's words name, and those tiles are the ones ticked", labels.length === 2 && labels.join(" · ") === "Full swing · Pitching" && row14.text.includes("Full swing · Pitching")
+        && onBg.size === 1 && ![...onBg].some((b) => offBg.has(b)), `${labels.join(" · ")} · ${row14 && row14.text} · on ${[...onBg]} off ${[...offBg]}`);
+      check("(w3) the day's videos and photos come with it — the coach's clip and still ticked, a screenshot of the phone left for a person", files14.filter((f) => f.on).length === 2 && files14.every((f) => f.on || /screenshot/i.test(f.text)), JSON.stringify(files14));
+      await c.page.locator(sel("import-go")).click();
+      await doneFor(db, IDS.cian);
+      await c.page.waitForTimeout(1200);
+      const mine = db.lessons.filter((l) => l.import_id && l.player_id === IDS.cian);
+      const at = (iso) => mine.find((l) => l.lesson_date === iso);
+      const mediaOf = (l) => (l ? db.media.filter((m) => m.lesson_id === l.id).map((m) => m.kind).sort().join(",") : "");
+      check("(w3b) …and land on the lesson: the clip and the still on 14 June, the player's practice clip on 20 March, the coach's voice note on 17 April", mediaOf(at("2025-06-14")) === "photo,video" && mediaOf(at("2025-03-20")) === "video" && at("2025-03-20").kind === "practice" && mediaOf(at("2025-04-17")) === "audio",
+        `${mediaOf(at("2025-06-14"))} · ${mediaOf(at("2025-03-20"))} ${at("2025-03-20") && at("2025-03-20").kind} · ${mediaOf(at("2025-04-17"))}`);
+      /* the note is only the useful lines, each the coach's own words, never a word written for them */
+      /* the coach's words are what they typed and the captions they put on their files */
+      const coachSaid = FX.DAYS.flatMap(([, msgs]) => msgs.filter((m) => m[1] === "C").flatMap((m) => [m[2].replace(/^<This message was edited> /, ""), (m[3] && m[3].caption) || null].filter(Boolean)));
+      const pieces = mine.flatMap((l) => String(l.notes || "").split("\n").filter(Boolean)).flatMap((ln) => (/^Drills · /.test(ln) ? ln.slice(9).split(" · ") : [ln.replace(/^Tip · /, "")]));
+      const invented = pieces.filter((x) => !coachSaid.some((s) => s.includes(x)));
+      check("(w4) every note is the coach's own words, cut down to the coaching — 5 June's booking line gone, 27 March's tip lifted to its end", (at("2025-06-05") || {}).notes === "Mental game today, the pre-shot routine."
+        && (at("2025-03-27") || {}).notes === "Bunker play today. Open the face and splash the sand.\nThe splash\nTip · commit to the shot." && pieces.length > 10 && invented.length === 0,
+        `${JSON.stringify((at("2025-06-05") || {}).notes)} · ${JSON.stringify((at("2025-03-27") || {}).notes)} · ${invented.slice(0, 3).join(" | ")}`);
+      const chatty = /What time|See you Thursday|Paid for April|€40|Running late|Thanks Niamh|Brilliant|Will do|Cheers/;
+      check("(w5) what is not about lessons is skipped: no lesson on the days that only arranged times or paid, no such line in any note", !at("2025-03-08") && !at("2025-04-24") && !mine.some((l) => chatty.test(l.notes || "")), mine.filter((l) => chatty.test(l.notes || "")).map((l) => l.lesson_date).join(","));
+      check("(w6) every lesson is filed on its own day", mine.length > 20 && mine.every((l) => dates.has(l.lesson_date)), String(mine.length));
+      /* the past library: the coach's All lessons, the player's List and Progress */
+      await M.tap(c.page, '[aria-label="Roster"]', 800); await c.page.locator("button", { hasText: "Cian Murphy" }).first().click(); await c.page.waitForTimeout(1200);
+      await c.page.locator(sel("player-all-lessons")).click(); await c.page.waitForTimeout(1200);
+      const arch = await c.text();
+      check("(w7) the coach's All lessons holds them on their days, the newest first", /Sat 14 Jun 2025/.test(arch) && /Thu 27 Mar 2025/.test(arch) && arch.indexOf("Mon 17 Nov 2025") < arch.indexOf("Sat 14 Jun 2025") && arch.indexOf("Sat 14 Jun 2025") < arch.indexOf("Thu 27 Mar 2025"), arch.slice(0, 240));
+      await c.close();
+      const p = await boot(db, "cian");
+      await p.page.locator(sel("log-view")).locator("button", { hasText: "List" }).first().click().catch(() => {}); await p.page.waitForTimeout(900);
+      const list = await p.text();
+      check("(w8) the player's own lessons hold them on their days", /Sat 14 Jun 2025/.test(list) && /Bunker play/.test(list), list.slice(0, 240));
+      await M.tap(p.page, sel("profile-pill"), 900); await M.tap(p.page, sel("sheet-progress"), 1200);
+      const n = mine.filter((l) => l.kind !== "practice").length;
+      const prog = await p.page.locator('[data-progress="imported"]').innerText().catch(() => "");
+      const areas = await p.page.locator('[data-progress="areas"]').innerText().catch(() => "");
+      await p.shot("w9-progress");
+      check("(w9) Progress counts them, says how many came in, and reads what they worked on", prog.trim() === `Includes ${n} imported` && /Bunker play/.test(areas) && /Putting/.test(areas), `${prog} · ${areas.slice(0, 120)}`);
+      await p.close();
+      /* A RECAP'S FILES JOIN THE LESSON IT RECAPS, as its lines do: the clip the coach sent the morning after comes in on
+         that lesson, the photo it already had comes in once, the player's photo and a screenshot start unticked as on
+         their own day, and the recap day itself still reads Left out */
+      {
+        const d2 = freshDb({ allow: true });
+        const c2 = await boot(d2, "coach");
+        await openImport(c2.page, true);
+        await coachToReview(c2.page, chat("chat-recap.zip"));
+        await c2.page.locator(sel("import-leftout")).click(); await c2.page.waitForTimeout(700);
+        const lo = await c2.text();
+        await backBtn(c2.page);
+        await openDay(c2.page, "2025-03-13");
+        const f13 = await c2.page.$$eval(sel("import-day-file"), (els) => els.map((e) => ({ src: e.dataset.src, on: e.dataset.on === "1", text: e.innerText.replace(/\s+/g, " ").trim() })));
+        await c2.shot("w10-recap-files");
+        await backBtn(c2.page);
+        const joined = f13.filter((f) => f.src === "2025-03-14");
+        check("(w10) a recap day's files join the lesson it recaps, each naming its day: the coach's clip and photo ticked, the player's photo and a screenshot not",
+          joined.length === 4 && joined.every((f) => /Fri 14 Mar/.test(f.text)) && joined.filter((f) => f.on).length === 2 && joined.filter((f) => f.on).every((f) => /Niamh/.test(f.text))
+          && joined.some((f) => !f.on && /Looks like a screenshot/.test(f.text)) && joined.some((f) => !f.on && /^Photo/.test(f.text) && /Cian/.test(f.text) && !/screenshot/i.test(f.text)), JSON.stringify(f13));
+        check("(w10b) …and the recap day itself still reads Left out", /Recap · added to Thu 13 Mar/.test(lo), lo.slice(0, 200));
+        await c2.page.locator(sel("import-go")).click();
+        await doneFor(d2, IDS.cian);
+        await c2.page.waitForTimeout(1200);
+        const l13 = d2.lessons.find((l) => l.import_id && l.lesson_date === "2025-03-13");
+        const m13 = l13 ? d2.media.filter((m) => m.lesson_id === l13.id) : [];
+        check("(w11) …and come in on it: the clip, and the photo the lesson already had once, by its hash — nothing filed on the recap day",
+          !!l13 && m13.map((m) => m.kind).sort().join(",") === "photo,video" && new Set(m13.map((m) => m.import_hash)).size === m13.length
+          && !d2.lessons.some((l) => l.import_id && l.lesson_date === "2025-03-14"), JSON.stringify(m13.map((m) => [m.kind, String(m.import_hash).slice(0, 8)])));
+        await c2.close();
+      }
     }
 
     /* ================================================================ (s) NOTHING CUT AT 320 AND 375 */

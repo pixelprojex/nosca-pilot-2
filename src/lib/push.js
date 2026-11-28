@@ -15,9 +15,17 @@
  * anywhere — nothing here throws, and every browser API is checked
  * before it is touched, so an old Safari or a build without a key just
  * gets a plain answer instead of a crash.
+ *
+ * INSIDE THE APP STORE AND GOOGLE PLAY SHELL there is no service worker
+ * and no web push: the phone's own push service hands the app a device
+ * token (APNs on an iPhone, FCM on Android) and it is filed in the same
+ * table the same way — one row per device (lib/native.js, nativePushRow).
+ * Every function below answers the same questions in the shell, through
+ * the native path, so the screens that call them need not know.
  */
 
 import { isIos, isStandalone } from "./install";
+import { isNative, nativePushSupport, nativePushRow, nativePushOff, storedEndpoint } from "./native";
 
 const SW_URL = "/sw.js";
 
@@ -42,6 +50,7 @@ function hasWindow() {
  */
 export function pushSupport() {
   if (!hasWindow()) return "unsupported";
+  if (isNative()) return nativePushSupport();
   /* No key in the build means no push, whatever the browser can do.
      Saying so here keeps the prompt and the switch from promising
      something that cannot happen — and from burning their one ask on
@@ -63,6 +72,8 @@ let registration = null;
 
 /* Registers /sw.js once; later calls return the same registration. */
 export async function registerSw() {
+  /* the shell serves the app's files itself and pushes through the phone: no worker */
+  if (isNative()) return null;
   if (!hasWindow() || !("serviceWorker" in navigator)) return null;
   if (!registration) {
     registration = navigator.serviceWorker
@@ -178,8 +189,33 @@ async function saveRow(supabase, row) {
 /* Asks for permission if needed, subscribes this browser, and records
    the subscription against the signed-in person. Returns
    { ok: true } or { ok: false, reason } — never throws. */
+/* the shell's device token, filed as a browser's subscription is; a token
+   that changed takes its old row with it */
+async function saveNative(supabase, userId, ask) {
+  if (!supabase) return { ok: false, reason: "Not connected" };
+  if (!userId) return { ok: false, reason: "Not signed in" };
+  let got = await nativePushRow(userId, ask);
+  if (!got.ok) return got;
+  let saved = await saveRow(supabase, got.row);
+  if (!saved.ok) {
+    /* A shared phone: this token is still filed under another account and
+       RLS won't hand it over. Android's next token is a fresh one, as a
+       browser's fresh subscription is; an iPhone's usually is not, and its
+       old row then goes when the other account signs out or is deleted. */
+    await nativePushOff();
+    got = await nativePushRow(userId, false);
+    if (!got.ok) return got;
+    saved = await saveRow(supabase, got.row);
+    if (!saved.ok) return saved;
+  }
+  got.keep();
+  if (got.was) { try { await supabase.from("push_subscriptions").delete().eq("endpoint", got.was); } catch { /* it dies when its token goes */ } }
+  return { ok: true };
+}
+
 export async function subscribePush(supabase, userId) {
   try {
+    if (isNative()) return await saveNative(supabase, userId, true);
     const support = pushSupport();
     if (support === "unsupported") return { ok: false, reason: "This browser can't receive notifications" };
     if (support === "ios-home-screen") {
@@ -242,6 +278,8 @@ export async function subscribePush(supabase, userId) {
 export async function syncSubscription(supabase, userId) {
   try {
     if (!supabase || !userId) return { ok: false, reason: "Not signed in" };
+    /* a device turned on in the shell re-files its token, which can change */
+    if (isNative()) return storedEndpoint() ? await saveNative(supabase, userId, false) : { ok: false, reason: "No subscription on this device" };
     if (pushSupport() !== "granted") return { ok: false, reason: "Not granted" };
     const subscription = await currentSubscription();
     if (!subscription) return { ok: false, reason: "No subscription on this device" };
@@ -255,6 +293,14 @@ export async function syncSubscription(supabase, userId) {
    there is nothing to drop. */
 export async function unsubscribePush(supabase) {
   try {
+    if (isNative()) {
+      const endpoint = await nativePushOff();
+      if (supabase && endpoint) {
+        const { error } = await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint);
+        if (error) return { ok: false, reason: error.message || "The subscription wasn't removed" };
+      }
+      return { ok: true };
+    }
     const subscription = await currentSubscription();
     if (!subscription) return { ok: true };
     const endpoint = subscription.endpoint;
@@ -272,6 +318,7 @@ export async function unsubscribePush(supabase) {
 /* The PushSubscription this browser holds for Nosca, or null. */
 export async function currentSubscription() {
   try {
+    if (isNative()) { const endpoint = storedEndpoint(); return endpoint && pushSupport() !== "unsupported" ? { endpoint } : null; }
     if (!hasWindow() || !("serviceWorker" in navigator)) return null;
     const reg = await navigator.serviceWorker.getRegistration("/");
     if (!reg || !reg.pushManager) return null;

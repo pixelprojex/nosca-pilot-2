@@ -129,6 +129,18 @@ check("an empty body is not", recordFrom({}) === null);
   check("a held notification never asks for the person's devices",
         !after.some((s) => s.includes("push_subscriptions")), after);
 }
+{
+  /* the App Store and Google Play app files its device token in the same table (src/lib/native.js):
+     web push leaves it for the native sender, neither sent nor failed nor pruned */
+  pref = "instant";
+  subs = [{ endpoint: "apns:a1b2c3", p256dh: "", auth: "" }, { endpoint: "fcm:dEf-123:APA91b", p256dh: "", auth: "" }];
+  const before = seen.length;
+  const r = await answer(await post(ROW));
+  const after = seen.slice(before);
+  subs = [];
+  check("a phone app's token is left for the native sender, never sent, failed or pruned by web push",
+        r.status === 200 && r.body.sent === 0 && r.body.failed === 0 && !after.some((s) => s.startsWith("DELETE")), { r, after });
+}
 
 check("every urgent kind is one the database actually writes",
       ["booking", "weather", "request", "accepted", "declined", "message"].every(isUrgent)

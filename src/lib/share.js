@@ -9,9 +9,11 @@
  * The OS share sheet is used where there is one. Where there isn't
  * (desktop browsers, some in-app webviews) the text is copied instead,
  * and the caller is told which happened so it can say so. */
+import { isNative, publicOrigin, nativeShareText } from "./native";
 
+/* the app's public address, also from inside the App Store shell, whose own is localhost */
 export const joinLink = (kind, code) => {
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const origin = publicOrigin();
   return `${origin}/?${kind === "family" ? "family" : "join"}=${encodeURIComponent(code || "")}`;
 };
 
@@ -44,6 +46,12 @@ export async function copyText(text) {
    text and link are on the clipboard; "cancelled" — they closed the
    sheet; "failed" — nothing worked. */
 export async function shareOrCopy({ title, text, url }) {
+  /* the shell's share sheet: Android's WebView has no navigator.share (a
+     browser goes straight on, with nothing awaited before its share) */
+  if (isNative()) {
+    const native = await nativeShareText({ title, text, url });
+    if (native === "shared" || native === "cancelled") return native;
+  }
   if (typeof navigator !== "undefined" && navigator.share) {
     try {
       await navigator.share(url ? { title, text, url } : { title, text });
