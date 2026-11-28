@@ -651,8 +651,13 @@ function applyQuery(rows, url) {
       return true;
     });
   }
+  /* one column or several — "lesson_date.desc,created_at.desc,id.desc" — each breaking the last's ties */
   const order = url.searchParams.get("order");
-  if (order) { const [col, dir] = order.split("."); out = out.slice().sort((a, b) => (a[col] < b[col] ? -1 : a[col] > b[col] ? 1 : 0) * (dir === "desc" ? -1 : 1)); }
+  if (order) {
+    const keys = order.split(",").map((o) => { const [col, dir] = o.split("."); return { col, dir }; });
+    out = out.slice().sort((a, b) => { for (const { col, dir } of keys) { const c = (a[col] < b[col] ? -1 : a[col] > b[col] ? 1 : 0) * (dir === "desc" ? -1 : 1); if (c) return c; } return 0; });
+  }
+  const offset = Number(url.searchParams.get("offset")) || 0; if (offset) out = out.slice(offset);
   const limit = Number(url.searchParams.get("limit")); if (limit) out = out.slice(0, limit);
   return out;
 }

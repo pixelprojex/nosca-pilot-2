@@ -8,6 +8,7 @@ import { pushSupport, subscribePush, unsubscribePush, currentSubscription } from
 import { canPromptInstall, onInstallPromptChange, promptInstall, isStandalone, platformOf, browserOf, iosMajor, isIpad } from "./lib/install";
 import { supabase } from "./lib/supabase";
 import { FOCUS } from "./lib/taxonomy";
+import { importBusy } from "./lib/importJob";
 import { Mark, BrandLoader, RING_L, RING_R, RING_LEN, BRAND as BRAND_COLOUR, BRAND_PAPER } from "./lib/brandmark.jsx";
 /* THE LIST'S OWN RULES, shared with the pages that render without
    Nosca mounted (pages/Install.jsx): a list is a column of soft rows,
@@ -160,6 +161,10 @@ const FaceCtx = createContext(null);
    it through props. "Starred", never "favourite": a coach favouriting
    clips of children reads wrong, and the founder said so. */
 const StarCtx = createContext({ ids: [], has: () => false, toggle: null });
+/* THE IMPORT, as a lesson page reads it: who is looking (an importer reads
+   "Imported", anyone else "Imported by Cian Murphy") and, for whoever may
+   remove the import, the one lesson's Remove. Provided by Nosca. */
+const ImportCtx = createContext({ meId: null, mayRemove: () => false, removeOne: null });
 /* DOWNLOADS, BY CONTEXT: what is on the phone, how far a save has got,
    and the one tap every disc makes — so no list threads it through
    props. `offline` is whether the app is running on its kept copy. */
@@ -3957,7 +3962,7 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
                   style={{ minHeight: 60, animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
             {/* the harness writes "14 Jun" into d; a real lesson keeps
                 the day and the month apart */}
-            <span className="shrink-0" style={{ width: 76, ...TYPE.caption, color: t.faint }}>{l.iso ? fmtWeekDay(localDate(l.iso)) : l.m ? `${l.d} ${l.m}` : l.d}</span>
+            <span className="shrink-0 whitespace-nowrap" style={{ minWidth: 76, ...TYPE.caption, color: t.faint }}>{l.iso ? fmtDayYear(l.iso) : l.m ? `${l.d} ${l.m}` : l.d}</span>
             <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{l.focus}</span>
             <ChevronRight size={15} color={t.trace || t.faint} />
           </button>
@@ -4757,7 +4762,7 @@ function AtRisk({ list, onMessage, pop }) {
                 <PersonRow key={x.id || x.name} name={x.name} subTone={x.weight >= 3 ? "caution" : "faint"}
                            /* the day of the last lesson, as the roster's row reads it — never
                               "31 days"; the harness, with days alone, counts back from today */
-                           sub={(() => { const d = x.last ? localDate(x.last) : x.gap != null ? new Date(Date.now() - x.gap * 86400000) : null; return d ? `${tr("Last lesson")} · ${fmtWeekDay(d)}` : tr(x.why); })()}
+                           sub={(() => { const d = x.last ? localDate(x.last) : x.gap != null ? new Date(Date.now() - x.gap * 86400000) : null; return d ? `${tr("Last lesson")} · ${fmtDayYear(d)}` : tr(x.why); })()}
                            /* a text action that acts is the sport's colour, as Log and Accept are on the Actions screens beside it */
                            actions={<TextBtn quiet color={t.accent} onClick={() => { hapticCommit(); onMessage(x.id || x.name); }}>{tr("Message")}</TextBtn>} />
               ))}
@@ -5911,6 +5916,20 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
    shares the app's paper with every other tab. */
 /* the sport, drawn once: what sits in a lesson's poster box when
    nothing was filmed. Plain line glyphs in the sport's own colour. */
+/* A VOICE NOTE THE PHONE CANNOT PLAY SAYS SO. WhatsApp's notes are Opus,
+   which an iPhone before iOS 18.4 does not decode: the browser's player
+   sits dead with no word, so the line says it rather than converting. */
+function NoteAudio({ src, audRef, dark = false }) {
+  const t = useT();
+  const [cannot, setCannot] = useState(false);
+  useEffect(() => { setCannot(false); }, [src]);
+  return (<>
+    <audio ref={audRef} src={src} controls preload="metadata" className="w-full" style={{ maxWidth: 320 }}
+           onError={(e) => { const c = e.currentTarget && e.currentTarget.error ? e.currentTarget.error.code : 0; if (c === 3 || c === 4) setCannot(true); }} />
+    {cannot && <span data-tour="audio-cannot" style={{ ...TYPE.small, color: dark ? "rgba(255,255,255,0.8)" : t.sub, textAlign: "center" }}>{tr("This voice note won't play on this phone")}</span>}
+  </>);
+}
+
 function SportGlyph({ sport, size = 22, color }) {
   const t = useT();
   const c = color || t.mark;
@@ -6116,10 +6135,12 @@ function LessonRow({ lesson: l, poster, need, onOpen, onDownload, showWho, first
      lesson's media up front */
   useEffect(() => { if (need && !asked.current) { asked.current = true; need(); } }, [need]);
   const files = l.media ?? l.videos ?? 0;
-  const when = l.iso ? fmtWeekDay(localDate(l.iso)) : `${l.d} ${l.m}`;
+  const when = l.iso ? fmtDayYear(l.iso) : `${l.d} ${l.m}`;
   /* two facts on the grey line, never three — and the whole name, because
-     two players with one first name are two files */
-  const sub = (facts || [showWho && l.who ? l.who : null, when, files > 1 ? `${files} ${tr("files")}` : null]).filter(Boolean).slice(0, 2);
+     two players with one first name are two files. A player's or a
+     parent's import says so as the second fact ("Imported by Orla"). */
+  const base = (facts || [showWho && l.who ? l.who : null, when, files > 1 ? `${files} ${tr("files")}` : null]).filter(Boolean);
+  const sub = (!facts && importedByLine(l) ? [base[0], importedByLine(l)] : base).filter(Boolean).slice(0, 2);
   /* NOTHING IS CUT, AT 390 OR 320 (24 November): the areas and the grey
      line are Facts — each part whole, breaking only between parts, a long
      name or area wrapping inside itself — where both were one truncated
@@ -6412,7 +6433,7 @@ function Evidence({ item, live, mark, muted = true, rate = 1, onProgress, onAuto
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 px-8" style={{ background: "#0B0F10" }}>
         <Mic size={40} color="rgba(255,255,255,0.85)" strokeWidth={1.4} />
-        <audio ref={aud} src={item.url} controls preload="metadata" className="w-full" style={{ maxWidth: 320 }} />
+        <NoteAudio audRef={aud} src={item.url} dark />
       </div>
     );
   }
@@ -6497,8 +6518,13 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
      the clip (held still while the thumb is down, the time on a pill
      above it), a tap on another segment goes to that file. It replaced
      a row of dots and a separate 2px progress line. */
+  /* PAST TWELVE FILES the strip is one bar for the file on screen and
+     "7 / 40" beside it: forty slivers are no strip (an imported day can
+     carry two hundred) */
+  const many = items.length > 12;
   const at = (clientX) => {
     const r = strip.current.getBoundingClientRect();
+    if (many) return { seg: frame, f: Math.min(1, Math.max(0, (clientX - r.left) / (r.width || 1))) };
     const n = items.length || 1;
     const pos = (Math.min(Math.max(0, clientX - r.left), r.width) / (r.width || 1)) * n;
     const seg = Math.min(n - 1, Math.floor(pos));
@@ -6631,7 +6657,7 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
               discs at the right of that line */}
           <div className="flex items-center gap-3" style={{ marginTop: 6 }}>
             <button onClick={open} className="flex-1 min-w-0 text-left truncate active:opacity-80" style={{ ...TYPE.caption, color: "rgba(255,255,255,0.72)" }}>
-              {showWho && lesson.who ? `${lesson.who.split(" ")[0]} · ` : ""}{lesson.iso ? fmtWeekDay(localDate(lesson.iso)) : `${lesson.d} ${lesson.m}`}{lesson.type === "Group" ? ` · ${tr("Group")}` : ""}{stageOf(cfg, lesson) ? ` · ${stageOf(cfg, lesson)}` : ""}
+              {showWho && lesson.who ? `${lesson.who.split(" ")[0]} · ` : ""}{lesson.iso ? fmtDayYear(lesson.iso) : `${lesson.d} ${lesson.m}`}{importedByLine(lesson) ? ` · ${importedByLine(lesson)}` : ""}{lesson.type === "Group" ? ` · ${tr("Group")}` : ""}{stageOf(cfg, lesson) ? ` · ${stageOf(cfg, lesson)}` : ""}
             </button>
             {onDownload && <DownloadDisc lesson={lesson} onTap={onDownload} size={40} dark />}
             {current && current.type === "video" && (
@@ -6687,7 +6713,14 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
                aria-label={items.length > 1 ? `${frame + 1} ${tr("of")} ${items.length}` : tr("Progress")}
                onPointerDown={stripDown} onPointerMove={stripMove} onPointerUp={stripUp} onPointerCancel={stripUp}
                style={{ height: 24, touchAction: "none", cursor: "pointer" }}>
-            {items.map((it, i) => {
+            {many && (<>
+              <span className="flex-1" data-strip="one"
+                    style={{ height: scrub ? 4 : 2, borderRadius: 2, background: "rgba(255,255,255,0.26)", overflow: "hidden", transition: "height 160ms" }}>
+                <span className="block h-full" style={{ width: `${Math.round((current.type === "video" ? (scrub ? scrub.f : prog) : 1) * 1000) / 10}%`, background: "#fff", transition: scrub ? "none" : "width 240ms linear" }} />
+              </span>
+              <span data-tour="feed-strip-count" className="shrink-0" style={{ ...TYPE.caption, fontWeight: 600, color: "rgba(255,255,255,0.86)", fontVariantNumeric: "tabular-nums", marginLeft: 6 }}>{frame + 1} / {items.length}</span>
+            </>)}
+            {!many && items.map((it, i) => {
               const fill = i < frame ? 1 : i > frame ? 0 : it.type === "video" ? (scrub ? scrub.f : prog) : 1;
               return (
                 <span key={it.id || i} className="flex-1"
@@ -6698,7 +6731,7 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
             })}
             {scrub && (
               <span className="absolute px-2" data-tour="feed-scrub-time"
-                    style={{ bottom: 20, left: `clamp(30px, ${((frame + scrub.f) / (items.length || 1)) * 100}%, calc(100% - 30px))`, transform: "translateX(-50%)",
+                    style={{ bottom: 20, left: `clamp(30px, ${(many ? scrub.f : (frame + scrub.f) / (items.length || 1)) * 100}%, calc(100% - 30px))`, transform: "translateX(-50%)",
                              height: 24, lineHeight: "24px", borderRadius: 12, background: "rgba(255,255,255,0.94)",
                              fontFamily: ui, fontSize: 12, fontWeight: 600, color: "#111", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
                 {clock(scrub.t)} · {clock(scrub.d)}
@@ -7691,7 +7724,7 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
               {shown.map((l) => (
                 <button key={l.id} onClick={() => { haptic(7); soft(); onOpenLesson && onOpenLesson(l); }} className="w-full flex items-center gap-3 text-left active:opacity-50"
                         style={{ minHeight: 46 }}>
-                  <span className="shrink-0" style={{ width: 76, ...TYPE.caption, color: t.faint }}>{l.iso ? fmtWeekDay(localDate(l.iso)) : `${l.d} ${l.m}`}</span>
+                  <span className="shrink-0 whitespace-nowrap" style={{ minWidth: 76, ...TYPE.caption, color: t.faint }}>{l.iso ? fmtDayYear(l.iso) : `${l.d} ${l.m}`}</span>
                   <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{l.focus}</span>
                   {(l.media || l.videos) > 0 && <Play size={12} color={t.faint} />}
                   <ChevronRight size={13} color={t.trace || t.faint} />
@@ -11303,9 +11336,11 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
 
 
 
-function PlayerLog({ cfg, lessons, push, right, prefs, setPrefs, sport, ownMedia, onUpload, liveMedia, onNeedMedia, showWho = false, onDownload, view, setView }) {
+function PlayerLog({ cfg, lessons, push, right, prefs, setPrefs, sport, ownMedia, onUpload, liveMedia, onNeedMedia, showWho = false, onDownload, view, setView, top = null, emptyAction = null }) {
   const t = useT();
   const ready = useLoad();
+  /* the list a page at a time, as the archive is: an imported chat alone can be hundreds of lessons */
+  const [shownCount, setShownCount] = useKept("shown", ARCHIVE_PAGE);
 
   /* Immersive is a different animal — it owns the screen, so it is not
      a segment inside this one. */
@@ -11355,17 +11390,26 @@ function PlayerLog({ cfg, lessons, push, right, prefs, setPrefs, sport, ownMedia
       {!ready ? (
         <div className="px-6"><Bone h={220} r={20} /></div>
       ) : lessons.length === 0 ? (
-        <EmptyHero className="px-6" sport={sport} tour="lessons-empty">{tr("No lessons yet")}</EmptyHero>
+        <EmptyHero className="px-6" sport={sport} tour="lessons-empty" action={emptyAction}>{tr("No lessons yet")}</EmptyHero>
       ) : (
         <>
+          {top}
           {/* the starred ones, as a section of their own — a row that is
               there only while something is starred */}
           <div className="px-6 pb-4 nsc-list" style={{ borderTop: "none" }}>
-            {lessons.map((l, i) => (
+            {lessons.slice(0, shownCount).map((l, i) => (
               <LessonRow key={l.id ?? i} lesson={l} index={i} first={i === 0} poster={posterFor(l, i)} need={needFor(l)} sport={sport}
                          showWho={showWho} onOpen={(x) => push(`lesson:${x.id}`)} onDownload={onDownload} />
             ))}
           </div>
+          {lessons.length > shownCount && (
+            <div className="px-6 pb-6">
+              <button data-tour="log-more" onClick={() => { haptic(7); setShownCount((n) => n + ARCHIVE_PAGE); }} className="w-full n-key"
+                      style={{ minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
+                {tr("Show more")}
+              </button>
+            </div>
+          )}
         </>
       )}
     </Screen>
@@ -11446,7 +11490,7 @@ function lessonLogHtml({ lesson, coach, who, media = [], drills = [], tip }) {
 </style></head><body><main>
   <div class="eyebrow">${e(BRAND)} · ${e(lesson.type === "Group" ? "Group lesson" : "Lesson")}</div>
   <h1>${e(lesson.focus)}</h1>
-  <p class="meta">${e(when)}${coach ? ` · ${e(coach)}` : ""}${who ? ` · ${e(who)}` : ""}</p>
+  <p class="meta">${e(when)}${coach ? ` · ${e(coach)}` : ""}${who ? ` · ${e(who)}` : ""}${importedByLine(lesson, true) ? ` · ${e(importedByLine(lesson, true))}` : ""}</p>
   ${section("Sub-focus", subs.length ? `<p>${subs.map(e).join(" · ")}</p>` : "")}
   ${section("Notes", lesson.note ? `<p>${e(lesson.note).replace(/\n/g, "<br>")}</p>` : "")}
   ${section("Drills set", drillList.length ? `<ul>${drillList.map((d) => `<li>${e(d)}</li>`).join("")}</ul>` : "")}
@@ -11546,7 +11590,7 @@ function seasonReportHtml({ name, coach, cfg, lessons, drills = [], tips = [], t
   const done = drills.filter((d) => d.done).length;
   const drillList = drills.length ? `<p>${done} of ${drills.length} done</p><ul>${drills.map((d) => `<li>${d.done ? "✓" : "·"} ${e(d.t || d.title)}</li>`).join("")}</ul>` : "";
   const tipList = tips.length ? `<ul>${tips.map((tp) => `<li>${e(tp.title || tp.t)}</li>`).join("")}</ul>` : "";
-  const list = p.rows.slice().reverse().map(({ l, d }) => `<li><strong>${e(longDay(d))}</strong> — ${e(l.focus || "")}${stageOf(cfg, l) ? ` · ${e(stageOf(cfg, l))}` : ""}${l.note ? `<br><span class="q">${e(String(l.note).split("\n")[0])}</span>` : ""}</li>`).join("");
+  const list = p.rows.slice().reverse().map(({ l, d }) => `<li><strong>${e(longDay(d))}</strong> — ${e(l.focus || "")}${stageOf(cfg, l) ? ` · ${e(stageOf(cfg, l))}` : ""}${importedByLine(l, true) ? ` · ${e(importedByLine(l, true))}` : ""}${l.note ? `<br><span class="q">${e(String(l.note).split("\n")[0])}</span>` : ""}</li>`).join("");
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${e(name)} · ${e(BRAND)} report</title>
@@ -11570,7 +11614,7 @@ function seasonReportHtml({ name, coach, cfg, lessons, drills = [], tips = [], t
   ${section("Lessons", n ? `<p>${n} ${n === 1 ? "lesson" : "lessons"}${months ? ` · ${e(months)}` : ""}</p>` : "")}
   ${section("Worked on", areas)}
   ${section("Drills", drillList)}
-  ${section("Attendance", attendance.length ? `<p>${attendance.filter((a) => a.state === "in").length} of ${attendance.length} ${attendance.length === 1 ? "lesson" : "lessons"}${attendance.some((a) => a.state === "out") ? ` · missed ${attendance.filter((a) => a.state === "out").map((a) => e(a.iso ? fmtWeekDay(localDate(a.iso)) : a.key)).join(", ")}` : ""}</p>` : "")}
+  ${section("Attendance", attendance.length ? `<p>${attendance.filter((a) => a.state === "in").length} of ${attendance.length} ${attendance.length === 1 ? "lesson" : "lessons"}${attendance.some((a) => a.state === "out") ? ` · missed ${attendance.filter((a) => a.state === "out").map((a) => e(a.iso ? fmtDayYear(a.iso) : a.key)).join(", ")}` : ""}</p>` : "")}
   ${section("Practice", practice.length ? `<p>${practice.length} ${practice.length === 1 ? "session" : "sessions"} logged</p>` : "")}
   ${section("Tips", tipList)}
   ${section("Every lesson", list ? `<ul>${list}</ul>` : "")}
@@ -11708,7 +11752,7 @@ function LessonStage({ item, onAnnotate, onCompare, onStudy }) {
       <div className="flex flex-col items-center justify-center gap-4 px-6" style={{ borderRadius: 16, height: 150, background: t.wash }}>
         {/* the words alone: a 13px microphone led them, beside a label that says Voice note (23 November) */}
         <span style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Voice note")}</span>
-        <audio key={item.url} src={item.url} controls preload="metadata" className="w-full" style={{ maxWidth: 320 }} />
+        <NoteAudio key={item.url} src={item.url} />
       </div>
     );
   }
@@ -11732,6 +11776,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
   const t = useT();
   const star = useContext(StarCtx); const isStar = star.has(lesson.id);
   const dl = useContext(DownloadCtx); const dlState = dl.state(lesson.id);
+  const imp = useContext(ImportCtx); const importLine = importLineFor(lesson, imp.meId);
   const starPop = usePop(isStar);
   const [a, setA] = useKept("clip", 0);   // the clip on the stage survives a Back from Study, Mark it up or Compare
   const [menu, setMenu] = useState(false);
@@ -11747,7 +11792,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
     ? tips.find((x) => x.playerId && x.playerId === lesson.playerId && near(x)) || null
     : (lesson.tip ? { title: lesson.tip } : null);
   /* the day it happened — a day, not a moment, so it never reads as the evening before */
-  const when = lesson.iso ? fmtWeekDay(localDate(lesson.iso)) : (lesson.date || `${lesson.d} ${lesson.m}`);
+  const when = lesson.iso ? fmtDayYear(lesson.iso) : (lesson.date || `${lesson.d} ${lesson.m}`);
   const withWhom = role === "coach" ? playerName : coachName;
   const first = (n) => (n || "").split(" ")[0];
   const hair = RULE.hair(t.ink);
@@ -11791,12 +11836,19 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
           <div className="mb-5" style={{ animation: "fadeUp 420ms cubic-bezier(.22,1,.36,1) both" }}>
             <span className="block truncate" style={{ ...TYPE.small, color: t.sub }}>
               {/* a clip the player sent says so first: who sent it to the coach, who the player sent it to */}
-              {lesson.sentBy && withWhom
+              {sentByPlayer(lesson) && withWhom
                 ? `${role === "coach" ? tr("Sent by") : tr("Sent to")} ${withWhom} · ${when}`
                 : <>{when}{withWhom ? ` · ${withWhom}` : ""}{groupLesson ? ` · ${tr("Group")}` : ""}</>}
             </span>
             <h1 className="mt-2" style={{ ...TYPE.screen, color: t.ink }}>{lesson.focus}</h1>
             <LessonTags lesson={lesson} cfg={cfg} className="mt-2.5" />
+            {/* an imported lesson says so, and who brought it in */}
+            {importLine && (
+              <span data-tour="lesson-imported" className="flex flex-wrap items-center gap-x-3 mt-2" style={{ ...TYPE.small, color: t.sub }}>
+                <span>{importLine}</span>
+                {imp.removeOne && imp.mayRemove(lesson) && <TextBtn color={DANGER} tour="lesson-import-remove" onClick={() => imp.removeOne(lesson)}>{tr("Remove")}</TextBtn>}
+              </span>
+            )}
             {/* a sent clip's standing: the coach has not answered yet. It goes
                 the moment their words or their take land. */}
             {standing && <span data-tour="clip-standing" className="block mt-2.5" style={{ ...TYPE.small, color: t.faint }}>{standing}</span>}
@@ -11902,7 +11954,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
             {(() => {
               /* one primary button, then the secondary verbs as a quiet row */
               const acts = (role === "coach"
-                ? (lesson.sentBy && onReply
+                ? (sentByPlayer(lesson) && onReply
                     /* a clip the player sent is answered: Reply is the one
                        action, and there is no lesson here to log again */
                     ? [{ k: "r", lbl: tr("Reply"), act: onReply, accent: true, tour: "clip-reply" },
@@ -11976,8 +12028,8 @@ function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleS
      a wait. */
   const coachNameOf = l ? (l.coach || conn?.coach || "") : "";
   const knowable = media !== null && (items || []).every((it) => it.path);
-  const answered = (replies || []).length > 0 || (items || []).some((it) => it.path && l && l.sentBy && !String(it.path).startsWith(`${l.sentBy}/`));
-  const standing = live && !fresh && l && l.sentBy && knowable && !answered ? `${tr("Waiting on")} ${(coachNameOf || tr("the coach")).split(" ")[0]}` : null;
+  const answered = (replies || []).length > 0 || (items || []).some((it) => it.path && l && sentByPlayer(l) && !String(it.path).startsWith(`${l.sentBy}/`));
+  const standing = live && !fresh && l && sentByPlayer(l) && knowable && !answered ? `${tr("Waiting on")} ${(coachNameOf || tr("the coach")).split(" ")[0]}` : null;
   if (!fresh && lessonId != null && !base) {
     return (
       <SwipeBack onBack={pop}>
@@ -12753,7 +12805,7 @@ const COMPARE_FRAME = 1 / 30;
 const COMPARE_DRAG_PX = 6;                                  // one frame of nudge per this many pixels of drag
 const COMPARE_MAX_LESSONS = 24;                             // how far back the picker looks for clips
 const COMPARE_TAKE = { w: 1280, h: 720 };                   // the take's longer side; the shorter follows the layout
-const lessonDay = (l) => (l.iso ? fmtWeekDay(localDate(l.iso)) : (l.date || `${l.d} ${l.m}`));
+const lessonDay = (l) => (l.iso ? fmtDayYear(l.iso) : (l.date || `${l.d} ${l.m}`));
 /* THE COMPARISON IS MADE BEHIND THE COACH'S BACK TOO. Save on Compare
    used to play the pair through on the stage under a Saving pill, the
    coach watching the seconds; it goes the way of Mark it up's Save now.
@@ -13376,7 +13428,7 @@ function CoachLessonView({ name, lesson, cfg, pop, push, say, assignDrills, live
                   onCompare={canCompare ? (it) => push(`compare:${lesson.id}:${it.id}`) : null}
                   onStudy={live ? (it) => push(`study:${lesson.id}:${it.id}`) : null}
                   /* a clip the player sent: the coach's words back, from this page */
-                  replies={replies || []} onReply={live && onReply && lesson.sentBy && lesson.playerId ? () => onReply(lesson) : null} pop={pop} />
+                  replies={replies || []} onReply={live && onReply && sentByPlayer(lesson) && lesson.playerId ? () => onReply(lesson) : null} pop={pop} />
   );
 }
 
@@ -14297,6 +14349,40 @@ const DAY_ABBR = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];   // getDay(
 /* "Wed 23 Sep" — the locale gives "Sept" for September in en-IE while
    every table in the file says "Sep"; one spelling, from one table */
 const fmtWeekDay = (d) => `${DAY_ABBR[d.getDay()]} ${d.getDate()} ${WIZ_MONTHS[d.getMonth()]}`;
+/* ---- IMPORTED LESSONS (docs/import/SPEC.md): the groundwork every surface reads ---- */
+/* A LESSON'S DAY, WITH ITS YEAR WHEN IT IS NOT THIS ONE. An imported chat
+   reaches back years, and "Sat 14 Jun" alone reads as this June. Takes a
+   date column's ISO day or a Date. */
+const fmtDayYear = (x, thisYear = new Date().getFullYear()) => {
+  const d = x instanceof Date ? x : localDate(x);
+  if (!d || isNaN(d.getTime())) return String(x || "");
+  return d.getFullYear() === thisYear ? fmtWeekDay(d) : `${fmtWeekDay(d)} ${d.getFullYear()}`;
+};
+/* a clip the player sent the coach — never an import (whose sent_by is its
+   importer) and never a practice they logged: To review and the standing read this */
+const isSentClip = (l) => !!(l && l.sentBy) && !l.imported && !l.practice;
+/* something the player sent, a clip or a practice — never an import: Reply,
+   "Sent by" and the coach's opening of it read this */
+const sentByPlayer = (l) => !!(l && l.sentBy) && !l.imported;
+/* "Imported by Orla" on a player's or a parent's import, wherever a lesson's
+   facts are printed; "Imported by Orla Kelly" in a file; nothing on a coach's own */
+/* WHAT A REGISTER SAID ABOUT ONE PERSON AT ONE LESSON, matched on the
+   whole day ("2024-06-14|…"): the old key was the day and the month, so a
+   register taken this 14 June marked an imported lesson of 14 June 2024.
+   The old key only where a lesson has no ISO day (the harness). */
+const markFor = (l, pid, byDay, regs) => {
+  if (!l || !pid) return null;
+  if (l.iso && byDay) { const k = Object.keys(byDay).find((x) => x.startsWith(`${l.iso}|`) && byDay[x][pid]); return k ? byDay[k][pid] : null; }
+  const k = Object.keys(regs || {}).find((x) => x.startsWith(`${l.d} ${l.m}`)); return k ? ((regs[k] || {})[pid] || null) : null;
+};
+/* the lesson page's line: "Imported" to whoever imported it, else "Imported by" their whole name — the coach's own included */
+const importLineFor = (l, meId) => {
+  if (!l || !l.imported) return null;
+  const by = l.importedBy || l.coachId;
+  const name = l.importedBy ? l.importedByName : l.coach;
+  return by && meId && by === meId ? tr("Imported") : name ? `${tr("Imported by")} ${name}` : tr("Imported");
+};
+const importedByLine = (l, whole = false) => (l && l.imported && l.importedByName ? `${tr("Imported by")} ${whole ? l.importedByName : l.importedByName.split(" ")[0]}` : null);
 /* the day a booking's notice lands the Diary on, year and all */
 const landingDay = (iso) => { if (!iso) return null; const x = localDate(iso); return isNaN(x) ? null : { y: x.getFullYear(), m: x.getMonth() + 1, d: x.getDate() }; };
 const wizNorm = (s) => String(s || "").normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
@@ -15197,12 +15283,14 @@ function progressOf(cfg, lessons, today) {
   rows.forEach((x) => { const tag = stageOf(cfg, x.l); const st = named.find((n) => n.label === tag); if (st) { reached.add(st.id); if (!current || current.st.id !== st.id) current = { st, d: x.d }; } });
   /* what was worked on, counted the way the log joined it */
   const areaCount = new Map();
-  rows.forEach((x) => String(x.l.focus || "").split(" · ").map((a) => a.trim()).filter(Boolean).forEach((a) => areaCount.set(a, (areaCount.get(a) || 0) + 1)));
+  /* "Lesson" and "Practice" are what an imported or sent day says when no area was named: never an area */
+  rows.forEach((x) => String(x.l.focus || "").split(" · ").map((a) => a.trim()).filter((a) => a && a !== "Lesson" && a !== "Practice").forEach((a) => areaCount.set(a, (areaCount.get(a) || 0) + 1)));
   const areas = [...areaCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
   /* the last six months, this one last */
   const months = Array.from({ length: 6 }, (_, i) => { const d = new Date(today.getFullYear(), today.getMonth() - (5 - i), 1); return { y: d.getFullYear(), m: d.getMonth(), n: 0 }; });
   rows.forEach((x) => { const hit = months.find((mo) => mo.y === x.d.getFullYear() && mo.m === x.d.getMonth()); if (hit) hit.n++; });
-  return { rows, points, inputStage, named, reached, current, areas, months, first: rows[0] ? rows[0].d : null, last: rows.length ? rows[rows.length - 1].d : null };
+  return { rows, points, inputStage, named, reached, current, areas, months, first: rows[0] ? rows[0].d : null, last: rows.length ? rows[rows.length - 1].d : null,
+           imported: rows.filter((x) => x.l.imported).length };
 }
 /* one small line, drawn by hand — no library for forty points */
 function LevelLine({ points, tag, color, ink, faint }) {
@@ -15279,7 +15367,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
   const n = p.rows.length;
   const mineDrills = drills || [];
   const done = mineDrills.filter((d) => d.done).length;
-  const meta = n ? [`${n} ${n === 1 ? tr("lesson") : tr("lessons")}`, p.first ? `${tr("since")} ${fmtWeekDay(p.first)}` : null].filter(Boolean).join(" · ") : "";
+  const meta = n ? [`${n} ${n === 1 ? tr("lesson") : tr("lessons")}`, p.first ? `${tr("since")} ${fmtDayYear(p.first)}` : null].filter(Boolean).join(" · ") : "";
   /* each block is a card as every card is — the light grey line and the ledge
      of it under it, 14px corners — under its subject as a heading (RowHead):
      they were flat 8px boxes under grey field labels */
@@ -15292,6 +15380,8 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
           {n === 0 ? (
             <EmptyLine>{tr("No lessons yet")}</EmptyLine>
           ) : (<>
+            {/* lessons that came in from a chat are counted, and said to be */}
+            {p.imported > 0 && <p data-progress="imported" style={{ ...TYPE.small, color: t.sub, marginBottom: SPACE.block }}>{tr("Includes")} {p.imported} {tr("imported")}</p>}
             {/* the level, where the lessons carry one */}
             {p.points.length > 0 && (
               <div style={{ marginBottom: SPACE.block }} data-progress="level">
@@ -15301,11 +15391,11 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
                       where the two cannot sit apart (at 320 they touched) */}
                   <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5" style={{ marginBottom: 6 }}>
                     <span style={{ ...TYPE.title, color: t.ink }}>{p.inputStage.tag} {lastPoint.v}</span>
-                    {p.points.length > 1 && <span style={{ ...TYPE.small, color: t.sub }}>{tr("from")} {p.inputStage.tag} {firstPoint.v} · {fmtWeekDay(firstPoint.d)}</span>}
+                    {p.points.length > 1 && <span style={{ ...TYPE.small, color: t.sub }}>{tr("from")} {p.inputStage.tag} {firstPoint.v} · {fmtDayYear(firstPoint.d)}</span>}
                   </div>
                   {p.points.length > 1
                     ? <LevelLine points={p.points} tag={p.inputStage.tag} color={t.accent} ink={t.ink} faint={t.trace || t.faint} />
-                    : <p style={{ ...TYPE.small, color: t.sub }}>{fmtWeekDay(firstPoint.d)} · {tr("one reading so far")}</p>}
+                    : <p style={{ ...TYPE.small, color: t.sub }}>{fmtDayYear(firstPoint.d)} · {tr("one reading so far")}</p>}
                 </div>
               </div>
             )}
@@ -15321,7 +15411,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
                           {on && <Check size={12} color="#FFFFFF" strokeWidth={2.6} />}
                         </span>
                         <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: now ? 600 : 400, color: on ? t.ink : t.faint }}>{st.label}</span>
-                        {now && <span style={{ ...TYPE.small, color: t.sub }}>{tr("since")} {fmtWeekDay(p.current.d)}</span>}
+                        {now && <span style={{ ...TYPE.small, color: t.sub }}>{tr("since")} {fmtDayYear(p.current.d)}</span>}
                       </div>
                     );
                   })}
@@ -15360,7 +15450,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
             {attendance.length > 0 && (() => {
               const here = attendance.filter((a) => a.state === "in").length;
               const missed = attendance.filter((a) => a.state === "out");
-              const dayOfMark = (a) => (a.iso ? fmtWeekDay(localDate(a.iso)) : a.key.split(" ").slice(0, 2).join(" "));
+              const dayOfMark = (a) => (a.iso ? fmtDayYear(a.iso) : a.key.split(" ").slice(0, 2).join(" "));
               return (
                 <div style={{ marginBottom: SPACE.block }} data-progress="attendance">
                   <RowHead>{tr("Attendance")}</RowHead>
@@ -15399,7 +15489,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
                   <div style={box}>
                     <div className="flex items-center justify-between">
                       <span style={{ ...TYPE.body, color: t.ink }}>{sorted.length} {sorted.length === 1 ? tr("session") : tr("sessions")}</span>
-                      {last && last.iso && <span style={{ ...TYPE.small, color: t.sub }}>{tr("last")} {fmtWeekDay(localDate(last.iso))}</span>}
+                      {last && last.iso && <span style={{ ...TYPE.small, color: t.sub }}>{tr("last")} {fmtDayYear(last.iso)}</span>}
                     </div>
                     {top.length > 0 && <p className="mt-1.5" style={{ ...TYPE.small, color: t.sub }}>{top.join(" · ")}</p>}
                   </div>
@@ -16076,15 +16166,16 @@ function SportTool({ cfg, sport, rows, onAdd, onRemove, pop, say }) {
    be answered is answered and what cannot is not shown. The head count
    comes from a register — never from who is in the group, which would
    report a full house at every session nobody was marked at. */
-function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers, onMessage = null, members = null,
+function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers, registersByDay = null, onMessage = null, members = null,
                         onLesson = null, onDownload = null, liveMedia = null, onNeedMedia = null, sport, standingFor = null, stageFor = null,
                         onLog = null, onRegister = null, onEdit = null }) {
   const t = useT();
   const real = !!sessions;
   const weeks = real ? sessions.map((l) => {
-    const reg = (registers || {})[`${l.d} ${l.m} ${group.name}`] || null;
+    /* the exact day and the group's name; the day-and-month key only where a lesson has no ISO day */
+    const reg = (l.iso && registersByDay ? registersByDay[`${l.iso}|${group.name}`] : (registers || {})[`${l.d} ${l.m} ${group.name}`]) || null;
     const marks = reg ? Object.values(reg) : [];
-    return { lesson: l, when: l.iso ? fmtIsoDay(l.iso) : `${Number(l.d) || l.d} ${l.m}`, covered: l.focus, subs: l.subs || [],
+    return { lesson: l, when: l.iso ? fmtDayYear(l.iso) : `${Number(l.d) || l.d} ${l.m}`, covered: l.focus, subs: l.subs || [],
              present: reg ? marks.filter((x) => x === "in").length : null,
              absent: reg ? marks.filter((x) => x === "out").length : 0 };
   }) : [
@@ -19885,7 +19976,7 @@ function SearchScreen({ role, cfg, library, tips, pop, go, push, lessons: given,
                 (a page, a bulb, a list, a bubble — 23 November); a person is
                 their face, in Players and in Messages alike */}
             {/* the day in the app's one form, `Tue 1 Sep` (it read "01 Sep") */}
-            {group(tr("Lessons"), lessons.map((l, i) => (<Row key={l.id} label={l.focus} sub={[l.iso ? fmtWeekDay(localDate(l.iso)) : `${l.d} ${l.m}`, (l.subs || []).join(", ")].filter(Boolean).join(" · ")} chevron last={i === lessons.length - 1} onToggle={() => push(role === "coach" ? `clesson:${l.id}:${l.who}` : `lesson:${l.id}`)} />)))}
+            {group(tr("Lessons"), lessons.map((l, i) => (<Row key={l.id} label={l.focus} sub={[l.iso ? fmtDayYear(l.iso) : `${l.d} ${l.m}`, (l.subs || []).join(", ")].filter(Boolean).join(" · ")} chevron last={i === lessons.length - 1} onToggle={() => push(role === "coach" ? `clesson:${l.id}:${l.who}` : `lesson:${l.id}`)} />)))}
             {group(tr("Tips"), tipHits.map((x, i) => (<Row key={x.id} label={x.title} sub={x.body} chevron last={i === tipHits.length - 1} onToggle={() => push("tips")} />)))}
             {group(tr("Drills"), drills.map((d, i) => (<Row key={d.t} label={d.t} sub={d.d || null} chevron last={i === drills.length - 1} onToggle={() => go("practice")} />)))}
             {/* never a nought: a player with none reads No lessons yet, as the roster does */}
@@ -20575,6 +20666,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const downloads = useDownloads({ owner: account ? account.id : null, loader: data ? data.lessonMedia : null });
   const downloadsRef = useRef(downloads); downloadsRef.current = downloads;
   const dataRef = useRef(data); dataRef.current = data;
+  /* the lesson page's import line reads who is looking; Remove arrives with the Import screen */
+  const importCtx = useMemo(() => ({ meId: account ? account.id : null, mayRemove: () => false, removeOne: null }), [account && account.id]);
+  /* an imported lesson removed by anyone leaves this phone on the next load that reached the server */
+  const loadedAt = data ? data.loadedAt : 0;
+  useEffect(() => {
+    if (!loadedAt || !downloads.ready || !dataRef.current) return;
+    downloads.purge((dataRef.current.lessons || []).map((l) => l.id)).catch(() => {});
+  }, [loadedAt, downloads.ready]);
   const mediaFor = React.useCallback((id, n) => {
     if (downloadsRef.current.has(id)) return downloadsRef.current.mediaOf(id);
     /* offline and never downloaded: there is nothing to wait for */
@@ -20873,7 +20972,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      top-level tab, no sheet — reload. Mid-anything, leave it: the next
      quiet return picks it up. At most once a minute. */
   const quietRef = useRef(true);
-  quietRef.current = stack.length <= 1 && !sheet;
+  /* …and never while an import is sorting or writing: a reload loses the file it reads */
+  quietRef.current = stack.length <= 1 && !sheet && !importBusy();
   /* what the server is serving against what this phone runs: "newer",
      "same", or null when it could not be asked */
   const serverBuild = async () => {
@@ -20907,6 +21007,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      the newest build loads, or "Up to date" with the build it already
      has, or why the server could not be asked. */
   const syncBuild = async () => {
+    /* an import running reads a file the reload would lose: it is finished or stopped first */
+    if (importBusy()) { hapticWarn(); say(tr("Importing · wait or stop it first")); return; }
     if (!BUILT_AT) return;
     const r = await serverBuild();
     if (r === "newer") { say(tr("Updating…")); window.location.reload(); return; }
@@ -21873,10 +21975,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const drills = d0 ? (d0.drills || []).filter((d) => d.playerId && d.playerId === l.playerId && near(d)).map((d) => ({ id: d.id, t: d.t, done: !!d.done, createdAt: d.createdAt, playerId: d.playerId })) : [];
     const tipRow = d0 ? ((d0.tips || []).find((x) => x.playerId && x.playerId === l.playerId && near(x)) || null) : null;
     const tip = tipRow ? { title: tipRow.title, body: tipRow.body || null, createdAt: tipRow.createdAt, playerId: tipRow.playerId } : null;
-    const regs = (d0 && d0.registers) || {};
-    const k = Object.keys(regs).find((x) => x.startsWith(`${l.d} ${l.m}`));
-    const attendance = k && l.playerId ? (regs[k][l.playerId] || null) : null;
-    return { who: l.who || null, coach: role === "coach" ? (coachName || null) : (l.coach || coachName || null), tip, drills, attendance };
+    const attendance = d0 ? markFor(l, l.playerId, d0.registersByDay, d0.registers) : null;
+    return { who: l.who || null, coach: role === "coach" ? (coachName || null) : (l.coach || coachName || null), tip, drills, attendance, importedBy: importedByLine(l, true) };
   };
   const startDownload = async (l) => {
     if (!downloads.supported) { say(tr("Downloads aren't available in this browser")); return; }
@@ -22882,7 +22982,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           .filter((b) => b.playerId === r.id && b.status === "confirmed" && b.date >= today)
           .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (parseTime(a.time) || 0) - (parseTime(b.time) || 0)))[0];
         if (next) out[r.id] = { text: `${fmtWeekDay(localDate(next.date))} · ${next.time}`, tone: "ink" };
-        else if (r.lastLesson) out[r.id] = { text: `${risk.has(r.id) ? tr("Drifting") : tr("Last lesson")} · ${fmtWeekDay(localDate(r.lastLesson))}`, tone: risk.has(r.id) ? "caution" : "faint" };
+        else if (r.lastLesson) out[r.id] = { text: `${risk.has(r.id) ? tr("Drifting") : tr("Last lesson")} · ${fmtDayYear(r.lastLesson)}`, tone: risk.has(r.id) ? "caution" : "faint" };
         else out[r.id] = { text: tr("No lessons yet"), tone: risk.has(r.id) ? "caution" : "faint" };
       }
       return out;
@@ -23325,7 +23425,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       ? ((data.lessons || []).find((x) => String(x.id) === lid) || savedLessonOf(lid) || null)
       : (cfg.lessons.find((x) => String(x.id) === lid) || cfg.lessons[0]);
     /* a clip the player sent leaves To review once the coach has opened it */
-    if (data && les && les.sentBy && les.unread && !seenClips.current.has(les.id)) { seenClips.current.add(les.id); data.markLessonSeen(les.id); }
+    if (data && les && sentByPlayer(les) && les.unread && !seenClips.current.has(les.id)) { seenClips.current.add(les.id); data.markLessonSeen(les.id); }
     /* opened from the thread's card or the bell the route carries no name:
        the lesson knows whose it is, so the page still says Sent by Cian */
     body = les
@@ -23333,7 +23433,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                          live={!!data} mediaFor={data ? mediaFor : null} drills={data ? data.drills : null} tips={data ? data.tips : null}
                          compareLessons={data ? taught(data.lessons) : null} knownMedia={data ? liveMedia : null}
                          replies={clipReplies(les.id)} onReply={data ? (l) => { setReplyFor(l); setSheet("clipReply"); } : null}
-                         attendance={(() => { const k = Object.keys(registers || {}).find((x) => x.startsWith(`${les.d} ${les.m}`)); if (!k) return null; return (data ? registers[k][les.playerId] : registers[k][seedId(cname)]) || null; })()}
+                         attendance={data ? markFor(les, les.playerId, data.registersByDay, registers) : (() => { const k = Object.keys(registers || {}).find((x) => x.startsWith(`${les.d} ${les.m}`)); if (!k) return null; return registers[k][seedId(cname)] || null; })()}
                          onDuplicate={(l) => { setPrefill({ who: l.who, playerId: l.playerId || null, kind: l.type === "Group" ? "Group" : "Private" }); go("log"); }}
                          onEdit={data ? (l) => { setEditLesson(l); setSheet("lessonEdit"); } : null}
                          onDelete={data ? (l) => { setEditLesson(l); setSheet("lessonDelete"); } : null}
@@ -23457,7 +23557,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const isParent = !!(account && account.accountType === "parent");
     const facts = (l) => {
       const it = downloads.state(l.id);
-      const who = (role === "coach" || isParent) && l.who ? l.who : (l.iso ? fmtWeekDay(localDate(l.iso)) : l.date);
+      const who = (role === "coach" || isParent) && l.who ? l.who : (l.iso ? fmtDayYear(l.iso) : l.date);
       const st = !it ? "" : it.status === "saved" ? fmtBytes(it.bytes) : it.status === "saving" ? `${tr("Saving")} · ${Math.round((it.progress || 0) * 100)}%` : (it.error || tr("Download failed"));
       return [who, st];
     };
@@ -23504,7 +23604,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                              onRegister={(() => { const l = groupToday(g); return l ? () => { setAttendFor(l); setSheet("attend"); } : null; })()}
                              onEdit={() => { setEditGroup(g); setSheet("groupEdit"); }}
                              sessions={data ? (data.lessons || []).filter((l) => l.type === "Group" && l.who === gname) : null}
-                             registers={registers} sport={coachSport} onDownload={downloadLesson}
+                             registers={registers} registersByDay={data ? data.registersByDay : null} sport={coachSport} onDownload={downloadLesson}
                              liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null}
                              onLesson={data ? (l) => push(`clesson:${l.id}:${gname}`) : null} /> : <div />;
   } else if (screen.startsWith("annotate:")) {
@@ -23516,7 +23616,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "layout") {
     body = <LayoutEditor layout={layout} onSave={saveLayout} pop={pop} say={say} />;
   } else if (screen === "clips") {
-    body = <ClipsToReview lessons={data ? taught(data.lessons).filter((l) => l.sentBy && l.unread && !l.practice) : []} pop={pop} sport={coachSport}
+    body = <ClipsToReview lessons={data ? taught(data.lessons).filter((l) => isSentClip(l) && l.unread) : []} pop={pop} sport={coachSport}
                           liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null}
                           onOpen={(l) => push(`clesson:${l.id}:${l.who || ""}`)} />;
   } else if (screen === "unlogged") {
@@ -23626,7 +23726,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                   upcoming={upcomingForCoach} unread={unread}
                   toWriteUp={openUnlogged}
                   onWriteUp={() => push("unlogged")}
-                  toReview={data ? taught(data.lessons).filter((l) => l.sentBy && l.unread && !l.practice) : []}
+                  toReview={data ? taught(data.lessons).filter((l) => isSentClip(l) && l.unread) : []}
                   onReview={() => push("clips")}
                   onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }}
                   onNoShow={(b) => { setPeek(b); setSheet("cancelLesson"); }}
@@ -23682,7 +23782,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                             drills={data ? data.drills : null} tips={data ? data.tips : null}
                             /* what the coach marked that day, for the person the lesson belongs to */
                             attendanceFor={(l) => { const who = data ? (l.playerId || null) : seedId(activeProfile?.name);
-                              if (!who) return null; const k = Object.keys(registers || {}).find((x) => x.startsWith(`${l.d} ${l.m}`)); return k ? (registers[k][who] || null) : null; }}
+                              if (!who) return null; if (data) return markFor(l, who, data.registersByDay, registers); const k = Object.keys(registers || {}).find((x) => x.startsWith(`${l.d} ${l.m}`)); return k ? (registers[k][who] || null) : null; }}
                             onMessage={data ? ((l) => (l.playerId && (l.playerId === account.id || (data.dependants || []).some((k) => k.id === l.playerId)) ? push("thread:" + l.playerId) : push("thread:" + account.id))) : () => push("thread:" + (conn?.coach || ""))}
                             onBook={data ? ((l) => { const kid = (data.dependants || []).find((k) => k.id === l.playerId); if (kid) { setBookFor(kid); go("calendar"); } else if (!parentAccount) go("calendar"); }) : () => go("calendar")}
                             onDownload={(l) => downloadLesson(l)}
@@ -23691,7 +23791,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   }
 
   return (
-    <FaceCtx.Provider value={faces}><StarCtx.Provider value={starCtx}><DownloadCtx.Provider value={downloadCtx}><NavCtx.Provider value={navCtx}><LiveCtx.Provider value={live}><BleedCtx.Provider value={setFeedUp}><NoticeCtx.Provider value={say}><CalendarCtx.Provider value={calendar}><ThemeCtx.Provider value={theme}><LangCtx.Provider value={L}>
+    <FaceCtx.Provider value={faces}><StarCtx.Provider value={starCtx}><DownloadCtx.Provider value={downloadCtx}><NavCtx.Provider value={navCtx}><LiveCtx.Provider value={live}><BleedCtx.Provider value={setFeedUp}><NoticeCtx.Provider value={say}><CalendarCtx.Provider value={calendar}><ThemeCtx.Provider value={theme}><LangCtx.Provider value={L}><ImportCtx.Provider value={importCtx}>
       <ShimmerCSS />
       {/* In demo mode the app sits on a dark stage under a wordmark, as
           it has throughout design. In the product it simply fills the
@@ -24431,7 +24531,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           <Toast msg={toast} />
         </div>
       </div>
-    </LangCtx.Provider></ThemeCtx.Provider></CalendarCtx.Provider></NoticeCtx.Provider></BleedCtx.Provider></LiveCtx.Provider></NavCtx.Provider></DownloadCtx.Provider></StarCtx.Provider></FaceCtx.Provider>
+    </ImportCtx.Provider></LangCtx.Provider></ThemeCtx.Provider></CalendarCtx.Provider></NoticeCtx.Provider></BleedCtx.Provider></LiveCtx.Provider></NavCtx.Provider></DownloadCtx.Provider></StarCtx.Provider></FaceCtx.Provider>
   );
 }
 
