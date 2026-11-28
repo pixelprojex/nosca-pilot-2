@@ -176,7 +176,7 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
       const nJobs = await page.locator('[data-scroll="screen"] .nsc-ruled > [data-row-door]').count(), jobs = [];
       for (let i = 0; i < nJobs; i++) jobs.push(await M.rowLead(page, '[data-scroll="screen"] .nsc-ruled > [data-row-door]', i));
       check("(c2b) the home's Actions rows and All lessons lead with their word: no glyph before any, the chevron after, 60 tall on the box's inset",
-        jobs.length >= 3 && jobs.every((j) => M.plainRow(j) && j.h === 60 && j.inset === 18 && j.color === "rgb(29, 27, 23)") && jobs.some((j) => j.label === "Join requests") && !jobs.some((j) => j.label === "Messages") && jobs[jobs.length - 1].label === "All lessons",
+        jobs.length >= 3 && jobs.every((j) => M.plainRow(j) && j.h === 60 && j.inset === 16 && j.color === "rgb(29, 27, 23)") && jobs.some((j) => j.label === "Join requests") && !jobs.some((j) => j.label === "Messages") && jobs[jobs.length - 1].label === "All lessons",
         JSON.stringify(jobs.map((j) => j && `${j.label} lead ${j.lead} before ${j.before} [${j.glyphs}] h${j.h}`)));
       {
         /* the same coach on a heavy morning: three requests, a join request, a message, a lesson to log, somebody drifting */
@@ -224,8 +224,8 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
          and a value on the right on others */
       const nRows = await page.locator('[data-scroll="screen"] .nsc-group > *').count(), srows = [];
       for (let i = 0; i < nRows; i++) srows.push(await M.rowLead(page, '[data-scroll="screen"] .nsc-group > *', i));
-      const badLead = srows.filter((r) => !r || r.lead !== 0 || r.before !== 0 || r.inset !== 18 || r.h !== 56 || r.glyphs.some((g) => g !== "chevron-right") || r.glyphs.length > 1 || r.size !== "16px");
-      check("(f2) no Settings row leads with a glyph: every row is its label on the group's 18 inset, 56 tall, and its only glyph a chevron",
+      const badLead = srows.filter((r) => !r || r.lead !== 0 || r.before !== 0 || r.inset !== 16 || r.h !== 56 || r.glyphs.some((g) => g !== "chevron-right") || r.glyphs.length > 1 || r.size !== "16px");
+      check("(f2) no Settings row leads with a glyph: every row is its label on the group's 16 inset, 56 tall, and its only glyph a chevron",
         srows.length >= 8 && badLead.length === 0 && srows.filter((r) => r.glyphs.length === 1).length >= 6, `${srows.length} rows · ` + JSON.stringify(badLead.slice(0, 3)));
       const valued = srows.filter((r) => r && r.value), subs = await page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] .nsc-group [data-row] span')].filter((s) => s.children.length === 0 && s.textContent.trim() && getComputedStyle(s).fontSize === "13px").map((s) => s.textContent.trim()));
       check("(f3) a Settings row's value sits on the label's line at the right, whole, in the sub grey — Default view, the invite code, the build — and no row carries a small line under its label",
@@ -299,7 +299,7 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
       if (await page.locator('[data-tour="sheet-settings"]').count()) await tap(page, '[data-tour="sheet-settings"]', 900);
       const n = await page.locator('[data-scroll="screen"] .nsc-group > *').count(), rs = [];
       for (let i = 0; i < n; i++) rs.push(await M.rowLead(page, '[data-scroll="screen"] .nsc-group > *', i));
-      const bad = rs.filter((r) => !r || r.lead !== 0 || r.before !== 0 || r.inset !== 18 || r.glyphs.length > 1 || r.glyphs.some((g) => g !== "chevron-right") || r.labelCut || r.valueCut
+      const bad = rs.filter((r) => !r || r.lead !== 0 || r.before !== 0 || r.inset !== 16 || r.glyphs.length > 1 || r.glyphs.some((g) => g !== "chevron-right") || r.labelCut || r.valueCut
         || (r.value && r.valueColor !== "rgb(93, 89, 80)") || (r.value ? (r.valueLine === "beside" ? r.h !== 56 : r.valueLine !== "under") : r.h !== 56));
       if (width === 320) await shot(`09-settings-${role}-320`);
       check(`(l) ${role} at ${width}: every Settings row is label · value · chevron — nothing before the label, no glyph but the chevron, nothing cut`,

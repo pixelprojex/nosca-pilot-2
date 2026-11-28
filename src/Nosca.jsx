@@ -25,7 +25,7 @@ export const LIST_CSS = `    .nsc-list { border: none !important; padding-bottom
     .nsc-list > * { background: var(--card, var(--surface, #fff)); border: 2px solid var(--card-ring, var(--edge, #E4E0D7)) !important; border-radius: 18px;
                     box-shadow: 0 4px 0 var(--card-ledge, var(--edge, #E4E0D7));
                     transition: transform .15s cubic-bezier(.2,.7,.3,1), box-shadow .15s cubic-bezier(.2,.7,.3,1), background-color .15s;
-                    margin-bottom: 12px; padding-left: 18px !important; padding-right: 18px !important; }
+                    margin-bottom: 12px; padding-left: 16px !important; padding-right: 16px !important; }
     /* a row that is one button sinks onto its ledge under the finger (the one press, data-down) */
     .nsc-list > button[data-down]:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--card-ledge, var(--edge, #E4E0D7)); transition: none; opacity: 1; }
     .nsc-list > *:last-child { margin-bottom: 0; }
@@ -35,7 +35,7 @@ export const LIST_CSS = `    .nsc-list { border: none !important; padding-bottom
     /* Settings keeps white groups, as Lares's settings are plain, on the warm
        ring and ledge of the white card (28 November) */
     .nsc-group { background: var(--surface, #fff); border: 2px solid var(--white-ring, #E6E2D9); border-radius: 18px; box-shadow: 0 4px 0 var(--white-ledge, #DAD5C9); overflow: hidden; }
-    .nsc-group > * { background: transparent; padding-left: 18px !important; padding-right: 18px !important;
+    .nsc-group > * { background: transparent; padding-left: 16px !important; padding-right: 16px !important;
                      border-bottom: 1.5px solid var(--white-ring, #E6E2D9) !important; border-radius: 0; }
     .nsc-group > *:last-child { border-bottom: 0 !important; }
     .nsc-group > .nsc-flush { padding: 0 !important; }
@@ -51,7 +51,7 @@ export const LIST_CSS = `    .nsc-list { border: none !important; padding-bottom
        options so the open list's wash runs to the box's edge and the
        head's label lines up with every other row */
     .nsc-list > .nsc-flush { padding: 0 !important; overflow: hidden; }
-    .nsc-list > .nsc-swipe > div:last-child { background: var(--card, var(--surface, #fff)) !important; padding-left: 18px; padding-right: 18px; }
+    .nsc-list > .nsc-swipe > div:last-child { background: var(--card, var(--surface, #fff)) !important; padding-left: 16px; padding-right: 16px; }
 `;
 
 import {
@@ -2442,7 +2442,8 @@ const ShimmerCSS = () => (
 ${LIST_CSS}    .nsc-day { background: var(--card, var(--surface)); border: 2px solid var(--card-ring, var(--edge)); border-radius: 20px; overflow: hidden; box-shadow: 0 4px 0 var(--card-ledge, var(--edge)); }
     /* a row's rule inside a card is the card's own ring, never a grey line on the colour */
     .nsc-day:not(.nsc-chips) > * { border-bottom-color: var(--card-ring, var(--edge)) !important; }
-    .nsc-day.nsc-rows > * { padding-left: 18px; padding-right: 18px; }
+    .nsc-day.nsc-rows > * { padding-left: 16px; padding-right: 16px; }
+    [data-card] > * { border-bottom-color: var(--card-ring, var(--edge)) !important; }
     /* A KEY: an outlined control standing on a lip of its own edge, three
        points deep, that sinks two under the finger — Lares's secondary
        button, for every control that draws its own outline. --key-lip
@@ -17656,7 +17657,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
     <SwipeBack onBack={pop}>
       <Screen title={tr("Hours")} onBack={pop} meta={total ? `${total} ${tr("slots a week")}` : ""} right={<TextBtn color={t.accent} onClick={() => { setAvail(draft); say("Hours saved"); pop(); }}>{tr("Save")}</TextBtn>}>
         <div className="px-6 mb-5">
-          <button onClick={() => { haptic(6); setEditSlots(!editSlots); }} className="w-full rounded-2xl flex items-center gap-3.5 px-5 n-key" style={{ minHeight: 58, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}>
+          <button onClick={() => { haptic(6); setEditSlots(!editSlots); }} className="w-full flex items-center gap-3.5 px-5 n-key" style={{ minHeight: 58, borderRadius: 18, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}>
             <span className="flex-1 text-left"><span className="block" style={{ fontFamily: ui, fontSize: 14.5, fontWeight: 600, color: t.ink }}>{tr("Slots and lesson length")}</span>
               <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{slots.length} times · {duration} min</span></span>
             <ChevronDown size={16} color={t.trace || t.faint} style={{ transform: editSlots ? "rotate(180deg)" : "none", transition: "transform 200ms" }} />

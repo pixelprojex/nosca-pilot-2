@@ -126,7 +126,9 @@ const ty = (transform) => { const m = String(transform || "").match(/matrix\(([^
     /* (c) content stands on a foot: a row of a list on three points of the wash made deeper, and one that is a
        button sinks onto it under the finger — Lares's tiles, so a list is the same family as its keys */
     const row = await page.evaluate(() => { const b = [...document.querySelectorAll(".nsc-list > *")].find((x) => /Cian Murphy/.test(x.innerText)); return b ? getComputedStyle(b).boxShadow : null; });
-    check("(c) a row of the day stands on a two-point ledge of the light grey line, not the sport's colour", lipOf(row) === 2 && /rgb\(228, 224, 215\)/.test(String(row)) && !/40, 89, 55/.test(String(row)), String(row));
+    /* 28 November, the Lares card: a row of the day stands on a four-point ledge a step deeper in its own family
+       (golf's fairway pale's ledge toward its cloth, #ABCDB3) — never the deep colour itself */
+    check("(c) a row of the day stands on a four-point ledge of its own family's pale, not the sport's deep colour", lipOf(row) === 4 && /rgb\(171, 205, 179\)/.test(String(row)) && !/40, 89, 55/.test(String(row)), String(row));
     const arch = page.locator('[data-tour="today-archive"]').first();
     let sink = null;
     if (await arch.count()) {
@@ -136,16 +138,16 @@ const ty = (transform) => { const m = String(transform || "").match(/matrix\(([^
       await page.mouse.move(5, 5); await page.mouse.up(); await page.waitForTimeout(400);
     }
     /* since 21 November a row sinks the whole of its ledge, as Duolingo's card does — it took half of it before */
-    check("(c) …and a row that is one button sinks right onto it under the finger", !!sink && ty(sink.transform) === 2 && lipOf(sink.shadow) === 0, JSON.stringify(sink));
+    check("(c) …and a row that is one button sinks onto it under the finger", !!sink && ty(sink.transform) === 3 && lipOf(sink.shadow) === 1, JSON.stringify(sink));
     /* (c0) THE NEXT LESSON IS THE ONE COLOURED CARD (22 November, art direction): the one action's own colour — read
        off the plus's Log a lesson, never a constant of the palette — its words 4.5:1 and over on it, 16px corners,
        a box of the day's list on a four-point ledge of its colour made deeper; exactly one on the screen, and the
        whole card sinks onto its ledge under a finger */
     {
       const card = await cardOf(page), ledge = rgbIn(card.shadow);
-      check("(c0) the next lesson is the day's one coloured card: the one action's colour, its words 4.5:1 and over, 16px corners, a four-point ledge of the colour made deeper",
+      check("(c0) the next lesson is the day's one coloured card: the one action's colour, its words 4.5:1 and over, 18px corners, a four-point ledge of the colour made deeper",
         card.n === 1 && card.kind === "next" && card.name === "Aoife Doyle" && card.inList && !!logBlock && card.bg === logBlock.bg && contrast(card.fg, card.bg) >= 4.5
-        && card.radius === "16px" && lipOf(card.shadow) === 4 && !!ledge && ledge !== card.bg && lum(ledge) < lum(card.bg), JSON.stringify(card));
+        && card.radius === "18px" && lipOf(card.shadow) === 4 && !!ledge && ledge !== card.bg && lum(ledge) < lum(card.bg), JSON.stringify(card));
       const cb = await page.locator("[data-next-card]").first().boundingBox();
       await page.mouse.move(cb.x + 40, cb.y + 22); await page.mouse.down(); await page.waitForTimeout(60);
       const down = await cardOf(page);
