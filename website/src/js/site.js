@@ -902,7 +902,7 @@
     const hdr = $('.hdr'); if (!hdr) return;
     const menu = $('#menu'), btn = $('.hdr__menu', hdr), main = $('main'), foot = $('.foot');
     const meta = $('meta[name="theme-color"]'), world = getComputedStyle(hdr).getPropertyValue('--ground-green').trim() || '#4F5B29';
-    const TINT = { paper: '#FFFFFF', rest: '#F6F4EE', green: world };
+    const TINT = { paper: '#FAF7F0', rest: '#F2ECE0', green: world };
     let queued = false, open = false;
     function theme() {
       queued = false;

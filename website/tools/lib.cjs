@@ -13,9 +13,37 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
 const M = require("../../scripts/e2e/mock.cjs");
 const D = require("./fixtures/db.cjs");
 
-/* the clip inside the app's screens: the e2e suite's own stylised ball flight (the mock's default). The real coaching
-   clips (fixtures/: a swing, a chip, a putt, a forehand, a rider) are served by name by feed-demo.cjs. */
+/* WHAT THE LESSONS CARRY. "real" (the default): every lesson's files are real coaching clips and their stills, filmed
+   as a coach films them (fixtures/: a full swing, a chip, a putt; a forehand; a rider over a pole), chosen by the sport
+   and by what was worked on, and served by name. "synthetic": the e2e suite's own stylised ball flight. ("green", the
+   putting green seen from above that stood here once, is the real clips now: never a drone shot in the app's screens.) */
+const FIX = path.join(__dirname, "fixtures");
 const CLIPS = { synthetic: null };
+const REAL = /\/(swing|chip|putt|forehand|rider)-\d+\.(mp4|jpg)$/;
+function realFiles(sport, focus) {
+  const f = String(focus || "");
+  if (sport === "tennis") return [["video", "forehand"], ["photo", "forehand"]];
+  if (sport === "equestrian") return [["video", "rider"], ["photo", "rider"]];
+  if (/Putting/.test(f)) return [["video", "putt"], ["photo", "putt"], ["video", "chip"]];
+  if (/Chipping|Pitching|Bunker|Short game/.test(f)) return [["video", "chip"], ["photo", "chip"]];
+  return [["video", "swing"], ["photo", "swing"]];
+}
+/* every lesson that has a file gets the real ones instead, in the same order of time */
+function realMedia(db, sport) {
+  const had = [...new Set(db.media.map((m) => m.lesson_id))];
+  db.media = db.media.filter((m) => !had.includes(m.lesson_id));
+  had.forEach((id) => {
+    const l = db.lessons.find((x) => x.id === id); if (!l) return;
+    realFiles(sport, l.focus).forEach(([kind, name], k) => M.addMedia(db, { lessonId: id, kind, path: `${l.coach_id}/${id}/${name}-${k + 1}.${kind === "video" ? "mp4" : "jpg"}`, createdAt: `${l.lesson_date}T11:${String(40 + k)}:00Z` }));
+  });
+  return db;
+}
+const serveReal = (page) => page.route(`${M.SB}/storage/v1/object/sign/**`, (route) => {
+  const r = route.request(), m = new URL(r.url()).pathname.match(REAL);
+  if (r.method() !== "GET" || !m) return route.fallback();
+  const video = m[2] === "mp4";
+  return route.fulfill({ status: 200, contentType: video ? "video/webm" : "image/jpeg", headers: { "access-control-allow-origin": "*", "accept-ranges": "bytes" }, body: fs.readFileSync(path.join(FIX, m[1] + (video ? ".webm" : ".jpg"))) });
+});
 
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".webp": "image/webp",
   ".webmanifest": "application/manifest+json", ".ico": "image/x-icon", ".pdf": "application/pdf", ".woff2": "font/woff2", ".webm": "video/webm", ".mp4": "video/mp4", ".txt": "text/plain" };
@@ -37,13 +65,16 @@ const launch = () => chromium.launch();
 /* A phone, signed in as `role` (a key of D.IDS, or null for nobody) on `db`, the clock pinned to `at` (default
    D.FIXED: Thursday 26 November 2026, 11:20 am). scale 3 for a still, 2 for a sequence. settle: wait out the
    splash and skip the walkthrough (false keeps the splash). clip: "synthetic" | "green". */
-async function boot(browser, db, role, { port, scale = 3, settle = true, insets = true, at = D.FIXED, clip = "synthetic", width = 390, height = 844 } = {}) {
+async function boot(browser, db, role, { port, scale = 3, settle = true, insets = true, at = D.FIXED, clip = "real", width = 390, height = 844 } = {}) {
+  if (clip === "green") clip = "real";
+  if (clip === "real") realMedia(db, (Object.values(db.profiles || {}).find((p) => p && p.sport) || {}).sport || "golf");
   const ctx = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: scale, isMobile: true, hasTouch: true, serviceWorkers: "block", locale: "en-IE", timezoneId: "Europe/Dublin" });
   const page = await ctx.newPage();
   const cdp = await ctx.newCDPSession(page);
   if (insets) await cdp.send("Emulation.setSafeAreaInsetsOverride", { insets: { top: 47, bottom: 34, left: 0, right: 0 } });
   await page.clock.setFixedTime(new Date(at));
   await M.attach(page, db);
+  if (clip === "real") await serveReal(page);
   if (CLIPS[clip]) {
     /* registered after the mock's own route, so it is asked first: a video's bytes are the clip, anything else
        goes on to the mock */
@@ -104,4 +135,4 @@ async function film(page, cdp, outDir, { rate = 0.1, timed = true, dedupe = true
   return { frames, grab, burst, save, pace };
 }
 
-module.exports = { serve, launch, boot, wait, tap, tapText, scrollTo, noise, film, CLIPS, M, D };
+module.exports = { serve, launch, boot, wait, tap, tapText, scrollTo, noise, film, CLIPS, realMedia, realFiles, serveReal, M, D };

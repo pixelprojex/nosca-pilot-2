@@ -11,11 +11,11 @@
      The green is the page's card: the olive card (#4F5B29; the print preview measures #505D27) unless
      data-world="green" swaps in the dark card (#123C30). */
   --ground-green:#4F5B29; --ground-green-deep:#3E4820;
-  --ground-paper:#FFFFFF; --ground-rest:#F6F4EE;
+  --ground-paper:#FAF7F0; --ground-rest:#F2ECE0;
   /* Gold is a line, a numeral, a small-caps eyebrow, a hairline. Never a fill, a gradient or a glow.
      Measured (API.md): gold-text-on-white 5.4:1 on paper, 4.9:1 on rest; gold-text-on-green 4.8:1 on the
      olive card, 8.0:1 on the dark one. --gold-line and --gold-pin are for lines and the mark only. */
-  --gold-line:#C2A24C; --gold-pin:#CDB065; --gold-text-on-green:#E9CF7E; --gold-text-on-white:#85651A;
+  --gold-line:#C2A24C; --gold-pin:#CDB065; --gold-text-on-green:#E9CF7E; --gold-text-on-white:#7A5C17;
   --ink:#1C1C1E; --sub:#5F5F65; --faint:#6E6E73; --trace:#AEAEB2; --hair:#EBEBF0; --edge:#E2E2E7; --ledge:#D9D9DE;
   --on-green:#F4F6F3; --on-green-2:#DADED2;
   /* the APP's own grey, for vignettes of the app only. A section of the site rests on --ground-rest. */
@@ -30,10 +30,11 @@
   --golf:var(--club-fairway); --tennis:var(--club-court); --rowing:var(--club-river); --squash:var(--club-sienna); --padel:var(--club-aubergine); --equestrian:var(--club-claret);
   --danger:var(--club-brick);
   --display:"Instrument Sans","Instrument Sans Fallback",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --title:"Nosca Serif","Nosca Serif Fallback",Georgia,"Times New Roman",serif;
   --serif:"Instrument Serif","Instrument Serif Fallback","Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
   --text:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   --ease:cubic-bezier(.22,1,.36,1); --ease-io:cubic-bezier(.65,0,.35,1); --ease-key:cubic-bezier(.2,.8,.2,1);
-  --gut:clamp(20px,5vw,64px); --hdr-h:56px; --r-sheet:clamp(26px,4.4vw,56px);
+  --gut:clamp(20px,6vw,108px); --hdr-h:56px; --r-sheet:clamp(26px,4.4vw,56px);
   /* what a ground hands its words: paper's, until a ground says otherwise */
   --bg:var(--ground-paper); --fg:var(--ink); --fg-2:var(--sub); --fg-3:var(--faint); --fg-dim:#8E8E93; --line:var(--edge);
   --rule:var(--gold-line); --gold-text:var(--gold-text-on-white); --focus:var(--ink);
@@ -73,6 +74,9 @@
 @font-face{font-family:"Instrument Sans";src:url(../fonts/InstrumentSans-Medium.woff2) format("woff2");font-weight:500;font-style:normal;font-display:swap}
 @font-face{font-family:"Instrument Sans";src:url(../fonts/InstrumentSans-SemiBold.woff2) format("woff2");font-weight:600;font-style:normal;font-display:swap}
 @font-face{font-family:"Instrument Serif";src:url(../fonts/InstrumentSerif-Regular.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"Nosca Serif";src:url(../fonts/NoscaSerif-Bold.woff2) format("woff2");font-weight:700;font-style:normal;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Nosca Serif";src:url(../fonts/NoscaSerif-Bold-ext.woff2) format("woff2");font-weight:700;font-style:normal;font-display:swap;unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"Nosca Serif Fallback";src:local("Times New Roman Bold"),local("TimesNewRomanPS-BoldMT"),local("Times-Bold"),local("Liberation Serif Bold");font-weight:700;size-adjust:93.6%;ascent-override:114.2%;descent-override:31.3%;line-gap-override:0%}
 @font-face{font-family:"Instrument Serif";src:url(../fonts/InstrumentSerif-Italic.woff2) format("woff2");font-weight:400;font-style:italic;font-display:swap}
 @font-face{font-family:"Instrument Sans Fallback";src:local("Arial"),local("Helvetica Neue"),local("Helvetica"),local("Roboto");font-weight:400;size-adjust:102.5%;ascent-override:94.6%;descent-override:24.4%;line-gap-override:0%}
 @font-face{font-family:"Instrument Sans Fallback";src:local("Arial"),local("Helvetica Neue"),local("Helvetica"),local("Roboto");font-weight:500;size-adjust:104%;ascent-override:93.3%;descent-override:24%;line-gap-override:0%}
@@ -85,7 +89,7 @@
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%;background:var(--paper);overflow-x:clip;scroll-padding-top:var(--hdr-h)}
 html[data-top="dark"],html[data-top="green"],html[data-top="world"]{background:var(--ground-green)}
 html[data-top="rest"]{background:var(--ground-rest)}
-body{margin:0;min-height:100vh;min-height:100svh;font:400 17px/1.5 var(--text);color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overflow-x:clip}
+body{margin:0;min-height:100vh;min-height:100svh;font:400 17px/1.5 var(--display);color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overflow-x:clip}
 main{display:block;position:relative;overflow-x:clip;isolation:isolate}
 img,svg,video{display:block;max-width:100%}
 img,video{height:auto}
@@ -110,9 +114,9 @@ html.lenis,html.lenis body{height:auto}
 .lenis.lenis-smooth [data-lenis-prevent]{overscroll-behavior:contain}
 
 /* ───────────── 4. layout ───────────── */
-.wrap{width:100%;max-width:calc(1160px + var(--gut)*2);margin-inline:auto;padding-inline:var(--gut)}
+.wrap{width:100%;max-width:calc(1240px + var(--gut)*2);margin-inline:auto;padding-inline:var(--gut)}
 .wrap--narrow{max-width:calc(760px + var(--gut)*2)}
-.wrap--wide{max-width:calc(1440px + var(--gut)*2)}
+.wrap--wide{max-width:calc(1240px + var(--gut)*2)}
 .section{position:relative;padding-block:clamp(96px,14vw,208px)}
 .section--tight{padding-block:clamp(56px,8vw,112px)}
 .center{text-align:center}
@@ -139,8 +143,8 @@ html:not(.motion) .only-motion{display:none!important}
    .g-wash and .g-table are old names for rest, .g-world for green. No sport's colour is ever a ground. */
 .g-paper,.g-rest,.g-wash,.g-table,.g-green,.g-world{background:var(--bg);color:var(--fg)}
 .g-paper{--bg:var(--ground-paper)} .g-rest,.g-wash,.g-table{--bg:var(--ground-rest)}
-.g-paper,.g-rest,.g-wash,.g-table{--fg:var(--ink);--fg-2:var(--sub);--fg-3:var(--faint);--fg-dim:#8E8E93;--line:var(--edge);--rule:var(--gold-line);--gold-text:var(--gold-text-on-white);--focus:var(--ink)}
-.g-rest,.g-wash,.g-table{--fg-dim:#8C8A84;--line:#E2DFD6}
+.g-paper,.g-rest,.g-wash,.g-table{--fg:var(--ink);--fg-2:#57554F;--fg-3:#6B6A64;--fg-dim:#9A958A;--line:#E3DCCD;--rule:var(--gold-line);--gold-text:var(--gold-text-on-white);--focus:var(--ink)}
+.g-rest,.g-wash,.g-table{--fg-dim:#958F82;--line:#D9CFBC}
 .g-green,.g-world{--bg:var(--ground-green);--fg:var(--on-green);--fg-2:var(--on-green-2);--fg-3:var(--on-green-2);--fg-dim:rgba(244,246,243,.28);--line:rgba(244,246,243,.2);--rule:var(--gold-pin);--gold-text:var(--gold-text-on-green);--focus:var(--gold-text-on-green)}
 .c-2{color:var(--fg-2)} .c-3{color:var(--fg-3)}
 
@@ -192,8 +196,14 @@ p{text-wrap:pretty}
 .sport-dot[data-sport="tennis"]{background:var(--tennis)} .sport-dot[data-sport="rowing"]{background:var(--rowing)} .sport-dot[data-sport="squash"]{background:var(--squash)}
 .sport-dot[data-sport="padel"]{background:var(--padel)} .sport-dot[data-sport="equestrian"]{background:var(--equestrian)}
 /* the card's gold rule: one fine line. [data-rule] draws it with the scroll. */
-.rule-gold{display:block;width:100%;height:1.5px;margin:0;border:0;border-radius:2px;background:var(--rule);transform-origin:0 50%}
-.rule-gold--hair{height:1px}
+.rule-gold{display:block;width:100%;height:2px;margin:0;border:0;background:var(--rule);transform-origin:0 50%;clip-path:polygon(0 50%,14px 0,calc(100% - 14px) 0,100% 50%,calc(100% - 14px) 100%,14px 100%)}
+.fine{display:block;width:72px;height:2px;margin-top:clamp(20px,2.2vw,28px);background:var(--rule);clip-path:polygon(0 50%,10px 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,10px 100%)}
+/* the mark as a seal: the two rings in a fine double ring of gold */
+.seal{position:relative;display:inline-grid;place-items:center;flex:none;width:var(--seal,56px);height:var(--seal,56px);border-radius:50%;box-shadow:inset 0 0 0 1px var(--seal-c,var(--gold-line));color:var(--seal-c,var(--gold-line))}
+.seal::before{content:"";position:absolute;inset:3px;border-radius:50%;box-shadow:inset 0 0 0 1px var(--seal-c,var(--gold-line));opacity:.55}
+.seal>.mark,.seal>.weave{--mark-w:56%;color:inherit}
+.seal>.mark path,.seal>.weave path{stroke-width:2.6}
+.rule-gold--hair{height:1.5px}
 
 /* ───────────── 6. the mark, the rings, the pinstripes, the sheen ───────────── */
 .mark{display:block;width:var(--mark-w,48px);height:auto;overflow:visible;flex:none}
@@ -228,12 +238,12 @@ html.motion [data-rule]:not(.is-set),html.glide [data-rule]:not(.is-set){transfo
 /* ───────────── 7. keys and links ───────────── */
 .key{--key-bg:var(--world);--key-fg:#fff;--key-lip:var(--world-deep);--key-ring:0 0 0 0 transparent;--lip:4px;
   position:relative;display:inline-flex;align-items:center;justify-content:center;gap:.55em;min-height:52px;padding:0 26px;margin:0 0 var(--lip);border:0;border-radius:16px;
-  font:600 17px/1 var(--display);letter-spacing:-.006em;white-space:nowrap;text-decoration:none;color:var(--key-fg);background:var(--key-bg);cursor:pointer;
+  font:600 16.5px/1 var(--display);letter-spacing:.005em;white-space:nowrap;text-decoration:none;color:var(--key-fg);background:var(--key-bg);cursor:pointer;
   box-shadow:inset var(--key-ring),0 var(--lip) 0 var(--key-lip);transform:translate3d(var(--mx,0px),var(--my,0px),0);
   transition:transform .15s var(--ease-key),box-shadow .15s var(--ease-key),background-color .25s,color .25s;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;touch-action:manipulation}
 .key:active,.key.is-down{transform:translate3d(var(--mx,0px),calc(var(--my,0px) + var(--lip)),0);box-shadow:inset var(--key-ring),0 0 0 var(--key-lip)}
 .key:focus-visible{outline-offset:4px;border-radius:16px}
-.key--paper{--key-bg:#fff;--key-fg:var(--ink);--key-lip:var(--ledge);--key-ring:0 0 0 1.5px var(--edge)}
+.key--paper{--key-bg:#FFFDF8;--key-fg:var(--ink);--key-lip:#D6CCB8;--key-ring:0 0 0 1px #E3DCCD}
 .key--ghost{--key-bg:transparent;--key-fg:var(--on-dark);--key-lip:rgba(0,0,0,.28);--key-ring:0 0 0 1.5px rgba(244,246,243,.46)}
 .key--sm{min-height:40px;padding:0 16px;border-radius:12px;font-size:15px;--lip:3px}
 .key--lg{min-height:58px;padding:0 32px;border-radius:18px;font-size:18px}
@@ -260,7 +270,7 @@ html.motion [data-rule]:not(.is-set),html.glide [data-rule]:not(.is-set){transfo
 .hdr__mark{--mark-w:38px;color:var(--gold-line);transition:color .35s var(--ease);view-transition-name:site-mark}
 .hdr__mark path{stroke-width:3}
 .hdr__nav{display:flex;align-items:center;gap:clamp(4px,1.6vw,22px);margin-left:auto;margin-right:clamp(6px,1.4vw,18px)}
-.hdr__nav a{position:relative;display:inline-flex;align-items:center;min-height:44px;padding:0 10px;font:500 15px/1 var(--display);letter-spacing:-.003em;text-decoration:none;color:var(--hdr-quiet,var(--sub));transition:color .3s}
+.hdr__nav a{position:relative;display:inline-flex;align-items:center;min-height:44px;padding:0 10px;font:600 12.5px/1 var(--display);letter-spacing:.16em;text-transform:uppercase;text-decoration:none;color:var(--hdr-quiet,#57554F);transition:color .3s}
 .hdr__nav a::after{content:"";position:absolute;left:10px;right:10px;bottom:9px;height:1.5px;border-radius:2px;background:var(--hdr-line,var(--gold-line));transform:scaleX(0);transform-origin:0 50%;transition:transform .5s var(--ease)}
 .hdr__nav a[aria-current="page"]{color:inherit}
 .hdr__nav a[aria-current="page"]::after{transform:scaleX(1)}
@@ -274,7 +284,7 @@ html.motion [data-rule]:not(.is-set),html.glide [data-rule]:not(.is-set){transfo
 .hdr[data-theme="rest"]{background:var(--ground-rest)}
 .hdr[data-theme="green"],.hdr[data-theme="dark"],.hdr[data-theme="world"],.hdr.is-menu{color:var(--on-green);background:var(--ground-green);--hdr-rule:rgba(205,176,101,.4);--hdr-quiet:var(--on-green-2);--hdr-line:var(--gold-pin)}
 .hdr[data-theme="green"] .hdr__mark,.hdr[data-theme="dark"] .hdr__mark,.hdr[data-theme="world"] .hdr__mark,.hdr.is-menu .hdr__mark{color:var(--gold-pin)}
-.hdr[data-theme="green"] .hdr__key,.hdr[data-theme="dark"] .hdr__key,.hdr[data-theme="world"] .hdr__key,.hdr.is-menu .hdr__key{--key-bg:#fff;--key-fg:var(--ink);--key-lip:rgba(0,0,0,.3)}
+.hdr[data-theme="green"] .hdr__key,.hdr[data-theme="dark"] .hdr__key,.hdr[data-theme="world"] .hdr__key,.hdr.is-menu .hdr__key{--key-bg:#FFFDF8;--key-fg:var(--ink);--key-lip:#0A251D}
 .hdr[data-theme="none"]:not(.is-menu),.hdr.is-away:not(.is-menu){transform:translate3d(0,-104%,0)}
 .hdr:focus-within{transform:none!important}
 @media (hover:hover){.hdr__home:hover .mark__l{animation:mark-draw 1s var(--ease) both}.hdr__home:hover .mark__r{animation:mark-draw 1s .16s var(--ease) both}}
@@ -302,24 +312,26 @@ html.motion [data-rule]:not(.is-set),html.glide [data-rule]:not(.is-set){transfo
 @media (min-width:720px){.menu{display:none!important}}
 
 /* ───────────── 9. footer ─────────────
-   Set like the card's back, on the deep green: the mark and NOSCA small, one line of links, a gold rule, the words,
-   the sports on two balanced lines, the small print. Ranged left, every column on one edge. */
-.foot{position:relative;z-index:1;padding:clamp(52px,7vw,88px) 0 max(28px,env(safe-area-inset-bottom))}
-.foot__top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px 32px}
-.foot__lock{display:inline-flex;align-items:center;gap:14px;min-height:44px;color:var(--gold-pin);text-decoration:none}
-.foot__mark{--mark-w:46px}
-.foot__word{font-size:14px;color:var(--gold-text-on-green)}
-.foot__nav{display:flex;flex-direction:column;align-items:flex-start;width:100%;margin-inline:-10px}
-@media (min-width:640px){.foot__nav{flex-direction:row;flex-wrap:wrap;width:auto;gap:0 22px}}
-.foot__nav a{display:inline-flex;align-items:center;min-height:44px;padding:0 10px;font:500 15px/1 var(--display);text-decoration:none;color:var(--on-green);white-space:nowrap}
-@media (hover:hover){.foot__nav a:hover{text-decoration:underline;text-underline-offset:5px;text-decoration-thickness:1.5px;text-decoration-color:var(--gold-pin)}}
-.foot__rule{margin:clamp(22px,3vw,32px) 0 clamp(26px,3.4vw,40px)}
-.foot__say{display:grid;gap:8px;justify-items:start}
-.foot__tag{font:500 clamp(24px,2.6vw,32px)/1.08 var(--display);letter-spacing:-.022em;color:var(--on-green)}
-.foot__name{font-size:16px;line-height:1.4;color:var(--on-green-2)}
-.foot__sports{margin-top:8px;font:500 14px/1.6 var(--display);color:var(--on-green-2)}
+   A colophon on the deep green, set as the back page of a printed programme and centred on one axis: the mark as a
+   seal and NOSCA under it, the two lines that say what it is, a pointed gold rule, the way in in small capitals, the
+   six sports, and the small print. */
+.foot{position:relative;z-index:1;padding:clamp(72px,9vw,128px) 0 max(30px,env(safe-area-inset-bottom));text-align:center}
+.foot__in{display:flex;flex-direction:column;align-items:center}
+.foot__lock{display:inline-flex;flex-direction:column;align-items:center;gap:14px;padding:6px;color:var(--gold-pin);text-decoration:none;-webkit-tap-highlight-color:transparent}
+.foot__seal{--seal:64px;--seal-c:var(--gold-pin)}
+.foot__word{font-size:12px;letter-spacing:.42em;color:var(--gold-text-on-green)}
+.foot__tag{margin-top:clamp(28px,3.4vw,40px);font:700 clamp(36px,4vw,56px)/1 var(--title);letter-spacing:0;font-synthesis:none;color:var(--on-green)}
+.foot__name{margin-top:12px;font-size:16.5px;line-height:1.45;color:var(--on-green-2)}
+.foot__rule{width:min(240px,60%);margin:clamp(30px,3.6vw,44px) 0 clamp(14px,1.6vw,20px)}
+.foot__nav{display:flex;flex-wrap:wrap;justify-content:center;gap:0 clamp(6px,2vw,26px)}
+.foot__nav a{position:relative;display:inline-flex;align-items:center;min-height:44px;padding:0 10px;font:600 12.5px/1 var(--display);letter-spacing:.16em;text-transform:uppercase;text-decoration:none;color:var(--on-green);white-space:nowrap}
+.foot__nav a::after{content:"";position:absolute;left:10px;right:calc(10px + .16em);bottom:10px;height:1px;background:var(--gold-pin);transform:scaleX(0);transform-origin:0 50%;transition:transform .5s var(--ease)}
+@media (hover:hover){.foot__nav a:hover::after{transform:scaleX(1)}}
+.foot__sports{margin-top:clamp(18px,2vw,26px);font:600 12px/1.9 var(--display);letter-spacing:.2em;text-transform:uppercase;color:var(--on-green-2)}
 .foot__sports>span{display:block;white-space:nowrap}
-.foot__small{display:flex;flex-wrap:wrap;gap:4px 28px;margin-top:clamp(32px,4vw,48px);padding-top:18px;border-top:1px solid var(--line);font-size:13px;line-height:1.5;color:var(--on-green-2)}
+@media (min-width:720px){.foot__sports>span{display:inline}.foot__sports>span+span::before{content:"·";padding:0 .9em 0 .7em}}
+.foot__small{display:grid;gap:4px;width:100%;margin-top:clamp(40px,5vw,64px);padding-top:22px;border-top:1px solid var(--line);font-size:13px;line-height:1.5;color:var(--on-green-2)}
+@media (min-width:900px){.foot__small{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 32px}}
 
 /* ───────────── 10. the film reel: what the scroll-driven pieces stand on ─────────────
    Everything here lays the FINISHED page out first (a plain column: every caption, every picture) and turns
