@@ -1294,6 +1294,154 @@
     "height": 720,
     "bytes": 55322
    }
+  },
+  {
+   "name": "loop-lake-mist-2",
+   "sport": "rowing",
+   "subject": "A still lake at sunrise, mist lying on the far meadows and drifting over the water, the sky and the trees in its mirror",
+   "alt": "A still lake at sunrise with mist on the water",
+   "focal": {
+    "x": 0.5,
+    "y": 0.45
+   },
+   "focus": "50% 45%",
+   "dominant": "#2C3026",
+   "headline": "left half, on the water and the sky, in white under the deep green veil",
+   "author": "Ahto Palmre",
+   "source": "https://www.pexels.com/video/serene-sunrise-over-misty-lake-landscape-29057836/",
+   "licence": "Pexels Licence",
+   "orientation": "landscape",
+   "width": 1280,
+   "height": 720,
+   "ratio": 1.7778,
+   "duration": 7.0,
+   "fps": 30.0,
+   "frames": 210,
+   "keyframe_every": 60,
+   "codec": "H.264 (High), yuv420p, faststart, no audio",
+   "seam": "the last second dissolves into the first, so it loops without a cut",
+   "use": "background",
+   "credit": "Ahto Palmre / Pexels",
+   "grade": "the site's one grade: deep greens in the shadows, soft gold in the light",
+   "file": "loop-lake-mist-2.mp4",
+   "bytes": 371343,
+   "poster": {
+    "file": "loop-lake-mist-2-poster.webp",
+    "width": 1280,
+    "height": 720,
+    "bytes": 21188
+   }
+  },
+  {
+   "name": "loop-trees-fog-1",
+   "sport": "golf",
+   "subject": "Old oaks on open grass in a foggy dawn, the low sun through the branches, the camera drifting slowly",
+   "alt": "Oaks in a foggy dawn, the sun low through the branches",
+   "focal": {
+    "x": 0.55,
+    "y": 0.4
+   },
+   "focus": "55% 40%",
+   "dominant": "#2D2A1E",
+   "headline": "anywhere under the deep green veil, in white",
+   "author": "Matthias Groeneveld",
+   "source": "https://www.pexels.com/video/a-footage-of-a-foggy-morning-6057656/",
+   "licence": "Pexels Licence",
+   "orientation": "landscape",
+   "width": 1280,
+   "height": 720,
+   "ratio": 1.7778,
+   "duration": 7.0,
+   "fps": 30.0,
+   "frames": 210,
+   "keyframe_every": 60,
+   "codec": "H.264 (High), yuv420p, faststart, no audio",
+   "seam": "the last second dissolves into the first, so it loops without a cut",
+   "use": "background",
+   "credit": "Matthias Groeneveld / Pexels",
+   "grade": "the site's one grade: deep greens in the shadows, soft gold in the light",
+   "file": "loop-trees-fog-1.mp4",
+   "bytes": 1436660,
+   "poster": {
+    "file": "loop-trees-fog-1-poster.webp",
+    "width": 1280,
+    "height": 720,
+    "bytes": 76424
+   }
+  },
+  {
+   "name": "loop-fields-mist-1",
+   "sport": "equestrian",
+   "subject": "Fields and hedges at sunrise with mist lying in the low ground, farm buildings far off",
+   "alt": "Fields at sunrise with mist in the low ground",
+   "focal": {
+    "x": 0.45,
+    "y": 0.6
+   },
+   "focus": "45% 60%",
+   "dominant": "#3A3422",
+   "headline": "on the sky, in white under the deep green veil",
+   "author": "Tom Fisk",
+   "source": "https://www.pexels.com/video/the-sun-rises-over-a-field-with-a-farm-in-the-distance-27645701/",
+   "licence": "Pexels Licence",
+   "orientation": "landscape",
+   "width": 1280,
+   "height": 720,
+   "ratio": 1.7778,
+   "duration": 6.97,
+   "fps": 30.0,
+   "frames": 209,
+   "keyframe_every": 60,
+   "codec": "H.264 (High), yuv420p, faststart, no audio",
+   "seam": "the last second dissolves into the first, so it loops without a cut",
+   "use": "background",
+   "credit": "Tom Fisk / Pexels",
+   "grade": "the site's one grade: deep greens in the shadows, soft gold in the light",
+   "file": "loop-fields-mist-1.mp4",
+   "bytes": 294998,
+   "poster": {
+    "file": "loop-fields-mist-1-poster.webp",
+    "width": 1280,
+    "height": 720,
+    "bytes": 15278
+   }
+  },
+  {
+   "name": "loop-lake-steam-3",
+   "sport": "rowing",
+   "subject": "Steam rising off a lake at sunrise, the sun low over a dark wooded shore",
+   "alt": "Steam rising off a lake at sunrise",
+   "focal": {
+    "x": 0.62,
+    "y": 0.7
+   },
+   "focus": "62% 70%",
+   "dominant": "#2A3238",
+   "headline": "on the sky above the shore, in white under the deep green veil",
+   "author": "Silvia Cárcamo",
+   "source": "https://www.pexels.com/video/serene-sunrise-over-misty-lake-28760855/",
+   "licence": "Pexels Licence",
+   "orientation": "landscape",
+   "width": 1280,
+   "height": 720,
+   "ratio": 1.7778,
+   "duration": 7.0,
+   "fps": 30.0,
+   "frames": 210,
+   "keyframe_every": 60,
+   "codec": "H.264 (High), yuv420p, faststart, no audio",
+   "seam": "the last second dissolves into the first, so it loops without a cut",
+   "use": "background",
+   "credit": "Silvia Cárcamo / Pexels",
+   "grade": "the site's one grade: deep greens in the shadows, soft gold in the light",
+   "file": "loop-lake-steam-3.mp4",
+   "bytes": 685027,
+   "poster": {
+    "file": "loop-lake-steam-3-poster.webp",
+    "width": 1280,
+    "height": 720,
+    "bytes": 33086
+   }
   }
  ],
  "files": {
@@ -2773,6 +2921,66 @@
    "of": "loop-equestrian-stable-2",
    "sport": "equestrian",
    "bytes": 55322
+  },
+  "loop-lake-mist-2.mp4": {
+   "kind": "loop",
+   "of": "loop-lake-mist-2",
+   "sport": "rowing",
+   "subject": "A still lake at sunrise, mist lying on the far meadows and drifting over the water, the sky and the trees in its mirror",
+   "bytes": 371343,
+   "licence": "Pexels Licence",
+   "source": "https://www.pexels.com/video/serene-sunrise-over-misty-lake-landscape-29057836/"
+  },
+  "loop-lake-mist-2-poster.webp": {
+   "kind": "poster",
+   "of": "loop-lake-mist-2",
+   "sport": "rowing",
+   "bytes": 21188
+  },
+  "loop-trees-fog-1.mp4": {
+   "kind": "loop",
+   "of": "loop-trees-fog-1",
+   "sport": "golf",
+   "subject": "Old oaks on open grass in a foggy dawn, the low sun through the branches, the camera drifting slowly",
+   "bytes": 1436660,
+   "licence": "Pexels Licence",
+   "source": "https://www.pexels.com/video/a-footage-of-a-foggy-morning-6057656/"
+  },
+  "loop-trees-fog-1-poster.webp": {
+   "kind": "poster",
+   "of": "loop-trees-fog-1",
+   "sport": "golf",
+   "bytes": 76424
+  },
+  "loop-fields-mist-1.mp4": {
+   "kind": "loop",
+   "of": "loop-fields-mist-1",
+   "sport": "equestrian",
+   "subject": "Fields and hedges at sunrise with mist lying in the low ground, farm buildings far off",
+   "bytes": 294998,
+   "licence": "Pexels Licence",
+   "source": "https://www.pexels.com/video/the-sun-rises-over-a-field-with-a-farm-in-the-distance-27645701/"
+  },
+  "loop-fields-mist-1-poster.webp": {
+   "kind": "poster",
+   "of": "loop-fields-mist-1",
+   "sport": "equestrian",
+   "bytes": 15278
+  },
+  "loop-lake-steam-3.mp4": {
+   "kind": "loop",
+   "of": "loop-lake-steam-3",
+   "sport": "rowing",
+   "subject": "Steam rising off a lake at sunrise, the sun low over a dark wooded shore",
+   "bytes": 685027,
+   "licence": "Pexels Licence",
+   "source": "https://www.pexels.com/video/serene-sunrise-over-misty-lake-28760855/"
+  },
+  "loop-lake-steam-3-poster.webp": {
+   "kind": "poster",
+   "of": "loop-lake-steam-3",
+   "sport": "rowing",
+   "bytes": 33086
   }
  }
 }
