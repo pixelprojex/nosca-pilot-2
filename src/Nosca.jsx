@@ -8,7 +8,9 @@ import { pushSupport, subscribePush, unsubscribePush, currentSubscription } from
 import { canPromptInstall, onInstallPromptChange, promptInstall, isStandalone, platformOf, browserOf, iosMajor, isIpad } from "./lib/install";
 import { supabase } from "./lib/supabase";
 import { FOCUS } from "./lib/taxonomy";
-import { importBusy } from "./lib/importJob";
+import { importJob, importBusy } from "./lib/importJob";
+import { useSyncExternalStore } from "react";
+import { listImports, clearImports } from "./lib/offline";
 import { Mark, BrandLoader, RING_L, RING_R, RING_LEN, BRAND as BRAND_COLOUR, BRAND_PAPER } from "./lib/brandmark.jsx";
 /* THE LIST'S OWN RULES, shared with the pages that render without
    Nosca mounted (pages/Install.jsx): a list is a column of soft rows,
@@ -6751,7 +6753,7 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
    the way autoplay allows; kept from then on until the app is closed. */
 const FEED_MEMORY = { sound: false, rate: 1 };
 
-function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loaded, onNeed, showWho, cfg, right, onDownload }) {
+function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loaded, onNeed, showWho, cfg, right, onDownload, pill = null }) {
   const nav = useContext(NavCtx);
   const [active, setActive] = useState(() => Math.max(0, Math.min(lessons.length - 1, kept(nav.key, "feed") || 0)));
   /* the clip runs to the very bottom of the screen, under the tab bar */
@@ -6847,6 +6849,8 @@ function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loa
           </div>
         )}
       </div>
+      {/* an import's progress, as a paper pill under the header row (docs/import/SPEC.md) */}
+      {pill && <div className="absolute flex" style={{ top: 26 + TOP_AIR + 50, left: 16, right: 12, zIndex: 30, pointerEvents: "none" }}><div style={{ pointerEvents: "auto", maxWidth: "100%" }}>{pill}</div></div>}
 
       <div ref={wrap} onScroll={onScroll} className="absolute inset-0 overflow-y-auto"
            style={{ scrollSnapType: "y mandatory", overscrollBehaviorY: "contain", scrollbarWidth: "none",
@@ -11336,7 +11340,7 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
 
 
 
-function PlayerLog({ cfg, lessons, push, right, prefs, setPrefs, sport, ownMedia, onUpload, liveMedia, onNeedMedia, showWho = false, onDownload, view, setView, top = null, emptyAction = null }) {
+function PlayerLog({ cfg, lessons, push, right, prefs, setPrefs, sport, ownMedia, onUpload, liveMedia, onNeedMedia, showWho = false, onDownload, view, setView, top = null, emptyAction = null, feedPill = null }) {
   const t = useT();
   const ready = useLoad();
   /* the list a page at a time, as the archive is: an imported chat alone can be hundreds of lessons */
@@ -11367,7 +11371,7 @@ function PlayerLog({ cfg, lessons, push, right, prefs, setPrefs, sport, ownMedia
       return sim;
     };
     return <LessonFeed lessons={lessons} mediaFor={mediaFor} onNeed={onNeedMedia} showWho={showWho} cfg={cfg} right={right} onDownload={onDownload}
-                       view={view} setView={setView}
+                       view={view} setView={setView} pill={feedPill}
                        onPickFiles={liveMedia ? null : (files) => onUpload && onUpload(0, files)}
                        loaded={liveMedia ? 0 : Object.keys(ownMedia || {}).length}
                        onOpen={(l) => push(`lesson:${l.id}`)} />;
@@ -15525,7 +15529,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
   );
 }
 
-function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop, push, say, assignDrills, assignTip, onLog, live, lessons, player, onOpenLesson, onAllLessons, cfg, liveMedia, onNeedMedia, sport, onDownload, note, onNote }) {
+function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop, push, say, assignDrills, assignTip, onLog, live, lessons, player, onOpenLesson, onAllLessons, cfg, liveMedia, onNeedMedia, sport, onDownload, note, onNote, onImport = null, importValue = null }) {
   const t = useT();
   const seeded = !useLive();
   /* `live` is the real roster. With it, everything on this screen is
@@ -15549,7 +15553,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
   /* list or feed, like the player's own home — the default view, each
      row with the lesson's first file as its poster */
   const nav = useContext(NavCtx);
-  const [view, setView] = useKept("view", nav.defaultView || "list");
+  const [view, setView] = useKept("view", importFeedFirst(player && player.id) || nav.defaultView || "list");
   const posterFor = liveMedia
     ? (l) => { const m = liveMedia[l.id]; return m && m.length ? m[0] : null; }
     : (l) => ((l.videos || 0) > 0 ? { type: "sim" } : null);
@@ -15674,6 +15678,8 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               /* the coach's own note on this player — the first line as the
                  row's value, the whole of it one tap away; theirs alone */
               ...(onNote ? [[tr("Notes"), onNote, note ? String(note).split("\n")[0] : null]] : []),
+              /* the coach's import for this player (docs/import/SPEC.md) — its value every lesson imported so far */
+              ...(onImport ? [[tr("Import"), onImport, importValue || null]] : []),
               [tr("Recurring lessons"), () => onRecurring(name), seriesFor ? `${DAY_NAMES[seriesFor.day].slice(0, 3)} ${seriesFor.time}` : null],
               ...(live ? [] : [[sportTool ? sportTool.label : tr("Sport record"), () => push("tool"), null]])].map(([lbl, act, val]) => {
               /* the word, its value, the chevron — no glyph (23 November) — and
@@ -15683,7 +15689,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
                  preview of words, as the phone's own lists cut one */
               const preview = lbl === tr("Notes");
               return (
-              <button key={lbl} data-row-door="" data-tour={lbl === tr("Progress") ? "player-progress" : lbl === tr("Notes") ? "player-notes" : lbl === tr("Recurring lessons") ? "player-recurring" : undefined} onClick={() => { haptic(6); soft(); act(); }} className="w-full flex items-center gap-3.5 text-left active:opacity-50"
+              <button key={lbl} data-row-door="" data-tour={lbl === tr("Progress") ? "player-progress" : lbl === tr("Notes") ? "player-notes" : lbl === tr("Import") ? "player-import" : lbl === tr("Recurring lessons") ? "player-recurring" : undefined} onClick={() => { haptic(6); soft(); act(); }} className="w-full flex items-center gap-3.5 text-left active:opacity-50"
                       style={{ minHeight: 60 }}>
                 {/* THE VALUE IS NEVER CUT (24 November), as Settings' Row: on the
                     label's line at the right while both fit, whole on the line
@@ -18837,7 +18843,7 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
    its label; `pick` is a setting with a few named values ({ id, value,
    options, onPick }), which SettingRow draws as the second shape. No row
    carries a glyph. */
-function settingsGroups({ role, conn, demo, plan, live, inviteCode, coachOfMine, calendarSub, onCalendar, awaySub = null, downloadsSub, defaultView, onDefaultView, onSync, reminderOn = false, reminderTime, reminderOpts = [], onReminderTime, drillCount = 0, libraryCount = 0, tipCount = 0, onTour, onSetup, onPhoto, onMainSport, multiSport, mainLabel, reduceMotion, setReduceMotion, soundState, setSoundState, hapticsOn, setHapticsOn, startOn, setStartOn, startOptions, prefs, setPrefs, pop, push, go, sheet, restart, familyName, hasCoach, hasDependants = false, L = STRINGS.en }) {
+function settingsGroups({ importRow = null, role, conn, demo, plan, live, inviteCode, coachOfMine, calendarSub, onCalendar, awaySub = null, downloadsSub, defaultView, onDefaultView, onSync, reminderOn = false, reminderTime, reminderOpts = [], onReminderTime, drillCount = 0, libraryCount = 0, tipCount = 0, onTour, onSetup, onPhoto, onMainSport, multiSport, mainLabel, reduceMotion, setReduceMotion, soundState, setSoundState, hapticsOn, setHapticsOn, startOn, setStartOn, startOptions, prefs, setPrefs, pop, push, go, sheet, restart, familyName, hasCoach, hasDependants = false, L = STRINGS.en }) {
   const setPref = (k, v) => setPrefs && setPrefs((p) => ({ ...p, [k]: v }));
   const T = (on, set, extra) => <Toggle on={on} onChange={(v) => { set(v); extra && extra(v); }} />;
   const many = (n, one, more) => (n ? `${n} ${n === 1 ? one : more}` : null);
@@ -18867,6 +18873,8 @@ function settingsGroups({ role, conn, demo, plan, live, inviteCode, coachOfMine,
          could be changed only on Setup's third screen (24 November) */
       live && { label: tr("Tips"), sub: many(tipCount, tr("tip"), tr("tips")), tour: "settings-tips", onTap: () => push("tipLibrary"), keys: ["tip", "prompts", "say", "advice", "lines", "library"] },
       { label: tr("Lesson logs"), tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["export", "pdf", "file", "save"] },
+      /* the import (docs/import/SPEC.md): there only once it can be used */
+      importRow,
       live && { label: tr("Downloads"), sub: downloadsSub || null, tour: "settings-downloads", onTap: () => push("saved:downloads"), keys: ["download", "offline", "saved", "phone", "storage"] },
       live && onCalendar && calendarSub && { label: tr("Add to phone calendar"), sub: calendarSub, tour: "settings-calendar", onTap: () => onCalendar(), keys: ["ical", "ics", "export", "google", "apple", "outlook", "sync", "diary", "events", "bookings", "add", "phone"] },
       !live && { label: tr("Branding"), tour: "settings-branding", onTap: () => push("branding") },
@@ -18888,6 +18896,7 @@ function settingsGroups({ role, conn, demo, plan, live, inviteCode, coachOfMine,
                keys: hasCoach ? ["join", "code", "review", "rating", "rate", "stars", "profile"] : ["join", "code"] }
            : { label: tr("Coaches & profiles"), tour: "settings-family", onTap: () => sheet("family") },
       { label: tr("Lesson logs"), tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["export", "file", "save"] },
+      importRow,
       live && { label: tr("Downloads"), sub: downloadsSub || null, tour: "settings-downloads", onTap: () => push("saved:downloads"), keys: ["download", "offline", "saved", "phone", "storage"] },
       live && onCalendar && calendarSub && { label: tr("Add to phone calendar"), sub: calendarSub, tour: "settings-calendar", onTap: () => onCalendar(), keys: ["ical", "ics", "export", "google", "apple", "outlook", "sync", "diary", "events", "bookings", "add", "phone"] },
       !live && { label: tr("Subscription"), sub: tr("Free — your coach's plan covers you") },
@@ -19716,8 +19725,17 @@ function InstallScreen({ pop }) {
     </SwipeBack>
   );
 }
+/* THE IMPORT'S PARAGRAPH (docs/import/SPEC.md), a draft for legal review: Privacy and
+   Messaging gain it, and the EU-servers sentence its exception — only once the region and
+   the confirmed retention are filled in at switch-on, so nothing reads a placeholder */
+const IMPORT_LEGAL = { region: null, retention: null };
+const withImportLegal = (d, key) => {
+  if (!IMPORT_LEGAL.region || !IMPORT_LEGAL.retention || (key !== "privacy" && key !== "messaging")) return d;
+  const para = `If you import a chat, it is read on your phone. To sort it into lessons, only the coach's messages from it are sent, through Nosca's server (Netlify, ${IMPORT_LEGAL.region}), to Anthropic, which processes them in the United States. Before they leave your phone, names Nosca can recognise, phone numbers, email addresses, links and places are taken out, and lines with common health and payment words are held back. No other person's messages and no video, photo or voice note is sent. ${IMPORT_LEGAL.retention} Anthropic does not use them to train its models. Nosca keeps none of the chat, only the lessons you choose to import. A player or parent can import a chat with their coach only if the coach allows it, and every lesson they import is marked as theirs. We do this in our legitimate interest in keeping the coaching record the coach and the family asked for. Anyone an import is about can remove it, which also removes its files from Nosca.`;
+  return { ...d, body: [...d.body.map(([h, p]) => [h, p.replace("on servers in the European Union.", "on servers in the European Union, except as described under Import.")]), ["Import", para]] };
+};
 function Legal({ docKey, pop }) {
-  const t = useT(); const d = LEGAL[docKey] || LEGAL.terms;
+  const t = useT(); const d = withImportLegal(LEGAL[docKey] || LEGAL.terms, docKey);
   return (
     <SwipeBack onBack={pop}>
       <Screen title={d.title} onBack={pop} meta={d.updated}>
@@ -20223,6 +20241,684 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
    until every file is in or given up on: a count while they move, a
    line per failure with the reason, and Retry. Nothing about a clip is
    ever lost quietly. */
+/* ============================================================
+   THE IMPORT (docs/import/SPEC.md)
+
+   A coach's WhatsApp history — or, with the coach's leave, a family's —
+   in as dated lessons. Read on the phone (src/lib/chatImport, one lazy
+   chunk), sorted a day at a time by the function, decided by code, and
+   written only once a person has ticked it. One screen, `chatImport`,
+   whose views are Start, Found, Review, A day and Left out; its state is
+   the job store's, so Back, a tab away and a return find it where it was.
+   Small pickers use the app's one Sheet. Nothing here is reached by the
+   harness or the walkthrough: the route is drawn only with data and live.
+   ============================================================ */
+const useImportJob = () => useSyncExternalStore(importJob.subscribe, importJob.get, importJob.get);
+let IMPORT_LIB = null;
+const loadImportLib = () => (IMPORT_LIB ? Promise.resolve(IMPORT_LIB) : import("./lib/chatImport/job.js").then((m) => { IMPORT_LIB = m; return m; }));
+const useImportLib = () => {
+  const [lib, setLib] = useState(IMPORT_LIB);
+  useEffect(() => { if (!lib) loadImportLib().then(setLib).catch(() => {}); }, []);
+  return lib;
+};
+/* the player file opens on Feed once, after an import has landed the coach there */
+let IMPORT_FEED_FOR = null;
+const importFeedFirst = (id) => { if (id && IMPORT_FEED_FOR === id) { IMPORT_FEED_FOR = null; return "feed"; } return null; };
+/* the steps, in each phone's own words (rewritten from the founder's own phones before ship) */
+const IMPORT_STEPS = {
+  iPhone: ["Open the chat in WhatsApp", "Tap the name at the top", "Export Chat", "Attach Media", "Save to Files"],
+  Android: ["Open the chat in WhatsApp", "⋮ › More › Export chat", "Include media", "Save the file"],
+};
+const importMonYear = (iso) => { const [y, m] = String(iso || "").split("-").map(Number); return y && m ? `${WIZ_MONTHS[m - 1]} ${y}` : ""; };
+const importSpanOf = (a, b) => (!a ? "" : importMonYear(a) === importMonYear(b || a) ? importMonYear(a) : `${importMonYear(a)} – ${importMonYear(b)}`);
+const nOf = (n, one, more) => `${n} ${n === 1 ? tr(one) : tr(more)}`;
+const nfmt = (n) => Number(n || 0).toLocaleString("en-IE");
+const andList = (xs) => { const l = xs.filter(Boolean); return l.length <= 1 ? (l[0] || "") : `${l.slice(0, -1).join(", ")} ${tr("and")} ${l[l.length - 1]}`; };
+const firstOfName = (n) => String(n || "").split(" ")[0];
+/* who may remove a batch, by a CURRENT relationship only: its coach; the
+   player, an adult or a junior of sixteen and over; an adult who looks
+   after the player now; the importer of a batch still filling */
+const mayRemoveImport = (b, me) => {
+  if (!b || !me || b.status === "removed") return false;
+  if (b.coachId === me.id) return true;
+  if (b.playerId === me.id) return !me.junior || (me.age != null && me.age >= 16);
+  if ((me.lookAfter || []).includes(b.playerId)) return true;
+  return b.status === "adding" && b.importedBy === me.id;
+};
+
+/* the person removing, as mayRemoveImport reads them */
+const importMeOf = (account, data) => {
+  if (!account || !data) return null;
+  const dob = data.me && data.me.date_of_birth; let age = null;
+  if (dob) { const b = localDate(dob), n = new Date(); age = n.getFullYear() - b.getFullYear() - (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate()) ? 1 : 0); }
+  return { id: account.id, name: account.name, junior: !!account.juvenile || !!(data.me && data.me.account_type === "junior") || (age != null && age < 18), age,
+           lookAfter: (data.dependants || []).map((d) => d.id) };
+};
+/* the Settings row's value: what is running, else the last import */
+const importSummary = (j) => {
+  if (!j) return "";
+  if (j.phase === "sorting" && j.sort) return `${tr("Sorting")} · ${j.sort.done || 0} ${tr("of")} ${nOf(j.sort.total || 0, "day", "days")}`;
+  if (j.phase === "uploading" && j.run) return `${tr("Importing")} · ${j.run.lessonsDone || 0} ${tr("of")} ${nOf(j.run.lessons || 0, "lesson", "lessons")}`;
+  if (j.phase === "paused") return tr("Import paused · choose the file again");
+  return "";
+};
+const useImportSummary = () => useSyncExternalStore(importJob.subscribe, () => importSummary(importJob.get()), () => "");
+
+/* THE BANNER: Today's, the top of a player's List, and a paper pill under the feed's header */
+function ImportBanner({ onOpen, pill = false }) {
+  const t = useT();
+  const job = useImportJob();
+  if (!job || (job.phase !== "uploading" && job.phase !== "paused")) return null;
+  const run = job.run || {};
+  const failed = run.failed || [];
+  const paused = job.phase === "paused";
+  const line = paused ? tr("Import paused · choose the file again")
+    : run.status === "error" ? `${tr("Couldn't import")}${run.error ? ` · ${run.error}` : ""}`
+    : failed.length ? `${nOf(failed.length, "file didn't upload", "files didn't upload")}${failed[0] && failed[0].error ? ` · ${failed[0].error}` : ""}`
+    : run.offline ? tr("Offline")
+    : `${tr("Importing")} · ${run.lessonsDone || 0} ${tr("of")} ${nOf(run.lessons || 0, "lesson", "lessons")}`;
+  const second = !paused && !failed.length && run.status !== "error" && run.files ? `${run.filesDone || 0} ${tr("of")} ${nOf(run.files, "file", "files")}` : null;
+  const act = (fn) => (e) => { e.stopPropagation(); haptic(8); loadImportLib().then((m) => m[fn] && m[fn]()); };
+  return (
+    <div className={pill ? "" : "px-6 pt-2 pb-1"} data-tour="import-banner">
+      <div role="button" tabIndex={0} onClick={() => { haptic(6); onOpen && onOpen(); }}
+           className="flex items-center gap-3 active:opacity-70"
+           style={{ padding: pill ? "8px 14px" : "12px 16px", borderRadius: pill ? R.pill : R.control,
+                    background: pill ? "rgba(255,255,255,0.96)" : failed.length || run.status === "error" ? `${DANGER}10` : t.wash, cursor: "pointer" }}>
+        {!paused && !failed.length && run.status !== "error"
+          ? <span className="rounded-full shrink-0" style={{ width: 8, height: 8, background: t.accent, animation: "breathe 1.4s ease-in-out infinite" }} />
+          : <X size={14} color={DANGER} strokeWidth={2.2} />}
+        <span className="flex-1 min-w-0" style={{ ...TYPE.small, color: t.ink }}>
+          <span data-import-line="">{line}</span>{second ? <span style={{ color: t.sub }}>{` · ${second}`}</span> : null}
+        </span>
+        {failed.length > 0 && !paused && (
+          <span className="flex items-center gap-1 shrink-0">
+            <TextBtn quiet tour="import-retry" color={t.accent} onClick={act("retryFailed")}>{tr("Retry")}</TextBtn>
+            <TextBtn quiet tour="import-leave-out" color={t.sub} onClick={act("leaveOutFailed")}>{tr("Leave out")}</TextBtn>
+          </span>
+        )}
+        {run.status === "error" && !paused && !failed.length && <TextBtn quiet tour="import-retry-wave" color={t.accent} onClick={act("retryWave")}>{tr("Retry")}</TextBtn>}
+      </div>
+    </div>
+  );
+}
+
+/* the coach's notice, before players may import their chats */
+function ImportAllowBody({ onAllow, close }) {
+  const t = useT(); const [busy, setBusy] = useState(false);
+  return (
+    <>
+      <h2 className="mb-3" data-tour="import-allow" style={{ ...TYPE.title, color: t.ink }}>{tr("Imports from players")}</h2>
+      {[tr("Your players and their parents can import their chats with you"), tr("Your messages in those chats are sent to Anthropic to be sorted"),
+        tr("Every lesson they import is marked as theirs · you can remove any of them")].map((x) => (
+        <p key={x} className="mb-2.5" style={{ ...TYPE.body, color: t.sub }}>{x}</p>
+      ))}
+      <div className="mt-5"><Button tour="import-allow-yes" disabled={busy} onClick={async () => { setBusy(true); const r = await onAllow(); setBusy(false); if (!(r && r.error)) close(); }}>{tr("Allow")}</Button></div>
+      <div className="mt-2.5"><Button tone="quiet" tour="import-allow-no" onClick={close}>{tr("Not now")}</Button></div>
+    </>
+  );
+}
+/* one of Found's Left out rows, as its list */
+function ImportLeftBody({ title, items, count }) {
+  const t = useT();
+  return (
+    <>
+      <h2 className="mb-4" data-tour="import-left-sheet" style={{ ...TYPE.title, color: t.ink }}>{title}</h2>
+      {items && items.length ? (
+        <div className="nsc-list" style={{ maxHeight: 360, overflowY: "auto" }}>
+          {items.map((x, i) => <div key={`${x}-${i}`} className="flex items-center" style={{ minHeight: 48, ...TYPE.small, color: t.ink, overflowWrap: "anywhere" }}>{x}</div>)}
+        </div>
+      ) : <p style={{ ...TYPE.body, color: t.sub }}>{nOf(count || 0, "line", "lines")}</p>}
+    </>
+  );
+}
+/* a label's part: the coach, the player's side, or the same person as another label */
+function ImportRoleBody({ label, labels, roles, forFirst, onPick, close }) {
+  const t = useT();
+  const side = forFirst ? `${forFirst}'s ${tr("side")}` : tr("Player's side");
+  const others = (labels || []).map((x) => x.label).filter((l) => l !== label && !String(roles[l] || "").startsWith("same:"));
+  const opts = [["coach", tr("Coach")], ["player", side], ...others.map((o) => [`same:${o}`, `${tr("Same person as")} ${o}`])];
+  return (
+    <>
+      <h2 className="mb-4" style={{ ...TYPE.title, color: t.ink, overflowWrap: "anywhere" }}>{label}</h2>
+      <div className="nsc-list" data-tour="import-role">
+        {opts.map(([id, lbl]) => (
+          <button key={id} data-import-role={id} onClick={() => { hapticCommit(); onPick(id); close(); }}
+                  className="w-full flex items-center justify-between gap-3 text-left active:opacity-60" style={{ minHeight: 56 }}>
+            <span style={{ ...TYPE.body, color: t.ink, overflowWrap: "anywhere" }}>{lbl}</span>
+            {roles[label] === id && <Check size={16} color={t.accent} strokeWidth={2.4} />}
+          </button>
+        ))}
+      </div>
+    </>
+  );
+}
+/* For: the person the lessons are filed under — the closest name to the chat's label first, never chosen for the coach */
+function ImportWhoBody({ people, label, onPick, close }) {
+  const t = useT(); const [q, setQ] = useState("");
+  const words = wizNorm(label).split(/\s+/).filter(Boolean);
+  const near = (n) => wizNorm(n).split(/\s+/).filter((w) => words.includes(w)).length;
+  const list = (people || []).filter((p) => wizMatch(p.name, q)).sort((a, b) => near(b.name) - near(a.name) || a.name.localeCompare(b.name));
+  return (
+    <>
+      <h2 className="mb-4" style={{ ...TYPE.title, color: t.ink }}>{tr("For")}</h2>
+      {(people || []).length > 8 && <SearchField value={q} onChange={setQ} className="mb-4" tour="import-who-search" />}
+      {list.length === 0 ? <EmptyLine>{tr("Nobody by that name")}</EmptyLine> : (
+        <div className="nsc-list" data-tour="import-who" style={{ maxHeight: 360, overflowY: "auto" }}>
+          {list.map((p) => <PersonRow key={p.id} name={p.name} src={p.src} chevron attrs={{ "data-person": p.id }} onTap={() => { hapticCommit(); onPick(p.id); close(); }} />)}
+        </div>
+      )}
+    </>
+  );
+}
+function ImportSportBody({ ids, picked, onPick, close }) {
+  const t = useT();
+  return (
+    <>
+      <h2 className="mb-4" style={{ ...TYPE.title, color: t.ink }}>{tr("Sport")}</h2>
+      <SportGrid ids={ids} picked={picked} cols={2} tour="import-sport-grid" onPick={(id) => { onPick(id); close(); }} />
+    </>
+  );
+}
+/* the checks before sorting: the chat's label against the person it is filed under, or the coach */
+function ImportCheckBody({ check, onGo, onBack, close }) {
+  const t = useT();
+  const coach = check.kind === "coach";
+  return (
+    <>
+      <h2 className="mb-2" data-tour="import-check" style={{ ...TYPE.title, color: t.ink }}>{coach ? tr("Check the coach") : tr("Check who it's for")}</h2>
+      <p className="mb-2" style={{ ...TYPE.body, color: t.sub, overflowWrap: "anywhere" }}>{tr("The chat is with")} “{check.label}”</p>
+      {coach && <p className="mb-2" style={{ ...TYPE.body, color: t.sub }}>{tr("These lessons will be filed with")} {check.name}</p>}
+      <div className="mt-5"><Button tour="import-check-go" onClick={() => { close(); onGo(); }}>{coach ? `${tr("It's")} ${firstOfName(check.name)}` : `${tr("File under")} ${check.name}`}</Button></div>
+      <div className="mt-2.5"><Button tone="quiet" tour="import-check-back" onClick={() => { close(); onBack(); }}>{coach ? tr("Choose another file") : tr("Choose someone else")}</Button></div>
+    </>
+  );
+}
+/* exactly what is sent for the chat's first day with the coach's words */
+function ImportWhatBody({ text }) {
+  const t = useT();
+  return (
+    <>
+      <h2 className="mb-3" style={{ ...TYPE.title, color: t.ink }}>{tr("What is sent")}</h2>
+      <pre data-tour="import-what" className="whitespace-pre-wrap" style={{ ...TYPE.small, fontFamily: ui, color: t.ink, background: t.wash, borderRadius: R.control, padding: 14, maxHeight: 380, overflowY: "auto", overflowWrap: "anywhere" }}>{text || ""}</pre>
+    </>
+  );
+}
+/* Stop: with nothing in, the empty batches go; with some in, keep them or remove them all */
+function ImportStopBody({ inCount, total, onStop, onKeep, onRemoveAll, close }) {
+  const t = useT(); const [busy, setBusy] = useState(false);
+  const run = (fn) => async () => { if (busy) return; setBusy(true); await fn(); setBusy(false); close(); };
+  return (
+    <>
+      <h2 className="mb-1" data-tour="import-stop-sheet" style={{ ...TYPE.title, color: t.ink }}>{tr("Stop import")}</h2>
+      <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>{inCount ? `${inCount} ${tr("of")} ${nOf(total, "lesson", "lessons")} ${inCount === 1 ? tr("is in") : tr("are in")}` : tr("Nothing has been added")}</p>
+      {inCount ? (
+        <>
+          <Button tour="import-keep" disabled={busy} onClick={run(onKeep)}>{`${tr("Keep")} ${nOf(inCount, "lesson", "lessons")}`}</Button>
+          <div className="mt-2.5"><Button tone="dangerQuiet" tour="import-remove-all" disabled={busy} onClick={run(onRemoveAll)}>{tr("Remove all")}</Button></div>
+        </>
+      ) : <Button tone="danger" tour="import-stop-go" disabled={busy} onClick={run(onStop)}>{tr("Stop")}</Button>}
+      <button onClick={close} className="w-full mt-2.5 active:opacity-60" style={{ minHeight: 48, ...TYPE.body, color: t.sub }}>{tr("Carry on")}</button>
+    </>
+  );
+}
+/* Remove: the importer's own with no password; anyone else's ends on it */
+function ImportRemoveBody({ count, who, own, verify, onRemove, close }) {
+  const t = useT(); const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
+  const label = `${tr("Remove")} ${nOf(count, "lesson", "lessons")}`;
+  const facts = [nOf(count, "lesson", "lessons"), who].filter(Boolean).join(" · ");
+  if (!own) return (
+    <ConfirmPassword title={tr("Remove import")} detail={facts} actionLabel={label} closeLabel={tr("Keep them")} close={close}
+                     onConfirm={async (pw) => { const c = await verify(pw); if (c && c.error) return c; const r = await onRemove(); return r && r.error ? { error: tr("Couldn't remove the import") } : {}; }} />
+  );
+  return (
+    <>
+      <h2 className="mb-1" data-tour="import-remove-sheet" style={{ ...TYPE.title, color: t.ink }}>{tr("Remove import")}</h2>
+      <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>{facts}</p>
+      <Button tone="danger" tour="import-remove-go" disabled={busy} onClick={async () => { setBusy(true); setErr(""); const r = await onRemove(); setBusy(false); if (r && r.error) { setErr(tr("Couldn't remove the import")); return; } close(); }}>{label}</Button>
+      {err && <p className="mt-2.5" style={{ ...TYPE.caption, color: DANGER }}>{err}</p>}
+      <button onClick={close} className="w-full mt-2.5 active:opacity-60" style={{ minHeight: 48, ...TYPE.body, color: t.sub }}>{tr("Keep them")}</button>
+    </>
+  );
+}
+
+/* a row of value rows inside one box (Found's counts) */
+const ImportValues = ({ rows, tour }) => {
+  const t = useT();
+  return (
+    <div className="nsc-day" data-tour={tour}>
+      {rows.map(([k, v], i) => (
+        <div key={k} className="flex items-center justify-between gap-3 px-4" style={{ minHeight: 48, borderBottom: i < rows.length - 1 ? `1px solid ${t.hair}` : "none" }}>
+          <span style={{ ...TYPE.body, color: t.ink }}>{k}</span><span data-value="" style={{ ...TYPE.body, color: t.sub }}>{v}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+/* a door: the word, a value, a chevron — Settings' own row, in a box */
+const ImportDoor = ({ label, sub, value, valueTone, onTap, tour, attrs }) => {
+  const t = useT();
+  return (
+    <button data-tour={tour} {...(attrs || {})} onClick={() => { haptic(6); onTap(); }} className="w-full flex items-center gap-3 text-left active:opacity-50" style={{ minHeight: 56, paddingTop: sub ? 8 : 0, paddingBottom: sub ? 8 : 0 }}>
+      <span className="flex-1 min-w-0 flex flex-wrap items-center justify-between" style={{ columnGap: 14 }}>
+        <span className="min-w-0" style={{ maxWidth: "100%" }}>
+          <span className="block" data-row-label="" style={{ ...TYPE.body, color: t.ink, overflowWrap: "anywhere" }}>{label}</span>
+          {sub && <span className="block" style={{ ...TYPE.small, color: t.sub }}>{sub}</span>}
+        </span>
+        {value && <span data-row-value="" className="min-w-0" style={{ ...TYPE.body, color: valueTone || t.sub, overflowWrap: "anywhere" }}>{value}</span>}
+      </span>
+      <ChevronRight size={15} color={t.trace || t.faint} />
+    </button>
+  );
+};
+
+function ImportScreen({ data, me, role, cfg, pop, push, say, done, openSheet, closeSheet, onLanded, coachFor }) {
+  const t = useT();
+  const lib = useImportLib();
+  const job = useImportJob();
+  const input = useRef(null);
+  const [platform, setPlatform] = useKept("platform", platformOf() === "android" ? "Android" : "iPhone");
+  const [more, setMore] = useState(false);
+  const targets = data.importTargets || [];
+  const people = useMemo(() => {
+    const ids = targets.map((x) => x.player_id);
+    const all = [...(data.roster || []), ...((data.family && data.family.members) || []), ...(data.dependants || [])];
+    return ids.map((id) => { const p = all.find((x) => x.id === id) || (id === me.id ? { id, name: me.name } : null); return p ? { id, name: p.name, src: p.avatarPath ? avatarUrl(p.avatarPath) : null } : null; }).filter(Boolean);
+  }, [targets, data.roster, data.family, data.dependants]);
+  useEffect(() => { if (lib) lib.lookForInterrupted(); }, [lib]);
+  /* a reload, or another person on the phone, leaves nothing of the last job open */
+  const mine = job && job.owner === me.id ? job : null;
+  const viewNow = mine ? mine.view || "start" : "start";
+  const batches = (data.imports || []).filter((b) => b.status === "done");
+  const coachSide = role === "coach";
+
+  const back = () => {
+    if (viewNow === "day") return lib.view((mine.rowsByIso && mine.rowsByIso[mine.dayIso] && mine.rowsByIso[mine.dayIso].leftOut) ? "leftout" : "review");
+    if (viewNow === "leftout") return lib.view("review");
+    if ((viewNow === "found" || viewNow === "review") && mine.phase !== "uploading") { lib.abandon(); }
+    pop();
+  };
+  const pick = () => { if (input.current) { input.current.value = ""; input.current.click(); } };
+  const onFiles = async (files) => { if (!lib || !files || !files.length) return; haptic(8); await lib.choose(files); };
+
+  /* ---------------------------------------------------------------- START */
+  if (viewNow === "start" || !lib) {
+    const paused = mine && mine.phase === "paused";
+    const running = mine && mine.phase === "uploading";
+    const rs = paused ? mine.resume || {} : null;
+    const who = paused ? ((people.find((p) => p.id === (rs.forId || mine.forId)) || {}).name || "") : "";
+    return (
+      <SwipeBack onBack={pop}>
+        <Screen title={tr("Import")} onBack={pop}>
+          <div className="px-6 pb-8">
+            {coachSide && (
+              <div className="nsc-list" style={{ marginBottom: SPACE.block }}>
+                <div className="flex items-center justify-between gap-3" data-tour="import-players" style={{ minHeight: 56 }}>
+                  <span style={{ ...TYPE.body, color: t.ink }}>{tr("Imports from players")}</span>
+                  <Toggle on={!!(data.prefs && data.prefs.player_imports)} onChange={(v) => {
+                    if (v) openSheet(<ImportAllowBody close={closeSheet} onAllow={async () => { const r = await data.setPlayerImports(true); if (r && r.error) { say(r.error.message || tr("That didn't save")); return r; } done(tr("Allowed")); return {}; }} />);
+                    else data.setPlayerImports(false);
+                  }} />
+                </div>
+              </div>
+            )}
+            {running && (
+              <div className="nsc-day px-4 py-4" data-tour="import-running" style={{ marginBottom: SPACE.block }}>
+                <ImportBanner pill={false} />
+                <p className="mt-2" style={{ ...TYPE.small, color: t.sub }}>{tr("Keep Nosca open until this is done")}</p>
+                <div className="mt-3"><Button tone="dangerQuiet" tour="import-stop" onClick={() => {
+                  const r = mine.run || {};
+                  openSheet(<ImportStopBody inCount={r.lessonsDone || 0} total={r.lessons || 0} close={closeSheet}
+                                            onStop={() => lib.discardInterrupted("Stopped")} onKeep={() => lib.finishInterrupted(true)} onRemoveAll={() => lib.discardInterrupted("Stopped")} />);
+                }}>{tr("Stop")}</Button></div>
+              </div>
+            )}
+            {paused && (
+              <div className="nsc-day px-4 py-4" data-tour="import-resume" style={{ marginBottom: SPACE.block }}>
+                <p style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{who}</p>
+                <p className="mt-0.5" style={{ ...TYPE.small, color: t.sub }}>{`${rs.lessonsIn || 0} ${tr("of")} ${nOf(rs.lessons || 0, "lesson", "lessons")} · ${rs.filesUp || 0} ${tr("of")} ${nOf(rs.files || 0, "file", "files")}`}</p>
+                <div className="mt-3"><Button tour="import-choose-same" onClick={pick}>{mine.reading ? tr("Reading…") : tr("Choose the same file")}</Button></div>
+                <div className="mt-2.5">
+                  {(rs.lessonsIn || 0) > 0
+                    ? <Button tone="quiet" tour="import-finish" onClick={() => lib.finishInterrupted(true)}>{`${tr("Finish with")} ${rs.lessonsIn}`}</Button>
+                    : <Button tone="dangerQuiet" tour="import-discard" onClick={() => lib.discardInterrupted("Stopped")}>{tr("Discard")}</Button>}
+                </div>
+                {mine.error && (
+                  <p className="mt-3" data-tour="import-error" style={{ ...TYPE.small, color: DANGER }}>{mine.error}
+                    {mine.errorAction === "restart" && <> · <TextBtn tour="import-restart" color={DANGER} onClick={() => lib.restartWithPending()}>{tr("Start again with this one")}</TextBtn></>}</p>
+                )}
+              </div>
+            )}
+            {batches.length > 0 && (
+              <div style={{ marginBottom: SPACE.block }}>
+                <RowHead>{tr("Imported")}</RowHead>
+                <div className="nsc-list">
+                  {batches.map((b) => {
+                    const p = people.find((x) => x.id === b.playerId) || { name: (data.roster || []).concat((data.dependants || [])).find((x) => x.id === b.playerId)?.name || (b.playerId === me.id ? me.name : "") };
+                    const line = [nOf(b.lessons, "lesson", "lessons"), importSpanOf(b.firstDay, b.lastDay)].filter(Boolean).join(" · ");
+                    const can = mayRemoveImport(b, me);
+                    const remove = () => openSheet(<ImportRemoveBody count={b.lessons} who={p.name} own={b.importedBy === me.id} verify={data.verifyPassword} close={closeSheet}
+                                                                     onRemove={async () => { const r = await data.undoImport(b.id, null); if (!(r && r.error)) done(tr("Removed"), nOf(b.lessons, "lesson", "lessons")); return r; }} />);
+                    const row = <PersonRow name={p.name} src={p.src} sub={line} chevron={can} onTap={can ? remove : undefined} attrs={{ "data-tour": "import-batch", "data-batch": b.id }} />;
+                    return can ? <div key={b.id} className="nsc-swipe"><SwipeRow onDelete={remove} label={tr("Remove")}>{row}</SwipeRow></div> : <React.Fragment key={b.id}>{row}</React.Fragment>;
+                  })}
+                </div>
+              </div>
+            )}
+            {!running && !paused && (
+              <>
+                <Segmented tour="import-platform" options={["iPhone", "Android"]} value={platform} onChange={setPlatform} />
+                <div className="nsc-list" style={{ marginTop: SPACE.tight, marginBottom: SPACE.block }}>
+                  {IMPORT_STEPS[platform].map((s, i) => (
+                    <div key={s} className="flex items-center gap-3" style={{ minHeight: 52 }}>
+                      <span className="shrink-0 flex items-center justify-center rounded-full" style={{ width: 26, height: 26, background: t.wash, ...TYPE.caption, fontWeight: 600, color: t.sub }}>{i + 1}</span>
+                      <span style={{ ...TYPE.body, color: t.ink }}>{tr(s)}</span>
+                    </div>
+                  ))}
+                </div>
+                <Button tour="import-choose" disabled={!lib || (mine && mine.reading)} onClick={pick}>{mine && mine.reading ? tr("Reading…") : tr("Choose file")}</Button>
+                {mine && mine.error && <p className="mt-3" data-tour="import-error" style={{ ...TYPE.small, color: DANGER }}>{mine.error}</p>}
+              </>
+            )}
+            <input ref={input} type="file" multiple className="hidden" data-tour="import-file" onChange={(e) => onFiles(e.target.files)} />
+          </div>
+        </Screen>
+      </SwipeBack>
+    );
+  }
+
+  /* ---------------------------------------------------------------- FOUND */
+  if (viewNow === "found") {
+    const f = mine.found || { counts: {}, left: {} };
+    const forP = people.find((p) => p.id === mine.forId) || null;
+    const forFirst = forP ? firstOfName(forP.name) : null;
+    const lone = !coachSide && people.length === 1 && people[0].id === me.id;
+    const coachName = coachSide ? me.name : ((mine.forId ? coachFor(mine.forId) : null) || {}).name || data.coachName || "";
+    const left = [["notInFile", tr("Not in the file")], ["over50", tr("Over 50 MB")], ["over200", tr("Over 200 on one day")], ["documents", tr("Documents")], ["stickers", tr("Stickers and GIFs")], ["notRead", tr("Lines not read")]]
+      .map(([k, label]) => [k, label, k === "notRead" ? f.left.notRead || 0 : (f.left[k] || []).length]).filter((x) => x[2] > 0);
+    const roleWord = (label) => { const r = mine.roles[label]; return r === "coach" ? tr("Coach") : r === "player" ? (forFirst ? `${forFirst}'s ${tr("side")}` : tr("Player's side")) : r ? `${tr("Same as")} ${r.slice(5)}` : null; };
+    const ok = lib.ready(mine);
+    const junior = !!(forP && ((data.roster || []).find((x) => x.id === forP.id) || (data.dependants || []).find((x) => x.id === forP.id) || {}).junior);
+    const preview = junior && ok ? lib.blockText(lib.previewBody()) : null;
+    const sortNow = () => {
+      const check = lib.checkNeeded(mine);
+      if (!check) { hapticCommit(); lib.startSorting(); return; }
+      openSheet(<ImportCheckBody check={check} close={closeSheet} onGo={() => lib.startSorting()}
+                                 onBack={() => { if (check.kind === "coach") { lib.abandon(); } else openSheet(<ImportWhoBody people={people} label={lib.mainSide(mine) || ""} close={closeSheet} onPick={(id) => lib.setFor(id)} />); }} />);
+    };
+    return (
+      <SwipeBack onBack={back}>
+        <Screen title={tr("Import")} onBack={back}>
+          <div className="px-6 pb-10" data-tour="import-found">
+            <p data-tour="import-range" style={{ ...TYPE.heading, color: t.ink, marginBottom: SPACE.tight }}>{f.first ? `${lib.dayWithYear(f.first)} – ${lib.dayWithYear(f.last)}` : ""}</p>
+            <ImportValues tour="import-counts" rows={[[tr("Messages"), nfmt(f.counts.messages)], [tr("Videos"), nfmt(f.counts.videos)], [tr("Photos"), nfmt(f.counts.photos)], [tr("Voice notes"), nfmt(f.counts.voice)], [tr("Size"), fmtBytes(f.counts.size || 0)]]} />
+            {!f.media && <p className="mt-2" style={{ ...TYPE.small, color: t.sub }}>{tr("Exported without media")}</p>}
+            {left.length > 0 && (
+              <div style={{ marginTop: SPACE.block }}>
+                <RowHead>{tr("Left out")}</RowHead>
+                <div className="nsc-list">
+                  {left.map(([k, label, n]) => <ImportDoor key={k} label={label} value={nfmt(n)} tour={`import-left-${k}`} onTap={() => openSheet(<ImportLeftBody title={label} items={k === "notRead" ? null : f.left[k]} count={n} />)} />)}
+                </div>
+              </div>
+            )}
+            <div style={{ marginTop: SPACE.block }}>
+              <RowHead>{tr("In the chat")}</RowHead>
+              <div className="nsc-list" data-tour="import-people">
+                {(mine.labels || []).map(({ label, count }) => (
+                  <ImportDoor key={label} label={label} attrs={{ "data-label": label, "data-role": mine.roles[label] || "" }} sub={`${nfmt(count)} ${count === 1 ? tr("message") : tr("messages")}`} value={roleWord(label)}
+                              onTap={() => openSheet(<ImportRoleBody label={label} labels={mine.labels} roles={mine.roles} forFirst={forFirst} close={closeSheet} onPick={(r) => lib.setRole(label, r)} />)} />
+                ))}
+              </div>
+            </div>
+            <div className="nsc-list" style={{ marginTop: SPACE.block }}>
+              {!lone && <ImportDoor label={tr("For")} tour="import-for" value={forP ? <><span style={{ color: t.ink }}>{forP.name}</span>{lib.mainSide(mine) ? <span style={{ color: t.sub }}>{` ${lib.mainSide(mine)}`}</span> : null}</> : null}
+                                    onTap={() => openSheet(<ImportWhoBody people={people} label={lib.mainSide(mine) || ""} close={closeSheet} onPick={(id) => lib.setFor(id)} />)} />}
+              <ImportDoor label={tr("Sport")} tour="import-sport" value={(SPORTS[mine.sport] || {}).label || null}
+                          onTap={() => openSheet(<ImportSportBody ids={Object.keys(SPORTS)} picked={mine.sport} close={closeSheet} onPick={(s) => lib.setSport(s)} />)} />
+            </div>
+            {mine.needOrder && (
+              <div style={{ marginTop: SPACE.block }} data-tour="import-order">
+                <RowHead>{tr("Dates")}</RowHead>
+                <TileGrid cols={2}>{(mine.orderTiles || []).map((o) => <ActTile key={o.order} h={52} label={o.label} on={mine.order === o.order} onTap={() => lib.setOrder(o.order)} />)}</TileGrid>
+              </div>
+            )}
+            <div style={{ marginTop: SPACE.section }}>
+              <Button tour="import-sort" disabled={!ok} onClick={sortNow}>{tr("Sort into lessons")}</Button>
+              <div data-tour="import-consent" className="mt-3">
+                <p style={{ ...TYPE.small, color: t.sub }}>{`${tr("Only")} ${firstOfName(coachName) || tr("the coach")}${tr("'s messages go to Anthropic to be sorted · no photo, video or voice note is sent")}`}</p>
+                <p className="mt-1" style={{ ...TYPE.small, color: t.sub }}>{tr("Names Nosca knows, numbers, links and common health and payment words are taken out")}</p>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-x-5">
+                <TextBtn tour="import-preview" color={t.accent} onClick={() => openSheet(<ImportWhatBody text={ok ? lib.blockText(lib.previewBody()) : ""} />)}>{tr("See what is sent")}</TextBtn>
+                <TextBtn tour="import-privacy" color={t.accent} onClick={() => push("legal:privacy")}>{tr("Privacy")}</TextBtn>
+              </div>
+              {preview && (
+                <pre data-tour="import-inline-preview" className="mt-3 whitespace-pre-wrap" style={{ ...TYPE.small, fontFamily: ui, color: t.sub, background: t.wash, borderRadius: R.control, padding: 12, overflowWrap: "anywhere" }}>
+                  {more ? preview : preview.split("\n").slice(0, 6).join("\n")}
+                  {!more && preview.split("\n").length > 6 && <>{"\n"}<TextBtn color={t.accent} onClick={() => setMore(true)}>{tr("more")}</TextBtn></>}
+                </pre>
+              )}
+            </div>
+          </div>
+        </Screen>
+      </SwipeBack>
+    );
+  }
+
+  /* ---------------------------------------------------------------- A DAY */
+  const rowsByIso = mine.rowsByIso || {};
+  if (viewNow === "day" && rowsByIso[mine.dayIso]) {
+    const r = rowsByIso[mine.dayIso];
+    const day = lib.dayOfIso(r.iso);
+    const forP = people.find((p) => p.id === r.forId) || null;
+    const coachImport = coachSide;
+    const kids = (data.dependants || []).filter((k) => targets.some((x) => x.player_id === k.id));
+    const showFor = coachImport || kids.length > 1;
+    const areas = (SPORTS[mine.sport] || cfg).focus || [];
+    const inNote = new Set([...(r.chosen.note || []), ...(r.chosen.tip || []), ...(r.chosen.drills || [])].map((x) => `${x.mi}|${x.si}`));
+    const fmtTime = (x) => `${(x.h % 12) || 12}:${String(x.min).padStart(2, "0")} ${x.h < 12 ? "am" : "pm"}`;
+    return (
+      <SwipeBack onBack={back}>
+        <Screen title={lib.dayWithYear(r.iso)} onBack={back}>
+          <div className="px-6 pb-10" data-tour="import-day" data-day={r.iso}>
+            <div className="nsc-list">
+              <div className="flex items-center justify-between gap-3" style={{ minHeight: 56 }}>
+                <span style={{ ...TYPE.body, color: t.ink }}>{tr("In the import")}</span>
+                {r.leftOut ? <span style={{ ...TYPE.body, color: t.sub }}>{tr("Left out")}</span>
+                  : <span data-tour="import-day-in"><Toggle on={r.ticked} onChange={(v) => { if (!r.locked) lib.setTicked(r.iso, v); }} /></span>}
+              </div>
+              {showFor && <ImportDoor label={tr("For")} tour="import-day-for" value={forP ? forP.name : null}
+                                      onTap={() => openSheet(<ImportWhoBody people={coachImport ? people : people.filter((p) => kids.some((k) => k.id === p.id))} label={lib.mainSide(mine) || ""} close={closeSheet} onPick={(id) => lib.setDayFor(r.iso, id)} />)} />}
+            </div>
+            <div style={{ marginTop: SPACE.block }}>
+              <RowHead>{tr("Worked on")}</RowHead>
+              <FocusGrid areas={areas} picked={r.focusIds} cols={2} h={46} tour="import-day-focus"
+                         onToggle={(id) => lib.setDayFocus(r.iso, r.focusIds.includes(id) ? r.focusIds.filter((x) => x !== id) : [...r.focusIds, id])} />
+            </div>
+            <div style={{ marginTop: SPACE.block }} data-tour="import-day-note">
+              {coachImport
+                ? <VoiceArea value={r.note || ""} onChange={(v) => lib.setDayNote(r.iso, v)} rows={4} max={4000} ph={r.junior ? `${tr("Notes start empty for")} ${firstOfName(forP && forP.name)} · ${tr("tap a line to add it")}` : tr("Notes")} />
+                : r.note
+                  ? <p className="whitespace-pre-wrap" data-note="" style={{ ...TYPE.body, color: t.ink, background: t.wash, borderRadius: R.control, padding: "12px 14px", overflowWrap: "anywhere" }}>{r.note}</p>
+                  : <p style={{ ...TYPE.small, color: t.sub }}>{r.junior ? `${tr("Notes start empty for")} ${firstOfName(forP && forP.name)} · ${tr("tap a line to add it")}` : tr("Notes")}</p>}
+            </div>
+            {r.files.length > 0 && (
+              <div style={{ marginTop: SPACE.block }}>
+                <RowHead>{tr("Files")}</RowHead>
+                <div className="nsc-list">
+                  {r.files.map((x) => (
+                    <button key={x.name} data-tour="import-day-file" data-file={x.name} data-on={x.ticked ? "1" : "0"} onClick={() => { haptic(6); lib.setDayFile(r.iso, x.name, !x.ticked); }}
+                            className="w-full flex items-center gap-3 text-left active:opacity-60" style={{ minHeight: 56 }}>
+                      <span className="flex-1 min-w-0">
+                        <span className="block" style={{ ...TYPE.body, color: t.ink }}>{x.kind === "video" ? tr("Video") : x.kind === "photo" ? tr("Photo") : tr("Voice note")}</span>
+                        <Facts parts={[x.time, firstOfName(x.who), x.reason]} style={{ ...TYPE.small, color: x.reason ? CAUTION : t.sub }} />
+                      </span>
+                      <TickBox on={x.ticked} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div style={{ marginTop: SPACE.block }}>
+              <RowHead>{tr("Messages")}</RowHead>
+              <div className="nsc-list" data-tour="import-day-messages">
+                {(day ? day.msgs : []).map((x, mi) => (
+                  <div key={mi} className="py-2.5">
+                    <span className="block" style={{ ...TYPE.caption, color: t.sub }}>{`${fmtTime(x)} · ${firstOfName(x.who)}`}</span>
+                    {x.side === "C" && x.segs.length ? x.segs.map((sg, si) => {
+                      const on = inNote.has(`${mi}|${si}`);
+                      return (
+                        <button key={si} data-tour="import-day-line" data-in={on ? "1" : "0"} data-held={sg.held ? "1" : "0"} onClick={() => { haptic(6); lib.toggleLine(r.iso, mi, si); }}
+                                className="block w-full text-left active:opacity-60"
+                                style={{ ...TYPE.body, color: t.ink, padding: "2px 0 2px 10px", borderLeft: `3px solid ${on ? t.accent : "transparent"}`, overflowWrap: "anywhere" }}>
+                          {x.body.slice(sg.start, sg.end)}
+                          {sg.held && <span data-held-tag="" style={{ ...TYPE.small, color: CAUTION }}>{` · ${tr("Held back")}`}</span>}
+                        </button>
+                      );
+                    }) : (x.body ? <p style={{ ...TYPE.body, color: t.ink, paddingLeft: 13, overflowWrap: "anywhere", whiteSpace: "pre-wrap" }}>{x.body}</p> : null)}
+                    {x.file && <span className="block" style={{ ...TYPE.small, color: t.sub, paddingLeft: 13 }}>{x.file.kind === "video" ? tr("Video") : x.file.kind === "photo" ? tr("Photo") : x.file.kind === "audio" ? tr("Voice note") : tr("File")}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+            {r.leftOut && <div style={{ marginTop: SPACE.section }}><Button tour="import-make" onClick={() => { hapticCommit(); lib.makeLesson(r.iso); lib.view("review"); }}>{tr("Make a lesson")}</Button></div>}
+          </div>
+        </Screen>
+      </SwipeBack>
+    );
+  }
+
+  /* ---------------------------------------------------------------- LEFT OUT */
+  if (viewNow === "leftout") {
+    const list = mine.leftOut || [];
+    return (
+      <SwipeBack onBack={back}>
+        <Screen title={tr("Left out")} onBack={back}>
+          <div className="px-6 pb-10">
+            {list.length === 0 ? <EmptyLine>{tr("Nothing left out")}</EmptyLine> : (
+              <div className="nsc-list" data-tour="import-leftout-list">
+                {list.map((r) => (
+                  <ImportDoor key={r.iso} label={fmtDayYear(r.iso)} attrs={{ "data-day": r.iso, "data-tour": "import-left-row" }}
+                              value={r.recapInto ? `${tr("Recap · added to")} ${fmtWeekDay(localDate(r.recapInto))}` : r.first || null}
+                              onTap={() => lib.view("day", r.iso)} />
+                ))}
+              </div>
+            )}
+          </div>
+        </Screen>
+      </SwipeBack>
+    );
+  }
+
+  /* ---------------------------------------------------------------- REVIEW */
+  const sort = mine.sort || { total: 0, done: 0, status: "done" };
+  const rows = mine.rows || [];
+  const toCheck = rows.filter((r) => !r.ticked && r.reason && !r.locked);
+  const showFilter = rows.length > 8 && toCheck.length > 0;
+  const shown = showFilter && mine.filter === "check" ? toCheck : rows;
+  const ticked = rows.filter((r) => r.ticked);
+  const sorting = mine.phase === "sorting" && sort.status === "running";
+  const over = lib.overRoom(mine);
+  const forP = people.find((p) => p.id === mine.forId) || { name: "" };
+  const forJunior = !!((data.roster || []).concat(data.dependants || []).find((x) => x.id === mine.forId) || {}).junior;
+  const coachP = coachSide ? { name: me.name } : coachFor(mine.forId) || { name: data.coachName || "" };
+  const guardians = coachSide ? (((data.roster || []).find((x) => x.id === mine.forId) || {}).guardians || [])
+    : (((data.family && data.family.members) || []).filter((m) => !m.junior).map((m) => m.name));
+  const audience = [forP.id === me.id ? null : firstOfName(forP.name), ...(forJunior ? guardians.filter((g) => g !== me.name) : []), coachSide ? null : coachP.name].filter(Boolean);
+  const told = coachSide ? [firstOfName(forP.name), ...(forJunior ? guardians.map(firstOfName) : [])]
+    : [firstOfName(coachP.name), ...(forP.id !== me.id ? [firstOfName(forP.name)] : []), ...(forJunior ? guardians.filter((g) => g !== me.name).map(firstOfName) : [])];
+  const progress = sort.status === "offline" ? tr("Offline")
+    : sort.status === "paused" ? tr("Sorting is paused")
+    : sort.status === "over" ? tr("Today's limit is reached")
+    : sort.status === "signin" ? tr("Sign in again to carry on")
+    : sort.status === "failed" ? `${nOf(sort.failed || 0, "day", "days")} ${tr("not sorted")}`
+    : sort.status === "running" ? `${tr("Sorting")} · ${sort.done || 0} ${tr("of")} ${nOf(sort.total || 0, "day", "days")}` : null;
+  const retry = sort.status === "paused" || sort.status === "failed" || sort.status === "signin";
+  const goImport = () => {
+    if (sorting || !ticked.length || over) return;
+    hapticCommit();
+    const pid = mine.forId; const kid = forJunior && !coachSide && pid !== me.id;
+    lib.importNow().then((r) => { if (r && r.error) say(r.error); });
+    onLanded(pid, kid);
+  };
+  if (mine.listView === "feed" && ticked.length > 0) {
+    const drafts = ticked.map((r) => ({ id: `draft:${r.iso}`, focus: r.focus, note: r.note, iso: r.iso, d: String(localDate(r.iso).getDate()).padStart(2, "0"), m: WIZ_MONTHS[localDate(r.iso).getMonth()],
+      type: r.kind === "practice" ? "Practice" : "Private", media: 0, videos: 0, practice: r.kind === "practice" }));
+    return (
+      <SwipeBack onBack={() => lib.setListView("list")}>
+        <div className="relative h-full" data-tour="import-feed">
+          <LessonFeed lessons={drafts} mediaFor={() => []} showWho={false} cfg={cfg} view="feed" setView={(v) => lib.setListView(v)} onOpen={(l) => lib.view("day", String(l.id).slice(6))}
+                      right={<button onClick={() => { haptic(6); lib.setListView("list"); }} aria-label={tr("Back")} className="flex items-center justify-center active:opacity-50" style={{ width: 36, height: 36 }}><ChevronLeft size={22} color={t.ink} strokeWidth={2.1} /></button>} />
+        </div>
+      </SwipeBack>
+    );
+  }
+  return (
+    <SwipeBack onBack={back}>
+      <Screen title={tr("Import")} onBack={back}>
+        <div className="px-6" style={{ paddingBottom: 160 }} data-tour="import-review">
+          {progress && (
+            <div data-tour="import-progress" data-status={sort.status} style={{ marginBottom: SPACE.tight }}>
+              <div className="flex items-center justify-between gap-3">
+                <span style={{ ...TYPE.small, color: sort.status === "running" ? t.sub : CAUTION }}>{progress}</span>
+                {retry && <TextBtn tour="import-sort-retry" color={t.accent} onClick={() => lib.retrySorting()}>{tr("Retry")}</TextBtn>}
+              </div>
+              {sort.status === "running" && (
+                <div className="mt-1.5 rounded-full overflow-hidden" style={{ height: 4, background: t.wash }}>
+                  <div data-tour="import-track" style={{ height: 4, width: `${sort.total ? Math.round((100 * (sort.done || 0)) / sort.total) : 0}%`, background: t.accent, transition: "width 300ms ease-out" }} />
+                </div>
+              )}
+            </div>
+          )}
+          {audience.length > 0 && <p data-tour="import-audience" style={{ ...TYPE.small, color: t.sub, marginBottom: SPACE.block }}>{`${andList(audience)} ${tr("will see these lessons")}`}</p>}
+          <RowHead>{nOf(ticked.length, "lesson", "lessons")}</RowHead>
+          {rows.length > 0 && <div style={{ marginBottom: SPACE.tight }}><Segmented tour="import-view" options={[tr("List"), tr("Feed")]} value={mine.listView === "feed" ? tr("Feed") : tr("List")} onChange={(o) => lib.setListView(o === tr("Feed") ? "feed" : "list")} /></div>}
+          {showFilter && <div style={{ marginBottom: SPACE.tight }}><Segmented tour="import-filter" options={[tr("All"), `${tr("To check")} ${toCheck.length}`]} value={mine.filter === "check" ? `${tr("To check")} ${toCheck.length}` : tr("All")} onChange={(o) => lib.setFilter(o === tr("All") ? "all" : "check")} /></div>}
+          {shown.length > 0 && (
+            <div className="nsc-list">
+              {shown.map((r, i) => {
+                const two = people.length > 1 && coachSide && r.forId !== mine.forId ? (people.find((p) => p.id === r.forId) || {}).name : null;
+                const second = r.reason && !r.ticked ? r.reason : two || (r.fileCount ? nOf(r.fileCount, "file", "files") : null);
+                const tickable = !r.locked && !r.sleep;
+                return (
+                  <div key={r.iso} data-tour="import-row" data-state={r.state} data-day={r.iso} data-on={r.ticked ? "1" : "0"} className="flex items-center gap-2"
+                       style={{ minHeight: 64, animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
+                    <button onClick={() => { haptic(6); lib.openedDay(r.iso); lib.view("day", r.iso); }} className="flex-1 min-w-0 flex items-center gap-3.5 text-left active:opacity-50" style={{ paddingTop: 8, paddingBottom: 8 }}>
+                      <Poster item={null} sport={mine.sport} />
+                      <span className="flex-1 min-w-0">
+                        <Facts parts={String(r.focus || "").split(" · ")} attrs={{ "data-focus": "" }} style={{ ...TYPE.body, fontWeight: 600, color: t.ink }} />
+                        <span className="block mt-0.5" style={{ ...TYPE.small, color: t.sub }}>
+                          {fmtDayYear(r.iso)}{second ? <> · <span data-reason={r.reason && !r.ticked ? "1" : undefined} style={{ color: r.reason && !r.ticked ? CAUTION : t.sub }}>{second}</span></> : null}
+                        </span>
+                      </span>
+                    </button>
+                    <button data-tour="import-tick" aria-label={tr("In the import")} disabled={!tickable} onClick={() => { if (!tickable) return; haptic(6); lib.setTicked(r.iso, !r.ticked); }}
+                            className="shrink-0 flex items-center justify-center" style={{ width: 44, height: 44, opacity: tickable ? 1 : 0.45 }}>
+                      <TickBox on={r.ticked} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {(mine.leftOut || []).length > 0 && (
+            <div className="nsc-list" style={{ marginTop: SPACE.block }}>
+              <ImportDoor label={tr("Left out")} tour="import-leftout" value={nOf(mine.leftOut.length, "day", "days")} onTap={() => lib.view("leftout")} />
+            </div>
+          )}
+        </div>
+        <div className="sticky bottom-0 px-6 pt-3" style={{ background: t.page, paddingBottom: 18 }}>
+          <Button tour="import-go" disabled={sorting || !ticked.length || !!over} onClick={goImport}>{sorting ? tr("Sorting…") : `${tr("Import")} ${nOf(ticked.length, "lesson", "lessons")}`}</Button>
+          <p data-tour="import-told" className="mt-2 text-center" style={{ ...TYPE.small, color: t.sub }}>
+            {over ? `${tr("600 at most for")} ${firstOfName((people.find((p) => p.id === over.pid) || {}).name)} · ${over.n} ${tr("ticked")}`
+              : told.filter(Boolean).length ? `${andList(told.filter(Boolean))} ${told.filter(Boolean).length === 1 ? tr("is told once") : tr("are told once")}` : null}
+          </p>
+        </div>
+      </Screen>
+    </SwipeBack>
+  );
+}
+
 function UploadStatus({ uploads, onRetry, onDismiss }) {
   const t = useT();
   const [busy, setBusy] = useState(false);
@@ -20666,8 +21362,26 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const downloads = useDownloads({ owner: account ? account.id : null, loader: data ? data.lessonMedia : null });
   const downloadsRef = useRef(downloads); downloadsRef.current = downloads;
   const dataRef = useRef(data); dataRef.current = data;
-  /* the lesson page's import line reads who is looking; Remove arrives with the Import screen */
-  const importCtx = useMemo(() => ({ meId: account ? account.id : null, mayRemove: () => false, removeOne: null }), [account && account.id]);
+  /* THE IMPORT (docs/import/SPEC.md): the sheet its pickers use; the lesson page's line reads who
+     is looking and who may remove; an import interrupted on this phone shows its banner from the start */
+  const [importSheet, setImportSheet] = useState(null);
+  const importRemoveRef = useRef(null);
+  const importCtx = useMemo(() => ({
+    meId: account ? account.id : null,
+    mayRemove: (l) => { if (!data || !l || !l.importId) return false; const b = (data.imports || []).find((x) => x.id === l.importId); return mayRemoveImport(b, importMeOf(account, data)); },
+    removeOne: data ? (l) => { if (importRemoveRef.current) importRemoveRef.current(l); } : null,
+  }), [account && account.id, data && data.imports, data && data.dependants, data && data.me]);
+  const importLine = useImportSummary();
+  useEffect(() => {
+    if (!account || !data || !data.canImport) return;
+    listImports(account.id).then((rows) => { if ((rows || []).some((r) => r.run && r.run.batches && Object.keys(r.run.batches).length)) loadImportLib().then((m) => m.lookForInterrupted()); }).catch(() => {});
+  }, [account && account.id, data && data.canImport]);
+  useEffect(() => {
+    /* back to the front, or the network back: a file that failed for want of it goes again */
+    const back = () => { if (document.visibilityState === "visible" && IMPORT_LIB) IMPORT_LIB.wakeUp(); };
+    document.addEventListener("visibilitychange", back); window.addEventListener("online", back);
+    return () => { document.removeEventListener("visibilitychange", back); window.removeEventListener("online", back); };
+  }, []);
   /* an imported lesson removed by anyone leaves this phone on the next load that reached the server */
   const loadedAt = data ? data.loadedAt : 0;
   useEffect(() => {
@@ -22178,6 +22892,50 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (stack.length === 1 && stack[0] === s) { dropMemory(`1:${s}`); window.dispatchEvent(new CustomEvent("nosca:top")); return; }
     setStack([s]);
   };
+  /* THE IMPORT: offered only with all four of the SQL, the function's key, somebody to import for, and an
+     account that is not a junior's; the job's context, refreshed on every render; where Import lands */
+  const importOn = !!(data && account && data.canImport && data.importReady && !juvenile && (data.importTargets || []).length);
+  const importFor = (pid) => importOn && (data.importTargets || []).some((x) => x.player_id === pid);
+  const importCoachFor = (pid) => {
+    if (!data || !account) return null;
+    if (role === "coach") return { id: account.id, name: account.name };
+    if (pid === account.id) return { id: data.coachId, name: data.coachName || "" };
+    const k = (data.dependants || []).find((x) => x.id === pid); return k ? { id: k.coachId, name: k.coachName || "" } : null;
+  };
+  const openImportSheet = (el) => { setImportSheet(el); setSheet("import"); };
+  const closeImportSheet = () => setSheet(null);
+  const importLanded = (pid, kid) => {
+    dropDeeperMemory(1);
+    if (role === "coach") { IMPORT_FEED_FOR = pid; setStack(["roster", `player:${pid}`]); return; }
+    setHomeView("feed"); setStack([kid || parentAccount ? "log" : "home"]);
+  };
+  if (data && account) {
+    const juniorOf = (p) => !!(p && (p.junior || p.account_type === "junior"));
+    importJob.setCtx({
+      meId: account.id, meName: account.name, isCoach: role === "coach", coachName: data.coachName || "", coachFor: importCoachFor,
+      sport: role === "coach" ? (coachSport || sport) : sport, maxMb: MAX_UPLOAD_MB,
+      people: [...(data.roster || []).map((p) => ({ id: p.id, name: p.name, junior: juniorOf(p), sport: p.sport, role: "player" })),
+               ...(((data.family && data.family.members) || []).map((m) => ({ id: m.id, name: m.name, junior: !!m.junior, sport: m.sport, role: m.role }))),
+               ...(data.dependants || []).map((k) => ({ id: k.id, name: k.name, junior: true, sport: k.sport, role: "player" })),
+               { id: account.id, name: account.name, junior: !!juvenile, sport, role }],
+      targets: data.importTargets || [], lessons: data.lessons || [], imports: data.imports || [],
+      forParam: screen.startsWith("chatImport:") ? screen.slice("chatImport:".length) : null,
+      api: { importBegin: data.importBegin, importLessons: data.importLessons, importUpload: data.importUpload, importList: data.importList,
+             importHashes: data.importHashes, undoImport: data.undoImport, importSort: data.importSort },
+      done, say, land: (pid) => importLanded(pid, role !== "coach" && pid !== account.id),
+    });
+  }
+  importRemoveRef.current = (l) => {
+    if (!data || !account) return;
+    const b = (data.imports || []).find((x) => x.id === l.importId); if (!b) return;
+    openImportSheet(<ImportRemoveBody count={1} who={l.who || null} own={b.importedBy === account.id} verify={data.verifyPassword} close={closeImportSheet}
+                                      onRemove={async () => { const r = await data.undoImport(b.id, l.id); if (!(r && r.error)) { done(tr("Removed"), nOf(1, "lesson", "lessons")); pop(); } return r; }} />);
+  };
+  const importLogProps = data ? {
+    emptyAction: importOn && role !== "coach" ? <Button tour="lessons-import" onClick={() => push("chatImport")}>{tr("Import")}</Button> : null,
+    top: <ImportBanner onOpen={() => push("chatImport")} />,
+    feedPill: <ImportBanner pill onOpen={() => push("chatImport")} />,
+  } : {};
   const defaultView = (prefs && prefs.defaultView) || viewPref || (role === "coach" ? "list" : "feed");
   const homeViewNow = homeView || defaultView;
   const setDefaultView = (v) => {
@@ -22242,7 +23000,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     /* With a real account this must end the actual session, not just
        reset the demo's own state — otherwise there is no way back to
        the sign-in screen, because Supabase remembers you. */
-    if (account && onSignOut) { onSignOut(); return; }
+    if (account && onSignOut) {
+      /* an import's manifest goes with the session */
+      clearImports(account.id).catch(() => {}); if (IMPORT_LIB) IMPORT_LIB.abandon(); importJob.set(null);
+      onSignOut(); return;
+    }
     setFlow("role"); setPublished(null); setStack(["today"]); setMini(null); setJuvenile(false);
   };
   /* Publishing is the end of the flow. The burst plays over whatever
@@ -22853,6 +23615,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        the player themselves, or an adult reading a junior's thread */
     if (scr === "thread" && d.id && !juvenile) { land(["messages", `thread:${d.id}`]); return; }
     if (scr === "tips") { land([home, "tips"]); return; }
+    /* an import's notices: the coach on the player's file, the importer on Import */
+    if (scr === "player" && d.id && role === "coach") { land(["roster", `player:${d.id}`]); return; }
+    if (scr === "chatImport") { land([home, "chatImport"]); return; }
     /* A BOOKING'S NOTICE OPENS ON ITS DAY. "Lesson confirmed · Thu 24
        Sep" opened the Diary wherever it had last been — today, or the
        month last looked at — and the lesson it named was a hunt away.
@@ -23018,6 +23783,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     startOn, setStartOn, prefs: role === "coach" ? prefs : null, setPrefs,
     startOptions: [{ id: "auto", label: tr("Automatic") }, ...tabs.filter((tb) => tb.id !== "quick").map((tb) => ({ id: tb.id, label: tb.label }))],
     pop, push, go, sheet: setSheet, say, restart,
+    importRow: importOn ? { label: tr("Import"), tour: "settings-import", onTap: () => push("chatImport"), keys: ["whatsapp", "chat", "history", "export", "old lessons", "messages", "upload", "import", "players"],
+      sub: importLine || (() => { const b = (data.imports || []).filter((x) => x.status === "done").sort((a, c) => String(c.doneAt || c.createdAt).localeCompare(String(a.doneAt || a.createdAt)))[0];
+        if (!b) return null; const p = [...(data.roster || []), ...(data.dependants || [])].find((x) => x.id === b.playerId); return `${nOf(b.lessons, "lesson", "lessons")}${p ? ` · ${p.name}` : b.playerId === account.id ? ` · ${account.name}` : ""}`; })() } : null,
   });
   if (needsCoach) {
     /* a join link opened by this person arrives with the code filled in */
@@ -23151,6 +23919,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const isGroupThread = Object.values(groups).flat().some((g) => g.name === threadName);
     body = <Thread role={role} name={threadName} isGroup={isGroupThread} pop={pop} say={say} />;
   } else if (screen === "install") { body = <InstallScreen pop={pop} />;
+  } else if ((screen === "chatImport" || screen.startsWith("chatImport:")) && data && account) {
+    /* the Import screen: a real account's only, never the harness's or the walkthrough's */
+    body = importOn || (importJob.get() && importJob.get().owner === account.id)
+      ? <ImportScreen data={data} me={{ ...importMeOf(account, data), name: account.name }} role={role} cfg={cfg} pop={pop} push={push} say={say} done={done}
+                      openSheet={openImportSheet} closeSheet={closeImportSheet} onLanded={importLanded} coachFor={importCoachFor} />
+      : <SwipeBack onBack={pop}><Screen title={tr("Import")} onBack={pop}><EmptyLine className="px-6">{tr("Import isn't available")}</EmptyLine></Screen></SwipeBack>;
   } else if (screen.startsWith("legal:")) { body = <Legal docKey={screen.split(":")[1]} pop={pop} />;
   } else if (screen.startsWith("player:")) {
     const pkey = screen.slice("player:".length);
@@ -23158,6 +23932,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const pname = pl ? pl.name : pkey;
     body = <RosterPlayer onDownload={downloadLesson} name={pname} live={data ? data.roster : null} sportTool={TOOLS[sport]} lessons={data ? taught(data.lessons) : null}
                         note={pl ? playerNotes[pl.id] || null : null} onNote={data && pl ? () => { setNoteFor(pl); setSheet("playerNote"); } : null}
+                        onImport={pl && importFor(pl.id) ? () => push(`chatImport:${pl.id}`) : null}
+                        importValue={pl && data ? (() => { const n = (data.imports || []).filter((b) => b.playerId === pl.id && b.status === "done").reduce((a, b) => a + (b.lessons || 0), 0); return n ? nOf(n, "lesson", "lessons") : null; })() : null}
                         player={pl} tip={pl ? (((data.tips || []).find((tp) => tp.playerId === pl.id) || {}).title || null) : null}
                         stage={pl && lastFor && lastFor[pl.id] ? lastFor[pl.id].stage : null}
                         onOpenLesson={(l) => push(`clesson:${l.id}:${pname}`)} onAllLessons={() => push("archive:" + (pl ? pl.id : pname))} seriesFor={data ? (mySeries.find((x) => pl && x.playerId === pl.id) || mySeries.find((x) => x.who === pname)) : series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurId(null); setRecurFor(personOf(n)); setSheet("recurring"); }}
@@ -23714,7 +24490,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        map entry and the fallback — byte for byte, so every change had
        to be made in both or the two homes drifted apart. */
     const coachToday = (
-      <CoachToday right={slimRight} sport={sport} banner={data && data.uploads ? <UploadStatus uploads={data.uploads} onRetry={data.retryUploads} onDismiss={data.dismissUploads} /> : null}
+      <CoachToday right={slimRight} sport={sport} banner={data ? <><ImportBanner onOpen={() => push("chatImport")} />{data.uploads ? <UploadStatus uploads={data.uploads} onRetry={data.retryUploads} onDismiss={data.dismissUploads} /> : null}</> : null}
                   dateLine={`${DAY_NAMES[dowToday]} ${todayMD.d} ${monthName(todayMD.m)}`}
                   nouns={cfg.nouns}
                   today={data ? (todayList || []) : freshAccount ? [] : TODAY_SCHEDULE}
@@ -23773,8 +24549,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        a real account reaches it through the gate above. */
     if (sc && screen === "nocoach") { body = <NoCoach juvenile={juvenile} onJoin={async () => ({})} />; bare = true; }
     else body = {
-      home:   <PlayerLog view={homeViewNow} setView={setHomeView} onDownload={downloadLesson} cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
-      log:    <PlayerLog view={homeViewNow} setView={setHomeView} onDownload={downloadLesson} cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
+      home:   <PlayerLog view={homeViewNow} setView={setHomeView} onDownload={downloadLesson} cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} {...importLogProps} />,
+      log:    <PlayerLog view={homeViewNow} setView={setHomeView} onDownload={downloadLesson} cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} {...importLogProps} />,
       lesson: <PlayerLesson {...shared} pop={pop} push={push} toggleSave={toggleSave} minimise={(clip, lid) => { setMini({ label: clip, id: lid }); go("log"); say("Playing in the corner"); }}
                             lessonId={screen.startsWith("lesson:") ? screen.slice(7) : null}
                             mediaFor={data ? mediaFor : null} compareLessons={data ? playerLessons : null} knownMedia={data ? liveMedia : null}
@@ -23787,7 +24563,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                             onBook={data ? ((l) => { const kid = (data.dependants || []).find((k) => k.id === l.playerId); if (kid) { setBookFor(kid); go("calendar"); } else if (!parentAccount) go("calendar"); }) : () => go("calendar")}
                             onDownload={(l) => downloadLesson(l)}
                             onRate={data && !data.myReview ? () => push("coachProfile") : null} />,
-    }[screen.startsWith("lesson:") ? "lesson" : screen] || <PlayerLog view={homeViewNow} setView={setHomeView} onDownload={downloadLesson} cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />;
+    }[screen.startsWith("lesson:") ? "lesson" : screen] || <PlayerLog view={homeViewNow} setView={setHomeView} onDownload={downloadLesson} cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} {...importLogProps} />;
   }
 
   return (
@@ -24489,6 +25265,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                                    done(tr("Sent"), replyFor.who);
                                                                    return res;
                                                                  }} />
+              : sheet === "import" && importSheet ? importSheet
               : null}
           </Sheet>
           {sheet === "clipCapture" && (
