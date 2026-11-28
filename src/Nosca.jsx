@@ -9740,7 +9740,7 @@ const HomeRow = ({ label, value, tone, onPress, tour, boxed = false, danger = fa
   return (
     <button data-tour={tour} data-row-door="" data-hue={hue ? hue.slice(2) : undefined} onClick={() => { haptic(8); soft(); onPress && onPress(); }}
             className={`w-full flex items-center gap-3.5 text-left ${boxed ? "" : "active:opacity-50"}`}
-            style={{ minHeight: 60, borderBottom: boxed ? undefined : RULE.hair(t.ink), ...(hue ? cardOf(t, hue) : null) }}>
+            style={{ minHeight: 60, borderBottom: boxed ? undefined : RULE.hair(t.ink), ...(hue ? cardOf(t, hue) : danger && boxed ? cardOf(t, HUE.red) : null) }}>
       <span data-row-label="" className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: pill ? 600 : 400, color: danger ? DANGER : t.ink }}>{label}</span>
       {pill && value != null && value !== "" ? <CountPill n={value} hue={hue} />
         : <span className="shrink-0 truncate" style={{ ...TYPE.body, color: tone || t.sub, maxWidth: "55%" }}>{value}</span>}
@@ -9873,13 +9873,16 @@ const TimeList = ({ times, picked, onPick, tour, muted = false }) => {
      its corners). */
   if (!times.length) return null;
   return (
-    <div data-tour={tour} className="nsc-day">
+    /* the free times are the Diary's own chips (28 November): white keys on
+       the pale card, a picked one the chosen answer */
+    <div data-tour={tour} className="nsc-day nsc-chips" style={{ padding: 8, display: "flex", flexDirection: "column", gap: 8 }}>
       {times.map((x) => {
         const on = picked === x;
         return (
           <button key={x} onClick={() => { haptic(8); soft(); onPick(x); }}
                   className="w-full flex items-center gap-3 px-3.5 text-left active:opacity-50"
-                  style={{ minHeight: 50, borderBottom: `1px solid ${t.hair}`, background: on ? SEL(t).face : undefined, transition: "background 180ms" }}>
+                  style={{ minHeight: 50, borderRadius: 14, background: on ? SEL(t).face : "#FFFFFF", border: `2px solid ${on ? SEL(t).ring : "var(--card-ring)"}`,
+                           boxShadow: `0 3px 0 ${on ? SEL(t).lip : "var(--card-ledge)"}`, transition: "background 180ms" }}>
             <span className="flex-1 truncate" style={{ ...TYPE.body, color: on ? SEL(t).fg : t.sub,
                            fontWeight: on ? 600 : 400, fontVariantNumeric: "tabular-nums lining" }}>{x}</span>
             {/* a read-only row (a junior's diary) offers nothing, so it carries no plus —
@@ -17849,7 +17852,7 @@ function DoorRow({ label, value, danger = false, onPress, tour, attrs }) {
   const t = useT();
   return (
     <button data-tour={tour} data-row-door="" {...(attrs || {})} onClick={() => { haptic(8); soft(); onPress && onPress(); }}
-            className="w-full flex items-center gap-3.5 text-left" style={{ minHeight: 60 }}>
+            className="w-full flex items-center gap-3.5 text-left" style={{ minHeight: 60, ...(danger ? cardOf(t, HUE.red) : null) }}>
       <span className="flex-1 min-w-0 flex flex-wrap items-baseline justify-between" style={{ columnGap: 14 }}>
         <span data-row-label="" style={{ ...TYPE.body, color: danger ? DANGER : t.ink, maxWidth: "100%" }}>{label}</span>
         {value && <span data-row-value="" className="min-w-0" style={{ ...TYPE.body, color: t.sub, maxWidth: "100%", overflowWrap: "break-word" }}>{value}</span>}
