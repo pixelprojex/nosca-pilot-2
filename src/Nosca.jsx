@@ -12356,6 +12356,52 @@ const FADE_MS = 450;                                      // the last moment's m
 const HOLD_MS = 900;                                      // Save rests on a moment this long after its marks arrive
 const secsLabel = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
+/* ONE TRANSPORT FOR THE CLIP TOOLS (28 November; C4, held since the visual
+   audit). Mark it up, Compare and Study each drew their own: a black disc
+   for play, two 32px outlined circles that answered a finger 32, a hollow
+   speed pill filled with the ink once on, the scrub in the ink — the old
+   look three times over, under keys of the app's own everywhere else. Now
+   they are the app's keys and drawn once: Play the one action, the sport's
+   deep lead on its own ledge, 44; a frame either way the round pale keys
+   the month's arrows are (36 drawn, reaching 44 through the gutter, the
+   chevron in the sport's colour); the scrub's fill the sport's colour, as
+   every progress fill is; the speed a word key, the chosen answer once it
+   is not full speed (SEL, never the ink); the time in the sub grey. The
+   selectors and the words each tool's suites read are kept (`tours`). */
+function ClipTransport({ tour, tours = {}, playing, onToggle, onStep, time, span, step = 0.05, onScrub, off = false, scrubOff = false, speed }) {
+  const t = useT();
+  const reach = (n) => <span aria-hidden="true" className="absolute" style={{ inset: -n }} />;
+  return (
+    <div className="flex items-center" style={{ gap: 8 }} data-tour={tour}>
+      <button onClick={onToggle} disabled={off} data-tour={tours.play} aria-label={playing ? tr("Pause") : tr("Play")}
+              className="relative flex items-center justify-center shrink-0 rounded-full n-key disabled:opacity-30"
+              style={{ width: 44, height: 44, background: t.accent, "--key-lip": LIP(t.accent) }}>
+        {playing ? <Pause size={17} color={t.onAccent} fill={t.onAccent} /> : <Play size={17} color={t.onAccent} fill={t.onAccent} style={{ marginLeft: 2 }} />}
+      </button>
+      {[[-1, ChevronLeft, tr("Back a frame"), tours.back], [1, ChevronRight, tr("On a frame"), tours.fwd]].map(([d, Ico, label, hook]) => (
+        <button key={d} onClick={() => onStep(d)} disabled={off} data-tour={hook} aria-label={label}
+                className="relative flex items-center justify-center shrink-0 rounded-full n-key disabled:opacity-30"
+                style={{ width: 36, height: 36, background: TINT(t), border: `${EDGE_W}px solid ${KEY_RING(t)}`, "--key-lip": TINT_LIP(t) }}>
+          {reach(4)}
+          <Ico size={18} color={t.accent} strokeWidth={2.4} />
+        </button>
+      ))}
+      <input type="range" min={0} max={Math.max(span || 0, 0.1)} step={step} value={Math.min(time, span || 0)} disabled={scrubOff} data-tour={tours.scrub}
+             onChange={(e) => onScrub(Number(e.target.value))} aria-label={tr("Scrub")}
+             className="flex-1 min-w-0" style={{ accentColor: t.accent, height: 36 }} />
+      {speed && (
+        <button onClick={speed.onTap} disabled={speed.off} aria-pressed={!!speed.on} aria-label={speed.aria} {...(speed.attrs || {})}
+                className="relative shrink-0 flex items-center justify-center n-key disabled:opacity-30"
+                style={{ minWidth: 44, height: 36, padding: "0 8px", borderRadius: 12, ...keyPick(t, !!speed.on), ...TYPE.caption, fontSize: 13, fontWeight: 700 }}>
+          {reach(4)}
+          {speed.label}
+        </button>
+      )}
+      <span style={{ ...TYPE.caption, color: t.sub, fontVariantNumeric: "tabular-nums", minWidth: 34, textAlign: "right" }}>{secsLabel(time)}</span>
+    </div>
+  );
+}
+
 /* One mark. `f` (0..1) is how much of it has been drawn: a line grows
    from its start, a circle from its centre, a pen stroke point by point
    — which is how a mark made before Record draws itself in for the
@@ -12900,7 +12946,10 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, onStill, onQ
   const cssW = fit ? Math.floor(dims.w * fit) : 0, cssH = fit ? Math.floor(dims.h * fit) : 0;
   fitRef.current = { w: cssW, h: cssH };
   const frozen = !dims || broken || rendering;                 // the transport while Save runs the clip itself
-  const round = (on) => ({ width: 40, height: 40, borderRadius: 20, background: on ? t.ink : "transparent" });
+  /* a tool is a round key of the app's (28 November): the sport's pale at
+     rest, the chosen answer once it is the tool in use — it was a bare glyph,
+     and the ink filled for the chosen one, black among the app's keys */
+  const round = (on) => ({ width: 40, height: 40, borderRadius: 20, ...keyPick(t, on) });
 
   /* THE SCREEN IS THE MARKUP SHEET OF A SCREENSHOT. The clip fills a dark
      stage from the header to a compact bar — no card, no 330px frame —
@@ -12967,24 +13016,9 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, onStill, onQ
             <div className="shrink-0 px-4" style={{ paddingTop: 10, paddingBottom: "calc(10px + env(safe-area-inset-bottom, 0px))", background: t.page }}>
               {!busy && (<>
                 {/* play, pause, scrub — while talking over it too: that is the point */}
-                <div className="flex items-center gap-2.5">
-                  <button onClick={toggle} disabled={frozen} aria-label={playing ? tr("Pause") : tr("Play")}
-                          className="flex items-center justify-center shrink-0 active:opacity-70 disabled:opacity-30"
-                          style={{ width: 40, height: 40, borderRadius: 20, background: t.ink }}>
-                    {playing ? <Pause size={16} color="#fff" fill="#fff" /> : <Play size={16} color="#fff" fill="#fff" style={{ marginLeft: 2 }} />}
-                  </button>
-                  <button onClick={() => stepFrame(-1)} disabled={frozen} aria-label={tr("Back a frame")} className="flex items-center justify-center shrink-0 disabled:opacity-30 n-key"
-                          style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}><ChevronLeft size={15} color={t.ink} strokeWidth={2.2} /></button>
-                  <button onClick={() => stepFrame(1)} disabled={frozen} aria-label={tr("On a frame")} className="flex items-center justify-center shrink-0 disabled:opacity-30 n-key"
-                          style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}><ChevronRight size={15} color={t.ink} strokeWidth={2.2} /></button>
-                  <input type="range" min={0} max={Math.max(dur, 0.1)} step={0.05} value={Math.min(time, dur || 0)} disabled={!dur || rendering}
-                         onChange={(e) => seek(Number(e.target.value))} aria-label={tr("Scrub")}
-                         className="flex-1 min-w-0" style={{ accentColor: t.ink }} />
-                  <button onClick={toggleSlow} disabled={rendering} aria-pressed={slow} aria-label={tr("Half speed")} className="shrink-0 active:opacity-60 disabled:opacity-30"
-                          style={{ minWidth: 40, height: 32, borderRadius: 16, padding: "0 8px", background: slow ? t.ink : "transparent", border: `${EDGE_W}px solid ${slow ? t.ink : EDGE(t)}`,
-                                   ...TYPE.caption, fontWeight: 700, color: slow ? "#fff" : t.ink }}>½×</button>
-                  <span style={{ ...TYPE.caption, color: t.sub, fontVariantNumeric: "tabular-nums", minWidth: 34, textAlign: "right" }}>{secsLabel(time)}</span>
-                </div>
+                <ClipTransport tour="markup-transport" playing={playing} onToggle={toggle} onStep={stepFrame} time={time} span={dur}
+                               onScrub={seek} off={frozen} scrubOff={!dur || rendering}
+                               speed={{ label: "½×", on: slow, onTap: toggleSlow, off: rendering, aria: tr("Half speed") }} />
 
                 {/* the tools, as a phone's markup draws them: icons, the one in use
                     filled. EVERY TOOL ON THE SCREEN AND 44 TO A FINGER (24
@@ -13001,15 +13035,15 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, onStill, onQ
                     const on = tool === id;
                     return (
                       <button key={id} aria-pressed={on} aria-label={tr(label)} title={tr(label)} onClick={() => { haptic(6); setTool(id); }}
-                              className="relative flex items-center justify-center shrink-0 active:opacity-70" style={round(on)}>
+                              className="relative flex items-center justify-center shrink-0 n-key" style={round(on)}>
                         <span aria-hidden="true" className="absolute" style={{ inset: -2 }} />
-                        <Ico size={19} color={on ? "#fff" : t.ink} strokeWidth={1.9} />
+                        <Ico size={19} color={on ? SEL(t).fg : t.ink} strokeWidth={1.9} />
                       </button>
                     );
                   })}
                   <span className="flex-1" />
                   <button onClick={still} disabled={!dims || broken} aria-label={tr("Photo")} title={tr("Photo")}
-                          className="relative flex items-center justify-center shrink-0 active:opacity-70 disabled:opacity-30" style={round(false)}>
+                          className="relative flex items-center justify-center shrink-0 n-key disabled:opacity-30" style={round(false)}>
                     <span aria-hidden="true" className="absolute" style={{ inset: -2 }} />
                     <Camera size={19} color={t.ink} strokeWidth={1.9} />
                   </button>
@@ -13353,34 +13387,22 @@ function ClipStudy({ lesson, mediaId, mediaFor, who, pop }) {
 
             {/* the transport, on the paper */}
             <div className="shrink-0 px-4" style={{ paddingTop: 10, paddingBottom: "calc(10px + env(safe-area-inset-bottom, 0px))", background: t.page }}>
-              <div className="flex items-center gap-2.5" data-tour="study-transport">
-                <button onClick={toggle} disabled={!ready} data-tour="study-play" aria-label={playing ? tr("Pause") : tr("Play")}
-                        className="flex items-center justify-center shrink-0 active:opacity-70 disabled:opacity-30"
-                        style={{ width: 40, height: 40, borderRadius: 20, background: t.ink }}>
-                  {playing ? <Pause size={16} color="#fff" fill="#fff" /> : <Play size={16} color="#fff" fill="#fff" style={{ marginLeft: 2 }} />}
-                </button>
-                <button onClick={() => stepFrame(-1)} disabled={!ready} data-tour="study-back" aria-label={tr("Back a frame")} className="flex items-center justify-center shrink-0 disabled:opacity-30 n-key"
-                        style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}><ChevronLeft size={15} color={t.ink} strokeWidth={2.2} /></button>
-                <button onClick={() => stepFrame(1)} disabled={!ready} data-tour="study-fwd" aria-label={tr("On a frame")} className="flex items-center justify-center shrink-0 disabled:opacity-30 n-key"
-                        style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}><ChevronRight size={15} color={t.ink} strokeWidth={2.2} /></button>
-                <input type="range" min={0} max={Math.max(span, 0.1)} step={0.02} value={Math.min(time, span || 0)} disabled={!ready} data-tour="study-scrub"
-                       onChange={(e) => { const v = vid.current; if (v) v.pause(); seek(Number(e.target.value)); }} aria-label={tr("Scrub")}
-                       className="flex-1 min-w-0" style={{ accentColor: t.ink }} />
-                <button onClick={cycleRate} disabled={!ready} data-tour="study-rate" data-rate={rate} aria-pressed={rate !== 1} aria-label={tr("Speed")} className="shrink-0 active:opacity-60 disabled:opacity-30"
-                        style={{ minWidth: 40, height: 32, borderRadius: 16, padding: "0 8px", background: rate !== 1 ? t.ink : "transparent", border: `${EDGE_W}px solid ${rate !== 1 ? t.ink : EDGE(t)}`,
-                                 ...TYPE.caption, fontWeight: 700, color: rate !== 1 ? "#fff" : t.ink }}>{rateLabel(rate)}</button>
-                <span style={{ ...TYPE.caption, color: t.sub, fontVariantNumeric: "tabular-nums", minWidth: 34, textAlign: "right" }}>{secsLabel(time)}</span>
-              </div>
+              <ClipTransport tour="study-transport" tours={{ play: "study-play", back: "study-back", fwd: "study-fwd", scrub: "study-scrub" }}
+                             playing={playing} onToggle={toggle} onStep={stepFrame} time={time} span={span} step={0.02}
+                             onScrub={(x) => { const v = vid.current; if (v) v.pause(); seek(x); }} off={!ready} scrubOff={!ready}
+                             speed={{ label: rateLabel(rate), on: rate !== 1, onTap: cycleRate, off: !ready, aria: tr("Speed"), attrs: { "data-tour": "study-rate", "data-rate": rate } }} />
+              {/* the sound and the loop: keys like every other, the chosen answer
+                  once on (it was the ink, black among the app's keys) */}
               <div className="flex gap-2 mt-3" data-tour="study-actions">
                 <button onClick={toggleSound} disabled={!ready} data-tour="study-sound" aria-pressed={sound} aria-label={sound ? tr("Mute") : tr("Sound")}
                         className="flex items-center justify-center shrink-0 disabled:opacity-40 n-key"
-                        style={{ width: 46, height: 46, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${KEY_RING(t)}` }}>
-                  {sound ? <Volume2 size={17} color={t.ink} strokeWidth={1.9} /> : <VolumeX size={17} color={t.ink} strokeWidth={1.9} />}
+                        style={{ width: 46, height: 46, borderRadius: R.control, ...keyPick(t, sound) }}>
+                  {sound ? <Volume2 size={17} color={SEL(t).fg} strokeWidth={1.9} /> : <VolumeX size={17} color={t.ink} strokeWidth={1.9} />}
                 </button>
                 <button onClick={loopTap} disabled={!ready} data-tour="study-loop" data-loop={!loop ? "off" : loop.b == null ? "from" : "on"} aria-pressed={!!(loop && loop.b != null)}
-                        className="flex-1 flex items-center justify-center gap-2 active:opacity-60 disabled:opacity-40"
-                        style={{ minHeight: 46, borderRadius: R.control, background: loop && loop.b != null ? t.ink : TINT(t), border: `${EDGE_W}px solid ${loop && loop.b != null ? t.ink : KEY_RING(t)}`, ...TYPE.body, fontWeight: 600, color: loop && loop.b != null ? "#fff" : t.ink }}>
-                  <Repeat size={15} color={loop && loop.b != null ? "#fff" : t.ink} strokeWidth={2} />{loopLabel}
+                        className="flex-1 flex items-center justify-center gap-2 disabled:opacity-40 n-key"
+                        style={{ minHeight: 46, borderRadius: R.control, ...keyPick(t, !!(loop && loop.b != null)), ...TYPE.body, fontWeight: 600 }}>
+                  <Repeat size={15} color={loop && loop.b != null ? SEL(t).fg : t.ink} strokeWidth={2} />{loopLabel}
                 </button>
               </div>
             </div>
@@ -13639,24 +13661,9 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
 
             {/* under the stages: one transport for both, then swap · change · save */}
             <div className="shrink-0 px-4" style={{ paddingTop: 10, paddingBottom: "calc(10px + env(safe-area-inset-bottom, 0px))", background: t.page }}>
-              <div className="flex items-center gap-2.5" data-tour="compare-transport">
-                <button onClick={toggle} disabled={!ready} aria-label={playing ? tr("Pause") : tr("Play")}
-                        className="flex items-center justify-center shrink-0 active:opacity-70 disabled:opacity-30"
-                        style={{ width: 40, height: 40, borderRadius: 20, background: t.ink }}>
-                  {playing ? <Pause size={16} color="#fff" fill="#fff" /> : <Play size={16} color="#fff" fill="#fff" style={{ marginLeft: 2 }} />}
-                </button>
-                <button onClick={() => stepFrame(-1)} disabled={!ready} aria-label={tr("Back a frame")} className="flex items-center justify-center shrink-0 disabled:opacity-30 n-key"
-                        style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}><ChevronLeft size={15} color={t.ink} strokeWidth={2.2} /></button>
-                <button onClick={() => stepFrame(1)} disabled={!ready} aria-label={tr("On a frame")} className="flex items-center justify-center shrink-0 disabled:opacity-30 n-key"
-                        style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}><ChevronRight size={15} color={t.ink} strokeWidth={2.2} /></button>
-                <input type="range" min={0} max={Math.max(span, 0.1)} step={0.05} value={Math.min(time, span || 0)} disabled={!ready}
-                       onChange={(e) => { pauseBoth(); seekBoth(Number(e.target.value)); }} aria-label={tr("Scrub")}
-                       className="flex-1 min-w-0" style={{ accentColor: t.ink }} />
-                <button onClick={toggleSlow} aria-pressed={slow} aria-label={tr("Half speed")} className="shrink-0 active:opacity-60 disabled:opacity-30"
-                        style={{ minWidth: 40, height: 32, borderRadius: 16, padding: "0 8px", background: slow ? t.ink : "transparent", border: `${EDGE_W}px solid ${slow ? t.ink : EDGE(t)}`,
-                                 ...TYPE.caption, fontWeight: 700, color: slow ? "#fff" : t.ink }}>½×</button>
-                <span style={{ ...TYPE.caption, color: t.sub, fontVariantNumeric: "tabular-nums", minWidth: 34, textAlign: "right" }}>{secsLabel(time)}</span>
-              </div>
+              <ClipTransport tour="compare-transport" playing={playing} onToggle={toggle} onStep={stepFrame} time={time} span={span}
+                             onScrub={(x) => { pauseBoth(); seekBoth(x); }} off={!ready} scrubOff={!ready}
+                             speed={{ label: "½×", on: slow, onTap: toggleSlow, aria: tr("Half speed") }} />
               {err && <p className="mt-2" style={{ ...TYPE.small, color: DANGER }}>{err}</p>}
               <div className="flex gap-2 mt-3" data-tour="compare-actions">
                 <button onClick={swap} className="flex-1 flex items-center justify-center gap-2 disabled:opacity-40 n-key" style={quiet}>
