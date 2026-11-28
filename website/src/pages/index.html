@@ -1,224 +1,129 @@
 <!--
 title: Nosca · Coaching, linked.
 description: One coaching app for coach, player and parent, in golf, tennis, rowing, squash, padel and equestrian. In pilot in Ireland.
-world: olive
+world: green
 header: green
+preload: InstrumentSerif-Italic
 -->
 
-<!-- 1. THE CARD OPENS THE SITE. The first screen is the card's front at the size of the screen. The scroll draws the
-     camera back until it is the card on the table, turns it to its white back, and the back grows until it is the page. -->
-<section class="film hm-open" id="top" style="--len:4.4;--len-sm:3.2" aria-labelledby="hm-title">
-  <div class="film__stage hm-open__stage g-rest" data-header="rest">
-    <div class="hm-open__shadow" aria-hidden="true"></div>
-    <div class="hm-open__white only-motion" data-header="paper" aria-hidden="true"></div>
-    <!-- @include card world="olive" class="hm-open__card" weave="1" pinsattrs="data-pins='manual'" frontattrs="data-header='green'" -->
-    <div class="hm-open__copy">
-      <h1 class="hm-open__title" id="hm-title"><span>Coaching, linked.</span></h1>
-      <p class="hm-open__sub"><span>One app for coach, player and parent.</span></p>
-    </div>
-    <i class="hm-open__cue" aria-hidden="true"></i>
-  </div>
-</section>
-<script>
-/* the first screen waits for index.js to play its opening, but never long: past a second from the start of the visit
-   (a slow network, a slow phone) the finished card shows at once and the script skips the opening */
-(function (d, w) {
-  var t = Math.max(0, 1000 - ((w.performance && performance.now) ? performance.now() : 0));
-  setTimeout(function () { var el = d.getElementById('top'); if (el && !el.classList.contains('is-go')) el.classList.add('is-late'); }, t);
-})(document, window);
-</script>
+<!-- ONE PAGE, five parts, each answering one question: what Nosca is, what it does, for which sports, who made it
+     and why, and how to start. Nothing is pinned and nothing is tied to the scroll: each piece plays once, on its own
+     clock, as it arrives (html.glide, site.js), and the header's three anchors reach every part. -->
 
-<!-- 2. WHAT NOSCA IS. One sentence on the white the card's back has become; it fills with ink as the scroll passes. -->
-<section class="section g-paper hm-what" id="what" aria-labelledby="what-title">
-  <div class="wrap cols hm-what__in">
-    <p class="eyebrow eyebrow--rule hm-what__eyebrow">What Nosca is</p>
-    <h2 class="t-display hm-what__h" id="what-title" data-ink>A coach's lesson, kept.</h2>
-    <div class="hm-what__copy">
-      <p class="t-lede" data-rise="lines">The video, the notes and the drills, logged by the coach in seconds.</p>
-      <p class="t-lede" data-rise="lines">For the player and the family, one home for all of it.</p>
+<!-- 1. WHAT IT IS. Flat water at dusk under the deep green, the name of the thing in a few words, and the app itself:
+     the coach's day, arriving once. The gold mark is a signature, small. -->
+<section class="g-green op" id="top" data-header="green" aria-labelledby="op-title">
+  <!-- @include loop name="loop-rowing-lake-1" class="op__vid vid--veil" alt="" -->
+  <div class="op__in wrap wrap--wide">
+    <div class="op__copy">
+      <p class="op__sig" aria-hidden="true"><!-- @include mark class="op__mark" --><span class="wordmark">Nosca</span></p>
+      <h1 class="op__h" id="op-title" data-rise>Coaching, linked.</h1>
+      <p class="op__p" data-rise="lines">One app for coach, player and parent.</p>
+      <a class="key key--paper op__key" href="{{appUrl}}" rel="noopener">Open Nosca <!-- @include arrow --></a>
     </div>
-    <div class="hm-what__photo">
-      <!-- @include photo name="golf-grip-4" attrs="data-settle" sizes="(min-width:900px) 38vw, 100vw" -->
+    <div class="op__dev">
+      <!-- @include phone screens="coach-today-golf" alts="A golf coach's day in Nosca: the lessons in order, the one on now with Register on it" class="op__phone" attrs="data-arrive='none'" eager="1" -->
     </div>
   </div>
 </section>
 
-<!-- 3. THE COACH. The phone stays; the scroll plays the real app through it, frame by frame, and the captions step in time. -->
-<section class="film g-rest hm-log" id="coach" data-film data-ground-shift style="--len:5.4;--len-sm:4.2" data-header="rest" aria-label="Logging a lesson, step by step">
-  <div class="film__stage">
-    <div class="film__safe hm-film">
-      <div class="hm-film__copy">
-        <p class="eyebrow eyebrow--rule" data-after-lead>The coach</p>
-        <div class="film__steps">
-          <div data-step><p class="t-numeral">1</p><h2 class="t-h2">Made for the lesson itself.</h2><p class="t-lede">The day in order, and the lesson on now ready to register.</p><figure class="shot hm-rest only-rest"><img src="assets/seq/log/f000.webp" width="660" height="1428" alt="A golf coach's day in Nosca: the lessons in order, the one on now as the green card with Register on it" loading="lazy" decoding="async"></figure></div>
-          <div data-step><p class="t-numeral">2</p><h2 class="t-h2">One plus.</h2><p class="t-lede">Everything a coach does mid-lesson is behind it.</p><figure class="shot hm-rest only-rest"><img src="assets/seq/log/f010.webp" width="660" height="1428" alt="The plus opened over the day: Log a lesson across the top, then Register, Capture, Tip, Drills, Add player, New group, Call off and Competition" loading="lazy" decoding="async"></figure></div>
-          <div data-step><p class="t-numeral">3</p><h2 class="t-h2">Who.</h2><p class="t-lede">A face, then one page.</p><figure class="shot hm-rest only-rest"><img src="assets/seq/log/f018.webp" width="660" height="1428" alt="Who: a search, the age bands and the groups as filters, and the coach's players as faces" loading="lazy" decoding="async"></figure></div>
-          <div data-step><p class="t-numeral">4</p><h2 class="t-h2">What was worked&nbsp;on.</h2><p class="t-lede">A tap for each area, in the sport's own words.</p><figure class="shot hm-rest only-rest"><img src="assets/seq/log/f035.webp" width="660" height="1428" alt="The lesson's page for Cian Murphy: golf's areas as tiles, Chipping and Putting chosen, Video, Photo and Voice, a note, and Log it" loading="lazy" decoding="async"></figure></div>
-          <div data-step><p class="t-numeral">5</p><h2 class="t-h2">Logged.</h2><p class="t-lede">The lesson is written and the player is told.</p><figure class="shot hm-rest only-rest"><img src="assets/seq/log/f057.webp" width="660" height="1428" alt="Logged: Cian, Chipping and Putting, Log next, and Ask for a rating" loading="lazy" decoding="async"></figure><p><a class="link" href="product.html#log">The coach's side <!-- @include arrow --></a></p></div>
-        </div>
-      </div>
-      <!-- @include phone seq="log" seqalt="Logging a lesson in Nosca: the coach's day, the plus, who, what was worked on, Logged" class="hm-film__phone only-motion" attrs="data-device data-zoom='tall' data-turn='-20,7,1.5'" seqattrs="data-drive='manual'" -->
-      <i class="film__bar"><i></i></i>
-    </div>
-  </div>
-</section>
-
-<!-- 4. THE PLAYER AND THE FAMILY. The same phone on the other side of the page: the feed scrolls under the thumb, then
-     the screens change inside it while it turns slowly from one side to the other. -->
-<section class="film g-paper hm-home" id="player" data-ground-shift style="--len:5;--len-sm:3.6" data-header="paper" aria-label="The player's side and the family's">
-  <div class="film__stage">
-    <div class="film__safe hm-film hm-film--flip">
-      <div class="hm-film__copy">
-        <p class="eyebrow eyebrow--rule">The player, the family</p>
-        <div class="film__steps">
-          <div data-step><p class="t-numeral">1</p><h2 class="t-h2">A home for every lesson.</h2><p class="t-lede">The player opens on their lessons, the newest first.</p><figure class="shot hm-rest only-rest"><img src="assets/product-feed.webp" width="780" height="1688" alt="A player's lessons in Nosca, the newest first: Chipping and Putting over a clip of a putting green, the coach's note and View lesson" loading="lazy" decoding="async"></figure></div>
-          <div data-step><p class="t-numeral">2</p><h2 class="t-h2">The lesson, kept.</h2><p class="t-lede">The clip, the coach's note and the drills set with it.</p><figure class="shot hm-rest only-rest"><img src="assets/product-lesson.webp" width="780" height="1688" alt="A lesson as the player sees it: the clip, the note, the drills" loading="lazy" decoding="async"></figure></div>
-          <div data-step><p class="t-numeral">3</p><h2 class="t-h2">Drills with a&nbsp;day.</h2><p class="t-lede">Set by the coach, ticked off by the player.</p><figure class="shot hm-rest only-rest"><img src="assets/player-drills.webp" width="780" height="1688" alt="A player's drills, each with its day" loading="lazy" decoding="async"></figure></div>
-          <div data-step><p class="t-numeral">4</p><h2 class="t-h2">Progress you can&nbsp;see.</h2><p class="t-lede">The level over time, and what was worked on.</p><figure class="shot hm-rest only-rest"><img src="assets/player-progress.webp" width="780" height="1688" alt="A player's progress: the level over time and what was worked on" loading="lazy" decoding="async"></figure></div>
-          <div data-step><p class="t-numeral">5</p><h2 class="t-h2">For the family.</h2><p class="t-lede">A parent books and answers for a child.</p><figure class="shot hm-rest only-rest"><img src="assets/parent-family.webp" width="780" height="1688" alt="A parent's family screen" loading="lazy" decoding="async"></figure><p><a class="link" href="product.html#feed">The player's side <!-- @include arrow --></a></p></div>
-        </div>
-      </div>
-      <!-- @include phone seq="pd-feed" seqalt="A player's lessons in Nosca, scrolled one to the next" screens="product-lesson,player-drills,player-progress,parent-family" mode="slide" class="hm-film__phone only-motion" attrs="data-device" seqattrs="data-drive='manual'" -->
-      <i class="film__bar"><i></i></i>
-    </div>
-  </div>
-</section>
-
-<!-- 5. SIX SPORTS. A horizontal passage on the vertical scroll: each sport's photograph settles as it comes in, and its
-     own colour lives inside its own screen. -->
-<section class="rail g-paper hm-sports" id="sports" data-rail data-header="paper" aria-labelledby="sports-title">
-  <div class="rail__stage">
-    <div class="rail__track hm-sports__track">
-      <div class="hm-sports__lead">
-        <p class="eyebrow eyebrow--rule">The sports</p>
-        <h2 class="t-h1" id="sports-title">Six sports, one&nbsp;app.</h2>
-      </div>
-      <figure class="hm-sport">
-        <div class="hm-sport__pics">
-          <!-- @include photo name="golf-flag-3" class="hm-sport__photo" attrs="data-settle" sizes="(min-width:900px) 34vw, 68vw" -->
-          <div class="shot hm-sport__shot" data-rail-z="0.07"><img src="assets/coach-today-golf.webp" width="780" height="1688" alt="A golf coach's day in Nosca" loading="lazy" decoding="async"></div>
-        </div>
-        <figcaption data-rail-in><p class="t-h2">Golf <i class="sport-dot" data-sport="golf"></i></p><p class="t-body">Full swing, short game, on course.</p></figcaption>
-      </figure>
-      <figure class="hm-sport">
-        <div class="hm-sport__pics">
-          <!-- @include photo name="tennis-clay-3" class="hm-sport__photo" attrs="data-settle" sizes="(min-width:900px) 34vw, 68vw" -->
-          <div class="shot hm-sport__shot" data-rail-z="0.07"><img src="assets/coach-today-tennis.webp" width="780" height="1688" alt="A tennis coach's day in Nosca" loading="lazy" decoding="async"></div>
-        </div>
-        <figcaption data-rail-in><p class="t-h2">Tennis <i class="sport-dot" data-sport="tennis"></i></p><p class="t-body">Serve, return, rally, net.</p></figcaption>
-      </figure>
-      <figure class="hm-sport">
-        <div class="hm-sport__pics">
-          <!-- @include photo name="rowing-sculler-3" class="hm-sport__photo" attrs="data-settle" sizes="(min-width:900px) 34vw, 68vw" -->
-          <div class="shot hm-sport__shot" data-rail-z="0.07"><img src="assets/coach-today-rowing.webp" width="780" height="1688" alt="A rowing coach's day in Nosca" loading="lazy" decoding="async"></div>
-        </div>
-        <figcaption data-rail-in><p class="t-h2">Rowing <i class="sport-dot" data-sport="rowing"></i></p><p class="t-body">Technique, rhythm, racing, erg.</p></figcaption>
-      </figure>
-      <figure class="hm-sport hm-sport--l hm-sport--sq">
-        <div class="hm-sport__pics">
-          <!-- @include photo name="squash-laces-3" class="hm-sport__photo" focus="93% 55%" attrs="data-settle" sizes="(min-width:900px) 34vw, 68vw" -->
-          <div class="shot hm-sport__shot" data-rail-z="0.07"><img src="assets/coach-today-squash.webp" width="780" height="1688" alt="A squash coach's day in Nosca" loading="lazy" decoding="async"></div>
-        </div>
-        <figcaption data-rail-in><p class="t-h2">Squash <i class="sport-dot" data-sport="squash"></i></p><p class="t-body">Drives, volleys, front court, movement.</p></figcaption>
-      </figure>
-      <figure class="hm-sport">
-        <div class="hm-sport__pics">
-          <!-- @include photo name="padel-shadows-3" class="hm-sport__photo" attrs="data-settle" sizes="(min-width:900px) 34vw, 68vw" -->
-          <div class="shot hm-sport__shot" data-rail-z="0.07"><img src="assets/coach-today-padel.webp" width="780" height="1688" alt="A padel coach's day in Nosca" loading="lazy" decoding="async"></div>
-        </div>
-        <figcaption data-rail-in><p class="t-h2">Padel <i class="sport-dot" data-sport="padel"></i></p><p class="t-body">Net game, overheads, walls.</p></figcaption>
-      </figure>
-      <figure class="hm-sport">
-        <div class="hm-sport__pics">
-          <!-- @include photo name="equestrian-stirrup-3" class="hm-sport__photo" attrs="data-settle" sizes="(min-width:900px) 34vw, 68vw" -->
-          <div class="shot hm-sport__shot" data-rail-z="0.07"><img src="assets/coach-today-equestrian.webp" width="780" height="1688" alt="A riding coach's day in Nosca" loading="lazy" decoding="async"></div>
-        </div>
-        <figcaption data-rail-in><p class="t-h2">Equestrian <i class="sport-dot" data-sport="equestrian"></i></p><p class="t-body">Flatwork, poles, jumping, cross-country.</p></figcaption>
-      </figure>
-    </div>
-    <i class="rail__bar"><i></i></i>
-  </div>
-</section>
-
-<!-- 6. A PHOTOGRAPH SETTLES, full bleed, with one true sentence. The header slides away while it plays. -->
-<section class="film g-green hm-still" id="words" data-film style="--len:2.5;--len-sm:2.1" data-header="none" aria-labelledby="still-title">
-  <div class="film__stage">
-    <!-- @include photo name="equestrian-pasture-1" class="photo--bleed photo--veil" attrs="data-settle='none'" sizes="100vw" -->
-    <div class="film__safe hm-still__in">
-      <h2 class="t-display hm-still__h" id="still-title" data-ink data-at="8" data-len="40">Each in its own&nbsp;words.</h2>
-      <p class="t-lede hm-still__p" data-rise="lines" data-at="50" data-len="22">Levels and terms are the ones each sport's governing body uses.</p>
-    </div>
-  </div>
-</section>
-
-<!-- 7. THE NAME. The green arrives through the card's diagonal; the two rings travel in from the edges of the screen
-     and weave; the Irish word is set in the serif's true italic. -->
-<section class="film g-green hm-name" id="name" style="--len:2.9;--len-sm:2.5" data-ground-shift data-header="green" aria-labelledby="name-title">
-  <div class="film__stage">
-    <!-- @include pins class="pins--band hm-name__pins" -->
-    <div class="film__safe hm-name__in">
-      <div class="hm-name__rings"><!-- @include weave foil="d" class="hm-name__weave" label="Two rings travel together and weave into the Nosca mark" --></div>
-      <p class="wordmark hm-name__word" aria-hidden="true">NOSCA</p>
-      <h2 class="t-quote hm-name__means" id="name-title">From the Irish <i lang="ga">nascadh</i>, linking.</h2>
-      <p class="t-lede hm-name__line">A coach, a player and a family, linked.</p>
-      <p class="hm-name__more"><a class="link link--gold" href="story.html">The story <!-- @include arrow --></a></p>
-    </div>
-  </div>
-</section>
-
-<!-- 8. THE DOORS to the other three pages: an index on fine gold rules, each with its own object. -->
-<section class="section g-paper hm-doors" id="more" data-ground-shift aria-labelledby="doors-title">
+<!-- 2. WHAT IT DOES. Two pieces, each a headline, one line and the app's own screens. -->
+<section class="g-paper pr" id="product" data-header="paper" aria-label="What Nosca does">
   <div class="wrap">
-    <h2 class="eyebrow eyebrow--rule" id="doors-title">Read on</h2>
-    <ul class="hm-doors__list">
-      <li class="hm-door">
-        <hr class="rule-gold" data-rule>
-        <a class="hm-door__a" href="product.html">
-          <span class="t-numeral hm-door__n" aria-hidden="true">01</span>
-          <span class="hm-door__t"><span class="t-h1 hm-door__h" data-ink>Product</span><span class="t-lede hm-door__p">Built around the lesson. The coach's side, the player's and the family's, in full.</span></span>
-          <span class="hm-door__pic hm-door__pic--shot" aria-hidden="true"><span class="shot"><img src="assets/coach-log-golf.webp" width="780" height="1688" alt="" loading="lazy" decoding="async"></span></span>
-          <span class="hm-door__go" aria-hidden="true"><!-- @include arrow --></span>
-        </a>
-      </li>
-      <li class="hm-door">
-        <hr class="rule-gold" data-rule>
-        <a class="hm-door__a" href="story.html">
-          <span class="t-numeral hm-door__n" aria-hidden="true">02</span>
-          <span class="hm-door__t"><span class="t-h1 hm-door__h" data-ink>Story</span><span class="t-lede hm-door__p">Professional. Curated. Specialist. The name, how it was built, and why we support climate action.</span></span>
-          <span class="hm-door__pic hm-door__pic--card" aria-hidden="true"><!-- @include card world="green" class="hm-door__bcard" --></span>
-          <span class="hm-door__go" aria-hidden="true"><!-- @include arrow --></span>
-        </a>
-      </li>
-      <li class="hm-door">
-        <hr class="rule-gold" data-rule>
-        <a class="hm-door__a" href="partners.html">
-          <span class="t-numeral hm-door__n" aria-hidden="true">03</span>
-          <span class="hm-door__t"><span class="t-h1 hm-door__h" data-ink>Partners</span><span class="t-lede hm-door__p">Frames kept for the partners and sponsors to come.</span></span>
-          <span class="hm-door__pic hm-door__pic--frame" aria-hidden="true"><span class="pframe"><!-- @include mark --></span></span>
-          <span class="hm-door__go" aria-hidden="true"><!-- @include arrow --></span>
-        </a>
-      </li>
-    </ul>
-    <hr class="rule-gold" data-rule>
+    <article class="piece" aria-labelledby="pr-coach">
+      <div class="piece__copy">
+        <h2 class="piece__h" id="pr-coach" data-rise>Log a lesson in seconds.</h2>
+        <p class="piece__p" data-rise="lines">For the coach: who, what was worked on, Log it. Video, photo and voice go with it, and the register is a tap away.</p>
+      </div>
+      <div class="piece__devs">
+        <!-- @include phone screens="coach-log-golf" alts="Logging a lesson for Cian Murphy: golf's areas as tiles, Chipping and Putting chosen, Video, Photo and Voice, a note, and Log it" class="piece__phone" -->
+        <!-- @include phone screens="coach-register" alts="The register for a Thursday clinic: each player marked Present or Absent" class="piece__phone piece__phone--back" -->
+      </div>
+    </article>
+    <article class="piece piece--flip" aria-labelledby="pr-player">
+      <div class="piece__copy">
+        <h2 class="piece__h" id="pr-player" data-rise>Every lesson, kept.</h2>
+        <p class="piece__p" data-rise="lines">For the player: the coach's notes, the drills and their progress. A parent books and answers for a child.</p>
+      </div>
+      <div class="piece__devs">
+        <!-- @include phone screens="player-progress" alts="A player's progress: the Handicap Index over time and what was worked on" class="piece__phone" -->
+        <!-- @include phone screens="parent-family" alts="A parent's family screen: the next lesson, the children, and what is coming up" class="piece__phone piece__phone--back" -->
+      </div>
+    </article>
   </div>
 </section>
 
-<!-- 9. THE CLOSE: the card on the table turns to its back, the one with the code. -->
-<section class="section g-rest hm-close" id="start" data-ground-shift aria-labelledby="close-title">
-  <div class="wrap cols hm-close__in">
-    <div class="hm-close__copy">
-      <p class="eyebrow eyebrow--rule">The pilot</p>
-      <h2 class="t-h1 hm-close__h" id="close-title" data-ink>In pilot, in&nbsp;Ireland.</h2>
-      <p class="t-lede" data-rise="lines">In English, on iPhone, Android and computer. Open it, then add it to your Home Screen.</p>
-      <div class="keys hm-close__keys">
-        <a class="key key--lg" href="{{appUrl}}" rel="noopener" data-magnet>Open Nosca <!-- @include arrow --></a>
-        <a class="key key--lg key--paper" href="{{installUrl}}" rel="noopener" data-magnet>Add to Home Screen</a>
+<!-- 3. FOR WHICH SPORTS. Three pictures of the sports' places and hands, and the six, once, in their own words. -->
+<section class="g-rest sp" id="sports" data-header="rest" aria-labelledby="sp-title">
+  <div class="wrap">
+    <div class="sp__head">
+      <h2 class="sp__h" id="sp-title" data-rise>Six sports, one&nbsp;app.</h2>
+      <p class="sp__p" data-rise="lines">Each in its own words, with the levels its governing body uses.</p>
+    </div>
+    <div class="sp__pics">
+      <!-- @include photo name="golf-mist-2" class="sp__pic" focus="66% 50%" sizes="(min-width:900px) 32vw, 33vw" -->
+      <!-- @include loop name="loop-tennis-hands-2" class="sp__pic" focus="58% 50%" -->
+      <!-- @include loop name="loop-equestrian-stable-2" class="sp__pic" focus="34% 45%" -->
+    </div>
+    <ul class="sp__list">
+      <li><h3 class="sp__n"><i class="sport-dot" data-sport="golf" aria-hidden="true"></i>Golf</h3><p class="sp__w">Full swing, short game, on course</p><p class="sp__l">Handicap Index</p></li>
+      <li><h3 class="sp__n"><i class="sport-dot" data-sport="tennis" aria-hidden="true"></i>Tennis</h3><p class="sp__w">Serve, return, rally, net</p><p class="sp__l">Red, Orange, Green and Yellow ball, then WTN</p></li>
+      <li><h3 class="sp__n"><i class="sport-dot" data-sport="rowing" aria-hidden="true"></i>Rowing</h3><p class="sp__w">Technique, rhythm, racing, erg</p><p class="sp__l">J13 to J18, Novice to Senior</p></li>
+      <li><h3 class="sp__n"><i class="sport-dot" data-sport="squash" aria-hidden="true"></i>Squash</h3><p class="sp__w">Drives, volleys, front court, movement</p><p class="sp__l">The ball's dot</p></li>
+      <li><h3 class="sp__n"><i class="sport-dot" data-sport="padel" aria-hidden="true"></i>Padel</h3><p class="sp__w">Net game, overheads, walls</p><p class="sp__l">Levels 0 to 7</p></li>
+      <li><h3 class="sp__n"><i class="sport-dot" data-sport="equestrian" aria-hidden="true"></i>Equestrian</h3><p class="sp__w">Flatwork, poles, jumping, cross-country</p><p class="sp__l">Pony Club tests and riding-school stages</p></li>
+    </ul>
+  </div>
+</section>
+
+<!-- 4. WHO MADE IT, AND WHY. The name, the one moment every coach screen is judged against, what it stands for,
+     made in Ireland, climate. -->
+<section class="g-green st" id="story" data-header="green" aria-labelledby="st-title">
+  <!-- @include band edge="top" class="st__band" -->
+  <div class="wrap">
+    <div class="st__name">
+      <!-- @include weave foil="1" class="st__rings" attrs="data-weave" label="Two rings, each passing through the other: the Nosca mark" -->
+      <h2 class="t-quote st__h" id="st-title">From the Irish <i lang="ga">nascadh</i>, linking.</h2>
+      <p class="st__long" data-rise="lines">Nosca is an anglicised spelling of the Irish word <i lang="ga">nascadh</i>, which means linking. Made in Ireland.</p>
+    </div>
+    <div class="st__why">
+      <!-- @include photo name="coaching-phone-5" class="st__pic" focus="60% 40%" sizes="(min-width:900px) 42vw, 100vw" -->
+      <div class="st__words">
+        <p class="st__q">A coach picks up the phone mid-lesson, does one thing in seconds and puts it&nbsp;down.</p>
+        <p class="st__qs">Every coach screen is judged against it.</p>
+        <hr class="rule-gold rule-gold--hair st__rule" data-rule>
+        <p class="st__pcs">Professional. Curated. Specialist.</p>
       </div>
-      <!-- @if contactEmail --><p class="t-body hm-close__contact">To reach us: <a href="mailto:{{contactEmail}}">{{contactEmail}}</a></p><!-- @endif -->
     </div>
-    <div class="hm-close__card">
-      <!-- @include card world="olive" class="bcard--shadow is-back" attrs="data-card-turn" -->
-      <p class="t-caption hm-close__note">The code on the card opens the guide to adding Nosca to a Home Screen.</p>
+  </div>
+  <div class="st__climate">
+    <!-- @include photo name="equestrian-pasture-1" class="st__climate-pic photo--veil" sizes="100vw" -->
+    <div class="st__climate-in wrap">
+      <h3 class="st__ch" data-rise>We support climate action.</h3>
+      <p class="st__cp">Lesson notes, registers and reports are digital, never paper. A weather call-off tells everyone affected before they travel.</p>
     </div>
+  </div>
+</section>
+
+<!-- 5. HOW TO START. Ireland, English; the way in; and the card itself, the one place it stands as an object: both
+     designs as printed, the deep green banded, the olive wedged. -->
+<section class="g-paper pi" id="pilot" data-header="paper" aria-labelledby="pi-title">
+  <div class="wrap pi__in">
+    <div class="pi__copy">
+      <h2 class="pi__h" id="pi-title" data-rise>In pilot, in&nbsp;Ireland.</h2>
+      <p class="pi__p" data-rise="lines">In English, on iPhone, Android and computer.</p>
+      <div class="keys pi__keys">
+        <a class="key key--lg" href="{{appUrl}}" rel="noopener">Open Nosca <!-- @include arrow --></a>
+        <a class="key key--lg key--paper" href="{{installUrl}}" rel="noopener">Add to Home Screen</a>
+      </div>
+      <!-- @if contactEmail --><p class="pi__contact">To reach us: <a href="mailto:{{contactEmail}}">{{contactEmail}}</a></p><!-- @endif -->
+    </div>
+    <figure class="pi__cards" data-arrive>
+      <div class="pi__stack">
+        <!-- @include bcard world="olive" class="bcard--shadow pi__olive" -->
+        <!-- @include bcard world="green" class="bcard--shadow pi__green" attrs="data-card-turn" -->
+      </div>
+      <figcaption class="pi__cap">The code on the card opens the Home Screen guide.</figcaption>
+    </figure>
   </div>
 </section>

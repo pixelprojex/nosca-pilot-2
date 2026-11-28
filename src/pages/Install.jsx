@@ -45,6 +45,25 @@ const STRIPES = (() => {
   }
   return out;
 })();
+/* THE DEEP GREEN'S FRONT is the first print file's (scripts/business-card.py
+   as it was first committed, the files the founder printed the deep green
+   from): the same stripes — the lines x + y = c, 3.6 mm apart, the same
+   phase — across the top 15 mm and the foot 15 mm, and a clear band through
+   the middle where the mark and NOSCA stand; no gold edge. Each stripe is
+   drawn outward from the band. */
+const BAND_TOP = 15, BAND_FOOT = 40;
+const BAND = (() => {
+  const top = [], foot = [], f = (n) => Number(n.toFixed(2));
+  for (let c = PHASE; c < CARD_W + CARD_H; c += PITCH) {
+    /* above the band: from its edge (y = 15) up to the card's top, clipped to the card's sides */
+    const ts = Math.min(BAND_TOP, c), te = Math.max(0, c - CARD_W);
+    if (ts > te) top.push(`M${f(c - ts)} ${f(ts)}L${f(c - te)} ${f(te)}`);
+    /* under it: from its edge (y = 40) down to the card's foot */
+    const fs = Math.max(BAND_FOOT, c - CARD_W), fe = Math.min(CARD_H, c);
+    if (fe > fs) foot.push(`M${f(c - fs)} ${f(fs)}L${f(c - fe)} ${f(fe)}`);
+  }
+  return [...top, ...foot];
+})();
 /* the code on the card's back, as a pattern and nothing a camera reads:
    the three corner squares and a scatter between them */
 const CODE = (() => {
@@ -94,20 +113,25 @@ const SHADE = Array.from({ length: 26 }, (_, i) => {
 /* when the green side has come round: the foil is drawn from then */
 const FRONT = TURN.delay + Math.round(TURN.ms * 0.36);
 
-/* THE TWO CARDS (24 November). The founder hands out two designs: the
-   deep green with the gold pinstripes in two corners, and the olive —
-   the same white back, the same code. Both are laid on the paper, the
-   deep green in front and the olive behind it, so whichever was scanned
-   is the card on the screen; each comes over from its white side in its
-   turn. The deep green is the press's own render of its ground
-   (scripts/business-card.py's GREEN, CMYK 0.85/0.35/0.55/0.60), the
-   olive the app's own CLUB.olive. */
+/* THE TWO CARDS (24 November). The founder hands out two designs, and
+   each is drawn as it was printed: the deep green with the pinstripes
+   across its top and its foot and the band clear through the middle (the
+   first print file), and the olive with the two wedges in opposite
+   corners — the same white back, the same code. Both are laid on the
+   paper, the deep green in front and the olive behind it, so whichever
+   was scanned is the card on the screen; each comes over from its white
+   side in its turn. The founder, 24 November: "our original design for
+   the business cards was the darker color with the vertical lines, not
+   diagonal lines … I don't know why they both have the same diagonal
+   lines" — both had been drawn with the olive's wedges. The deep green is
+   the press's own render of its ground (scripts/business-card.py's GREEN,
+   CMYK 0.85/0.35/0.55/0.60), the olive the app's own CLUB.olive. */
 const CARD_GREEN = "#183D3A";
 const CARD_GAP = 240;   /* the second card turns this long after the first */
-function OneCard({ ground, id, wait, style }) {
+function OneCard({ ground, id, design, wait, style }) {
   const foil = `url(#ins-foil-${id})`;
   return (
-    <div data-card={id} className="absolute" style={{ aspectRatio: `${CARD_W} / ${CARD_H}`, perspective: 900, ...style }}>
+    <div data-card={id} data-design={design} className="absolute" style={{ aspectRatio: `${CARD_W} / ${CARD_H}`, perspective: 900, ...style }}>
       {/* what the card rests on: a soft shadow that stays on the paper while the card turns */}
       <span aria-hidden="true" className="absolute" style={{ left: "4%", right: "4%", top: "16%", bottom: "3%", borderRadius: 14, boxShadow: "0 16px 26px -6px rgba(26,32,14,0.34), 0 6px 10px -3px rgba(26,32,14,0.22)",
                                                               animation: `insShade ${TURN.ms}ms linear ${TURN.delay + wait}ms backwards` }} />
@@ -122,10 +146,15 @@ function OneCard({ ground, id, wait, style }) {
             </defs>
             <rect width={CARD_W} height={CARD_H} fill={ground} />
             <g fill="none" stroke={foil}>
-              {/* the wedges' gold edges, then the pinstripes out from them one after another */}
-              <path d="M39.85 0L84 30.52" pathLength="1" strokeWidth="0.5" style={draw(520, (FRONT + wait) + 20)} />
-              <path d="M44.15 55L0 24.48" pathLength="1" strokeWidth="0.5" style={draw(520, (FRONT + wait) + 20)} />
-              {STRIPES.map((d, i) => <path key={d} d={d} pathLength="1" strokeWidth="0.4" style={draw(460, (FRONT + wait) + 150 + i * 14)} />)}
+              {design === "band" ? (
+                /* the stripes across the top and the foot, out from the band one after another */
+                BAND.map((d, i) => <path key={d} data-stripe="" d={d} pathLength="1" strokeWidth="0.4" style={draw(420, (FRONT + wait) + 60 + (i % (BAND.length / 2 | 0 || 1)) * 16)} />)
+              ) : (<>
+                {/* the wedges' gold edges, then the pinstripes out from them one after another */}
+                <path data-edge="" d="M39.85 0L84 30.52" pathLength="1" strokeWidth="0.5" style={draw(520, (FRONT + wait) + 20)} />
+                <path data-edge="" d="M44.15 55L0 24.48" pathLength="1" strokeWidth="0.5" style={draw(520, (FRONT + wait) + 20)} />
+                {STRIPES.map((d, i) => <path key={d} data-stripe="" d={d} pathLength="1" strokeWidth="0.4" style={draw(460, (FRONT + wait) + 150 + i * 14)} />)}
+              </>)}
               {/* the mark, 22 mm wide and centred, arriving whole: drawn ring after ring it read for a beat as a wink */}
               <g transform="translate(31 17.5) scale(0.55)" strokeWidth="2.75" strokeLinecap="round" style={{ animation: `insFade 640ms ease-out ${(FRONT + wait) + 260}ms backwards` }}>
                 <path d={RING_L} />
@@ -157,10 +186,10 @@ function OneCard({ ground, id, wait, style }) {
 }
 function InstallCard() {
   return (
-    <div data-tour="install-card" role="img" aria-label={tr("The two Nosca cards: two woven rings and NOSCA in gold, one on deep green and one on olive green, each with gold pinstripes in two corners")}
+    <div data-tour="install-card" role="img" aria-label={tr("The two Nosca cards: two woven rings and NOSCA in gold, one on deep green with gold pinstripes across its top and foot, one on olive green with gold pinstripes in two corners")}
          className="ins-card relative mx-auto" style={{ aspectRatio: `${CARD_W} / ${CARD_H}`, animation: "insFade 260ms ease-out backwards" }}>
-      <OneCard id="olive" ground={CLUB.olive} wait={0} style={{ left: 0, top: 0, width: "70%", transform: "rotate(-7deg)", zIndex: 1 }} />
-      <OneCard id="green" ground={CARD_GREEN} wait={CARD_GAP} style={{ right: 0, bottom: 0, width: "70%", transform: "rotate(2.5deg)", zIndex: 2 }} />
+      <OneCard id="olive" ground={CLUB.olive} design="wedges" wait={0} style={{ left: 0, top: 0, width: "70%", transform: "rotate(-7deg)", zIndex: 1 }} />
+      <OneCard id="green" ground={CARD_GREEN} design="band" wait={CARD_GAP} style={{ right: 0, bottom: 0, width: "70%", transform: "rotate(2.5deg)", zIndex: 2 }} />
     </div>
   );
 }

@@ -100,7 +100,7 @@ strong,b{font-weight:600}
 :focus-visible{outline:2px solid var(--focus);outline-offset:3px;border-radius:6px}
 .sr-only{position:absolute!important;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
 .nw{white-space:nowrap}
-.skip{position:fixed;left:12px;top:12px;z-index:200;padding:12px 16px;border-radius:12px;background:var(--ink);color:#fff;font:600 15px/1 var(--display);text-decoration:none;transform:translateY(-200%)}
+.skip{position:absolute;left:12px;top:12px;z-index:200;padding:12px 16px;border-radius:12px;background:var(--ink);color:#fff;font:600 15px/1 var(--display);text-decoration:none;transform:translateY(-200%)}
 .skip:focus{transform:none}
 /* a film, a scene or a rail lands flush with the top of the screen (the header stands over its stage); all else clears the header */
 html.motion .film,html.motion .scene,html.motion .rail{scroll-margin-top:calc(var(--hdr-h)*-1)}
@@ -201,7 +201,7 @@ p{text-wrap:pretty}
 /* the mark in gold, as on the card: the line gold on white, the pinstripe gold on the green */
 .mark--gold,.weave--gold{color:var(--rule)}
 .weave{display:block;width:var(--mark-w,48px);height:auto;overflow:visible;flex:none}
-html.motion [data-draw]:not(.is-in):not(.is-set) path{stroke-dasharray:1;stroke-dashoffset:1}
+html.motion [data-draw]:not(.is-in):not(.is-set) path,html.glide [data-draw]:not(.is-in) path{stroke-dasharray:1;stroke-dashoffset:1}
 /* the quiet motif: very large, very faint rings behind a section */
 .ringsbg{position:absolute;inset:0;overflow:hidden;pointer-events:none;border-radius:inherit}
 .ringsbg .mark{position:absolute;width:var(--rings-w,min(150vw,1500px));max-width:none;left:50%;top:50%;margin:calc(var(--rings-w,min(150vw,1500px))*-.3125) 0 0 calc(var(--rings-w,min(150vw,1500px))*-.5);color:currentColor;opacity:var(--rings-o,.06)}
@@ -218,8 +218,8 @@ html.motion [data-draw]:not(.is-in):not(.is-set) path{stroke-dasharray:1;stroke-
 .pins--band{--pins-w:clamp(210px,54vw,640px);--pin-sw:.24}
 @media (min-width:520px){.pins--band{--pin-sw:.16}}
 @media (min-width:1000px){.pins--band{--pin-sw:.1}}
-html.motion [data-pins]:not(.is-in) path,html.motion [data-stripes]:not(.is-set) path{stroke-dasharray:1;stroke-dashoffset:1}
-html.motion [data-rule]:not(.is-set){transform:scaleX(0)}
+html.motion [data-pins]:not(.is-in) path,html.motion [data-stripes]:not(.is-set) path,html.glide [data-pins]:not(.is-in) path,html.glide [data-stripes]:not(.is-in) path{stroke-dasharray:1;stroke-dashoffset:1}
+html.motion [data-rule]:not(.is-set),html.glide [data-rule]:not(.is-set){transform:scaleX(0)}
 
 /* one quiet pass of light across the card as it tilts. Moved by site.js (transform only); never a glow. */
 .sheen{position:absolute;inset:-30% -80%;z-index:3;pointer-events:none;opacity:0;
@@ -279,14 +279,10 @@ html.motion [data-rule]:not(.is-set){transform:scaleX(0)}
 .hdr:focus-within{transform:none!important}
 @media (hover:hover){.hdr__home:hover .mark__l{animation:mark-draw 1s var(--ease) both}.hdr__home:hover .mark__r{animation:mark-draw 1s .16s var(--ease) both}}
 @keyframes mark-draw{from{stroke-dasharray:1;stroke-dashoffset:1}to{stroke-dasharray:1;stroke-dashoffset:0}}
-@media (max-width:719px){
-  .hdr__nav{display:none}
-  .hdr__key{margin-left:auto}
-  .hdr__menu{display:block}
-  html.no-js .hdr__nav{display:flex;margin-right:-6px} html.no-js .hdr__key,html.no-js .hdr__menu{display:none}
-}
-@media (max-width:339px){.hdr__key{padding:0 12px}}
-@media (max-width:399px){html.no-js .hdr__nav a{padding:0 7px}}
+/* one page: the header's three anchors stand on every phone; under 520 the key gives way to them (the opening and
+   the pilot carry Open Nosca) */
+@media (max-width:519px){.hdr__key{display:none}.hdr__nav{margin-right:-10px}}
+@media (max-width:359px){.hdr__nav a{padding:0 7px}}
 
 .menu{position:fixed;inset:0;z-index:90;display:flex;flex-direction:column;justify-content:space-between;padding:calc(var(--hdr-h) + 28px) 0 max(28px,env(safe-area-inset-bottom));overflow:hidden;visibility:hidden;opacity:0;transition:opacity .45s var(--ease),visibility 0s .45s}
 .menu[hidden]{display:none}
@@ -305,29 +301,25 @@ html.motion [data-rule]:not(.is-set){transform:scaleX(0)}
 .menu__line{flex:1 0 100%;margin-top:14px;font:500 15px/1.3 var(--display);color:var(--on-green-2)}
 @media (min-width:720px){.menu{display:none!important}}
 
-/* ───────────── 9. footer: the card, front and back ─────────────
-   Above the rule it is the card's front (the lockup in the clear band between the two wedges); under the
-   rule it is set like the card's back: ranged left, small, plain. */
-.foot{position:relative;z-index:1;overflow:hidden;padding:0 0 max(clamp(28px,4vw,48px),env(safe-area-inset-bottom))}
-.foot__card{position:relative;display:grid;place-items:center;min-height:clamp(300px,46vw,560px);padding:clamp(72px,10vw,130px) var(--gut)}
-.foot__card .pins{--pins-w:clamp(150px,34vw,520px)}
-@media (min-width:1000px){.foot__card .pins{--pin-sw:.2}}
-.foot__lock{position:relative;display:grid;justify-items:center;gap:clamp(18px,2vw,26px)}
-.foot__mark{--mark-w:clamp(84px,10vw,132px)}
-.foot__word{font-size:clamp(15px,1.5vw,20px);color:var(--gold-text-on-green)}
-.foot__base{position:relative}
-.foot__cols{display:grid;gap:clamp(28px,4vw,56px);padding-block:clamp(28px,4vw,48px)}
-@media (min-width:800px){.foot__cols{grid-template-columns:minmax(0,5fr) minmax(0,7fr);align-items:start}}
-.foot__say{display:grid;gap:10px;justify-items:start}
-.foot__tag{font:500 clamp(24px,2.6vw,34px)/1.08 var(--display);letter-spacing:-.022em;color:var(--on-green)}
-.foot__name{font-size:16px;line-height:1.4;color:var(--on-green-2)}
-.foot__sports{margin-top:8px;max-width:28em;font-size:14px}
-.foot__nav{display:grid;grid-template-columns:repeat(2,minmax(0,max-content));gap:0 clamp(28px,6vw,96px);justify-content:start;margin-left:-10px}
-@media (min-width:800px){.foot__nav{justify-content:end;margin-left:0;margin-right:-10px}}
+/* ───────────── 9. footer ─────────────
+   Set like the card's back, on the deep green: the mark and NOSCA small, one line of links, a gold rule, the words,
+   the sports on two balanced lines, the small print. Ranged left, every column on one edge. */
+.foot{position:relative;z-index:1;padding:clamp(52px,7vw,88px) 0 max(28px,env(safe-area-inset-bottom))}
+.foot__top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px 32px}
+.foot__lock{display:inline-flex;align-items:center;gap:14px;min-height:44px;color:var(--gold-pin);text-decoration:none}
+.foot__mark{--mark-w:46px}
+.foot__word{font-size:14px;color:var(--gold-text-on-green)}
+.foot__nav{display:flex;flex-direction:column;align-items:flex-start;width:100%;margin-inline:-10px}
+@media (min-width:640px){.foot__nav{flex-direction:row;flex-wrap:wrap;width:auto;gap:0 22px}}
 .foot__nav a{display:inline-flex;align-items:center;min-height:44px;padding:0 10px;font:500 15px/1 var(--display);text-decoration:none;color:var(--on-green);white-space:nowrap}
-.foot__nav a[aria-current="page"]{color:var(--gold-text-on-green)}
 @media (hover:hover){.foot__nav a:hover{text-decoration:underline;text-underline-offset:5px;text-decoration-thickness:1.5px;text-decoration-color:var(--gold-pin)}}
-.foot__small{display:flex;flex-wrap:wrap;gap:4px 28px;padding-top:clamp(18px,2.4vw,26px);border-top:1px solid var(--line);font-size:13px;line-height:1.5;color:var(--on-green-2)}
+.foot__rule{margin:clamp(22px,3vw,32px) 0 clamp(26px,3.4vw,40px)}
+.foot__say{display:grid;gap:8px;justify-items:start}
+.foot__tag{font:500 clamp(24px,2.6vw,32px)/1.08 var(--display);letter-spacing:-.022em;color:var(--on-green)}
+.foot__name{font-size:16px;line-height:1.4;color:var(--on-green-2)}
+.foot__sports{margin-top:8px;font:500 14px/1.6 var(--display);color:var(--on-green-2)}
+.foot__sports>span{display:block;white-space:nowrap}
+.foot__small{display:flex;flex-wrap:wrap;gap:4px 28px;margin-top:clamp(32px,4vw,48px);padding-top:18px;border-top:1px solid var(--line);font-size:13px;line-height:1.5;color:var(--on-green-2)}
 
 /* ───────────── 10. the film reel: what the scroll-driven pieces stand on ─────────────
    Everything here lays the FINISHED page out first (a plain column: every caption, every picture) and turns
@@ -427,7 +419,7 @@ html:not(.motion) .film__stage>.photo--bleed,html:not(.motion) .film__stage>.vid
 /* a headline that fills with ink line by line as the scroll passes (Site.inkFill) */
 .ink-line{position:relative;display:block}
 .ink-fill{position:absolute;left:0;top:0;right:0;color:var(--ink-full,var(--fg));pointer-events:none;-webkit-user-select:none;user-select:none;clip-path:inset(-12% 100% -24% 0%)}
-html.motion [data-ink].is-set{color:var(--fg-dim)}
+html.motion [data-ink].is-set,html.glide [data-ink]:not(.is-in){color:var(--fg-dim)}
 [data-ink="gold"]{--ink-full:var(--gold-text)}
 /* layers at different depths (Site.depth): the container is the reference, [data-z] children move */
 [data-depth]{position:relative}
@@ -567,6 +559,18 @@ html.motion [data-reveal-group]>*{opacity:0}
 html.motion [data-reveal-group].is-set>*,html.motion [data-reveal-group].is-in>*{opacity:1}
 html.motion [data-lit]:not(.is-set){opacity:.2}
 html.motion [data-rise]:not(.is-set){opacity:0}
+/* glide (a phone's own scroll): the same waiting states, each released once its piece has played */
+html.glide [data-reveal]{opacity:0}
+html.glide [data-reveal].is-set,html.glide [data-reveal].is-in{opacity:1}
+html.glide [data-reveal-group]>*{opacity:0}
+html.glide [data-reveal-group].is-set>*,html.glide [data-reveal-group].is-in>*{opacity:1}
+html.glide [data-lit]:not(.is-set):not(.is-in){opacity:.2}
+html.glide [data-rise]:not(.is-set):not(.is-in){opacity:0}
+/* a picture below the fold waits a little low and a little small, and comes to rest as it arrives. The individual
+   transform properties compose with whatever transform the picture wears, and the compositor carries them. */
+html.glide .g-wait{opacity:0;translate:0 32px;scale:.975;transition:opacity .7s cubic-bezier(.22,.7,.2,1),translate 1s cubic-bezier(.16,.84,.24,1),scale 1s cubic-bezier(.16,.84,.24,1)}
+html.glide .g-wait.g-in{opacity:1;translate:0 0;scale:1}
+html.glide .g-wait.g-now{transition:none}
 .split-line{display:block}
 .split-line-mask{padding:.1em .08em .2em;margin:-.1em -.08em -.2em}
 html.motion [data-parallax],html.motion [data-tilt]{will-change:transform}
@@ -584,5 +588,5 @@ html.motion [data-parallax],html.motion [data-tilt]{will-change:transform}
   @view-transition{navigation:none}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
 }
-html:not(.motion) .sheen{display:none}
+html:not(.motion):not(.glide) .sheen{display:none}
 @media print{.hdr,.menu,.skip{display:none!important}}

@@ -189,6 +189,22 @@ const openSettings = async (page) => {
       });
       check("(a3) the page lays both cards the founder hands out — the deep green in front, the olive behind it — each on its own ground, each mark in sight",
         pair.n === 2 && !!pair.green && !!pair.olive && pair.green.ground === "#183D3A" && /^#4F5B29$/i.test(pair.olive.ground) && pair.green.z > pair.olive.z && pair.green.markSeen && pair.olive.markSeen && pair.green.w > 150 && pair.olive.w > 150, JSON.stringify(pair));
+      /* each card as it was printed (the founder, 24 November: "our original design … was the darker color with the
+         vertical lines, not diagonal lines … I don't know why they both have the same diagonal lines"): the deep green
+         is the first print file — pinstripes across its top and its foot, the band clear through the middle, no gold
+         edge — and the olive keeps its two corner wedges, each closed by its gold edge */
+      const designs = await page.evaluate(() => {
+        const one = (id) => { const c = document.querySelector(`[data-card="${id}"]`); if (!c) return null;
+          const boxes = Array.from(c.querySelectorAll("[data-stripe]")).map((p) => p.getBBox());
+          return { design: c.dataset.design, n: boxes.length, edges: c.querySelectorAll("[data-edge]").length,
+                   inBand: boxes.filter((b) => b.y < 39.9 && b.y + b.height > 15.1).length,
+                   top: boxes.filter((b) => b.y + b.height <= 15.05).length, foot: boxes.filter((b) => b.y >= 39.95).length };
+        };
+        return { green: one("green"), olive: one("olive") };
+      });
+      check("(a4) each card is drawn as it was printed: the deep green's pinstripes across its top and its foot with the band clear through the middle, the olive's two corner wedges with their gold edges",
+        !!designs.green && designs.green.design === "band" && designs.green.edges === 0 && designs.green.inBand === 0 && designs.green.top >= 15 && designs.green.foot >= 15
+        && !!designs.olive && designs.olive.design === "wedges" && designs.olive.edges === 2 && designs.olive.n >= 20 && designs.olive.inBand > 0, JSON.stringify(designs));
       check("(a) the card's back carries its own words, as printed — no grey bars standing in for them", !!drawn && drawn.words.includes("Coaching, linked.") && drawn.words.includes("Scan to start") && drawn.words.some((x) => /Golf · Tennis/.test(x)), JSON.stringify(drawn));
       /* the gold is a line's and a detail's; where it is read — a numeral, Change — it measures 4.5:1 on the paper */
       const gold = await page.evaluate(() => {
