@@ -7751,6 +7751,23 @@ function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, l
 /* bookings in the order they happen: "1:00 pm" sorts after "9:00 am"
    only if the clock is read, not the string */
 const byWhen = (x, y) => (x.date === y.date ? (parseTime(x.time) ?? 0) - (parseTime(y.time) ?? 0) : x.date < y.date ? -1 : 1);
+/* MANAGE, BESIDE A TITLE (28 November): the door to what runs a screen —
+   the coach's Diary (Hours, Away, Recurring lessons …) and the family (its
+   code, who is in it) — is one quiet key: the lead's pale on its ledge, the
+   word in the ink at 15/600, 38 drawn and 44 to a finger; never a glyph and
+   never the accent, which is a lesson's. */
+function ManageKey({ tour, label, onTap }) {
+  const t = useT();
+  return (
+    <button data-tour={tour} onClick={() => { haptic(6); onTap && onTap(); }} aria-label={label} className="shrink-0 relative n-key"
+            style={{ minHeight: 38, padding: "0 14px", marginTop: 4, borderRadius: 12, border: `${EDGE_W}px solid ${KEY_RING(t)}`, "--key-lip": TINT_LIP(t),
+                     ...TYPE.body, fontSize: 15, fontWeight: 600, color: t.ink }}>
+      <span aria-hidden="true" className="absolute" style={{ top: -5, bottom: -5, left: 0, right: 0 }} />
+      {tr("Manage")}
+    </button>
+  );
+}
+
 function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = [], bookings = [], onOpenKid, onSettings, onSetUp, right, todayIso }) {
   const t = useT();
   const ready = useLoad();
@@ -7805,7 +7822,10 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
 
   return (
     <Screen title={family.displayName} right={right}
-            action={<button data-tour="family-settings" onClick={() => { haptic(6); onSettings && onSettings(); }} className="shrink-0 active:opacity-50" style={{ minHeight: 44, ...TYPE.body, fontWeight: 500, color: t.ink }} aria-label={tr("Family settings")}>{tr("Manage")}</button>}>
+            /* the Diary's Manage, the same key: a quiet key beside the title (it
+               was the bare word the Diary's was until 28 November, so the two
+               Manages in the app were drawn two ways) */
+            action={<ManageKey tour="family-settings" label={tr("Family settings")} onTap={() => onSettings && onSettings()} />}>
       {!ready ? <HomeSkeleton /> : (
         <div className="px-6">
           {/* THE ONE THING HAPPENING NEXT, WHEN IT IS NOT ALREADY BELOW.
@@ -18128,20 +18148,16 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
        compact header leaves at 320, so it was cut there whatever the pill
        did. The verb stays the title ("Book", as the request sheet's), and
        who it is for is the grey line under it, as the For strip names each
-       face: the whole name of whoever is being booked for, never cut */
-    <Screen title={forName ? tr("Book") : L_CAL(role, readOnly)} right={right} meta={role === "coach" ? "" : forName ? `${tr("For")} ${forName}` : conn ? `with ${conn.coach}` : ""}
+       face, beside the coach whose hours these are — two facts, never cut */
+    <Screen title={forName ? tr("Book") : L_CAL(role, readOnly)} right={right}
+            meta={role === "coach" ? "" : [forName ? `${tr("For")} ${forName}` : null, conn ? `with ${conn.coach}` : null].filter(Boolean).join(" · ")}
             /* the coach's one door to what runs the Diary: a word beside the
                title, as the family screen's Manage is — never a glyph, never
                the accent, which is a lesson's */
             action={role === "coach" && onManage ? (
               /* a quiet key since 28 November: the lead's pale on its ledge, the
                  word in the ink, 38 drawn and 44 to a finger */
-              <button data-tour="diary-manage" onClick={() => { haptic(6); onManage(); }} className="shrink-0 relative n-key"
-                      style={{ minHeight: 38, padding: "0 14px", marginTop: 4, borderRadius: 12, border: `${EDGE_W}px solid ${KEY_RING(t)}`, "--key-lip": TINT_LIP(t),
-                               ...TYPE.body, fontSize: 15, fontWeight: 600, color: t.ink }}>
-                <span aria-hidden="true" className="absolute" style={{ top: -5, bottom: -5, left: 0, right: 0 }} />
-                {tr("Manage")}
-              </button>
+              <ManageKey tour="diary-manage" onTap={onManage} />
             ) : null}>
       {/* Who this is for. An adult in a family books for the children as
           well as themselves, so the person is picked first and the hours
