@@ -43,6 +43,35 @@ function wedge(cls, flip) {
     `<g${flip ? ` transform="rotate(180 ${W / 2} ${H / 2})"` : ''}><path class="pins__edge" pathLength="1" d="M0 0L${W} ${H}"/>${out}</g></svg>`;
 }
 
+/* THE DEEP GREEN CARD'S STRIPES, as the first print file drew them (src/pages/Install.jsx, BAND): the lines
+   x + y = c, 3.6 mm apart (c steps 3.6 * sqrt 2 from 0.909), across the top 15 mm and the foot 15 mm of the 84 x 55
+   card, a clear band through the middle where the mark and NOSCA stand, and no gold edge. */
+const CARD_W = 84, CARD_H = 55, PITCH = 3.6 * Math.SQRT2, PHASE = 0.909, BAND_TOP = 15, BAND_FOOT = 40;
+const f2 = (n) => +n.toFixed(2);
+function cardBand() {
+  const top = [], foot = [];
+  for (let c = PHASE; c < CARD_W + CARD_H; c += PITCH) {
+    const ts = Math.min(BAND_TOP, c), te = Math.max(0, c - CARD_W);
+    if (ts > te) top.push(`M${f2(c - ts)} ${f2(ts)}L${f2(c - te)} ${f2(te)}`);
+    const fs = Math.max(BAND_FOOT, c - CARD_W), fe = Math.min(CARD_H, c);
+    if (fe > fs) foot.push(`M${f2(c - fs)} ${f2(fs)}L${f2(c - fe)} ${f2(fe)}`);
+  }
+  return [...top, ...foot];
+}
+/* the same stripes as a band along a section's edge: a strip 15 units tall and 400 wide, sliced to the strip's
+   height so the stripes keep the card's angle and spacing at any width; each stripe drawn outward from the band */
+function edgeBand(where) {
+  const W = 400, H = 15, out = [];
+  for (let c = PHASE; c < W + H; c += PITCH) {
+    const a = Math.min(H, c), b = Math.max(0, c - W);
+    if (a <= b) continue;
+    /* top: from the band's inner edge (y = 15) up; foot: from its inner edge (y = 0) down */
+    out.push(where === 'top' ? `M${f2(c - a)} ${f2(a)}L${f2(c - b)} ${f2(b)}` : `M${f2(c - a)} ${f2(H - a)}L${f2(c - b)} ${f2(H - b)}`);
+  }
+  return `<svg class="band__${where}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">` +
+    out.map((d) => `<path pathLength="1" d="${d}"/>`).join('') + '</svg>';
+}
+
 /* an image sequence's manifest (assets/seq/<name>/manifest.json, written by the capture tools) */
 const frameName = (m, i) => m.pattern.replace(/%0(\d)d/, (_, n) => String(i).padStart(+n, '0'));
 function seqOf(name) {
@@ -112,6 +141,29 @@ const GEN = {
     return `<svg class="weave${a.foil ? ' weave--gold' : ''}${a.class ? ' ' + a.class : ''}" viewBox="0 0 40 25"${a.label ? ` role="img" aria-label="${esc(a.label)}"` : ' aria-hidden="true"'} focusable="false"${a.attrs ? ' ' + a.attrs : ''}>` +
       `<g class="weave__l" transform="translate(14 12.5)"><path${st} d="${CIRC}" stroke-dasharray="50.583 3.452" stroke-dashoffset="45.441"/></g>` +
       `<g class="weave__r" transform="translate(26 12.5)"><path${st} d="${CIRC}" stroke-dasharray="50.583 3.452" stroke-dashoffset="18.423"/></g></svg>`;
+  },
+  /* <!-- @include band edge="both|top|foot" class="…" --> the deep green card's stripes along a section's top and foot */
+  band: (a) => {
+    const e = a.edge || 'both';
+    return `<div class="band band--${e}${a.class ? ' ' + a.class : ''}" aria-hidden="true" data-stripes${a.attrs ? ' ' + a.attrs : ''}>` +
+      (e !== 'foot' ? edgeBand('top') : '') + (e !== 'top' ? edgeBand('foot') : '') + '</div>';
+  },
+  /* <!-- @include bcard world="green|olive" class="…" attrs="…" --> the business card as an object, both faces.
+     The deep green's front is the first print file's (the band); the olive's is the two corner wedges. */
+  bcard: (a) => {
+    const world = a.world === 'olive' ? 'olive' : 'green';
+    const ring = `<path d="${RING_L}"/><path d="${RING_R}"/>`;
+    const front = world === 'green'
+      ? `<div class="bcard__face bcard__front bcard__front--band" role="img" aria-label="The front of the deep green Nosca card: gold pinstripes across its top and foot, the two woven rings and NOSCA in gold">` +
+        `<svg class="bcard__art" viewBox="0 0 ${CARD_W} ${CARD_H}" aria-hidden="true" focusable="false"><rect width="${CARD_W}" height="${CARD_H}" class="bcard__ground"/>` +
+        `<g class="bcard__band">${cardBand().map((d) => `<path pathLength="1" d="${d}"/>`).join('')}</g>` +
+        `<g class="bcard__rings" transform="translate(31 17.5) scale(0.55)">${ring}</g>` +
+        `<text class="bcard__nosca" x="${f2(CARD_W / 2 + 0.42 * 3.53 / 2)}" y="36.72" text-anchor="middle">NOSCA</text></svg><i class="sheen" aria-hidden="true"></i></div>`
+      : `<div class="bcard__face bcard__front" role="img" aria-label="The front of the olive Nosca card: gold pinstripes in two corners, the two woven rings and NOSCA in gold">` +
+        `<div class="pins" aria-hidden="true">${wedge('pins__tr')}${wedge('pins__bl', true)}</div>` +
+        `<div class="bcard__lock" aria-hidden="true">${GEN.mark({ class: 'bcard__mark', foil: 'd' })}<span class="wordmark bcard__word">NOSCA</span></div><i class="sheen" aria-hidden="true"></i></div>`;
+    const back = render(read(path.join(SRC, 'partials', 'cardback.html')), {});
+    return `<div class="bcard${a.class ? ' ' + a.class : ''}" data-world="${world}"${a.attrs ? ' ' + a.attrs : ''}><div class="bcard__flip">${front}${back}</div></div>`;
   },
   /* <!-- @include pins class="…" --> the two opposing wedges of gold pinstripes */
   pins: (a) => `<div class="pins${a.class ? ' ' + a.class : ''}" aria-hidden="true"${a.attrs ? ' ' + a.attrs : ''}>${wedge('pins__tr')}${wedge('pins__bl', true)}</div>`,
@@ -224,8 +276,8 @@ function build() {
         .map((n) => `<link rel="preload" href="fonts/${n}.woff2" as="font" type="font/woff2" crossorigin>`).join('\n')
     };
     vars.title = esc(vars.title); vars.description = esc(vars.description);
-    let html = render(shell, { ...vars, content: '%%CONTENT%%' });
-    html = html.replace('%%CONTENT%%', () => render(body, vars));
+    let html = meta.raw ? render(body.trim() + '\n', vars) : render(shell, { ...vars, content: '%%CONTENT%%' });
+    if (!meta.raw) html = html.replace('%%CONTENT%%', () => render(body, vars));
     html = html.replace(/\n[ \t]*\n[ \t]*\n+/g, '\n\n');
     /* guard rails: nothing absolute, nothing third-party but the app's own links */
     const bad = [...html.matchAll(/(?:src|href)="(\/[^"]*|https?:\/\/[^"]*)"/g)].map((m) => m[1])

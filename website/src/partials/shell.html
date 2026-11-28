@@ -21,22 +21,18 @@
 {{pageCss}}
 <script>
 /* Motion is only promised here; site.js confirms it. If the scripts fail, the finished page shows.
-   A desk plays the page as a film (html.motion). A phone or a tablet keeps its own scroll, untouched, and every piece
-   plays once on its own clock as it arrives (html.glide): nothing is tied to the scroll there, so nothing shakes,
-   nothing is skipped by a flick, and nothing moves on after the thumb has stopped. */
+   Every device keeps its own scroll, untouched: nothing is pinned and nothing is tied to the scroll. Every piece
+   plays ONCE, on its own clock, as it arrives (html.glide), so nothing shakes, nothing is skipped by a flick, and
+   nothing moves on after the scroll has stopped. Under Reduce Motion the page is the finished column. */
 (function (d, w) {
-  var c = d.documentElement.classList; c.remove('no-js'); c.add('js');
-  var ok = w.matchMedia && !w.matchMedia('(prefers-reduced-motion: reduce)').matches && !w.matchMedia('(max-height: 440px)').matches &&
-    w.CSS && CSS.supports && CSS.supports('position', 'sticky') && 'IntersectionObserver' in w;
-  var touch = w.matchMedia && w.matchMedia('(hover: none) and (pointer: coarse)').matches;
-  w.__siteOff = function () { c.remove('motion'); c.remove('glide'); c.add('motion-off'); };
-  if (ok) { c.add(touch ? 'glide' : 'motion'); w.__siteFail = setTimeout(w.__siteOff, 6000); }
+  var c = d.documentElement.classList; c.replace('no-js', 'js');
+  var ok = w.matchMedia && !w.matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObserver' in w;
+  w.__siteOff = function () { c.toggle('glide', false); c.add('motion-off'); };
+  if (ok) { c.add('glide'); w.__siteFail = setTimeout(w.__siteOff, 6000); }
 })(document, window);
 </script>
 <script defer src="vendor/gsap.min.js" onerror="__siteOff()"></script>
-<script defer src="vendor/ScrollTrigger.min.js" onerror="__siteOff()"></script>
 <script defer src="vendor/SplitText.min.js" onerror="__siteOff()"></script>
-<script defer src="vendor/lenis.min.js"></script>
 <script defer src="js/site.js" onerror="__siteOff()"></script>
 {{pageJs}}
 </head>

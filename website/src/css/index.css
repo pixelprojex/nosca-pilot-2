@@ -1,218 +1,138 @@
-/* Home: the olive card at the size of a screen. Everything here is the finished page in a plain column; whatever
-   hides, offsets or pins lives under html.motion and is played by the scroll (index.js). Three grounds, gold as a line. */
+/* The one page. Five parts and a footer: the opening (the deep green card's front at the size of the screen), the
+   product, the six sports, the story and the pilot. Nothing here pins or moves with the scroll; what moves plays once
+   as it arrives (site.css, html.glide), and every rule below lays out the FINISHED page. */
 
-/* ───────── 1. the card opens the site ───────── */
-.hm-open{--vs:100vh;--vl:100vh;--rest-w:min(84vw,600px)}
-@supports (height:100svh){.hm-open{--vs:100svh;--vl:100lvh}}
-/* the front is laid out at the size that covers the screen (so the first frame is drawn sharp, never a small card blown up);
-   index.js scales it onto the card as the camera draws back */
-.hm-open{--cover-h:calc(max(calc(100vw*55/84),calc(var(--vl)*2 - var(--vs)))*1.09);--cover-w:calc(var(--cover-h)*84/55);--cu:calc(var(--cover-w)/100);--lu:min(var(--cu),calc((var(--vs)/2 - 176px)/14.9),calc(100vw/38))}
-.hm-open__stage{position:relative;min-height:var(--vs);overflow:hidden;overflow:clip}
-.bcard.hm-open__card{position:absolute;z-index:1;left:50%;top:calc(var(--vs)/2);--card-w:var(--rest-w);margin:calc(var(--rest-w)*55/84/-2) 0 0 calc(var(--rest-w)/-2)}
-.hm-open__card .bcard__front{--u:var(--cu);inset:auto;left:50%;top:50%;width:var(--cover-w);height:var(--cover-h);margin:calc(var(--cover-h)/-2) 0 0 calc(var(--cover-w)/-2)}
-.hm-open__card .bcard__front .pins{--pin-sw:.2}
-.hm-open__card .pins__tr{transform-origin:100% 0}
-.hm-open__card .pins__bl{transform-origin:0 100%}
-.hm-open__card .bcard__lock{--u:var(--lu);inset:auto;left:50%;top:50%;width:calc(var(--lu)*100);height:calc(var(--lu)*65.476);margin:calc(var(--lu)*-32.738) 0 0 calc(var(--lu)*-50)}
-html:not(.motion) .hm-open__card .bcard__lock{transform:translateY(calc(var(--lu)*-3.6))}
-.hm-open__card .bcard__word{color:var(--gold-text-on-green)}
-.hm-open__shadow{position:absolute;left:50%;top:calc(var(--vs)/2);width:var(--rest-w);height:calc(var(--rest-w)*55/84);margin:calc(var(--rest-w)*55/84/-2) 0 0 calc(var(--rest-w)/-2);border-radius:3.6%/5.5%;box-shadow:0 36px 64px -22px rgba(22,26,12,.4),0 12px 24px -12px rgba(22,26,12,.26);opacity:0;pointer-events:none}
-.hm-open__copy{position:absolute;z-index:2;left:0;right:0;top:calc(var(--vs)/2 + var(--lu)*11.6);display:grid;justify-items:center;gap:clamp(8px,1.2vw,16px);padding-inline:var(--gut);text-align:center;color:var(--on-green);pointer-events:none}
-.hm-open__title{margin:0;font:600 clamp(34px,min(10.4vw,9.6vh),96px)/1.02 var(--display);letter-spacing:-.04em}
-.hm-open__sub{margin:0;font:400 clamp(17px,1.7vw,24px)/1.3 var(--display);color:var(--on-green-2);max-width:20em}
-.hm-open__title,.hm-open__sub{overflow:hidden;overflow:clip;overflow-clip-margin:.14em;padding-bottom:.08em}
-.hm-open__title>span,.hm-open__sub>span{display:block}
-.hm-open__cue{position:absolute;z-index:2;left:50%;top:calc(var(--vs) - 58px);width:1px;height:38px;pointer-events:none;display:none;overflow:hidden}
-html.motion .hm-open__cue{display:block}
-.hm-open__cue::before{content:"";position:absolute;inset:0;background:var(--gold-pin);transform:translateY(-101%);animation:hm-cue 2.6s 2.6s cubic-bezier(.65,0,.35,1) infinite}
-@keyframes hm-cue{0%{transform:translateY(-101%)}50%{transform:none}100%{transform:translateY(101%)}}
-@media (max-height:560px){.hm-open__cue{display:none!important}}
-/* the opening waits, unseen, for index.js to play it once: the rings, the word, the two lines. Never for long: a
-   second into the visit (index.html's line of script) .is-late lets the finished card arrive on its own, softly, and
-   index.js skips the opening when it comes */
-html.motion .hm-open:not(.is-go):not(.is-late) .hm-open__card .weave,html.motion .hm-open:not(.is-go):not(.is-late) .bcard__word{opacity:0}
-html.motion .hm-open:not(.is-go):not(.is-late) .hm-open__title>span,html.motion .hm-open:not(.is-go):not(.is-late) .hm-open__sub>span{transform:translateY(120%)}
-html.motion .hm-open:not(.is-go):not(.is-late) .hm-open__card .pins path{stroke-dasharray:1 1.2;stroke-dashoffset:1.06}
-html.motion .hm-open.is-late:not(.is-go) .hm-open__card .weave,html.motion .hm-open.is-late:not(.is-go) .bcard__word{transition:opacity .9s ease-out}
-html.motion .hm-open.is-late:not(.is-go) .hm-open__title>span,html.motion .hm-open.is-late:not(.is-go) .hm-open__sub>span{transition:transform 1s cubic-bezier(.2,.7,.2,1)}
-html.motion .hm-open.is-late:not(.is-go) .hm-open__sub>span{transition-delay:.12s}
-html.motion .hm-open.is-late:not(.is-go) .hm-open__card .bcard__front .pins path{stroke-dasharray:1 1.2;stroke-dashoffset:0;transition:stroke-dashoffset 1.4s cubic-bezier(.45,0,.2,1)}
-html.motion .hm-open.is-live .bcard__flip{will-change:transform}
-/* the white the card's back becomes: it opens from the card's own rectangle to the whole screen, every side at once
-   (index.js), under the card so the two whites are one; the header reads paper the moment it is under its foot */
-.hm-open__white{position:absolute;z-index:1;inset:0;background:var(--ground-paper);visibility:hidden;clip-path:inset(50% 50% 50% 50%)}
-/* without motion the first screen is the card's front, full bleed, with its wedges in the screen's own corners */
-html:not(.motion) .hm-open__card .bcard__front .pins{inset:auto;left:50%;top:50%;width:100vw;height:var(--vs);margin:calc(var(--vs)/-2) 0 0 -50vw;border-radius:0;--pins-w:clamp(200px,46vw,640px);--pin-sw:.22}
-@media (min-width:520px){html:not(.motion) .hm-open__card .bcard__front .pins{--pin-sw:.15}}
-@media (min-width:1000px){html:not(.motion) .hm-open__card .bcard__front .pins{--pin-sw:.1}}
-html:not(.motion) .hm-open__card .bcard__back{display:none}
+.op,.pr,.sp,.st,.pi{scroll-margin-top:var(--hdr-h)}
+.hdr__nav a[aria-current="true"]{color:inherit}
+.hdr__nav a[aria-current="true"]::after{transform:scaleX(1)}
 
-/* ───────── 2. what Nosca is ───────── */
-.hm-what__in{row-gap:clamp(22px,3vw,44px)}
-.hm-what__h{max-width:7.4em}
-.hm-what__copy{display:grid;gap:.6em;max-width:24em}
-.hm-what__copy .t-lede{font-size:clamp(21px,2.3vw,34px);line-height:1.22;letter-spacing:-.018em}
-.hm-what__copy .t-lede{color:var(--fg)}
-.hm-what__copy .t-lede+.t-lede{color:var(--fg-2)}
-.hm-what__photo{margin-top:clamp(12px,2vw,28px)}
-.hm-what__photo .photo{aspect-ratio:5/4}
+/* ───────── the card's stripes along a section's edge (the deep green card's band) ───────── */
+.band{--band-h:clamp(64px,11vh,132px);position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.band>svg{position:absolute;left:0;width:100%;height:var(--band-h);overflow:hidden}
+.band__top{top:0}
+.band__foot{bottom:0}
+.band path{fill:none;stroke:var(--gold-pin);stroke-width:var(--band-sw,.19)}
+@media (min-width:900px){.band path{--band-sw:.16}}
+
+/* ───────── 1. the opening ───────── */
+.op{position:relative;display:grid;min-height:100vh;min-height:100svh;padding:var(--hdr-h) 0 0;overflow:hidden}
+.op__band{top:var(--hdr-h)}
+.op__in{position:relative;display:grid;justify-items:center;align-content:center;text-align:center;padding-block:calc(var(--band-h,96px) + 28px)}
+.op .band{--band-h:clamp(64px,11vh,132px)}
+.op__in{--band-h:clamp(64px,11vh,132px)}
+.op__mark{--mark-w:clamp(92px,11vw,148px);color:var(--gold-pin)}
+.op__mark path{stroke-width:2.4}
+.op__word{margin-top:clamp(18px,2.4vw,28px);font-size:clamp(14px,1.3vw,18px);color:var(--gold-text-on-green)}
+.op__h{margin-top:clamp(30px,4.4vw,56px);font:600 clamp(46px,9.4vw,124px)/.95 var(--display);letter-spacing:-.042em;color:var(--on-green)}
+.op__p{margin-top:clamp(14px,1.8vw,22px);font:400 clamp(18px,1.7vw,24px)/1.35 var(--display);letter-spacing:-.008em;color:var(--on-green-2)}
+.op__key{margin-top:clamp(28px,3.6vw,44px)}
+
+/* ───────── 2. the product ───────── */
+.pr,.sp,.pi{padding-block:clamp(72px,10vw,150px)}
+.pr__head{max-width:46em}
+.pr__h{margin-top:16px}
+.pr__head .t-lede{margin-top:18px}
+
+/* a tour: the phone plays its steps once as it arrives; each step is a button that shows it */
+.tour{display:grid;grid-template-columns:minmax(0,46fr) minmax(0,54fr);grid-template-areas:"head head" "dev steps" "also also";column-gap:clamp(14px,4vw,28px);row-gap:22px;align-items:center;margin-top:clamp(48px,7vw,104px);padding-top:clamp(36px,5vw,64px);border-top:1px solid var(--line)}
+.tour--flip{grid-template-columns:minmax(0,54fr) minmax(0,46fr);grid-template-areas:"head head" "steps dev" "also also"}
+.tour__head{grid-area:head}
+.tour__h{margin-top:10px}
+.tour__dev{grid-area:dev;justify-self:center;padding-bottom:6%}
+.tour__phone{--phone-w:min(41vw,236px)}
+.tour__steps{grid-area:steps;display:grid;counter-reset:st}
+.tour__steps li{counter-increment:st;border-top:1px solid var(--line)}
+.tour__steps li:last-child{border-bottom:1px solid var(--line)}
+.tour__steps button{position:relative;display:grid;grid-template-columns:1.6em minmax(0,1fr);align-items:baseline;width:100%;min-height:52px;padding:11px 0;border:0;background:none;text-align:left;
+  font:500 clamp(16px,1.45vw,20px)/1.25 var(--display);letter-spacing:-.01em;color:var(--fg);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:color .3s}
+.tour__steps button::before{content:counter(st);font:italic 400 1.15em/1 var(--serif);color:var(--gold-text);font-synthesis:none}
+.tour__steps button::after{content:"";position:absolute;left:0;bottom:-1px;width:100%;height:1.5px;background:var(--rule);transform:scaleX(0);transform-origin:0 50%;transition:transform .45s var(--ease)}
+.tour.is-on .tour__steps button{color:var(--fg-3)}
+.tour.is-on .tour__steps button[aria-current="step"]{color:var(--fg)}
+.tour.is-on .tour__steps button[aria-current="step"]::after{transform:scaleX(1)}
+@media (hover:hover){.tour.is-on .tour__steps button:hover{color:var(--fg)}}
+.tour__also{grid-area:also;display:flex;flex-wrap:wrap;margin-left:-1.2em;clip-path:inset(-6px -6px -6px 1.2em);font:500 15px/1.6 var(--display);color:var(--fg-2)}
+.tour__also>span{white-space:nowrap}
+.tour__also>span::before{content:"\00B7";display:inline-block;width:1.2em;text-align:center;color:var(--gold-text)}
 @media (min-width:900px){
-  .hm-what__h{grid-column:1/span 11}
-  .hm-what__photo{grid-column:1/span 6;grid-row:3;margin-top:clamp(20px,3vw,56px)}
-  .hm-what__photo .photo{aspect-ratio:4/5}
-  .hm-what__copy{grid-column:8/span 5;grid-row:3;align-self:end;padding-bottom:clamp(8px,2vw,32px)}
-}
-/* the page begins before the card has let go: its first words rise onto the white the card's back has just become, so
-   no screen is ever empty between the two. Its own ground starts below the overlap. */
-html.motion .hm-what{--ov:46vh;z-index:1;margin-top:calc(var(--ov)*-1);padding-top:9vh;background:linear-gradient(rgba(255,255,255,0) var(--ov),#fff var(--ov))}
-@supports (height:1lvh){html.motion .hm-what{--ov:46lvh;padding-top:9lvh}}
-/* the opening is longer on a desk, so the overlap is too: the eyebrow comes in as the white is completing */
-@media (min-width:720px){html.motion .hm-what{--ov:68vh}@supports (height:1lvh){html.motion .hm-what{--ov:68lvh}}}
-
-/* ───────── 3 and 4. the two films: the phone stays, the scroll plays the app through it ───────── */
-.hm-film{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:center;justify-items:center;padding:calc(var(--hdr-h) + 18px) var(--gut) 44px;max-width:1240px;margin-inline:auto}
-.hm-film__copy{width:100%;max-width:30em}
-.hm-film__copy .film__steps{margin-top:14px}
-.hm-film__copy .t-numeral{font-size:clamp(30px,4vw,64px)}
-.hm-film__copy .t-h2{margin-top:6px}
-.hm-film__copy .t-lede{margin-top:10px}
-.hm-film__copy .link{margin-top:6px}
-.hm-film__phone{--phone-w:min(60vw,300px)}
-/* at rest each caption carries its own screen (the phone is for the film), two to a row past a phone's width */
-.hm-rest{--shot-w:min(100%,220px);margin:0 0 18px;order:-1}
-html:not(.motion) .hm-film{padding-block:clamp(72px,10vw,120px)}
-html:not(.motion) .hm-film__copy{max-width:none}
-html:not(.motion) .hm-film .film__steps>[data-step]{display:flex;flex-direction:column;min-width:0}
-html:not(.motion) .hm-film__copy .t-h2{font-size:clamp(26px,2.4vw,34px);line-height:1.1;letter-spacing:-.02em}
-html:not(.motion) .hm-film__copy .t-lede{font-size:17px}
-@media (min-width:560px){html:not(.motion) .hm-film .film__steps{grid-template-columns:repeat(2,minmax(0,1fr));gap:56px clamp(28px,4vw,56px)}}
-@media (min-width:1100px){html:not(.motion) .hm-film .film__steps{grid-template-columns:repeat(3,minmax(0,1fr))}}
-
-/* with motion, on a phone: the caption is compact (its numeral beside its headline, the lede only where the screen is
-   tall enough) and the phone is sized from the height that is really left, never under half the width: on a short
-   screen it runs off the foot of the stage, as a device is cropped, rather than shrinking to a stamp */
-html.motion .hm-film{grid-template-rows:auto minmax(0,1fr);align-content:start}
-html.motion .hm-film__phone{align-self:start}
-@media (max-width:719px){
-  html.motion .hm-film{padding:calc(var(--hdr-h) + 14px) var(--gut) 0;gap:14px;justify-items:stretch}
-  html.motion .hm-film__copy .film__steps{margin-top:10px}
-  html.motion .hm-film__copy .film__steps>[data-step]{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:12px;align-items:baseline;align-content:start}
-  html.motion .hm-film__copy .t-numeral{grid-row:1/span 3;font-size:30px;line-height:1}
-  html.motion .hm-film__copy .t-h2{margin:0;font-size:clamp(25px,7.2vw,30px);line-height:1.06}
-  html.motion .hm-film__copy .t-lede{margin-top:6px;font-size:16px;line-height:1.32}
-  html.motion .hm-film__copy .link{margin-top:2px;font-size:15px}
-  html.motion .hm-film__copy [data-step]>p:has(.link){margin:0}
-  html.motion .hm-film__phone{justify-self:center;--phone-w:clamp(min(54vw,210px),calc((100vh - var(--hdr-h) - 262px)/2.1),64vw);--phone-w:clamp(min(54vw,210px),calc((100svh - var(--hdr-h) - 262px)/2.1),64vw)}
-}
-@media (max-width:719px) and (max-height:699px){
-  html.motion .hm-film__copy .t-lede{display:none}
-  html.motion .hm-film__phone{--phone-w:clamp(min(54vw,210px),calc((100vh - var(--hdr-h) - 186px)/2.1),64vw);--phone-w:clamp(min(54vw,210px),calc((100svh - var(--hdr-h) - 186px)/2.1),64vw)}
-}
-@media (min-width:720px){
-  .hm-film{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,5vw,80px)}
-  html:not(.motion) .hm-film{grid-template-columns:minmax(0,1fr)}
-  .hm-film--flip .hm-film__phone{order:-1}
-  .hm-film--flip .hm-film__copy{justify-self:start}
-  html.motion .hm-film{grid-template-rows:minmax(0,1fr);align-content:stretch}
-  html.motion .hm-film__phone{--phone-w:min(30vw,400px,calc((100vh - var(--hdr-h) - 110px)/2.2));--phone-w:min(30vw,400px,calc((100svh - var(--hdr-h) - 110px)/2.2));align-self:center}
-}
-/* a tablet held upright has the height for a larger phone than a third of its width */
-@media (min-width:720px) and (max-width:1099px) and (min-aspect-ratio:1/2) and (max-aspect-ratio:1/1){
-  html.motion .hm-film__phone{--phone-w:min(40vw,340px,calc((100vh - var(--hdr-h) - 110px)/2.2));--phone-w:min(40vw,340px,calc((100svh - var(--hdr-h) - 110px)/2.2))}
+  .tour{grid-template-columns:minmax(0,1fr) auto;grid-template-rows:1fr auto 1fr;grid-template-areas:"head dev" "steps dev" "also dev";column-gap:clamp(48px,9vw,150px);row-gap:28px}
+  .tour--flip{grid-template-columns:auto minmax(0,1fr);grid-template-areas:"dev head" "dev steps" "dev also"}
+  .tour__head{align-self:end}
+  .tour__also{align-self:start}
+  .tour__steps{max-width:30em}
+  .tour__phone{--phone-w:clamp(260px,22vw,310px)}
 }
 
-/* ───────── 5. six sports: a horizontal passage ───────── */
-.hm-sports__track{--rail-gap:clamp(40px,7vw,128px);--pw:min(74vw,340px)}
-.hm-sports__lead{display:grid;gap:16px;max-width:min(80vw,32em)}
-.hm-sport{display:grid;grid-template-columns:minmax(0,1fr);gap:clamp(14px,2.2vh,24px);margin:0;width:var(--pw);margin-right:calc(var(--pw)*.17)}
-.hm-sport__pics{position:relative}
-.hm-sport .photo{aspect-ratio:4/5;width:var(--pw)}
-.hm-sport__shot{position:absolute;right:calc(var(--pw)*-.17);bottom:calc(var(--pw)*-.07);--shot-w:calc(var(--pw)*.4)}
-/* squash's subject (the hands at the laces) is on the right: its screen stands on the left, and the court's red line
-   along the very top is cropped by a zoom held to the foot of the picture */
-.hm-sport--l{margin-right:0;margin-left:calc(var(--pw)*.17)}
-.hm-sport--l .hm-sport__shot{right:auto;left:calc(var(--pw)*-.17)}
-.hm-sport--sq .photo img{transform-origin:50% 100%}
-html:not(.motion) .hm-sport--sq .photo img{transform:scale(1.09)}
-.hm-sport figcaption{display:grid;gap:4px;padding-right:calc(var(--pw)*.26)}
-.hm-sport figcaption .t-h2{display:flex;align-items:center;gap:.3em}
-.hm-sport figcaption .t-body{margin:0;color:var(--fg-2)}
-html.motion .hm-sports__track{--pw:min(66vw,calc((100vh - var(--hdr-h) - 250px)*.8));--pw:min(66vw,calc((100svh - var(--hdr-h) - 250px)*.8));padding-top:var(--hdr-h);align-items:center}
-html.motion .hm-sports__lead{width:min(80vw,34em)}
-@media (min-width:720px){html.motion .hm-sports__track{--pw:min(34vw,calc((100vh - var(--hdr-h) - 236px)*.8));--pw:min(34vw,calc((100svh - var(--hdr-h) - 236px)*.8))}}
-@media (min-width:720px) and (max-width:1099px) and (min-aspect-ratio:1/2) and (max-aspect-ratio:1/1){html.motion .hm-sports__track{--pw:min(50vw,calc((100vh - var(--hdr-h) - 236px)*.8));--pw:min(50vw,calc((100svh - var(--hdr-h) - 236px)*.8))}}
-html:not(.motion) .hm-sports{padding-block:clamp(72px,10vw,140px)}
-html:not(.motion) .hm-sports__track{grid-template-columns:repeat(auto-fill,minmax(calc(var(--pw)*1.17),1fr));row-gap:clamp(40px,6vw,72px);max-width:calc(1160px + var(--gut)*2);margin-inline:auto}
-html:not(.motion) .hm-sports__lead{grid-column:1/-1}
-@media (max-width:719px){html:not(.motion) .hm-sports__track{--pw:min(70vw,300px)}}
+/* ───────── 3. the sports ───────── */
+.sp__head{max-width:46em}
+.sp__head .t-h1{margin-top:16px}
+.sp__head .t-lede{margin-top:18px}
+.sp__grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:30px 14px;margin-top:clamp(36px,5vw,64px)}
+@media (min-width:900px){.sp__grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:56px clamp(20px,2.6vw,40px)}}
+.sp__i{min-width:0}
+.sp__pic{aspect-ratio:4/3;border-radius:6px;overflow:hidden}
+.sp__n{display:flex;align-items:center;gap:.45em;margin-top:14px;font:600 clamp(19px,1.9vw,26px)/1.15 var(--display);letter-spacing:-.018em}
+.sp__w{margin-top:6px;font-size:15px;line-height:1.4;color:var(--fg-2)}
+.sp__l{margin-top:6px;font-size:13px;line-height:1.4;color:var(--fg-3)}
+@media (min-width:900px){.sp__w{font-size:17px}.sp__l{font-size:14px}}
 
-/* ───────── 6. a photograph settles, with one true sentence on the dark of its trees ───────── */
-.hm-still .photo{--veil:.46}
-.hm-still__in{display:grid;align-content:start;justify-items:start;gap:clamp(12px,2vh,24px);padding:calc(var(--hdr-h) + clamp(20px,7vh,84px)) var(--gut) 40px}
-.hm-still__h{max-width:8em;--fg-dim:rgba(244,246,243,.36)}
-.hm-still__p{max-width:21em;color:var(--on-green)}
-html:not(.motion) .hm-still__in{padding-block:clamp(40px,7vw,96px)}
-
-/* ───────── 7. the name ───────── */
-.hm-name{overflow:hidden;overflow:clip}
-.hm-name__in{position:relative;display:grid;justify-items:center;align-content:center;gap:clamp(14px,2.6vh,30px);padding:calc(var(--hdr-h) + 24px) var(--gut) 56px;text-align:center}
-.hm-name__rings{--mark-w:clamp(128px,19vw,260px)}
-.hm-name__word{font-size:clamp(14px,1.5vw,20px);color:var(--gold-text)}
-.hm-name__means{max-width:12em;margin-top:clamp(10px,3vh,36px);font-size:clamp(34px,6.2vw,92px);line-height:1.02;text-wrap:balance}
-.hm-name__line{color:var(--fg-2);max-width:22em}
-.hm-name__more{margin:0}
-.hm-name .pins{--pins-w:clamp(190px,44vw,700px)}
-@media (max-width:719px){.hm-name .pins{--pins-w:44vw}}
-html:not(.motion) .hm-name__in{padding-block:clamp(96px,14vw,200px)}
-
-/* ───────── 8. the doors ───────── */
-.hm-doors__list{list-style:none;margin:clamp(22px,3vw,40px) 0 0;padding:0}
-.hm-door__a{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;column-gap:clamp(14px,3vw,48px);row-gap:10px;padding-block:clamp(26px,4.4vw,64px);color:inherit;text-decoration:none;-webkit-tap-highlight-color:transparent}
-.hm-door__n{font-size:clamp(26px,3vw,44px);align-self:start;padding-top:.38em;min-width:1.5em}
-.hm-door__t{display:grid;gap:clamp(8px,1.2vw,16px);min-width:0}
-.hm-door__h{display:block}
-.hm-door__p{display:block;max-width:26em}
-.hm-door__pic{display:none}
-.hm-door__go{display:grid;place-items:center;width:44px;height:44px;color:var(--gold-text);transition:transform .5s var(--ease)}
-.hm-door__go .arrow{width:22px;height:22px}
-@media (hover:hover){.hm-door__a:hover .hm-door__go{transform:translateX(8px)}}
-.hm-door__a:focus-visible{outline:2px solid var(--focus);outline-offset:6px;border-radius:6px}
-@media (max-width:359px){
-  .hm-door__a{grid-template-columns:minmax(0,1fr)}
-  .hm-door__n{padding-top:0}
-  .hm-door__go{display:none}
-}
-@media (min-width:720px){
-  .hm-door__a{grid-template-columns:clamp(60px,9vw,120px) minmax(0,1fr) clamp(170px,21vw,264px) 44px}
-  .hm-door__pic{display:block;--dw:clamp(170px,21vw,264px);width:var(--dw);aspect-ratio:84/55;position:relative}
-  .hm-door__pic--shot{overflow:hidden;border-radius:3.6%/5.5%;background:var(--ground-rest)}
-  .hm-door__pic--shot .shot{position:absolute;left:50%;top:13%;--shot-w:calc(var(--dw)*.5);margin-left:calc(var(--dw)*-.25)}
-  .hm-door__pic--card .bcard{--card-w:var(--dw)}
-  .hm-door__pic--frame .pframe{position:absolute;inset:0;aspect-ratio:auto;border-radius:3.6%/5.5%}
-  @media (hover:hover){
-    .hm-door__pic{transition:transform .7s var(--ease)}
-    .hm-door__a:hover .hm-door__pic{transform:translateY(-6px)}
-  }
-}
-
-/* ───────── 9. the close ───────── */
-.hm-close__in{row-gap:clamp(44px,7vw,80px);align-items:center}
-.hm-close__copy{display:grid;justify-items:start;gap:clamp(14px,2vw,24px)}
-.hm-close__h{max-width:7em}
-.hm-close__keys{margin-top:clamp(6px,1vw,14px)}
-.hm-close__card{display:grid;gap:18px;justify-items:start}
-.hm-close__card .bcard{--card-w:min(86vw,460px)}
-.hm-close__note{margin:0;color:var(--fg-3);max-width:26em}
-.hm-close .bcard__word{color:var(--gold-text-on-green)}
+/* ───────── 4. the story ───────── */
+.st{position:relative;padding:calc(clamp(64px,11vh,132px) + clamp(48px,7vw,96px)) 0 0;overflow:hidden}
+.st__name{display:grid;justify-items:center;text-align:center}
+.st__rings{--mark-w:clamp(96px,10vw,132px);margin-top:clamp(22px,3vw,34px)}
+.st__rings path{stroke-width:2.4}
+.st__h{margin-top:clamp(22px,3vw,34px);color:var(--on-green)}
+.st__h i[lang="ga"]{color:var(--gold-text-on-green)}
+.st__long{margin-top:18px;max-width:31em;color:var(--on-green-2)}
+.st__built{display:grid;gap:clamp(28px,4vw,48px);margin-top:clamp(72px,10vw,140px)}
+.st__moment .t-lede{margin-top:16px;color:var(--on-green-2)}
+.st__dates li{display:grid;grid-template-columns:4.6em minmax(0,1fr);align-items:baseline;gap:12px;padding:12px 0;border-top:1px solid var(--line);font-size:17px;line-height:1.35;color:var(--on-green)}
+.st__dates li:last-child{border-bottom:1px solid var(--line)}
+.st__d{font:600 14px/1.35 var(--display);letter-spacing:.04em;color:var(--gold-text-on-green);white-space:nowrap}
+.st__nums{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.st__nums p{display:grid;gap:8px;align-content:start}
+.st__nums span:last-child{font-size:15px;line-height:1.35;color:var(--on-green-2);max-width:13em}
 @media (min-width:900px){
-  .hm-close__copy{grid-column:1/span 6}
-  .hm-close__card{grid-column:8/span 5}
-  .hm-close__card .bcard{--card-w:min(36vw,460px)}
+  .st__built{grid-template-columns:minmax(0,5fr) minmax(0,6fr);column-gap:clamp(48px,7vw,120px);align-items:start}
+  .st__nums{grid-column:1;grid-row:2}
+  .st__dates{grid-column:2;grid-row:1/span 2}
+}
+.st__stand{margin-top:clamp(72px,10vw,140px)}
+.st__words{font:600 clamp(34px,5.4vw,76px)/1 var(--display);letter-spacing:-.035em;color:var(--on-green)}
+.st__princ{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:26px 18px;margin-top:clamp(28px,4vw,48px)}
+@media (min-width:900px){.st__princ{grid-template-columns:repeat(4,minmax(0,1fr));gap:32px}}
+.st__princ h4{margin-top:14px;font:600 17px/1.25 var(--display);letter-spacing:-.01em;color:var(--on-green)}
+.st__princ p{margin-top:6px;font-size:15px;line-height:1.4;color:var(--on-green-2)}
+.st__climate{position:relative;margin-top:clamp(72px,10vw,140px)}
+.st__climate-pic{aspect-ratio:3/2;--veil:.2}
+.st__climate-in{padding-block:clamp(28px,4vw,40px) clamp(56px,8vw,96px)}
+.st__climate-in .t-lede{margin-top:14px;color:var(--on-green-2)}
+@media (min-width:900px){
+  .st__climate-pic{aspect-ratio:21/8;--veil:.46}
+  .st__climate-in{position:absolute;left:0;right:0;bottom:0;padding-block:0 clamp(48px,6vw,88px)}
+  .st__climate-in .t-lede{max-width:28em;color:var(--on-green)}
 }
 
-/* the card's sports line and the footer's hang their dots in the foundation now (site.css .sports, .bcard__sports) */
-/* the footer's sports on Home: one line on a desk */
-[data-page="index"] .foot__sports{max-width:none}
+/* ───────── 5. the pilot: the card itself, both designs as printed ───────── */
+.pi__in{display:grid;gap:clamp(44px,6vw,64px);align-items:center}
+.pi__h{margin-top:16px}
+.pi__copy .t-lede{margin-top:18px}
+.pi__keys{margin-top:clamp(26px,3vw,36px)}
+.pi__contact{margin-top:20px}
+.pi__cards{display:grid;justify-items:center;gap:18px;margin:0}
+/* the two cards lie on the paper as the founder hands them out: the deep green in front, the olive behind it with its
+   wedges and its mark in sight (.bcard sets its own --card-w, so the stack hands it --cw) */
+.pi__stack{--cw:min(68vw,420px);position:relative;width:calc(var(--cw)*1.3);height:calc(var(--cw)*1.02)}
+.pi__stack .bcard{position:absolute;--card-w:var(--cw)}
+.pi__olive{left:0;top:0;transform:rotate(-5deg)}
+.pi__green{right:0;bottom:0;transform:rotate(2.5deg)}
+.pi__cap{max-width:24em;text-align:center}
+@media (min-width:900px){.pi__in{grid-template-columns:minmax(0,5fr) minmax(0,6fr)}.pi__stack{--cw:min(33vw,440px)}}
 
-/* ───────── a ground arriving on the card's diagonal (index.js): the photograph's film, and the footer ───────── */
-.hm-diag__edge{position:absolute;z-index:6;left:0;top:0;height:1.5px;width:150vmax;margin-top:-.75px;background:var(--gold-pin);transform-origin:0 50%;pointer-events:none;opacity:0}
+/* the deep green card's front, drawn from the first print file */
+.bcard__front--band{background:#183D3A}
+.bcard__art{position:absolute;inset:0;width:100%;height:100%}
+.bcard__ground{fill:#183D3A}
+.bcard__band path{fill:none;stroke:var(--gold-pin);stroke-width:.4}
+.bcard__rings path{fill:none;stroke:var(--gold-pin);stroke-width:2.75;stroke-linecap:round}
+.bcard__nosca{fill:var(--gold-pin);font-family:var(--display);font-size:3.53px;font-weight:500;letter-spacing:1.4826px}

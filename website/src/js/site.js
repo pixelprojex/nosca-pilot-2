@@ -18,7 +18,7 @@
   const num = (v, d) => { const n = parseFloat(v); return isNaN(n) ? d : n; };
   const mq = (q) => W.matchMedia(q);
 
-  const libs = !!(gsap && ScrollTrigger && SplitText);
+  const libs = !!(gsap && SplitText);   /* ScrollTrigger is no longer loaded: nothing on the site is tied to the scroll */
   if (!libs && W.__siteOff) W.__siteOff();
   const motion = libs && H.classList.contains('motion');
   /* a phone or a tablet: its own scroll, and every piece plays once on its own clock as it arrives (see glideScan) */
@@ -1038,7 +1038,7 @@
     const play = (sp) => {
       const bits = by === 'lines' ? sp.lines : sp.words;
       gsap.set(bits, { yPercent: 118 }); el.classList.add('is-set');
-      return gsap.to(bits, { yPercent: 0, duration: 1.05, ease: 'power3.out', stagger: by === 'lines' ? 0.1 : 0.04, paused: true });
+      return gsap.to(bits, { yPercent: 0, duration: 0.85, ease: 'power3.out', stagger: by === 'lines' ? 0.08 : 0.035, paused: true });
     };
     play.opts = { mask: 'lines' };
     glideSplit(el, by === 'lines' ? 'lines' : 'lines,words', play);
@@ -1048,7 +1048,7 @@
       const fills = sp.lines.map((ln) => { const f = D.createElement('span'); f.className = 'ink-fill'; f.setAttribute('aria-hidden', 'true'); f.innerHTML = ln.innerHTML; ln.appendChild(f); return f; });
       gsap.set(fills, { clipPath: 'inset(-12% 100% -24% 0%)' }); el.classList.add('is-set');
       const tl = gsap.timeline({ paused: true });
-      fills.forEach((f, i) => tl.to(f, { clipPath: 'inset(-12% 0% -24% 0%)', duration: 1, ease: 'power2.inOut' }, i * 0.34));
+      fills.forEach((f, i) => tl.to(f, { clipPath: 'inset(-12% 0% -24% 0%)', duration: 0.8, ease: 'power2.inOut' }, i * 0.22));
       return tl;
     };
     play.opts = { linesClass: 'ink-line' };
@@ -1065,11 +1065,12 @@
   }
   function glideRule(el) {
     el.classList.add('is-set');
-    arrive(el, (take) => take(gsap.fromTo(el, { scaleX: 0, transformOrigin: '0% 50%' }, { scaleX: 1, duration: 1.3, ease: 'power2.inOut', paused: true, clearProps: 'transform' })));
+    arrive(el, (take) => take(gsap.fromTo(el, { scaleX: 0, transformOrigin: '0% 50%' }, { scaleX: 1, duration: 1, ease: 'power2.inOut', paused: true, clearProps: 'transform' })));
   }
   function glideStripes(el) {
     const watch = el.classList.contains('pins') && el.parentElement ? el.parentElement : el;
-    arrive(el, (take) => take($$('.pins__w', el).length ? Site.pins(el, { stagger: 0.05 }) : Site.draw(el, { stagger: 0.14, duration: 1.6 })), { watch });
+    const band = el.classList.contains('band');
+    arrive(el, (take) => take($$('.pins__w', el).length ? Site.pins(el, { stagger: 0.05 }) : band ? Site.draw(el, { stagger: 0.012, duration: 0.8 }) : Site.draw(el, { stagger: 0.14, duration: 1.2 })), { watch: band ? el : watch });
   }
   function glideWeave(svg) {
     const w = Site.weave(svg); if (!w) return;
@@ -1077,14 +1078,14 @@
     arrive(svg, (take) => {
       w.set(w.far(0.16), 0);
       take(gsap.timeline({ paused: true })
-        .to(w.state, { draw: 1, duration: 1.1, ease: 'power2.inOut', onUpdate: w.render }, 0)
-        .to(w.state, { d: 12, duration: 1.6, ease: 'power3.inOut', onUpdate: w.render }, 0.55));
+        .to(w.state, { draw: 1, duration: 0.9, ease: 'power2.inOut', onUpdate: w.render }, 0)
+        .to(w.state, { d: 12, duration: 1.2, ease: 'power3.inOut', onUpdate: w.render }, 0.4));
     }, { margin: '0px 0px -14% 0px' });
   }
   function glideTurn(el) {
     const c = Site.card(el); if (!c || !c.flip) return;
     const back = el.classList.contains('is-back');
-    arrive(el, (take) => { const tl = gsap.timeline({ paused: true }); c.turn(tl, { at: 0, duration: 1.8, from: back ? 0 : 180, to: back ? 180 : 0, tilt: [8, -3] }); take(tl); }, { margin: '0px 0px -18% 0px' });
+    arrive(el, (take) => { const tl = gsap.timeline({ paused: true }); c.turn(tl, { at: 0.2, duration: 1.3, from: back ? 0 : 180, to: back ? 180 : 0, tilt: [8, -3] }); take(tl); }, { margin: '0px 0px -18% 0px' });
   }
   /* a picture (a phone, a screen, a photograph) comes to rest: CSS carries it (.g-in), so it composes with any
      transform the picture already wears. Only what is below the fold when the page opens waits for its turn. */
@@ -1171,12 +1172,14 @@
   function start() {
     D.body.appendChild(probe); D.body.appendChild(probeL);
     if (libs) {
-      gsap.registerPlugin(ScrollTrigger, SplitText);
+      gsap.registerPlugin(...[ScrollTrigger, SplitText].filter(Boolean));
       gsap.config({ nullTargetWarn: false });
       gsap.defaults({ ease: EASE, duration: 1 });
-      ScrollTrigger.config({ ignoreMobileResize: true });
-      ScrollTrigger.addEventListener('refreshInit', () => H.classList.add('is-measuring'));
-      ScrollTrigger.addEventListener('refresh', () => { H.classList.remove('is-measuring'); if (Site.header) Site.header.refresh(); });
+      if (ScrollTrigger) {
+        ScrollTrigger.config({ ignoreMobileResize: true });
+        ScrollTrigger.addEventListener('refreshInit', () => H.classList.add('is-measuring'));
+        ScrollTrigger.addEventListener('refresh', () => { H.classList.remove('is-measuring'); if (Site.header) Site.header.refresh(); });
+      }
     }
     try { keys(); header(); anchors(); } catch (e) { fail(e); }
     try {
@@ -1189,8 +1192,8 @@
     try { stages(D); } catch (e) { fail(e); }
     /* the footer's green arrives through the card's diagonal on every page, as every ground before it does
        (a page that draws its own sets foot._shift, as Home does) */
-    try { const foot = $('footer.foot'); if (motion && libs && foot && !foot._shift) Site.groundShift(foot); } catch (e) { fail(e); }
-    if (libs) {
+    try { const foot = $('footer.foot'); if (motion && libs && ScrollTrigger && foot && !foot._shift) Site.groundShift(foot); } catch (e) { fail(e); }
+    if (libs && ScrollTrigger) {
       const again = () => { ScrollTrigger.refresh(); };
       fontsReady.then(again);
       W.addEventListener('load', () => { again(); if (motion && location.hash) requestAnimationFrame(() => Site.toHash()); });
