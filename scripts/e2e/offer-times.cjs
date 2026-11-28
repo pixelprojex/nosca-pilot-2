@@ -371,12 +371,18 @@ function freshDb({ hours = true, away = null, family = false, requestFor = "adul
       const tomorrow = page.locator("div.mb-6").filter({ has: page.locator("span", { hasText: /^Tomorrow$/ }) }).first();
       const ask = tomorrow.locator('[data-tour="agenda-ask"]');
       const askText = (await ask.count()) ? M.norm(await ask.first().innerText()) : "";
+      /* since 28 November (the class plan's S3) a day's free hours fold into one chip, "Free · 3", on every day but
+         the one holding the first bookable hour: the fold counts the hours it holds — three, never the request's — and
+         a tap lays them out in their places, where the plus rows are read as before */
+      const fold = tomorrow.locator('[data-tour="agenda-free"]');
+      const folded = (await fold.count()) ? await fold.first().getAttribute("data-free") : null;
+      if (folded !== null) { await fold.first().click(); await page.waitForTimeout(600); }
       const plusRows = await tomorrow.locator("button").evaluateAll((els) => els.filter((b) => b.querySelector("svg.lucide-plus")).map((b) => b.textContent.trim()));
       await shot("08-diary-list-request");
       check("(q1) the List carries the request in its hour: 10:00 am, Cian Murphy, Requested, Accept · Decline",
             (await ask.count()) === 1 && /^10:00 am Cian Murphy Requested Accept Decline$/.test(askText), askText || "no row");
-      check("(q2) …and the hour is held: tomorrow's plus rows are 9:00 am, 11:00 am and 5:00 pm — never 10:00 am",
-            JSON.stringify(plusRows) === JSON.stringify(["9:00 am", "11:00 am", "5:00 pm"]), JSON.stringify(plusRows));
+      check("(q2) …and the hour is held: tomorrow's free hours fold to three, and laid out its plus rows are 9:00 am, 11:00 am and 5:00 pm — never 10:00 am",
+            (folded === null || folded === "3") && JSON.stringify(plusRows) === JSON.stringify(["9:00 am", "11:00 am", "5:00 pm"]), JSON.stringify({ folded, plusRows }));
       /* Decline from the Diary opens Today's own decline sheet */
       await ask.first().locator('[data-tour="agenda-decline"]').click(); await page.waitForTimeout(900);
       const dt = await offerButtons(page), st = await sheetText(page);
@@ -385,10 +391,13 @@ function freshDb({ hours = true, away = null, family = false, requestFor = "adul
       await page.locator("[data-sheet] button", { hasText: /^Just decline$/ }).first().click(); await page.waitForTimeout(1500);
       const req = db.bookings.find((b) => b.id === CC06);
       const told = toldFor(db, IDS.adult, CC06);
+      /* the day laid out in (q2) may fold again once it is all free hours: lay it out to read them */
+      if (await tomorrow.locator('[data-tour="agenda-free"]').count()) { await tomorrow.locator('[data-tour="agenda-free"]').first().click(); await page.waitForTimeout(600); }
+      const plusAfter = await tomorrow.locator("button").evaluateAll((els) => els.filter((b) => b.querySelector("svg.lucide-plus")).map((b) => b.textContent.trim()));
       check("(q4) …and Just decline declines it: the row cancelled, the player told Request declined, the row gone from the Diary and the hour offered again",
             !!req && req.status === "cancelled" && told.length === 1 && /^Request declined/.test(told[0]) && (await tomorrow.locator('[data-tour="agenda-ask"]').count()) === 0
-            && (await tomorrow.locator("button").evaluateAll((els) => els.filter((b) => b.querySelector("svg.lucide-plus")).map((b) => b.textContent.trim()))).includes("10:00 am"),
-            JSON.stringify({ status: req && req.status, told }));
+            && plusAfter.includes("10:00 am"),
+            JSON.stringify({ status: req && req.status, told, plusAfter }));
       await ctx.close();
     }
     {
@@ -430,7 +439,9 @@ function freshDb({ hours = true, away = null, family = false, requestFor = "adul
       await tomorrow.locator('[data-tour="agenda-ask"] [data-tour="agenda-accept"]').first().click(); await page.waitForTimeout(1800);
       const req = db.bookings.find((b) => b.id === CC06);
       const told = toldFor(db, IDS.adult, CC06);
-      const rows = await tomorrow.locator('[data-tour="agenda-row"]').evaluateAll((els) => els.map((b) => b.textContent.replace(/\s+/g, " ").trim()));
+      /* the time and the name: since 28 November a booked hour carries the person's face between them, its initials
+         read as text when the photo is not there, so the row is read by its time and its name */
+      const rows = await tomorrow.locator('[data-tour="agenda-row"]').evaluateAll((els) => els.map((b) => `${b.querySelector("span").textContent.trim()} ${((b.querySelector("[data-name]") || {}).textContent || "").trim()}`));
       check("(q9) Accept on the List is the same accept: the request confirmed, the player told, and the hour a lesson row of the day with no Requested row left",
             !!req && req.status === "confirmed" && told.some((x) => /^Lesson confirmed/.test(x)) && (await tomorrow.locator('[data-tour="agenda-ask"]').count()) === 0 && rows.some((x) => /^10:00 am\s*Cian Murphy/.test(x)),
             JSON.stringify({ status: req && req.status, told, rows }));

@@ -100,16 +100,19 @@ const { check, results, summary } = M.checker("diary-manage");
       }) : null;
       const fit = await M.fingerFit(page, '[data-tour="diary-manage"]');
       await shot("01-coach-diary");
-      check("(a1) the coach's Diary carries one Manage: the word beside the title, in ink at 16 — no glyph, no fill, never the accent",
-        (await w.count()) === 1 && !!said && said.text === "Manage" && said.glyphs === 0 && said.color === INK && said.size === "16px" && /rgba\(0, 0, 0, 0\)|transparent/.test(said.bg) && said.besideTitle && said.right <= 390 - 20,
+      /* since 28 November (the design render) Manage is a quiet key, where it was a bare word: the lead's pale on its
+         ledge (golf's, #DBEEDF), the word in the ink at 15/600, 38 drawn and 44 to a finger — still no glyph and never
+         the accent, which is a lesson's */
+      check("(a1) the coach's Diary carries one Manage beside the title: the quiet key — the lead's pale, the word in the ink at 15 — no glyph, never the accent",
+        (await w.count()) === 1 && !!said && said.text === "Manage" && said.glyphs === 0 && said.color === INK && said.size === "15px" && said.bg === "rgb(219, 238, 223)" && said.besideTitle && said.right <= 390 - 20,
         JSON.stringify(said));
-      check("(a2) …and answers a finger 44 tall", !!fit && fit.missed.length === 0 && fit.drawn[1] >= 44, JSON.stringify(fit));
+      check("(a2) …and answers a finger 44 tall, 38 drawn", !!fit && fit.missed.length === 0 && fit.drawn[1] >= 38, JSON.stringify(fit));
       await ctx.close();
     }
     for (const role of ["adult", "parent"]) {
       const { ctx, page } = await boot(role);
       await diary(page);
-      check(`(a3 ${role}) a ${role === "adult" ? "player's" : "parent's"} Diary carries no Manage`, (await page.locator('[data-tour="diary-manage"]').count()) === 0 && /Diary|Book for/.test(await h1(page)), await h1(page));
+      check(`(a3 ${role}) a ${role === "adult" ? "player's" : "parent's"} Diary carries no Manage`, (await page.locator('[data-tour="diary-manage"]').count()) === 0 && /^(Diary|Book)$/.test(await h1(page)), await h1(page));
       await ctx.close();
     }
 

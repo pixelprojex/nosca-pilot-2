@@ -496,14 +496,15 @@ const openSettings = async (page) => {
       await page.locator('[data-tour="settings-install"]').first().dispatchEvent("click"); await page.waitForTimeout(1300);
       const t = await text();
       check("(f) the row opens the guide as a screen titled Add to Home Screen", /^Add to Home Screen/.test(t.replace(/^.*?Add to Home Screen/, "Add to Home Screen")) && (await page.locator('[data-tour="install-steps"]').count()) === 1 && (await page.locator('[data-tour="install-device"]').count()) === 1 && (await page.locator('[aria-label="Back"]').count()) === 1, t.slice(0, 160));
-      /* one guide, two dresses: inside the app it is the app's own page — no card, no gold — with the same pictures and words */
+      /* one guide, two dresses: inside the app it is the app's own page — no card, no gold — with the same pictures and words;
+         the ink is the warm one since 28 November (the design render's neutrals: #1D1B17, it was Apple's #1C1C1E) */
       const dress = await page.evaluate(() => {
         const num = document.querySelector("[data-ins-num]"), dev = document.querySelector('[data-tour="install-device"]'), tap = document.querySelector("[data-ins-tap]");
         return { card: document.querySelectorAll('[data-tour="install-card"], [data-tour="install-what"], [data-tour="install-about"]').length, num: num ? getComputedStyle(num).color : "", act: dev && dev.lastElementChild ? getComputedStyle(dev.lastElementChild).color : "", ring: tap && tap.querySelector("svg:last-of-type path") ? getComputedStyle(tap.querySelector("svg:last-of-type path")).stroke : "" };
       });
       const wApp = await words(page), pApp = await pictures(page);
       check("(f) inside the app the guide is the app's own page: no card and no gold — the numerals in the ink, Change and the ring in the sport's colour — over the same steps and pictures",
-        dress.card === 0 && dress.num === "rgb(28, 28, 30)" && dress.act !== "rgb(142, 110, 38)" && !/194, 162, 76/.test(dress.ring) && dress.ring.includes(dress.act) && wApp.length === 2 && wApp[0] === "Click the install icon in the address bar" && pApp[0].taps === 1 && pApp[0].role === "img" && pApp.slice(1).every((p) => !p.role), JSON.stringify(dress));
+        dress.card === 0 && dress.num === "rgb(29, 27, 23)" && dress.act !== "rgb(142, 110, 38)" && !/194, 162, 76/.test(dress.ring) && dress.ring.includes(dress.act) && wApp.length === 2 && wApp[0] === "Click the install icon in the address bar" && pApp[0].taps === 1 && pApp[0].role === "img" && pApp.slice(1).every((p) => !p.role), JSON.stringify(dress));
       await pick(page, "iPhone");
       check("(f) …and Change works there as it does on the page: iPhone, the newest iOS, four steps", (await pressed(page, "version")) === "iOS 27" && (await words(page)).length === 4 && /^iPhone · iOS 27/.test(await device(page)), await device(page));
       await shot("f-settings-install");

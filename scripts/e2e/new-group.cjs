@@ -111,9 +111,10 @@ const brief = (sh) => sh ? `${sh.title} · "${sh.ph}" · ${sh.people.length} peo
         !!A && A.title === "New group" && A.ph === "Group name" && A.people.length === 4 && A.days.length === 7 && A.times.length === OWN.length && A.create.length === 1 && A.create[0].label === "Create group" && A.create[0].disabled,
         brief(A));
       /* (b3) 24 November: several are chosen, so the people are rows of ONE grouped box, each with a square
-         tick box on its right — they were a box a person, each with a round ring, a radio's mark for a choice of one */
+         tick box on its right — they were a box a person, each with a round ring, a radio's mark for a choice of one.
+         Since 28 November (the design render) Settings' white groups stand on the white card's warm ring, #E6E2D9 */
       check("(b3) the people are the rows of one grouped box on the card's line — four rows, the group's rule between them and none under the last — never a box a person",
-        !!A && A.groups.length === 1 && A.groups[0].rows === 4 && A.people.every((p) => p.grouped && !p.inList) && A.groups[0].rules.every((w) => parseFloat(w) >= 1) && parseFloat(A.groups[0].last) === 0 && A.groups[0].edge === "rgb(228, 224, 215)",
+        !!A && A.groups.length === 1 && A.groups[0].rows === 4 && A.people.every((p) => p.grouped && !p.inList) && A.groups[0].rules.every((w) => parseFloat(w) >= 1) && parseFloat(A.groups[0].last) === 0 && A.groups[0].edge === "rgb(230, 226, 217)",
         JSON.stringify(A && { groups: A.groups, people: A.people.map((p) => [p.name, p.grouped, p.inList]) }));
       check("(b4) …each row ends on a square tick box, empty at rest, 22 across at the row's right — no round radio ring anywhere among them",
         !!A && A.people.every((p) => p.tick && p.tick.state === "off" && p.tick.w === 22 && p.tick.r > 0 && p.tick.r < 11 && p.tick.right <= 20) && A.rings === 0,
