@@ -62,6 +62,8 @@ function freshDb({ allow = false, noImport = false, ready = true } = {}) {
 }
 
 const { check, summary } = M.checker("import");
+/* ONLY=a,b,r,coach,h,i,n7,k,m,o,s,t runs those scenes alone (coach is c, d, e, f, p, g, j, q, l and the coach's own Remove) */
+const want = (k) => !process.env.ONLY || process.env.ONLY.split(",").includes(k);
 const until = async (fn, ms = 15000, every = 250) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (await fn()) return true; await new Promise((r) => setTimeout(r, every)); } return !!(await fn()); };
 const sel = (t) => `[data-tour="${t}"]`;
 const IGNORED = /Failed to load resource|vibrate|favicon/i;
@@ -155,7 +157,7 @@ const cut = (page) => page.evaluate(() => {
   browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
   try {
     /* ================================================================ (a) THE GATES */
-    {
+    if (want("a")) {
       const db = freshDb({ noImport: true, allow: true });
       const c = await boot(db, "coach");
       await openSettings(c.page, true);
@@ -171,14 +173,14 @@ const cut = (page) => page.evaluate(() => {
       check("(a2) a player on such a project: the empty Lessons hero carries no Import, and no request", hero && heroKey && p.fn.length === 0, `${hero} ${heroKey} ${p.fn}`);
       await p.close();
     }
-    {
+    if (want("a")) {
       const db = freshDb({ ready: false, allow: true });
       const c = await boot(db, "coach");
       await openSettings(c.page, true);
       check("(a3) the SQL there, the key not: one GET at most, and no control", (await count(c.page, sel("settings-import"))) === 0 && c.fn.filter((m) => m === "GET").length <= 1 && !c.fn.includes("POST"), c.fn.join(","));
       await c.close();
     }
-    {
+    if (want("a")) {
       const db = freshDb({ ready: true, allow: false });
       const p = await boot(db, "cian");
       await openSettings(p.page, false);
@@ -192,7 +194,7 @@ const cut = (page) => page.evaluate(() => {
     }
 
     /* ================================================================ (b) THE COACH'S SWITCH */
-    {
+    if (want("b")) {
       const db = freshDb({ allow: false });
       M.addLesson(db, { coachId: IDS.coach, playerId: IDS.cian, date: "2026-09-20", focus: "Putting", unread: false });
       const c = await boot(db, "coach");
@@ -218,7 +220,7 @@ const cut = (page) => page.evaluate(() => {
     }
 
     /* ================================================================ (r) REFUSALS, IN WORDS */
-    {
+    if (want("r")) {
       const db = freshDb();
       const c = await boot(db, "coach");
       await openImport(c.page, true);
@@ -231,7 +233,7 @@ const cut = (page) => page.evaluate(() => {
 
     /* ================================================================ (c)(d)(e)(p)(g)(j)(s) THE COACH'S IMPORT */
     let coachDb;
-    {
+    if (want("coach")) {
       const db = coachDb = freshDb({ allow: true });
       /* a register of 14 June this year, Cian absent: never an imported 14 June 2025 (q) */
       db.sessions.push({ id: "5e000000-0000-4000-8000-0000000000a1", coach_id: IDS.coach, label: "Cian Murphy", session_date: "2026-06-14", created_at: "2026-06-14T10:00:00Z" });
@@ -431,7 +433,7 @@ const cut = (page) => page.evaluate(() => {
     }
 
     /* ================================================================ (l) THE SAME CHAT AGAIN */
-    {
+    if (want("coach")) {
       const db = coachDb; db.failUpload = null; db.uploadLostResponse = null; db.importPlan = null;
       const before = db.lessons.filter((l) => l.import_id).length;
       const c = await boot(db, "coach");
@@ -461,7 +463,7 @@ const cut = (page) => page.evaluate(() => {
     }
 
     /* ================================================================ (n) THE COACH REMOVES THEIR OWN IMPORT */
-    {
+    if (want("coach")) {
       const db = coachDb;
       const p = await boot(db, "cian");
       const saved = await downloadOne(p.page);
@@ -488,7 +490,7 @@ const cut = (page) => page.evaluate(() => {
     }
 
     /* ================================================================ (h) A PLAYER, WITH THE SWITCH ON */
-    {
+    if (want("h")) {
       const db = freshDb({ allow: true });
       const p = await boot(db, "aoife");
       check("(h1) the empty Lessons hero carries Import", (await count(p.page, sel("lessons-import"))) === 1);
@@ -550,7 +552,7 @@ const cut = (page) => page.evaluate(() => {
     }
 
     /* ================================================================ (i) A PARENT, FOR A JUNIOR */
-    {
+    if (want("i")) {
       const db = freshDb({ allow: true });
       const o = await boot(db, "orla");
       await M.tap(o.page, '[aria-label="Lessons"]', 900);
@@ -614,7 +616,7 @@ const cut = (page) => page.evaluate(() => {
     }
 
     /* ================================================================ (n) ONE LESSON FROM ITS PAGE, AND (u) A FILE TAKEN OFF */
-    {
+    if (want("n7")) {
       const db = freshDb({ allow: true });
       const c = await boot(db, "coach");
       await openImport(c.page, true);
@@ -654,7 +656,7 @@ const cut = (page) => page.evaluate(() => {
     }
 
     /* ================================================================ (k) A RELOAD MID-UPLOAD, A LOST FILE */
-    {
+    if (want("k")) {
       const db = freshDb({ allow: true });
       let stuck = null;
       db.failUpload = (p) => { if (!String(p).startsWith("import/")) return null; if (!stuck) stuck = p; return p === stuck ? { status: 500, body: { statusCode: "500", error: "Internal", message: "boom" } } : null; };
@@ -682,7 +684,7 @@ const cut = (page) => page.evaluate(() => {
       check("(k4) the same file resumes: no file uploaded twice, no part sent twice", importsOf(db, IDS.cian).some((b) => b.status === "done") && twice.length === 0 && db.importPosts.length === posts && !!db.files.media[stuck], `${twice.length} dup · posts ${posts}→${db.importPosts.length}`);
       await c.close();
     }
-    {
+    if (want("k")) {
       const db = freshDb({ allow: true });
       const c = await boot(db, "coach");
       await openImport(c.page, true);
@@ -696,7 +698,7 @@ const cut = (page) => page.evaluate(() => {
     }
 
     /* ================================================================ (m) STOP */
-    for (const how of ["nothing", "keep", "remove"]) {
+    if (want("m")) for (const how of ["nothing", "keep", "remove"]) {
       const db = freshDb({ allow: true });
       let okPath = null;
       db.failUpload = (p) => { if (!String(p).startsWith("import/")) return null; if (how !== "nothing" && !okPath) { okPath = p; return null; } return p === okPath ? null : { status: 500, body: { statusCode: "500", error: "Internal", message: "boom" } }; };
@@ -734,7 +736,7 @@ const cut = (page) => page.evaluate(() => {
     }
 
     /* ================================================================ (o) THE RUNNER'S ANSWERS */
-    {
+    if (want("o")) {
       const db = freshDb({ allow: true });
       const DRIVER = (b) => b.segs.some((x) => x.part === "day" && /Driver lesson today/.test(x.text));
       const whole = new Set(); let busied = null;
@@ -770,7 +772,7 @@ const cut = (page) => page.evaluate(() => {
     }
 
     /* ================================================================ (s) NOTHING CUT AT 320 AND 375 */
-    for (const width of [320, 375]) {
+    if (want("s")) for (const width of [320, 375]) {
       const db = freshDb({ allow: true });
       const c = await boot(db, "coach", { width, height: 740 });
       await openImport(c.page, true);
@@ -801,7 +803,7 @@ const cut = (page) => page.evaluate(() => {
     }
 
     /* ================================================================ (t) NO RELOAD UNDER A JOB; SYNC SAYS SO */
-    {
+    if (want("t")) {
       const db = freshDb({ allow: true });
       db.failUpload = (p) => (String(p).startsWith("import/") ? { status: 500, body: { statusCode: "500", error: "Internal", message: "boom" } } : null);
       const c = await boot(db, "coach");
