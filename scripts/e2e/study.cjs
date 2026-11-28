@@ -89,6 +89,15 @@ const near = (x, y, tol) => Math.abs(x - y) <= tol;
       const s0 = await vstate(page); const t0 = await text(); await shot("02-study");
       check("(b) Study opens the clip on its own stage, titled with the player's name, the transport ready, paused at the start", ready && !!s0 && s0.paused && s0.t < 0.05 && /Study · Cian/.test(t0) && (await page.locator('[data-tour="study"]').count()) === 1, JSON.stringify(s0) + " · " + t0.slice(0, 60));
       check("(b2) no tab bar sits under the stage", (await page.locator('[aria-label="Roster"]').count()) === 0);
+      /* (b3) 28 November (C4): the transport is the app's keys, one for the three tools — Play the sport's deep lead,
+         a frame either way the round pale keys 36 drawn, the speed a word key — and every one of them answers a finger
+         44 square, read by what a finger lands on (the frame keys were 32px circles that answered 32) */
+      const keysFit = [];
+      for (const k of ["study-play", "study-back", "study-fwd", "study-rate"]) keysFit.push(await M.fingerFit(page, `[data-tour="${k}"]`));
+      const playBg = await page.locator('[data-tour="study-play"]').evaluate((b) => getComputedStyle(b).backgroundColor);
+      check("(b3) the transport's Play is the sport's deep lead, and Play, a frame either way and the speed each answer a finger 44 square",
+        keysFit.every((f) => f && f.onScreen && f.missed.length === 0) && playBg === "rgb(40, 89, 55)" && keysFit[1].drawn[0] === 36,
+        JSON.stringify({ playBg, keys: keysFit.map((f) => f && { label: f.label, drawn: f.drawn, missed: f.missed }) }));
 
       /* ---------- (c) a frame either way ---------- */
       await tap(page, '[data-tour="study-fwd"]', 300); await tap(page, '[data-tour="study-fwd"]', 300);

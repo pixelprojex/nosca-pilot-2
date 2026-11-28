@@ -12393,19 +12393,26 @@ const secsLabel = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).pad
    selectors and the words each tool's suites read are kept (`tours`). */
 function ClipTransport({ tour, tours = {}, playing, onToggle, onStep, time, span, step = 0.05, onScrub, off = false, scrubOff = false, speed }) {
   const t = useT();
-  const reach = (n) => <span aria-hidden="true" className="absolute" style={{ inset: -n }} />;
+  /* a reach is laid from inside the key's ring (an absolute child's box is the
+     padding box, and the ring is drawn 1 or 1.5 by the screen's density):
+     sideways it is one point inside half the gutter, so two neighbours never
+     overlap at either density; up and down, where nothing neighbours it, the
+     whole of it — a 36 key answers a finger 44 square */
+  const reach = () => <span aria-hidden="true" className="absolute" style={{ top: -(4 + EDGE_W), bottom: -(4 + EDGE_W), left: -5, right: -5 }} />;
   return (
     <div className="flex items-center" style={{ gap: 8 }} data-tour={tour}>
       <button onClick={onToggle} disabled={off} data-tour={tours.play} aria-label={playing ? tr("Pause") : tr("Play")}
               className="relative flex items-center justify-center shrink-0 rounded-full n-key disabled:opacity-30"
               style={{ width: 44, height: 44, background: t.accent, "--key-lip": LIP(t.accent) }}>
+        {/* the round key's square: a finger at its corners lands on it too */}
+        <span aria-hidden="true" className="absolute" style={{ inset: 0 }} />
         {playing ? <Pause size={17} color={t.onAccent} fill={t.onAccent} /> : <Play size={17} color={t.onAccent} fill={t.onAccent} style={{ marginLeft: 2 }} />}
       </button>
       {[[-1, ChevronLeft, tr("Back a frame"), tours.back], [1, ChevronRight, tr("On a frame"), tours.fwd]].map(([d, Ico, label, hook]) => (
         <button key={d} onClick={() => onStep(d)} disabled={off} data-tour={hook} aria-label={label}
                 className="relative flex items-center justify-center shrink-0 rounded-full n-key disabled:opacity-30"
                 style={{ width: 36, height: 36, background: TINT(t), border: `${EDGE_W}px solid ${KEY_RING(t)}`, "--key-lip": TINT_LIP(t) }}>
-          {reach(4)}
+          {reach()}
           <Ico size={18} color={t.accent} strokeWidth={2.4} />
         </button>
       ))}
@@ -12416,7 +12423,7 @@ function ClipTransport({ tour, tours = {}, playing, onToggle, onStep, time, span
         <button onClick={speed.onTap} disabled={speed.off} aria-pressed={!!speed.on} aria-label={speed.aria} {...(speed.attrs || {})}
                 className="relative shrink-0 flex items-center justify-center n-key disabled:opacity-30"
                 style={{ minWidth: 44, height: 36, padding: "0 8px", borderRadius: 12, ...keyPick(t, !!speed.on), ...TYPE.caption, fontSize: 13, fontWeight: 700 }}>
-          {reach(4)}
+          {reach()}
           {speed.label}
         </button>
       )}
@@ -13059,7 +13066,9 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, onStill, onQ
                     return (
                       <button key={id} aria-pressed={on} aria-label={tr(label)} title={tr(label)} onClick={() => { haptic(6); setTool(id); }}
                               className="relative flex items-center justify-center shrink-0 n-key" style={round(on)}>
-                        <span aria-hidden="true" className="absolute" style={{ inset: -2 }} />
+                        {/* laid from inside the ring, which a screen draws 1 or 1.5: 1.5 to 2 beyond the key,
+                            44 to a finger, and never over a neighbour in the 4 between */}
+                        <span aria-hidden="true" className="absolute" style={{ inset: -3 }} />
                         <Ico size={19} color={on ? SEL(t).fg : t.ink} strokeWidth={1.9} />
                       </button>
                     );
@@ -13067,7 +13076,7 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, onStill, onQ
                   <span className="flex-1" />
                   <button onClick={still} disabled={!dims || broken} aria-label={tr("Photo")} title={tr("Photo")}
                           className="relative flex items-center justify-center shrink-0 n-key disabled:opacity-30" style={round(false)}>
-                    <span aria-hidden="true" className="absolute" style={{ inset: -2 }} />
+                    <span aria-hidden="true" className="absolute" style={{ inset: -3 }} />
                     <Camera size={19} color={t.ink} strokeWidth={1.9} />
                   </button>
                   <span data-tour="markup-inks" className="flex items-center ml-auto">
