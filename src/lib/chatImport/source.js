@@ -28,6 +28,12 @@ export async function sha256Hex(data) {
   return [...new Uint8Array(h)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+/* the e2e suite's lost file (scripts/e2e/mock.cjs, zipReadFail): the Nth entry read throws, as a phone throws
+   NotReadableError for a file it no longer has — set only by a test, read nowhere else */
+let READS = 0;
+const lostNow = () => { const n = typeof window !== "undefined" ? Number(window.__noscaZipReadFail) : 0; READS += 1; return n > 0 && READS >= n; };
+const readEntry = async (fn) => { if (lostNow()) throw Object.assign(new Error("The file could not be read"), { name: "NotReadableError" }); return fn(); };
+
 const bytesAt = async (file, start, end) => new Uint8Array(await file.slice(start, end).arrayBuffer());
 async function isZip(file) {
   if (!file || file.size < 22) return false;
@@ -59,7 +65,7 @@ export async function openSource(fileList) {
       for (const e of entries) {
         if (e.directory || e === chat) continue;
         const name = baseName(e.filename);
-        map.set(name, { name, size: e.uncompressedSize, read: (type) => e.getData(new z.BlobWriter(type || "application/octet-stream")) });
+        map.set(name, { name, size: e.uncompressedSize, read: (type) => readEntry(() => e.getData(new z.BlobWriter(type || "application/octet-stream"))) });
       }
       return { ok: true, kind: "zip", text, chatHash: await sha256Hex(text), files: map, close: () => reader.close().catch(() => {}) };
     }
@@ -72,7 +78,7 @@ export async function openSource(fileList) {
     }
     if (!chat) return { ok: false, error: "That isn't a WhatsApp export" };
     const map = new Map();
-    for (const f of files) if (f !== chat) map.set(baseName(f.name), { name: baseName(f.name), size: f.size, read: async (type) => (type ? new Blob([f], { type }) : f) });
+    for (const f of files) if (f !== chat) map.set(baseName(f.name), { name: baseName(f.name), size: f.size, read: (type) => readEntry(async () => (type ? new Blob([f], { type }) : f)) });
     return { ok: true, kind: "txt", text, chatHash: await sha256Hex(text), files: map, close: () => {} };
   } catch (e) {
     return { ok: false, error: READ_ERROR, cause: e && e.name };

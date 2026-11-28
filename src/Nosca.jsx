@@ -20318,7 +20318,9 @@ function ImportBanner({ onOpen, pill = false }) {
     : run.offline ? tr("Offline")
     : `${tr("Importing")} · ${run.lessonsDone || 0} ${tr("of")} ${nOf(run.lessons || 0, "lesson", "lessons")}`;
   const second = !paused && !failed.length && run.status !== "error" && run.files ? `${run.filesDone || 0} ${tr("of")} ${nOf(run.files, "file", "files")}` : null;
-  const act = (fn) => (e) => { e.stopPropagation(); haptic(8); loadImportLib().then((m) => m[fn] && m[fn]()); };
+  const act = (fn) => () => { haptic(8); loadImportLib().then((m) => m[fn] && m[fn]()); };
+  /* the row opens Import; its keys do their own thing and nothing more */
+  const keep = (e) => e.stopPropagation();
   return (
     <div className={pill ? "" : "px-6 pt-2 pb-1"} data-tour="import-banner">
       <div role="button" tabIndex={0} onClick={() => { haptic(6); onOpen && onOpen(); }}
@@ -20332,12 +20334,12 @@ function ImportBanner({ onOpen, pill = false }) {
           <span data-import-line="">{line}</span>{second ? <span style={{ color: t.sub }}>{` · ${second}`}</span> : null}
         </span>
         {failed.length > 0 && !paused && (
-          <span className="flex items-center gap-1 shrink-0">
+          <span className="flex items-center gap-1 shrink-0" onClick={keep}>
             <TextBtn quiet tour="import-retry" color={t.accent} onClick={act("retryFailed")}>{tr("Retry")}</TextBtn>
             <TextBtn quiet tour="import-leave-out" color={t.sub} onClick={act("leaveOutFailed")}>{tr("Leave out")}</TextBtn>
           </span>
         )}
-        {run.status === "error" && !paused && !failed.length && <TextBtn quiet tour="import-retry-wave" color={t.accent} onClick={act("retryWave")}>{tr("Retry")}</TextBtn>}
+        {run.status === "error" && !paused && !failed.length && <span className="shrink-0" onClick={keep}><TextBtn quiet tour="import-retry-wave" color={t.accent} onClick={act("retryWave")}>{tr("Retry")}</TextBtn></span>}
       </div>
     </div>
   );
@@ -20482,6 +20484,41 @@ function ImportRemoveBody({ count, who, own, verify, onRemove, close }) {
   );
 }
 
+/* one of a day's files, opened from the zip, let go when the sheet closes */
+function ImportFileBody({ lib, file }) {
+  const t = useT(); const [url, setUrl] = useState(null);
+  useEffect(() => {
+    let u = null, live = true;
+    lib.fileBlob(file.name, file.mime).then((b) => { if (!b || !live) return; u = URL.createObjectURL(b); setUrl(u); });
+    return () => { live = false; if (u) URL.revokeObjectURL(u); };
+  }, [file.name]);
+  const kind = file.kind === "video" ? tr("Video") : file.kind === "photo" ? tr("Photo") : tr("Voice note");
+  return (
+    <>
+      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{kind}</h2>
+      <p className="mb-4" style={{ ...TYPE.small, color: t.sub }}>{[file.time, firstOfName(file.who)].filter(Boolean).join(" · ")}</p>
+      <div data-tour="import-file-view" className="flex items-center justify-center" style={{ borderRadius: R.control, overflow: "hidden", background: file.kind === "audio" ? t.wash : "#0B0F10", minHeight: file.kind === "audio" ? 72 : 220, padding: file.kind === "audio" ? 12 : 0 }}>
+        {url && file.kind === "video" && <video src={url} controls playsInline className="w-full" style={{ maxHeight: 420 }} />}
+        {url && file.kind === "photo" && <img src={url} alt="" className="w-full" style={{ maxHeight: 420, objectFit: "contain" }} />}
+        {url && file.kind === "audio" && <span className="w-full flex flex-col items-center gap-2"><NoteAudio src={url} /></span>}
+      </div>
+    </>
+  );
+}
+/* a Review row's poster: its first picture, made on the phone the first time the row is on screen */
+function ImportRowPoster({ lib, row, sport }) {
+  const ref = useRef(null);
+  const f = lib.posterFile(row);
+  const url = f ? lib.posterUrl(f.name) : null;
+  useEffect(() => {
+    if (!f || url || !ref.current || typeof IntersectionObserver === "undefined") return undefined;
+    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { io.disconnect(); lib.makePoster(f); } });
+    io.observe(ref.current);
+    return () => io.disconnect();
+  }, [f && f.name, url]);
+  return <span ref={ref} className="shrink-0 flex" data-poster={url ? "1" : "0"}><Poster item={url ? { type: "photo", url } : null} sport={sport} /></span>;
+}
+
 /* a row of value rows inside one box (Found's counts) */
 const ImportValues = ({ rows, tour }) => {
   const t = useT();
@@ -20526,16 +20563,21 @@ function ImportScreen({ data, me, role, cfg, pop, push, say, done, openSheet, cl
     return ids.map((id) => { const p = all.find((x) => x.id === id) || (id === me.id ? { id, name: me.name } : null); return p ? { id, name: p.name, src: p.avatarPath ? avatarUrl(p.avatarPath) : null } : null; }).filter(Boolean);
   }, [targets, data.roster, data.family, data.dependants]);
   useEffect(() => { if (lib) lib.lookForInterrupted(); }, [lib]);
+  /* the Feed's object URLs are let go the moment it is left */
+  const feedOn = !!(job && job.listView === "feed" && job.view === "review");
+  useEffect(() => { if (lib && !feedOn) lib.releasePreviews(); return () => { if (lib) lib.releasePreviews(); }; }, [lib, feedOn]);
   /* a reload, or another person on the phone, leaves nothing of the last job open */
   const mine = job && job.owner === me.id ? job : null;
   const viewNow = mine ? mine.view || "start" : "start";
   const batches = (data.imports || []).filter((b) => b.status === "done");
   const coachSide = role === "coach";
 
+  /* Back: a day to its list, Left out to Review, Found to Start (nothing has been sent, so the chat is let go
+     and another can be chosen); Review keeps its job, and a return finds it where it was */
   const back = () => {
     if (viewNow === "day") return lib.view((mine.rowsByIso && mine.rowsByIso[mine.dayIso] && mine.rowsByIso[mine.dayIso].leftOut) ? "leftout" : "review");
     if (viewNow === "leftout") return lib.view("review");
-    if ((viewNow === "found" || viewNow === "review") && mine.phase !== "uploading") { lib.abandon(); }
+    if (viewNow === "found") return lib.abandon();
     pop();
   };
   const pick = () => { if (input.current) { input.current.value = ""; input.current.click(); } };
@@ -20747,14 +20789,15 @@ function ImportScreen({ data, me, role, cfg, pop, push, say, done, openSheet, cl
                 <RowHead>{tr("Files")}</RowHead>
                 <div className="nsc-list">
                   {r.files.map((x) => (
-                    <button key={x.name} data-tour="import-day-file" data-file={x.name} data-on={x.ticked ? "1" : "0"} onClick={() => { haptic(6); lib.setDayFile(r.iso, x.name, !x.ticked); }}
-                            className="w-full flex items-center gap-3 text-left active:opacity-60" style={{ minHeight: 56 }}>
-                      <span className="flex-1 min-w-0">
+                    /* a tap opens the file from the zip; its tick is its own key */
+                    <div key={x.name} data-tour="import-day-file" data-file={x.name} data-on={x.ticked ? "1" : "0"} className="flex items-center gap-2" style={{ minHeight: 56 }}>
+                      <button onClick={() => { haptic(6); openSheet(<ImportFileBody lib={lib} file={x} />); }} className="flex-1 min-w-0 text-left active:opacity-60" style={{ paddingTop: 6, paddingBottom: 6 }}>
                         <span className="block" style={{ ...TYPE.body, color: t.ink }}>{x.kind === "video" ? tr("Video") : x.kind === "photo" ? tr("Photo") : tr("Voice note")}</span>
                         <Facts parts={[x.time, firstOfName(x.who), x.reason]} style={{ ...TYPE.small, color: x.reason ? CAUTION : t.sub }} />
-                      </span>
-                      <TickBox on={x.ticked} />
-                    </button>
+                      </button>
+                      <button data-tour="import-day-file-tick" aria-label={tr("In the import")} onClick={() => { haptic(6); lib.setDayFile(r.iso, x.name, !x.ticked); }}
+                              className="shrink-0 flex items-center justify-center" style={{ width: 44, height: 44 }}><TickBox on={x.ticked} /></button>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -20842,12 +20885,15 @@ function ImportScreen({ data, me, role, cfg, pop, push, say, done, openSheet, cl
     onLanded(pid, kid);
   };
   if (mine.listView === "feed" && ticked.length > 0) {
+    /* the drafts as the feed will hold them, their files played from the zip — nothing has been written */
     const drafts = ticked.map((r) => ({ id: `draft:${r.iso}`, focus: r.focus, note: r.note, iso: r.iso, d: String(localDate(r.iso).getDate()).padStart(2, "0"), m: WIZ_MONTHS[localDate(r.iso).getMonth()],
-      type: r.kind === "practice" ? "Practice" : "Private", media: 0, videos: 0, practice: r.kind === "practice" }));
+      type: r.kind === "practice" ? "Practice" : "Private", media: r.fileCount, videos: r.files.filter((x) => x.ticked && x.kind === "video").length, practice: r.kind === "practice" }));
+    const isoOf = (l) => String(l.id).slice(6);
     return (
       <SwipeBack onBack={() => lib.setListView("list")}>
         <div className="relative h-full" data-tour="import-feed">
-          <LessonFeed lessons={drafts} mediaFor={() => []} showWho={false} cfg={cfg} view="feed" setView={(v) => lib.setListView(v)} onOpen={(l) => lib.view("day", String(l.id).slice(6))}
+          <LessonFeed lessons={drafts} mediaFor={(l) => (l.media ? lib.previewCached(isoOf(l)) : [])} onNeed={(l) => { lib.previewFor(isoOf(l)); }}
+                      showWho={false} cfg={cfg} view="feed" setView={(v) => lib.setListView(v)} onOpen={(l) => lib.view("day", isoOf(l))}
                       right={<button onClick={() => { haptic(6); lib.setListView("list"); }} aria-label={tr("Back")} className="flex items-center justify-center active:opacity-50" style={{ width: 36, height: 36 }}><ChevronLeft size={22} color={t.ink} strokeWidth={2.1} /></button>} />
         </div>
       </SwipeBack>
@@ -20884,7 +20930,7 @@ function ImportScreen({ data, me, role, cfg, pop, push, say, done, openSheet, cl
                   <div key={r.iso} data-tour="import-row" data-state={r.state} data-day={r.iso} data-on={r.ticked ? "1" : "0"} className="flex items-center gap-2"
                        style={{ minHeight: 64, animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                     <button onClick={() => { haptic(6); lib.openedDay(r.iso); lib.view("day", r.iso); }} className="flex-1 min-w-0 flex items-center gap-3.5 text-left active:opacity-50" style={{ paddingTop: 8, paddingBottom: 8 }}>
-                      <Poster item={null} sport={mine.sport} />
+                      <ImportRowPoster lib={lib} row={r} sport={mine.sport} />
                       <span className="flex-1 min-w-0">
                         <Facts parts={String(r.focus || "").split(" · ")} attrs={{ "data-focus": "" }} style={{ ...TYPE.body, fontWeight: 600, color: t.ink }} />
                         <span className="block mt-0.5" style={{ ...TYPE.small, color: t.sub }}>
@@ -22902,7 +22948,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (pid === account.id) return { id: data.coachId, name: data.coachName || "" };
     const k = (data.dependants || []).find((x) => x.id === pid); return k ? { id: k.coachId, name: k.coachName || "" } : null;
   };
-  const openImportSheet = (el) => { setImportSheet(el); setSheet("import"); };
+  const openImportSheet = (el) => { setImportSheet(el); setSheet("chatImportSheet"); };
   const closeImportSheet = () => setSheet(null);
   const importLanded = (pid, kid) => {
     dropDeeperMemory(1);
@@ -25265,7 +25311,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                                    done(tr("Sent"), replyFor.who);
                                                                    return res;
                                                                  }} />
-              : sheet === "import" && importSheet ? importSheet
+              : sheet === "chatImportSheet" && importSheet ? importSheet
               : null}
           </Sheet>
           {sheet === "clipCapture" && (

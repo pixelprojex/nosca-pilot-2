@@ -1200,14 +1200,14 @@ function importReading(body) {
   const theirs = day.filter((x) => x.a === "P").map((x) => x.text);
   const text = coach.map((x) => x.text).join(" \n ").toLowerCase();
   const focus = (IMPORT_FOCUS[body.sport] || []).filter((a) => [a.label, ...(a.subs || [])].some((w) => w && text.includes(String(w).toLowerCase()))).map((a) => a.id);
-  const arranging = /\b(pay|paid|euro|€|what time|see you|tomorrow at|book(ed)?|cancel|running late)\b/i;
+  const arranging = /\b(paid|euro|what time|see you|tomorrow at|book(ed)?|cancel|running late)\b|€|\bpay\b(?! attention)/i;
   const note = coach.filter((x) => !arranging.test(x.text)).map((x) => x.id);
   const tip = coach.filter((x) => /^tip\b/i.test(x.text)).map((x) => x.id).slice(0, 1);
   const drills = coach.filter((x) => /\b(drill|practi[cs]e|reps|times a day|each day)\b/i.test(x.text)).map((x) => x.id);
   let kind = "unsure";
   if (!coach.length || !note.length) kind = "chat";
+  else if (/\byesterday\b/.test(text) && !/\btoday\b/.test(text)) kind = "recap";
   else if (/\b(today|lesson|session|great work|good work|well done)\b/.test(text)) kind = "lesson";
-  else if (/\byesterday\b/.test(text)) kind = "recap";
   else if (theirs.some((t) => t === "[video]" || t === "[photo]") && /\b(looks|better|nice|good|keep)\b/.test(text)) kind = "practice";
   return kind === "chat" ? { day: "chat", focus: [], note: [], tip: [], drills: [] } : { day: kind, focus, note, tip, drills };
 }

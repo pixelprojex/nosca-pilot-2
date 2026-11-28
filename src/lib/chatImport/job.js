@@ -186,10 +186,11 @@ const sportFor = (pid) => { const c = C(); const p = pid ? personOf(pid) : null;
    the account's own whole name is its own side; every row stays a choice */
 function prefill(parsed, forId) {
   const c = C(); const roles = {};
-  const coachName = c.isCoach ? c.meName : ((forId && coachOf(forId)) || {}).name || c.coachName || "";
+  /* the coach: the importer, or the coach of whoever it may be for (a parent's children share one, as a rule) */
+  const coaches = c.isCoach ? [c.meName] : [...new Set([forId ? (coachOf(forId) || {}).name : null, ...(c.targets || []).map((x) => (coachOf(x.player_id) || {}).name), c.coachName].filter(Boolean))];
   for (const label of parsed.authors.keys()) {
     const f = fold(label);
-    if (coachName && f.includes(fold(coachName))) roles[label] = "coach";
+    if (coaches.some((n) => f.includes(fold(n)))) roles[label] = "coach";
     else if (!c.isCoach && c.meName && f.includes(fold(c.meName))) roles[label] = "player";
     else roles[label] = null;
   }
@@ -585,6 +586,11 @@ export function toggleLine(iso, mi, si) {
   else edit(iso, { off: (e.off || []).filter((x) => x !== k), add: [...(e.add || []), ref] });
 }
 export const dayOfIso = (iso) => (DAYS && IDX.has(iso) ? DAYS[IDX.get(iso)] : null);
+/* one of the chat's files, read from the zip for the day's viewer; a read that fails is the paused state */
+export async function fileBlob(name, mime) {
+  const entry = SRC && SRC.files.get(name); if (!entry) return null;
+  try { return await entry.read(mime); } catch (e) { pauseForRead(); return null; }
+}
 export const fileEntry = (name) => (SRC ? SRC.files.get(name) || null : null);
 export const view = (v, dayIso) => importJob.patch(dayIso !== undefined ? { view: v, dayIso } : { view: v });
 export const setFilter = (f) => importJob.patch({ filter: f });
@@ -698,6 +704,12 @@ async function uploadOne(l, f) {
 }
 /* a zip that will not give up an entry: the job waits for the file to be chosen again, never a Retry that cannot work */
 function pauseForRead() {
+  if (!RUN) {
+    /* before Import nothing is begun: the chat is let go and Start says why */
+    const j = importJob.get(); abandonNow();
+    importJob.set({ owner: j ? j.owner : C().meId, phase: "done", view: "start", error: READ_ERROR });
+    return;
+  }
   if (RUN) { RUN.paused = true; RUN.stopped = true; }
   if (SORT) SORT.stopped = true;
   try { if (SRC) SRC.close(); } catch (e) { /* fine */ }
@@ -867,11 +879,86 @@ export async function discardInterrupted(toast = "Stopped") {
   importJob.set({ owner: j.owner, phase: "done", view: "start" });
 }
 /* leave Found or Review without importing: the chat is let go */
-export async function abandon() {
+function abandonNow() {
   if (SORT) SORT.stopped = true;
   try { if (SRC) SRC.close(); } catch (e) { /* fine */ }
   SRC = null; PARSED = null; DAYS = null; DAYV.clear(); EDITS = {}; PARTV = {};
+  POSTERS.clear(); ASKED.clear(); releasePreviews();
+}
+export async function abandon() {
+  abandonNow();
   const j = importJob.get(); importJob.set(j ? { owner: j.owner, phase: "done", view: "start" } : null);
 }
+
+/* ---------------------------------------------------------------- the show: posters and the preview, from the zip */
+/* A row's poster is its first picture, drawn to a 168px JPEG the first time
+   the row is on screen — a photo from its blob, a clip's first frame through
+   a hidden <video> — kept in memory only, never in the manifest. The Feed
+   plays the drafts' files straight from the zip, three object URLs alive at
+   most (the card and its neighbours), let go off screen. Nothing is sent. */
+const POSTERS = new Map(), ASKED = new Map();
+const SIDE = 168;
+const draw = (src, w, h) => {
+  const c = document.createElement("canvas"); c.width = SIDE; c.height = SIDE;
+  const k = Math.max(SIDE / (w || SIDE), SIDE / (h || SIDE));
+  c.getContext("2d").drawImage(src, (SIDE - w * k) / 2, (SIDE - h * k) / 2, w * k, h * k);
+  return c.toDataURL("image/jpeg", 0.8);
+};
+async function photoPoster(blob) {
+  if (typeof createImageBitmap === "function") { const b = await createImageBitmap(blob); try { return draw(b, b.width, b.height); } finally { if (b.close) b.close(); } }
+  const url = URL.createObjectURL(blob);
+  try { const img = new Image(); img.src = url; await img.decode(); return draw(img, img.naturalWidth, img.naturalHeight); } finally { URL.revokeObjectURL(url); }
+}
+async function clipPoster(blob) {
+  const url = URL.createObjectURL(blob); const v = document.createElement("video");
+  try {
+    v.muted = true; v.playsInline = true; v.preload = "auto"; v.src = url;
+    await new Promise((res, rej) => { v.onloadeddata = res; v.onerror = () => rej(new Error("no frame")); setTimeout(() => rej(new Error("slow")), 6000); });
+    return draw(v, v.videoWidth, v.videoHeight);
+  } finally { v.removeAttribute("src"); try { v.load(); } catch (e) { /* let go */ } URL.revokeObjectURL(url); }
+}
+/* the file a row shows: its first ticked picture, else its first picture */
+export const posterFile = (r) => (r && r.files ? r.files.find((x) => x.ticked && x.kind !== "audio") || r.files.find((x) => x.kind !== "audio") || null : null);
+export const posterUrl = (name) => POSTERS.get(name) || null;
+export function makePoster(f) {
+  if (!f) return Promise.resolve(null);
+  if (POSTERS.has(f.name)) return Promise.resolve(POSTERS.get(f.name));
+  if (ASKED.has(f.name)) return ASKED.get(f.name);
+  const p = (async () => {
+    const entry = SRC && SRC.files.get(f.name); if (!entry) return null;
+    let blob; try { blob = await entry.read(f.mime); } catch (e) { pauseForRead(); return null; }
+    let url = null; try { url = f.kind === "photo" ? await photoPoster(blob) : await clipPoster(blob); } catch (e) { url = null; }
+    if (url) { POSTERS.set(f.name, url); importJob.patch((x) => ({ posters: (x.posters || 0) + 1 })); }
+    return url;
+  })();
+  ASKED.set(f.name, p);
+  return p;
+}
+const LIVE = new Map();   // iso → { items, urls }
+const trimLive = () => {
+  let n = 0; for (const v of LIVE.values()) n += v.urls.length;
+  while (n > 3 && LIVE.size > 1) { const [k, v] = LIVE.entries().next().value; v.urls.forEach((u) => URL.revokeObjectURL(u)); LIVE.delete(k); n -= v.urls.length; }
+};
+/* a draft's files for the Feed: undefined until asked, then what the zip gave */
+export const previewCached = (iso) => (LIVE.has(iso) ? LIVE.get(iso).items : undefined);
+export async function previewFor(iso) {
+  if (LIVE.has(iso)) return LIVE.get(iso).items;
+  const j = importJob.get(); const r = j && j.rowsByIso && j.rowsByIso[iso];
+  const f = r ? (r.files.find((x) => x.ticked && x.kind !== "audio") || r.files.find((x) => x.ticked)) : null;
+  let items = [], urls = [];
+  if (f) {
+    const entry = SRC && SRC.files.get(f.name);
+    if (entry) {
+      let blob; try { blob = await entry.read(f.mime); } catch (e) { pauseForRead(); return []; }
+      const url = URL.createObjectURL(blob); urls = [url];
+      items = [{ id: `draft:${f.name}`, type: f.kind === "audio" ? "audio" : f.kind, url }];
+    }
+  }
+  if (LIVE.has(iso)) { urls.forEach((u) => URL.revokeObjectURL(u)); return LIVE.get(iso).items; }
+  LIVE.set(iso, { items, urls }); trimLive();
+  importJob.patch((x) => ({ previews: (x.previews || 0) + 1 }));
+  return items;
+}
+export function releasePreviews() { for (const v of LIVE.values()) v.urls.forEach((u) => URL.revokeObjectURL(u)); LIVE.clear(); }
 export const committedCount = () => (RUN ? RUN.lessons.filter((l) => l.committed).length : (importJob.get() && importJob.get().resume ? importJob.get().resume.lessonsIn : 0));
 export const running = () => !!(RUN && !RUN.stopped);
