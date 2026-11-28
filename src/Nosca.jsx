@@ -17719,7 +17719,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
               </button>
               <Toggle on={on} onChange={(v) => { togDay(day, v); setOpenDay(v ? day : -1); }} />
             </div>
-            {expanded && on && (<div className="px-5 pb-4 pt-3" style={{ background: t.wash }}>
+            {expanded && on && (<div className="px-5 pb-4 pt-3" style={{ background: "rgba(255, 255, 255, 0.55)" }}>
               <TimeGrid times={TIMES} picked={times} onToggle={(time) => togTime(day, time)} />
               {day <= 4 && (<button onClick={() => copyDown(day)} className="mt-3 active:opacity-50" style={{ minHeight: 44, fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.ink }}>{tr("Copy to all weekdays")}</button>)}
             </div>)}
