@@ -89,7 +89,7 @@ function emptyDb() {
     noImport: false,      // a project whose SQL has not been re-run: every import RPC is PGRST202, the table 42P01
     importReady: false,   // the function's GET answers { ready } — false, so no existing suite ever sees Import
     importPlan: null,     // canned verdicts: (body) => answer, or { "<weekday>|<segments>": answer }
-    importFail: null,     // per call index: busy · paused · over · review · retry · timeout · 500
+    importFail: null,     // per call index: busy · paused · over · review · retry · timeout · hang · 500
     importPosts: [],      // every POST body the function was handed, for the privacy checks
     uploadLostResponse: null, // (path) => true: the upload is stored, and its answer lost on the way back
     zipReadFail: null,    // N: the page's zip reader throws NotReadableError reading entry N
@@ -1176,6 +1176,8 @@ async function importPost(route, db, answer) {
   if (gate === "over") return answer(200, { status: "over" });
   const kind = failKind(db, index, body);
   if (kind === "timeout") { await new Promise((r) => setTimeout(r, 1200)); return route.fulfill({ status: 502, contentType: "text/html", body: "<html><body>Bad gateway</body></html>" }); }
+  /* a request that never answers in time: the phone has given up on it long before (IMPORT_FETCH_MS) */
+  if (kind === "hang") { await new Promise((r) => setTimeout(r, 120000)); try { await route.fulfill({ status: 502, contentType: "text/html", body: "<html><body>Bad gateway</body></html>" }); } catch (e) { /* the page let it go */ } return undefined; }
   if (kind === 500 || kind === "500") return answer(500, { status: "busy" });
   if (kind === "busy") return answer(200, { status: "busy", retryAfter: 1 });
   if (kind) return answer(200, { status: kind });

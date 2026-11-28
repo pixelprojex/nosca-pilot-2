@@ -869,6 +869,45 @@ const cut = (page) => page.evaluate(() => {
       const r = await rowOf(c3.page, "2025-04-10");
       check("(o4) review reads Check this day, and is never sent again", r && /Check this day/.test(r.text) && d3.importPosts.filter(DRIVER).length === 1, JSON.stringify(r));
       await c3.close();
+      /* (launch, 28 November) A DAY THAT TIMES OUT IS NEVER LOST: every call for it times out — the whole part twice,
+         each half once — and it stays a row, Not sorted, unticked, its files and words there to open and tick by hand;
+         Retry sends it again (it went straight back to Not sorted with nothing sent: the spent calls were kept) */
+      const APRIL10 = (b) => b.segs.some((x) => x.part === "day" && /Driver lesson today|for the drill/.test(x.text));
+      const d5 = freshDb({ allow: true }); let hold = true;
+      d5.importFail = (i, body) => (APRIL10(body) && hold ? "timeout" : null);
+      const c5 = await boot(d5, "coach");
+      await openImport(c5.page, true);
+      await coachToReview(c5.page, chat("chat-year-first.zip"));
+      const lost = await rowOf(c5.page, "2025-04-10");
+      const line5 = await c5.page.locator(sel("import-progress")).innerText().catch(() => "");
+      const sent5 = d5.importPosts.filter(APRIL10).length;
+      check("(o5) a day that times out every time is kept: Not sorted, unticked, with Retry — four requests and no more", lost && lost.state === "failed" && !lost.on && lost.tick && /Not sorted/.test(lost.text)
+        && /1 day not sorted/.test(line5) && (await count(c5.page, sel("import-sort-retry"))) === 1 && sent5 === 4, `${JSON.stringify(lost)} · ${line5} · ${sent5}`);
+      await openDay(c5.page, "2025-04-10");
+      const words5 = await c5.page.locator(sel("import-day-messages")).innerText();
+      await backBtn(c5.page);
+      check("(o5b) …and its words are there to read on its page", /Driver lesson today/.test(words5), words5.slice(0, 120));
+      hold = false;
+      await c5.page.locator(sel("import-sort-retry")).click();
+      await until(async () => { const rr = await rowOf(c5.page, "2025-04-10"); return !!rr && rr.state === "lesson"; }, 20000, 300);
+      const back5 = await rowOf(c5.page, "2025-04-10");
+      check("(o5c) Retry sends it again, and it comes in as a lesson", back5 && back5.state === "lesson" && back5.on && d5.importPosts.filter(APRIL10).length === sent5 + 1, `${JSON.stringify(back5)} · ${d5.importPosts.filter(APRIL10).length}`);
+      await c5.close();
+      /* A REQUEST THAT NEVER ANSWERS: the phone's own deadline (IMPORT_FETCH_MS, 30 s) makes it busy, and the day is
+         asked again — it held a place in the queue for as long as the browser kept the socket */
+      const d6 = freshDb({ allow: true }); let hung = 0;
+      d6.importFail = (i, body) => (DRIVER(body) && !hung++ ? "hang" : null);
+      const c6 = await boot(d6, "coach");
+      await openImport(c6.page, true);
+      const t6 = Date.now();
+      await choose(c6.page, chat("chat-year-first.zip"));
+      if (await count(c6.page, '[data-label="Cian M"][data-role=""]')) await setRole(c6.page, "Cian M", "player");
+      await setFor(c6.page, IDS.cian);
+      await c6.page.locator(sel("import-sort")).click(); await c6.page.waitForTimeout(600);
+      await until(async () => { const rr = await rowOf(c6.page, "2025-04-10"); return !!rr && rr.state === "lesson"; }, 60000, 500);
+      const got6 = await rowOf(c6.page, "2025-04-10");
+      check("(o6) a request that never answers is given up at 30 seconds and asked again: the day comes in", got6 && got6.state === "lesson" && hung >= 1 && d6.importPosts.filter(DRIVER).length === 2 && Date.now() - t6 >= 29000, `${JSON.stringify(got6)} · ${d6.importPosts.filter(DRIVER).length} · ${Date.now() - t6} ms`);
+      await c6.close();
     }
 
     /* ================================================================ (w) THE FOUNDER'S WORDS */

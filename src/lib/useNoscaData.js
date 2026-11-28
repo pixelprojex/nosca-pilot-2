@@ -23,6 +23,9 @@ export const RETURN_GAP_MS = 20000;
 /* how long after a reload that could not reach the server, with the
    phone saying it is online, one retry is made */
 export const RETRY_MS = 4000;
+/* how long the phone waits for the import's sorting function to answer: past Netlify's 26-second ceiling, the
+   most a synchronous function is ever given, with room for the network */
+export const IMPORT_FETCH_MS = 30000;
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 /* THE ONE KEY A REGISTER IS FILED AND FOUND UNDER: the day it was
@@ -2084,13 +2087,19 @@ export function useNoscaData(profile) {
     let token = null;
     try { token = (await supabase.auth.getSession()).data.session?.access_token || null; } catch (e) { token = null; }
     if (!token) return { status: "signin" };
-    let res;
+    let res, j = null;
+    /* a deadline of the phone's own: the function answers inside Netlify's limit (10 seconds, 26 at the most when
+       support raises it), so nothing worth waiting for comes later than IMPORT_FETCH_MS — a request that stalls on
+       a mobile connection is busy, and the runner's own halving and Retry take the day on, where it held one of
+       the three places in the queue for as long as the browser kept the socket (launch, 28 November) */
+    const stop = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timer = stop ? setTimeout(() => stop.abort(), IMPORT_FETCH_MS) : null;
     try {
-      res = await fetch("/.netlify/functions/lesson-import", { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify(body) });
+      res = await fetch("/.netlify/functions/lesson-import", { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify(body), signal: stop ? stop.signal : undefined });
+      try { j = await res.json(); } catch (e) { j = null; }
     } catch (e) {
       return typeof navigator !== "undefined" && navigator.onLine === false ? { status: "offline" } : { status: "busy", retryAfter: 2 };
-    }
-    let j = null; try { j = await res.json(); } catch (e) { j = null; }
+    } finally { if (timer) clearTimeout(timer); }
     if (res.status === 401) return { status: "signin" };
     if (res.status === 403) return { status: "refused" };
     if (res.status === 400) return { status: "failed" };
