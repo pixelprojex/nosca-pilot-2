@@ -430,7 +430,7 @@ const { check, results, summary } = M.checker("notifications");
       {
         const { ctx, page } = await bootG("eoin");
         const r = await open(page, "can't take you on", "22-eoin-declined");
-        check("(g11) \"Niamh Byrne can't take you on\" opens Add a coach, where the next ask is made", (await page.locator('[data-sheet]').filter({ hasText: "Add a coach" }).count()) === 1, r.t.slice(0, 200));
+        check("(g11) \"Niamh Byrne can't take you on\" opens Add your coach, the code boxes ready for the next ask", r.t.includes("Add your coach") && (await M.codeBoxes(page).count()) >= 6 && !(await page.locator('[data-sheet] [data-tour="catchup"]').count()), r.t.slice(0, 200));
         await ctx.close();
       }
       {
@@ -484,7 +484,7 @@ const { check, results, summary } = M.checker("notifications");
       const openMs = Date.now() - t0;
       const first = await page.evaluate(() => ({ rows: document.querySelectorAll("[data-bell-row]").length, cards: document.querySelectorAll('[data-tour="alerts-list"] [data-bell-card]').length,
         heads: [...document.querySelectorAll('[data-tour="alerts-list"] [data-bell-head]')].map((h) => h.textContent), nodes: document.querySelectorAll("#root *").length }));
-      await page.screenshot({ path: path.join(outDir, "26-bell-hundred-fifty.png") });
+      await page.waitForTimeout(600); await page.screenshot({ path: path.join(outDir, "26-bell-hundred-fifty.png") });
       check("(h) a hundred and fifty notices: the bell draws the newest thirty on their days' cards — one card a day — and is up in well under a second and a half", first.rows === 30 && first.cards >= 2 && first.cards === first.heads.length && /^(Today|Yesterday)$/.test(first.heads[0]) && openMs < 1500, JSON.stringify({ openMs, ...first }));
       const t1 = Date.now();
       await page.locator('[data-tour="alerts-earlier"]').click();

@@ -2537,7 +2537,8 @@ seeded data and no account.
     (`trg_drills_notify`, `trg_tips_notify`, `trg_lesson_imports_notify`;
     a row written before is found by the first name its title opens
     with); "accepted you" — the coach's profile; "can't take you on" —
-    Add a coach (the switcher sheet), where the next ask is made; a
+    Add your coach (a coachless player's home, the code boxes ready; a
+    parent's, Add a coach in the switcher), where the next ask is made; a
     junior's "messaged your family" — Family; an import's — its newest
     lesson, or for the coach the player's file. Only a notice about
     nothing in particular lands on a tab. The face is `notifFaceFor`,

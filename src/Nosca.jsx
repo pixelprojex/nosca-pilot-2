@@ -24334,8 +24334,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        an adult's notice about a child — the child's lesson, the child's
          day in the Diary (For the child), the child's own screen for a
          drill, a tip or an import taken away, else Family;
-       "accepted you" — the coach's profile; "can't take you on" — Add a
-         coach (the switcher), where the next ask is made;
+       "accepted you" — the coach's profile; "can't take you on" — Add
+         your coach, where the next ask is made;
        a junior's "messaged your family" — Family, where their adults are;
        an import's — its newest lesson, or for the coach the player's file.
      A push opened cold carries the screen, the id and the day (sw.js's
@@ -24411,10 +24411,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       if (named && hasTab("family")) { land(["family", `familyKid:${named.id}`]); return; }
     }
     /* a request answered: "accepted you" is the coach now theirs; "can't
-       take you on" is the next ask, made from Add a coach */
+       take you on" is the next ask — a player with no coach opens on Add
+       your coach, the code boxes ready; a parent's is Add a coach in the
+       switcher over the family */
     if (scr === "home" && d.id && role !== "coach") {
       if (kind !== "declined" && data.hasCoach) { land([home, "coachProfile"]); return; }
-      if (kind !== "accepted" && !data.hasCoach) { go(home); setSheet("family"); return; }
+      if (kind !== "accepted" && !data.hasCoach) { go(home); if (home === "family") setSheet("family"); return; }
     }
     /* a junior told that their coach messaged the family: the family, where their adults are */
     if (scr === "home" && kind === "message" && juvenile && hasTab("family")) { go("family"); return; }
