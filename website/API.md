@@ -1,5 +1,24 @@
 # Nosca's website: the foundation's contract
 
+> **Since 28 November the site is one page and has one mode.** `index.html` is the whole site (the opening, the
+> product, the six sports, the story, the pilot); `product.html`, `story.html` and `partners.html` are three-line
+> pages (`raw: 1`, no shell) that send to `index.html#product`, `#story` and the top. Nothing is pinned and nothing is
+> tied to the scroll on any device: the shell adds `html.glide` wherever motion is allowed, and every piece plays
+> ONCE, on its own clock, as it arrives (`glideScan` in `site.js`: `data-rise`, `data-ink`, `data-rule`,
+> `data-stripes`, `data-draw`, `data-weave`, a card's `data-card-turn`, and every phone, photograph and loop coming
+> to rest). ScrollTrigger and Lenis are no longer loaded, so `html.motion` never exists: the film, rail, scrub,
+> settle and ground-shift parts of the library below are retired (still in `site.js`, unused) and the kit page that
+> shows them is a record of the old engine. Only the header is `position: fixed`; nothing is sticky. Under Reduce
+> Motion or without JavaScript the page is the finished column. The two phones in the product play their steps once
+> as they arrive and rest on the last; a tap on a step shows it (`index.js`).
+>
+> New includes: `band` (`edge="both|top|foot"`): the deep green card's stripes along a section's top and foot, the
+> first print file's geometry (the lines x + y = c, 3.6 mm apart, phase 0.909) sliced to the band's height so they
+> keep the card's angle at any width. `bcard` (`world="green|olive"`, `class`, `attrs`) replaces `card`: the deep
+> green's front is the banded print (top and foot stripes, the mark and NOSCA in the clear band, no gold edge), the
+> olive's the two corner wedges; both share the white back (`partials/cardback.html`). On the deep green the site's
+> stripes are always the band; on the olive, the wedges.
+
 Read `BRIEF.md` first (the founder's words and this round's direction). This file says how to build a page on
 the shared kit. Every piece below is on one page, working: build with `--kit` and open `_kit.html`
 (source `src/pages/_kit.html`, `src/css/_kit.css`, `src/js/_kit.js` — copy the patterns, not the class names).
@@ -62,7 +81,8 @@ Every URL relative: `product.html#coach`, `assets/x.webp`, `./` for Home. When `
 | `phone` (`screens="a,b,c"` `alts="First|…"` `mode="fade|slide|rise|push"` `seq="log"` `seqalt` `poster="0|last|N"` `autoplay="3.2"` `settle="settle"` `class` `attrs` `eager="1"`) | the drawn phone with its screens stacked (780×1688 stills from `assets/`), or with an image sequence as its first screen |
 | `seq` (`name="log"` `alt` `poster="0|last|N"` `class` `attrs` `eager`) | an image sequence outside a phone: the poster `<img>` and everything `Site.sequence` needs |
 | `photo` (`name` `alt` `class` `attrs` `sizes` `focus` `credit="1"` `eager="1"`) | `<figure class="photo">` from `assets/photo/MANIFEST.json`: width, height, srcset, the alt and the picture's own dark tone behind it while it loads. The build fails, naming the photograph, when it is not in the manifest |
-| `card` (`world="olive|green"` `class` `attrs` `weave="1"` `pinsattrs` `frontattrs`) | the business card, both faces. `--card-w` sizes it; `.is-back` shows the back; `.bcard--shadow` lays it on a table |
+| `bcard` (`world="green|olive"` `class` `attrs`) | the business card, both faces, each design as printed (green: the band; olive: the wedges). `--card-w` on the `.bcard` sizes it; `.is-back` shows the back; `.bcard--shadow` lays it on a table |
+| `band` (`edge="both|top|foot"` `class`) | the deep green card's stripes along a section's edges (`--band-h` the strip's height) |
 | `qr` · `ticks` · `arrow` | the install code · the 45 cycle days · the small arrow for keys and links |
 
 ## The one rule of motion
@@ -179,7 +199,7 @@ wrapped line never starts or ends on a dot (the card's `.bcard__sports` is spans
 - **Phone** `<!-- @include phone … -->`, width `--phone-w`; `.phone--light` a silver frame; `.phone--flat` no cast shadow.
   Give its parent `.depth` for perspective.
 - **Shot** `<figure class="shot"><img …></figure>` (`--shot-w`): a screen outside the phone, on the app's ledge.
-- **Card** `<!-- @include card world="olive" class="bcard--shadow" -->`.
+- **Card** `<!-- @include bcard world="green" class="bcard--shadow" -->` (only at the pilot: the card as an object stands nowhere else).
 - **Photograph** `<!-- @include photo name="…" attrs="data-settle" -->` or by hand `<figure class="photo" style="--ar:3/2;--focus:50% 30%"><img width height alt loading="lazy"></figure>`.
   `.photo--tall` 4/5 · `.photo--wide` 21/9 · `.photo--square` · `.photo--bleed` a full screen · `.photo--veil` lays one even
   veil of the deep green over it for words (`--veil:.42`; never a gradient). The manifest's `headline` says where on each
