@@ -755,6 +755,512 @@ select coalesce((select not has_function_privilege('anon', f, 'execute') from to
    and not has_table_privilege('authenticated', 'public.group_absences', 'delete') as ok \gset
 \if :ok \echo PASS nobody signed out can mark anybody out, and nobody signed in writes the table directly (8h) \else \echo FAIL group_absences privileges (8h) \endif
 
+\echo === 8i. importing a chat: the guard, the hold, the one notice, removing
+-- Every part below runs as the people who would do it (pg_temp.as_user sets the role and the claims inside
+-- one DO block, as section 14 of nosca.sql does), and writes its PASS and FAIL lines to t_8i, printed at the end.
+select set_config('t.c1', :'c1', false), set_config('t.a1', :'a1', false), set_config('t.p1', :'p1', false),
+       set_config('t.j1', :'j1', false), set_config('t.t1', :'t1', false), set_config('t.c2', :'c2', false) \gset _
+create temp table t_8i (at timestamptz not null default clock_timestamp(), line text);
+grant all on t_8i to authenticated;
+create or replace function pg_temp.as_user(p text) returns void language plpgsql as $f$
+begin
+  execute 'reset role';
+  perform set_config('request.jwt.claims', case when p is null then '{"role":"authenticated"}' else format('{"sub":"%s","role":"authenticated"}', p) end, true);
+  execute 'set local role authenticated';
+end $f$;
+create or replace function pg_temp.as_owner() returns void language plpgsql as $f$
+begin execute 'reset role'; perform set_config('request.jwt.claims', '', true); end $f$;
+create or replace function pg_temp.say(ok boolean, pass text, fail text) returns void language plpgsql as $f$
+begin insert into pg_temp.t_8i (line) values (case when coalesce(ok, false) then 'PASS ' || pass || ' (8i)' else 'FAIL ' || fail || ' (8i)' end); end $f$;
+create or replace function pg_temp.refused(what text, got text, want text) returns void language plpgsql as $f$
+begin perform pg_temp.say(got is not distinct from want, what || ' is refused: ' || want, what || ' — wanted "' || want || '", got "' || coalesce(got, 'no refusal') || '"'); end $f$;
+-- a file the phone uploaded: an object in the media bucket, as Storage writes it
+create or replace function pg_temp.up(p text) returns text language plpgsql as $f$
+begin insert into storage.objects (bucket_id, name) values ('media', p); return p; end $f$;
+create or replace function pg_temp.f(p text, k text, h text, at text default null) returns jsonb language sql as $f$
+  select jsonb_strip_nulls(jsonb_build_object('path', p, 'kind', k, 'hash', h, 'at', at)) $f$;
+create or replace function pg_temp.h(s text) returns text language sql as $f$ select encode(sha256(convert_to(s, 'UTF8')), 'hex') $f$;
+-- two juniors of Sinéad's for the sixteen rule: one sixteen today, one a day short of it
+insert into auth.users (id, email, raw_user_meta_data) values
+ ('a6a6a6a6-a6a6-4a6a-8a6a-a6a6a6a6a6a6', 'sixteen@example.ie', jsonb_build_object('role','player','name','Orla Sixteen','sport','tennis','account_type','junior','date_of_birth', to_char(((now() at time zone 'Europe/Dublin')::date - interval '16 years')::date, 'YYYY-MM-DD'))),
+ ('a5a5a5a5-a5a5-4a5a-8a5a-a5a5a5a5a5a5', 'fifteen@example.ie', jsonb_build_object('role','player','name','Pat Fifteen','sport','tennis','account_type','junior','date_of_birth', to_char(((now() at time zone 'Europe/Dublin')::date - interval '16 years' + interval '1 day')::date, 'YYYY-MM-DD')));
+update public.profiles set coach_id = :'c1' where id in ('a6a6a6a6-a6a6-4a6a-8a6a-a6a6a6a6a6a6', 'a5a5a5a5-a5a5-4a5a-8a5a-a5a5a5a5a5a5');
+
+-- ---- the guard: an existing hole, closed ----
+do $t$
+declare c1 text := current_setting('t.c1'); a1 text := current_setting('t.a1'); lid uuid; clip uuid; e text; mid uuid; amid uuid; lid2 uuid; r record;
+begin
+  select id into lid from public.lessons where coach_id = c1::uuid and player_id = a1::uuid and import_id is null and sent_by is null order by created_at limit 1;
+  select id into clip from public.lessons where sent_by = a1::uuid and kind <> 'practice' order by created_at limit 1;
+  perform pg_temp.as_user(c1);
+  e := null; begin insert into public.lesson_media (lesson_id, kind, storage_path) values (lid, 'video', a1 || '/' || lid || '/theirs.mp4'); exception when others then e := sqlerrm; end;
+  perform pg_temp.refused('a coach s file row naming another person s folder', e, 'A file outside your folder');
+  e := null; begin insert into public.lesson_media (lesson_id, kind, storage_path) values (lid, 'video', 'import/' || gen_random_uuid() || '/' || gen_random_uuid() || '.mp4'); exception when others then e := sqlerrm; end;
+  perform pg_temp.refused('a coach s file row naming an import path', e, 'A file outside your folder');
+  insert into public.lesson_media (lesson_id, kind, storage_path, import_id, import_hash) values (lid, 'photo', c1 || '/' || lid || '/own.jpg', gen_random_uuid(), repeat('a', 64)) returning id into mid;
+  update public.lesson_media set import_hash = repeat('b', 64) where id = mid;
+  e := null; begin update public.lesson_media set storage_path = a1 || '/x/moved.jpg' where id = mid; exception when others then e := sqlerrm; end;
+  perform pg_temp.refused('a coach moving a file row into another person s folder', e, 'A file outside your folder');
+  insert into public.lessons (coach_id, player_id, focus, import_id, import_key) values (c1::uuid, a1::uuid, 'Serve', gen_random_uuid(), 'mine') returning id into lid2;
+  perform pg_temp.as_user(a1);
+  e := null; begin insert into public.lesson_media (lesson_id, kind, storage_path) values (clip, 'video', c1 || '/' || clip || '/coachs.mp4'); exception when others then e := sqlerrm; end;
+  perform pg_temp.refused('a sender s file row naming the coach s folder', e, 'A file outside your folder');
+  insert into public.lesson_media (lesson_id, kind, storage_path) values (clip, 'video', a1 || '/' || clip || '/again.mp4') returning id into amid;
+  perform pg_temp.as_owner();
+  select (select import_id is null and import_hash is null from public.lesson_media where id = mid) as m,
+         (select import_id is null and import_key is null from public.lessons where id = lid2) as l into r;
+  perform pg_temp.say(r.m and r.l and amid is not null, 'a client s own folder still works, and a client sets no import column on a lesson or a file',
+                      format('own folder or import columns media=%s lesson=%s sender=%s', r.m, r.l, amid));
+  delete from public.lesson_media where id in (mid, amid); delete from public.lessons where id = lid2;
+end $t$;
+
+-- ---- a coach's import for Aoife: two waves, then done ----
+do $t$
+declare c1 text := current_setting('t.c1'); a1 text := current_setting('t.a1'); b1 uuid := gen_random_uuid(); r jsonb; w1 jsonb; w2 jsonb;
+        p1 text; p2 text; p3 text; p4 text; na int; nc int; q record; fut text := to_char(now() + interval '1 day', 'YYYY-MM-DD"T"HH24:MI:SS.MSOF');
+begin
+  perform set_config('t.b1', b1::text, false);
+  p1 := pg_temp.up('import/' || b1 || '/' || gen_random_uuid() || '.mp4'); p2 := pg_temp.up('import/' || b1 || '/' || gen_random_uuid() || '.jpg');
+  p3 := pg_temp.up('import/' || b1 || '/' || gen_random_uuid() || '.mov'); p4 := pg_temp.up('import/' || b1 || '/' || gen_random_uuid() || '.m4a');
+  perform set_config('t.p1path', p1, false);
+  w1 := jsonb_build_array(
+    jsonb_build_object('day','2025-06-14','kind','private','focus','Serve · Forehand','note','Toss higher, reach for it','at','2025-06-14T18:30:00+01:00',
+      'files', jsonb_build_array(pg_temp.f(p1, 'video', pg_temp.h('one'), '2025-06-14T18:20:00.001+01:00'), pg_temp.f(p2, 'photo', pg_temp.h('two'), '2025-06-14T18:21:00.002+01:00'))),
+    jsonb_build_object('day','2025-06-13','kind','practice','focus','Practice','at', fut, 'files', jsonb_build_array(pg_temp.f(p3, 'video', pg_temp.h('three'), fut))));
+  perform set_config('t.w1', w1::text, false);
+  w2 := jsonb_build_array(jsonb_build_object('day','2025-05-02','focus','Return','note','Split step early','files', jsonb_build_array(pg_temp.f(p4, 'audio', pg_temp.h('four')))));
+  perform pg_temp.as_user(c1);
+  r := public.import_begin(b1, a1::uuid, 'tennis');
+  perform pg_temp.say(r->>'status' = 'adding' and (r->>'room')::int = 600, 'import_begin opens a batch with the player s room under 600', 'import_begin ' || r::text);
+  r := public.import_lessons(b1, w1, false);
+  perform pg_temp.say(jsonb_array_length(r->'lessons') = 2 and r->'lessons'->0->>'state' = 'added' and (r->'lessons'->0->>'files')::int = 2,
+                      'a wave writes whole lessons and their files', 'first wave ' || r::text);
+  select count(*) into nc from public.lessons where import_id = b1;
+  perform pg_temp.as_user(a1);
+  select count(*) into na from public.lessons where import_id = b1;
+  perform pg_temp.say(nc = 2 and na = 0 and (select count(*) from public.lessons_view where import_id = b1) = 0
+                      and (select count(*) from public.lesson_media where storage_path like 'import/' || b1 || '/%') = 0,
+                      'while it fills, the importer reads the lessons and the player reads none of them or their files', format('held coach=%s player=%s', nc, na));
+  perform pg_temp.as_user(c1);
+  r := public.import_lessons(b1, w2, false);
+  r := public.import_lessons(b1, '[]'::jsonb, true);
+  perform pg_temp.say(r->>'status' = 'done' and (r->>'total')::int = 3, 'the last call finishes the batch', 'done ' || r::text);
+  perform pg_temp.as_user(a1);
+  select count(*) into na from public.lessons where import_id = b1;
+  perform pg_temp.as_owner();
+  select (select count(*) from public.notifications where user_id = a1::uuid and data->>'import' = b1::text) as told,
+         (select count(*) from public.notifications where user_id = a1::uuid and data->>'import' = b1::text and kind = 'lesson' and title = '3 lessons imported'
+            and body = 'May 2025 – Jun 2025 · Sinéad Walsh' and data->>'screen' = 'lesson'
+            and data->>'id' = (select id::text from public.lessons where import_id = b1 and lesson_date = '2025-06-14')) as exact,
+         (select count(*) from public.notifications where data->>'id' in (select id::text from public.lessons where import_id = b1) and (title = 'Lesson logged' or title like 'New %')) as logged,
+         (select count(*) from public.notifications where user_id = c1::uuid and data->>'import' = b1::text) as importer into q;
+  perform pg_temp.say(na = 3 and q.told = 1 and q.exact = 1 and q.logged = 0 and q.importer = 0,
+                      'done, the player reads all three and is told once, "3 lessons imported", landing on the newest; no Lesson logged, no New clip, nothing to the importer',
+                      format('after done read=%s told=%s exact=%s logged=%s importer=%s', na, q.told, q.exact, q.logged, q.importer));
+  select (select count(*) from public.lessons where import_id = b1 and sent_by is null and kind = 'private' and not unread and not rating_requested
+            and import_key = pg_temp.h('nosca-import|' || c1 || '|' || a1 || '|' || lesson_date::text)) as priv,
+         (select count(*) from public.lessons where import_id = b1 and kind = 'practice' and sent_by = a1::uuid) as prac,
+         (select created_at = '2025-06-14T18:30:00+01:00'::timestamptz from public.lessons where import_id = b1 and lesson_date = '2025-06-14') as lat,
+         (select created_at = '2025-06-14T18:20:00.001+01:00'::timestamptz from public.lesson_media where storage_path = p1) as mat,
+         (select created_at = now() from public.lessons where import_id = b1 and lesson_date = '2025-06-13') as clamp,
+         (select count(*) from public.lesson_media where import_id = b1 and import_hash is not null) as files into q;
+  perform pg_temp.say(q.priv = 2 and q.prac = 1 and q.lat and q.mat and q.clamp and q.files = 4,
+                      'the rows: private with no sender, a practice day sent by the player, unread false, no rating ask, the server s key, the times sent and a future one clamped to now',
+                      format('rows private=%s practice=%s lesson-at=%s media-at=%s clamp=%s files=%s', q.priv, q.prac, q.lat, q.mat, q.clamp, q.files));
+  -- a client can neither set nor clear the import columns on a lesson already imported
+  perform pg_temp.as_user(c1);
+  update public.lessons set import_id = null, import_key = null, notes = 'Toss higher' where import_id = b1 and lesson_date = '2025-06-14';
+  update public.lesson_media set import_id = null, import_hash = null where storage_path = p1;
+  perform pg_temp.as_owner();
+  perform pg_temp.say((select import_id = b1 and import_key is not null and notes = 'Toss higher' from public.lessons where lesson_date = '2025-06-14' and player_id = a1::uuid and import_key is not null)
+                      and (select import_id = b1 and import_hash is not null from public.lesson_media where storage_path = p1),
+                      'an update can neither clear nor change the import columns', 'import columns were cleared');
+end $t$;
+
+-- ---- idempotence: the same wave again, a second chat over the same days, files added by hash ----
+do $t$
+declare c1 text := current_setting('t.c1'); a1 text := current_setting('t.a1'); b1 uuid := current_setting('t.b1')::uuid; w1 jsonb := current_setting('t.w1')::jsonb;
+        b2 uuid := gen_random_uuid(); b3 uuid := gen_random_uuid(); r jsonb; n0 int; q record; p5 text; p6 text;
+begin
+  perform set_config('t.b2', b2::text, false); perform set_config('t.b3', b3::text, false);
+  select count(*) into n0 from public.notifications;
+  perform pg_temp.as_user(c1);
+  r := public.import_lessons(b1, w1, true);
+  perform pg_temp.as_owner();
+  perform pg_temp.say(r->>'status' = 'done' and (r->>'total')::int = 3 and (select count(*) from public.lessons where import_id = b1) = 3
+                      and (select count(*) from public.notifications) = n0,
+                      'a wave and done sent again: one batch, one set of rows, one notice — a done batch answers its summary', 'resent ' || r::text);
+  perform pg_temp.as_user(c1);
+  r := public.import_begin(b2, a1::uuid, 'tennis');
+  perform pg_temp.say((r->>'room')::int = 597, 'a second import begins with the player s room less what is already imported', 'room ' || r::text);
+  r := public.import_lessons(b2, w1, false);
+  perform pg_temp.say(r->'lessons'->0->>'state' = 'skipped' and r->'lessons'->1->>'state' = 'skipped', 'a second chat over the same days skips every day', 'second chat ' || r::text);
+  r := public.import_lessons(b2, '[]'::jsonb, true);
+  perform pg_temp.as_owner();
+  perform pg_temp.say(r->>'status' = 'removed' and (select count(*) from public.notifications) = n0, 'an empty batch finished becomes removed, and nobody is told', 'empty done ' || r::text);
+  p5 := pg_temp.up('import/' || b3 || '/' || gen_random_uuid() || '.jpg'); p6 := pg_temp.up('import/' || b3 || '/' || gen_random_uuid() || '.mp4');
+  perform pg_temp.as_user(c1);
+  r := public.import_begin(b3, a1::uuid, 'tennis');
+  r := public.import_lessons(b3, jsonb_build_array(jsonb_build_object('day','2025-06-14','focus','Serve','add',true,
+         'files', jsonb_build_array(pg_temp.f(p5, 'photo', pg_temp.h('five')), pg_temp.f(p6, 'video', pg_temp.h('one'))))), true);
+  perform pg_temp.as_owner();
+  select (select count(*) from public.lesson_media where import_id = b3) as added, (select lessons from public.lesson_imports where id = b3) as ls,
+         (select count(*) from public.notifications where user_id = a1::uuid and data->>'import' = b3::text and title = '1 file imported' and body = 'Jun 2025 · Sinéad Walsh') as told into q;
+  perform pg_temp.say(r->'lessons'->0->>'state' = 'appended' and (r->'lessons'->0->>'files')::int = 1 and q.added = 1 and q.ls = 0 and q.told = 1,
+                      'a chat with new files on a day imported adds only the files whose hash is new, and says "1 file imported"',
+                      format('append %s added=%s lessons=%s told=%s', r::text, q.added, q.ls, q.told));
+end $t$;
+
+-- ---- a coach's import for a junior; the switch; a player's import; a parent's for a junior ----
+do $t$
+declare c1 text := current_setting('t.c1'); a1 text := current_setting('t.a1'); p1 text := current_setting('t.p1'); j1 text := current_setting('t.j1');
+        b4 uuid := gen_random_uuid(); b5 uuid := gen_random_uuid(); b6 uuid := gen_random_uuid(); r jsonb; e text; q record; t text; g text; p7 text;
+begin
+  perform set_config('t.b4', b4::text, false); perform set_config('t.b5', b5::text, false); perform set_config('t.b6', b6::text, false);
+  perform pg_temp.as_user(c1);
+  r := public.import_begin(b4, j1::uuid, 'tennis');
+  r := public.import_lessons(b4, jsonb_build_array(jsonb_build_object('day','2025-07-01','focus','Backhand')), true);
+  perform pg_temp.as_owner();
+  select (select count(*) from public.notifications where user_id = j1::uuid and data->>'import' = b4::text and title = '1 lesson imported' and body = 'Jul 2025 · Sinéad Walsh') as jt,
+         (select count(*) from public.notifications where user_id = p1::uuid and data->>'import' = b4::text and title = 'Ellie''s lessons imported' and body = '1 lesson · Jul 2025' and data->>'screen' = 'family') as pt,
+         (select count(*) from public.notifications where user_id = c1::uuid and data->>'import' = b4::text) as ct into q;
+  perform pg_temp.say(q.jt = 1 and q.pt = 1 and q.ct = 0, 'a coach s import for a junior tells the junior once and her adult once ("Ellie s lessons imported"), the coach never',
+                      format('junior import j=%s p=%s c=%s', q.jt, q.pt, q.ct));
+  -- the coach's switch off: Aoife has nothing to import, may not begin, and the gate says no
+  update public.preferences set player_imports = false where id = c1::uuid;
+  perform pg_temp.as_user(a1);
+  e := null; begin perform public.import_begin(b5, a1::uuid, 'tennis'); exception when others then e := sqlerrm; end;
+  select (select count(*) from public.import_targets()) as n into q; g := public.import_gate(a1::uuid);
+  perform pg_temp.say(q.n = 0 and e = 'Not yours to import' and g = 'no', 'with the coach s switch off a player has no target, cannot begin, and the gate says no',
+                      format('switch off targets=%s begin=%s gate=%s', q.n, e, g));
+  perform pg_temp.as_owner();
+  insert into public.preferences (id, player_imports) values (c1::uuid, true) on conflict (id) do update set player_imports = true;
+  p7 := pg_temp.up('import/' || b5 || '/' || gen_random_uuid() || '.mp4');
+  perform pg_temp.as_user(a1);
+  select string_agg(player_id || '/' || role, ',') into t from public.import_targets();
+  r := public.import_begin(b5, a1::uuid, 'tennis');
+  r := public.import_lessons(b5, jsonb_build_array(jsonb_build_object('day','2025-08-01','focus','Rally','files', jsonb_build_array(pg_temp.f(p7, 'video', pg_temp.h('seven')))),
+                                                  jsonb_build_object('day','2025-08-02','focus','Rally · Movement')), true);
+  perform pg_temp.as_owner();
+  select (select count(*) from public.lessons where import_id = b5 and coach_id = c1::uuid and sent_by = a1::uuid and import_key is not null and not unread and not rating_requested) as rows,
+         (select count(*) from public.notifications where user_id = c1::uuid and data->>'import' = b5::text and title = 'Aoife Nolan imported 2 lessons' and body = 'Aug 2025') as ct,
+         (select count(*) from public.notifications where user_id = a1::uuid and data->>'import' = b5::text) as at into q;
+  perform pg_temp.say(t = a1 || '/player' and q.rows = 2 and q.ct = 1 and q.at = 0,
+                      'switched on, a player imports their own chat: the coach s lessons, sent by the player, the coach told once by whole name, the player not',
+                      format('player import targets=%s rows=%s coach=%s player=%s', t, q.rows, q.ct, q.at));
+  perform pg_temp.as_user(p1);
+  select string_agg(player_id || '/' || role, ',') into t from public.import_targets();
+  r := public.import_begin(b6, j1::uuid, 'tennis');
+  r := public.import_lessons(b6, jsonb_build_array(jsonb_build_object('day','2025-09-01','focus','Net game','note','Ready position'), jsonb_build_object('day','2025-09-02','focus','Serve')), true);
+  perform pg_temp.as_owner();
+  select (select count(*) from public.notifications where user_id = c1::uuid and data->>'import' = b6::text and title = '2 lessons imported for Ellie Tran' and body = 'Marcus Tran · Sep 2025') as ct,
+         (select count(*) from public.notifications where user_id = j1::uuid and data->>'import' = b6::text and title = '2 lessons imported' and body = 'Sep 2025 · Marcus Tran') as jt,
+         (select count(*) from public.notifications where user_id = p1::uuid and data->>'import' = b6::text) as pt,
+         (select count(*) from public.lessons where import_id = b6 and sent_by = p1::uuid) as rows into q;
+  perform pg_temp.say(t = j1 || '/adult' and q.ct = 1 and q.jt = 1 and q.pt = 0 and q.rows = 2,
+                      'a parent imports for a junior: the coach told "… imported for Ellie Tran", the junior told, the parent not',
+                      format('parent import targets=%s coach=%s junior=%s parent=%s rows=%s', t, q.ct, q.jt, q.pt, q.rows));
+end $t$;
+
+-- ---- a take added to an imported lesson later is news; the coach changed between waves ----
+do $t$
+declare c1 text := current_setting('t.c1'); a1 text := current_setting('t.a1'); p1 text := current_setting('t.p1'); j1 text := current_setting('t.j1'); c2 text := current_setting('t.c2');
+        lid uuid; b7 uuid := gen_random_uuid(); e text; n int;
+begin
+  perform set_config('t.b7', b7::text, false);
+  select id into lid from public.lessons where import_id = current_setting('t.b1')::uuid and lesson_date = '2025-05-02';
+  perform pg_temp.as_user(c1);
+  insert into public.lesson_media (lesson_id, kind, storage_path) values (lid, 'video', c1 || '/' || lid || '/markup-1.webm');
+  perform pg_temp.as_owner();
+  select count(*) into n from public.notifications where user_id = a1::uuid and title = 'New clip on Return' and data->>'id' = lid::text;
+  perform pg_temp.say(n = 1, 'a coach s take on an imported lesson later is a New clip, as 8g expects', format('take on an import told=%s', n));
+  insert into public.preferences (id, player_imports) values (c2::uuid, true) on conflict (id) do update set player_imports = true;
+  perform pg_temp.as_user(p1);
+  perform public.import_begin(b7, j1::uuid, 'tennis');
+  perform pg_temp.as_owner();
+  update public.profiles set coach_id = c2::uuid where id = j1::uuid;
+  perform pg_temp.as_user(p1);
+  e := null; begin perform public.import_lessons(b7, jsonb_build_array(jsonb_build_object('day','2025-10-01','focus','Serve')), false); exception when others then e := sqlerrm; end;
+  perform pg_temp.refused('a wave after the player moved to another coach', e, 'Ellie is with another coach now');
+  perform pg_temp.as_owner();
+  update public.profiles set coach_id = c1::uuid where id = j1::uuid;
+  update public.preferences set player_imports = false where id = c2::uuid;
+end $t$;
+
+-- ---- refusals, each counted ----
+do $t$
+declare c1 text := current_setting('t.c1'); a1 text := current_setting('t.a1'); p1 text := current_setting('t.p1'); j1 text := current_setting('t.j1'); c2 text := current_setting('t.c2');
+        b8 uuid := gen_random_uuid(); e text; ok1 jsonb; fls jsonb; big jsonb; n int; held int; x text;
+  -- one good lesson, changed in one way per refusal
+  good jsonb := jsonb_build_object('day','2025-10-02','focus','Serve','note','Fine');
+begin
+  perform pg_temp.as_user(c2);
+  e := null; begin perform public.import_begin(gen_random_uuid(), a1::uuid, 'tennis'); exception when others then e := sqlerrm; end; perform pg_temp.refused('a coach who is not theirs', e, 'Not yours to import');
+  perform pg_temp.as_user(a1);
+  e := null; begin perform public.import_begin(gen_random_uuid(), j1::uuid, 'tennis'); exception when others then e := sqlerrm; end; perform pg_temp.refused('a player for somebody else', e, 'Not yours to import');
+  perform pg_temp.as_user(p1);
+  e := null; begin perform public.import_begin(gen_random_uuid(), a1::uuid, 'tennis'); exception when others then e := sqlerrm; end; perform pg_temp.refused('an adult for another adult', e, 'Not yours to import');
+  perform pg_temp.as_user(j1);
+  e := null; begin perform public.import_begin(gen_random_uuid(), j1::uuid, 'tennis'); exception when others then e := sqlerrm; end; perform pg_temp.refused('a junior', e, 'Not yours to import');
+  perform pg_temp.as_user(null);
+  e := null; begin perform public.import_begin(gen_random_uuid(), a1::uuid, 'tennis'); exception when others then e := sqlerrm; end; perform pg_temp.refused('signed out', e, 'Sign in first');
+  perform pg_temp.as_user(c1);
+  perform public.import_begin(b8, a1::uuid, 'tennis');
+  x := 'import/' || b8 || '/' || gen_random_uuid() || '.mp4';
+  e := null; begin perform public.import_lessons(b8, jsonb_build_array(good || jsonb_build_object('files', jsonb_build_array(pg_temp.f(c1 || '/x/a.mp4', 'video', pg_temp.h('x'))))), false); exception when others then e := sqlerrm; end;
+  perform pg_temp.refused('a path in another folder', e, 'A file outside this import');
+  e := null; begin perform public.import_lessons(b8, jsonb_build_array(good || jsonb_build_object('files', jsonb_build_array(pg_temp.f('import/' || current_setting('t.b1') || '/' || gen_random_uuid() || '.mp4', 'video', pg_temp.h('x'))))), false); exception when others then e := sqlerrm; end;
+  perform pg_temp.refused('a path in another batch', e, 'A file outside this import');
+  e := null; begin perform public.import_lessons(b8, jsonb_build_array(good || jsonb_build_object('files', jsonb_build_array(pg_temp.f('import/' || b8 || '/WhatsApp Video 2025.mp4', 'video', pg_temp.h('x'))))), false); exception when others then e := sqlerrm; end;
+  perform pg_temp.refused('a file s own name in the path', e, 'A file outside this import');
+  e := null; begin perform public.import_lessons(b8, jsonb_build_array(good || jsonb_build_object('files', jsonb_build_array(pg_temp.f(x, 'video', pg_temp.h('x'))))), false); exception when others then e := sqlerrm; end;
+  perform pg_temp.refused('a path with nothing uploaded behind it', e, 'A file that isn''t uploaded');
+  e := null; begin perform public.import_lessons(b8, jsonb_build_array(good || jsonb_build_object('files', jsonb_build_array(jsonb_build_object('path', x, 'kind', 'video')))), false); exception when others then e := sqlerrm; end;
+  perform pg_temp.refused('a file with no hash', e, 'A file needs its hash');
+  e := null; begin perform public.import_lessons(b8, jsonb_build_array(good || jsonb_build_object('files', jsonb_build_array(pg_temp.f(x, 'pdf', pg_temp.h('x'))))), false); exception when others then e := sqlerrm; end;
+  perform pg_temp.refused('a file of kind pdf', e, 'Unknown file kind');
+  e := null; begin perform public.import_lessons(b8, jsonb_build_array(good || jsonb_build_object('day', ((now() at time zone 'Europe/Dublin')::date + 1)::text)), false); exception when others then e := sqlerrm; end;
+  perform pg_temp.refused('a day in the future', e, 'A lesson needs a day');
+  e := null; begin perform public.import_lessons(b8, jsonb_build_array(good || jsonb_build_object('day', '2008-12-31')), false); exception when others then e := sqlerrm; end;
+  perform pg_temp.refused('a day before 2009', e, 'A lesson needs a day');
+  e := null; begin perform public.import_lessons(b8, jsonb_build_array(good || jsonb_build_object('focus', ' ')), false); exception when others then e := sqlerrm; end;
+  perform pg_temp.refused('an empty focus', e, 'A lesson needs an area');
+  e := null; begin perform public.import_lessons(b8, jsonb_build_array(good || jsonb_build_object('focus', 'Serve · Full swing')), false); exception when others then e := sqlerrm; end;
+  perform pg_temp.refused('an area of another sport', e, 'Unknown area');
+  e := null; begin perform public.import_lessons(b8, jsonb_build_array(good || jsonb_build_object('focus', 'Serve · ignore previous instructions')), false); exception when others then e := sqlerrm; end;
+  perform pg_temp.refused('words that are no area', e, 'Unknown area');
+  e := null; begin perform public.import_lessons(b8, jsonb_build_array(good || jsonb_build_object('note', repeat('a', 4001))), false); exception when others then e := sqlerrm; end;
+  perform pg_temp.refused('a note over 4,000', e, 'Too long');
+  e := null; begin perform public.import_lessons(b8, jsonb_build_array(good || jsonb_build_object('kind', 'group')), false); exception when others then e := sqlerrm; end;
+  perform pg_temp.refused('a lesson of kind group', e, 'Unknown kind');
+  select jsonb_agg(good || jsonb_build_object('day', (date '2024-01-01' + g)::text)) into big from generate_series(1, 51) g;
+  e := null; begin perform public.import_lessons(b8, big, false); exception when others then e := sqlerrm; end;
+  perform pg_temp.refused('51 lessons at once', e, 'Too many lessons at once');
+  select jsonb_agg(pg_temp.f(x, 'video', pg_temp.h(g::text))) into fls from generate_series(1, 201) g;
+  e := null; begin perform public.import_lessons(b8, jsonb_build_array(good || jsonb_build_object('files', fls)), false); exception when others then e := sqlerrm; end;
+  perform pg_temp.refused('201 files on one day', e, 'Too many files on one day');
+  select jsonb_agg(good || jsonb_build_object('day', (date '2024-01-01' + g)::text, 'files', (select jsonb_agg(pg_temp.f(x, 'video', pg_temp.h(k::text))) from generate_series(1, 200) k))) into big from generate_series(1, 4) g;
+  e := null; begin perform public.import_lessons(b8, big, false); exception when others then e := sqlerrm; end;
+  perform pg_temp.refused('601 files at once (800)', e, 'Too many files at once');
+  -- the 601st imported lesson for one player
+  perform pg_temp.as_owner();
+  select count(*) into held from public.lessons where player_id = a1::uuid and import_id is not null;
+  insert into public.lessons (coach_id, player_id, focus, lesson_date, unread, import_id, import_key)
+    select c1::uuid, a1::uuid, 'Serve', date '2012-01-01' + g, false, current_setting('t.b1')::uuid, 'filler-' || g from generate_series(1, 600 - held) g;
+  perform pg_temp.as_user(c1);
+  e := null; begin perform public.import_lessons(b8, jsonb_build_array(good), false); exception when others then e := sqlerrm; end;
+  perform pg_temp.refused('the 601st imported lesson for one player', e, 'Too many lessons');
+  perform pg_temp.as_owner();
+  delete from public.lessons where import_key like 'filler-%';
+  perform pg_temp.as_user(a1);
+  e := null; begin perform public.import_lessons(b8, jsonb_build_array(good), false); exception when others then e := sqlerrm; end;
+  perform pg_temp.refused('another person s batch', e, 'Not your import');
+  perform pg_temp.as_user(c1);
+  e := null; begin perform public.import_lessons(current_setting('t.b2')::uuid, jsonb_build_array(good), false); exception when others then e := sqlerrm; end;
+  perform pg_temp.refused('a wave on a removed batch', e, 'That import was removed');
+  -- nothing above wrote a thing
+  perform pg_temp.as_owner();
+  perform pg_temp.say((select count(*) from public.lessons where import_id = b8) = 0 and (select lessons + files from public.lesson_imports where id = b8) = 0,
+                      'a refused wave writes nothing', 'a refused wave wrote rows');
+  perform set_config('t.b8', b8::text, false);
+end $t$;
+
+-- ---- what no client may do, and the probe ----
+do $t$
+declare c1 text := current_setting('t.c1'); a1 text := current_setting('t.a1'); e1 text; e2 text; e3 text; e4 text; e5 text; pr jsonb; pb jsonb; pu int;
+begin
+  perform pg_temp.as_user(c1);
+  begin insert into public.lesson_imports (id, coach_id, player_id) values (gen_random_uuid(), c1::uuid, a1::uuid); exception when others then e1 := sqlstate; end;
+  begin update public.lesson_imports set status = 'done' where coach_id = c1::uuid; exception when others then e2 := sqlstate; end;
+  begin insert into public.import_usage (user_id, day, used) values (c1::uuid, current_date, 0); exception when others then e3 := sqlstate; end;
+  begin perform count(*) from public.import_usage_total; exception when others then e4 := sqlstate; end;
+  begin delete from public.import_areas; exception when others then e5 := sqlstate; end;
+  pr := public.import_lessons(null, null, null); pb := public.import_begin(null, null, null); pu := public.undo_import(null);
+  perform pg_temp.as_owner();
+  perform pg_temp.say(e1 = '42501' and e2 = '42501' and e3 = '42501' and e4 = '42501' and e5 = '42501',
+                      'a client writes no import table and reads no usage or area table directly', format('direct writes %s %s %s %s %s', e1, e2, e3, e4, e5));
+  perform pg_temp.say(pr is null and pb is null and pu is null, 'the probe import_lessons(null, null, null) answers null and raises nothing', 'probe answered');
+end $t$;
+
+-- ---- removing ----
+do $t$
+declare c1 text := current_setting('t.c1'); a1 text := current_setting('t.a1'); p1 text := current_setting('t.p1'); j1 text := current_setting('t.j1'); t1 text := current_setting('t.t1'); c2 text := current_setting('t.c2');
+        b5 uuid := current_setting('t.b5')::uuid; b4 uuid := current_setting('t.b4')::uuid; b6 uuid := current_setting('t.b6')::uuid; b9 uuid := gen_random_uuid();
+        b10 uuid := gen_random_uuid(); b11 uuid := gen_random_uuid(); b12 uuid := gen_random_uuid(); j15 text := 'a5a5a5a5-a5a5-4a5a-8a5a-a5a5a5a5a5a5'; j16 text := 'a6a6a6a6-a6a6-4a6a-8a6a-a6a6a6a6a6a6';
+        n int; n0 int; e text; e2 text; q record; fam uuid; lids uuid[];
+begin
+  -- the coach removes a player's import: rows and file rows gone, touched, the player told, the coach not
+  update public.lesson_imports set touched_at = now() - interval '2 days' where id = b5;
+  perform pg_temp.as_user(c1);
+  n := public.undo_import(b5);
+  perform pg_temp.as_owner();
+  select (select count(*) from public.lessons where import_id = b5) as ls, (select count(*) from public.lesson_media where storage_path like 'import/' || b5 || '/%') as ms,
+         (select touched_at = now() and status = 'removed' and removed_by = c1::uuid from public.lesson_imports where id = b5) as st,
+         (select count(*) from public.notifications where user_id = a1::uuid and title = 'Sinéad Walsh removed 2 imported lessons' and body = 'Aug 2025' and data->>'screen' = 'home') as at,
+         (select count(*) from public.notifications where user_id = c1::uuid and title like '% removed %') as ct into q;
+  perform pg_temp.say(n = 2 and q.ls = 0 and q.ms = 0 and q.st and q.at = 1 and q.ct = 0,
+                      'the coach removes a player s import: its lessons and file rows go, the sweep is woken, the importer is told, the remover is not',
+                      format('coach removes n=%s lessons=%s files=%s state=%s importer=%s coach=%s', n, q.ls, q.ms, q.st, q.at, q.ct));
+  -- the importer stops one still filling: nobody told
+  select count(*) into n0 from public.notifications;
+  perform pg_temp.as_user(c1);
+  perform public.import_begin(b9, a1::uuid, 'tennis');
+  perform public.import_lessons(b9, jsonb_build_array(jsonb_build_object('day','2025-10-03','focus','Serve')), false);
+  n := public.undo_import(b9);
+  perform pg_temp.as_owner();
+  perform pg_temp.say(n = 1 and (select status from public.lesson_imports where id = b9) = 'removed' and (select count(*) from public.notifications) = n0,
+                      'the importer stops an import still filling and nobody is told', format('stop n=%s', n));
+  perform set_config('t.b9', b9::text, false);
+  -- a junior's adult removes the coach's import for her: allowed; the junior and the coach told
+  perform pg_temp.as_user(p1);
+  n := public.undo_import(b4);
+  perform pg_temp.as_owner();
+  select (select count(*) from public.notifications where user_id = j1::uuid and title = 'Marcus Tran removed 1 imported lesson' and body = 'Jul 2025') as jt,
+         (select count(*) from public.notifications where user_id = c1::uuid and title = 'Marcus Tran removed 1 imported lesson' and data->>'screen' = 'player' and data->>'id' = j1) as ct,
+         (select count(*) from public.notifications where user_id = p1::uuid and title like '% removed %') as pt into q;
+  perform pg_temp.say(n = 1 and q.jt = 1 and q.ct = 1 and q.pt = 0, 'a junior s adult may remove an import about her; the junior and the coach are told, the adult not',
+                      format('adult removes n=%s junior=%s coach=%s adult=%s', n, q.jt, q.ct, q.pt));
+  -- the sixteen rule
+  perform pg_temp.as_user(c1);
+  perform public.import_begin(b10, j15::uuid, 'tennis'); perform public.import_lessons(b10, jsonb_build_array(jsonb_build_object('day','2025-03-01','focus','Serve')), true);
+  perform public.import_begin(b11, j16::uuid, 'tennis'); perform public.import_lessons(b11, jsonb_build_array(jsonb_build_object('day','2025-03-01','focus','Serve')), true);
+  perform pg_temp.as_user(j15);
+  e := null; begin perform public.undo_import(b10); exception when others then e := sqlerrm; end;
+  perform pg_temp.refused('a junior of fifteen removing an import about herself', e, 'Not yours to remove');
+  perform pg_temp.as_user(j16);
+  n := public.undo_import(b11);
+  perform pg_temp.as_owner();
+  perform pg_temp.say(n = 1 and (select status from public.lesson_imports where id = b11) = 'removed', 'a junior of sixteen may remove an import about herself', format('sixteen n=%s', n));
+  -- an importer who has since left the family has no right to it; nor a stranger, nor another coach
+  select family_id into fam from public.profiles where id = p1::uuid;
+  update public.profiles set family_id = null where id = p1::uuid;
+  perform pg_temp.as_user(p1);
+  e := null; begin perform public.undo_import(b6); exception when others then e := sqlerrm; end;
+  perform pg_temp.refused('an importer who has left the family', e, 'Not yours to remove');
+  perform pg_temp.as_owner();
+  update public.profiles set family_id = fam where id = p1::uuid;
+  perform pg_temp.as_user(t1);
+  e := null; begin perform public.undo_import(b6); exception when others then e := sqlerrm; end;
+  perform pg_temp.refused('a stranger removing an import', e, 'Not yours to remove');
+  perform pg_temp.as_user(c2);
+  e2 := null; begin perform public.undo_import(b6); exception when others then e2 := sqlerrm; end;
+  perform pg_temp.refused('another coach removing an import', e2, 'Not yours to remove');
+  -- one lesson at a time: nobody told, until the last ends the import and tells
+  perform pg_temp.as_user(c1);
+  perform public.import_begin(b12, a1::uuid, 'tennis');
+  perform public.import_lessons(b12, jsonb_build_array(jsonb_build_object('day','2025-02-01','focus','Serve'), jsonb_build_object('day','2025-02-02','focus','Rally')), true);
+  perform pg_temp.as_owner();
+  select array_agg(id order by lesson_date) into lids from public.lessons where import_id = b12;
+  select count(*) into n0 from public.notifications where user_id = a1::uuid;
+  perform pg_temp.as_user(c1);
+  n := public.undo_import(b12, lids[1]);
+  perform pg_temp.as_owner();
+  perform pg_temp.say(n = 1 and (select lessons from public.lesson_imports where id = b12) = 1 and (select status from public.lesson_imports where id = b12) = 'done'
+                      and (select count(*) from public.notifications where user_id = a1::uuid) = n0,
+                      'one lesson removed: the count goes down by one and nobody is told', format('one lesson n=%s', n));
+  perform pg_temp.as_user(c1);
+  n := public.undo_import(b12, lids[2]);
+  perform pg_temp.as_owner();
+  perform pg_temp.say((select status from public.lesson_imports where id = b12) = 'removed'
+                      and (select count(*) from public.notifications where user_id = a1::uuid and title = 'Sinéad Walsh removed 1 imported lesson' and body = 'Feb 2025') = 1,
+                      'the last lesson removed ends the import and tells', 'last lesson did not end the import');
+  -- a coach's own delete of an imported lesson wakes the sweep for its batch
+  update public.lesson_imports set touched_at = now() - interval '3 days' where id = current_setting('t.b1')::uuid;
+  perform pg_temp.as_user(c1);
+  delete from public.lessons where import_id = current_setting('t.b1')::uuid and lesson_date = '2025-06-14';
+  perform pg_temp.as_owner();
+  perform pg_temp.say((select touched_at = now() from public.lesson_imports where id = current_setting('t.b1')::uuid),
+                      'a coach s own delete of an imported lesson moves its batch s touched_at, so the sweep finds it', 'touched_at did not move');
+end $t$;
+
+-- ---- the gate, the sweep's calls, expiry ----
+do $t$
+declare c1 text := current_setting('t.c1'); a1 text := current_setting('t.a1'); t1 text := current_setting('t.t1'); g text; oks int := 0; last text; tot0 int; q record;
+        b13 uuid := gen_random_uuid(); x text;
+begin
+  perform pg_temp.as_user(a1);
+  for i in 1..600 loop g := public.import_gate(a1::uuid); if g = 'ok' then oks := oks + 1; end if; end loop;
+  last := public.import_gate(a1::uuid);
+  perform pg_temp.as_owner();
+  perform pg_temp.say(oks = 600 and last = 'over' and (select used from public.import_usage where user_id = a1::uuid) = 600
+                      and (select used from public.import_usage_total where day = (now() at time zone 'Europe/Dublin')::date) = 600,
+                      'the gate counts a person to 600 a day, then says over, and an over does not count toward the day s total',
+                      format('gate ok=%s last=%s', oks, last));
+  select used into tot0 from public.import_usage_total where day = (now() at time zone 'Europe/Dublin')::date;
+  perform pg_temp.as_user(t1);
+  g := public.import_gate(a1::uuid);
+  perform pg_temp.as_owner();
+  perform pg_temp.say(g = 'no' and (select used from public.import_usage_total where day = (now() at time zone 'Europe/Dublin')::date) = tot0
+                      and not exists (select 1 from public.import_usage where user_id = t1::uuid),
+                      'a person refused by the gate does not count', 'refused ' || g);
+  update public.import_usage_total set used = 2999 where day = (now() at time zone 'Europe/Dublin')::date;
+  perform pg_temp.as_user(c1);
+  g := public.import_gate(a1::uuid); last := public.import_gate(a1::uuid);
+  perform pg_temp.as_owner();
+  perform pg_temp.say(g = 'ok' and last = 'over' and (select used from public.import_usage where user_id = c1::uuid) = 1
+                      and (select used from public.import_usage_total where day = (now() at time zone 'Europe/Dublin')::date) = 3000,
+                      'the day s total stops at 3,000 for everyone', format('total %s %s', g, last));
+  delete from public.import_usage; delete from public.import_usage_total;
+  perform pg_temp.say(not has_function_privilege('authenticated', 'public.import_sweep_due()', 'execute')
+                      and not has_function_privilege('authenticated', 'public.import_expire(uuid)', 'execute')
+                      and not has_function_privilege('authenticated', 'public.import_refs(uuid)', 'execute')
+                      and not has_function_privilege('authenticated', 'public.import_swept(uuid)', 'execute')
+                      and not has_function_privilege('anon', 'public.import_sweep_due()', 'execute')
+                      and has_function_privilege('service_role', 'public.import_sweep_due()', 'execute')
+                      and has_function_privilege('service_role', 'public.import_swept(uuid)', 'execute')
+                      and not has_function_privilege('authenticated', 'public.import_may(uuid)', 'execute')
+                      and not has_function_privilege('anon', 'public.import_lessons(uuid, jsonb, boolean)', 'execute'),
+                      'the sweep s calls are the service role s alone, and nothing is callable signed out', 'sweep privileges');
+  -- an import left idle a week is finished by the sweep with what is in, told once
+  perform pg_temp.as_user(c1);
+  perform public.import_begin(b13, a1::uuid, 'tennis');
+  perform public.import_lessons(b13, jsonb_build_array(jsonb_build_object('day','2025-01-10','focus','Movement')), false);
+  perform pg_temp.as_owner();
+  update public.lesson_imports set touched_at = now() - interval '8 days' where id = b13;
+  execute 'set local role service_role';
+  select (select count(*) from public.import_sweep_due() d where d.id = b13 and d.status = 'adding') as due, public.import_expire(b13) as st into q;
+  x := public.import_expire(b13);
+  perform public.import_swept(b13);
+  perform public.import_swept(current_setting('t.b9')::uuid);
+  execute 'reset role';
+  perform pg_temp.say(q.due = 1 and q.st = 'done' and x is null
+                      and (select count(*) from public.notifications where user_id = a1::uuid and data->>'import' = b13::text and title = '1 lesson imported') = 1
+                      and (select swept_at is not null from public.lesson_imports where id = b13)
+                      and not exists (select 1 from public.lesson_imports where id = current_setting('t.b9')::uuid),
+                      'an import idle a week is due, finished with what is in and told once; swept, a done batch stays and a removed one with no file left goes',
+                      format('expiry due=%s st=%s again=%s', q.due, q.st, x));
+end $t$;
+
+-- ---- who reads a batch, and nobody reads a held lesson ----
+do $t$
+declare c1 text := current_setting('t.c1'); a1 text := current_setting('t.a1'); p1 text := current_setting('t.p1'); j1 text := current_setting('t.j1'); t1 text := current_setting('t.t1');
+        b14 uuid := gen_random_uuid(); q record; e text;
+begin
+  perform pg_temp.as_user(c1);
+  perform public.import_begin(b14, a1::uuid, 'tennis');
+  perform public.import_lessons(b14, jsonb_build_array(jsonb_build_object('day','2024-12-12','focus','Serve')), false);
+  perform pg_temp.as_user(t1);
+  select (select count(*) from public.lesson_imports) as bi, (select count(*) from public.lessons where import_id is not null) as li into q;
+  perform pg_temp.say(q.bi = 0 and q.li = 0, 'a stranger reads no import and no imported lesson', format('stranger %s %s', q.bi, q.li));
+  perform pg_temp.as_user(a1);
+  select (select count(*) from public.lessons where import_id = b14) as held, (select count(*) from public.lesson_imports where id = b14) as sees into q;
+  perform pg_temp.say(q.held = 0 and q.sees = 1, 'the player sees the batch is there but reads none of its lessons while it fills', format('held %s %s', q.held, q.sees));
+  perform pg_temp.as_user(p1);
+  select (select count(*) from public.lesson_imports where player_id = j1::uuid) as fam into q;
+  perform pg_temp.say(q.fam >= 1, 'a junior s adult reads the imports about her', 'adult reads none');
+  perform pg_temp.as_owner();
+  execute 'set local role anon';
+  begin perform count(*) from public.lesson_imports; exception when others then e := sqlstate; end;
+  execute 'reset role';
+  perform pg_temp.say(e = '42501', 'signed out, no import is readable at all', 'anon read lesson_imports');
+  delete from public.lessons where import_id = b14; delete from public.lesson_imports where id = b14;
+end $t$;
+select line from t_8i order by at;
+-- leave nobody behind for what follows: the two juniors, and the coaches' switches
+delete from auth.users where id in ('a6a6a6a6-a6a6-4a6a-8a6a-a6a6a6a6a6a6', 'a5a5a5a5-a5a5-4a5a-8a5a-a5a5a5a5a5a5');
+update public.preferences set player_imports = false where id in (:'c1', :'c2');
+delete from storage.objects where name like 'import/%';
+
 \echo === 9. delete_my_account cascades, and links held by others are released
 begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true);
 select public.delete_my_account();

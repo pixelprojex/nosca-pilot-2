@@ -159,6 +159,18 @@ export function useDownloads({ owner, loader }) {
     try { await store.removeSaved(k); } catch (e) { /* the row is dropped from the list either way */ }
     setItems((m) => { const n = { ...m }; delete n[k]; return n; });
   }, []);
+  /* AN IMPORT REMOVED LEAVES EVERY PHONE. After a load that reached the
+     server (never the kept copy), a downloaded imported lesson that is no
+     longer there goes from the phone, its files with it. A lesson that
+     was never imported is never touched here. */
+  const purge = useCallback(async (liveIds) => {
+    const have = new Set((liveIds || []).map(String)); let n = 0;
+    for (const [id, it] of Object.entries(itemsRef.current)) {
+      const l = it && it.record && it.record.lesson;
+      if (l && l.importId && !have.has(String(id))) { await remove(id); n += 1; }
+    }
+    return n;
+  }, [remove]);
   const removeAll = useCallback(async () => {
     const ids = Object.keys(itemsRef.current);
     for (const id of ids) await remove(id);
@@ -194,5 +206,5 @@ export function useDownloads({ owner, loader }) {
     return { count: saved.length, bytes: saved.reduce((a, x) => a + (x.bytes || 0), 0), saving: Object.values(items).filter((x) => x.status === "saving").length };
   }, [items]);
 
-  return { supported, ready, items, list, totals, state, has, record, save, cancel, remove, removeAll, mediaOf };
+  return { supported, ready, items, list, totals, state, has, record, save, cancel, remove, removeAll, purge, mediaOf };
 }
