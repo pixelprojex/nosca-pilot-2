@@ -125,7 +125,8 @@ const GEN = {
     const dir = 'assets/photo/', w = e.width, h = e.height, alt = a.alt !== undefined ? a.alt : (e.alt || '');
     const tone = /^#[0-9a-f]{3,8}$/i.test(e.dominant || '') ? e.dominant : '';
     const credit = a.credit && typeof e.credit === 'string' ? `<p class="photo__credit">${esc(e.credit)}</p>` : '';
-    const fig = `<figure class="vid${a.class ? ' ' + a.class : ''}" style="--ar:${w}/${h};${e.focus ? `--focus:${esc(e.focus)};` : ''}${tone ? `--tone:${tone};` : ''}"${a.attrs ? ' ' + a.attrs : ''}>` +
+    const focus = a.focus || e.focus;
+    const fig = `<figure class="vid${a.class ? ' ' + a.class : ''}" style="--ar:${w}/${h};${focus ? `--focus:${esc(focus)};` : ''}${tone ? `--tone:${tone};` : ''}"${a.attrs ? ' ' + a.attrs : ''}>` +
       `<video ${a.scrub ? 'data-scrub-video' : 'data-video'} muted playsinline${a.scrub ? '' : ' loop'} preload="none" width="${w}" height="${h}" poster="${dir}${e.poster.file}" src="${dir}${e.file}"${alt ? ` aria-label="${esc(alt)}"` : ' aria-hidden="true"'}></video></figure>`;
     return credit ? `<div class="photo-wrap">${fig}${credit}</div>` : fig;
   },
