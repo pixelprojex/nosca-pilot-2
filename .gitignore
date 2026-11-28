@@ -19,3 +19,12 @@ package-lock.json
 # nothing whose name starts dist- belongs in the repository.
 dist-*/
 website/dist/
+
+# The App Store and Google Play shell (docs/native/README.md): signing keys
+# and the Firebase file never enter the repository — Codemagic holds them.
+*.jks
+*.keystore
+*.p8
+*.p12
+*.mobileprovision
+android/app/google-services.json

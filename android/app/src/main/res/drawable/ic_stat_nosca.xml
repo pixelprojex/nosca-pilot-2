@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Written by scripts/icons.mjs from the mark's own numbers: change the mark there. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <group android:translateX="1.200" android:translateY="5.250"
+        android:scaleX="0.54" android:scaleY="0.54">
+        <path android:pathData="M18.651 19.734 A 8.6 8.6 0 1 1 21.108 17.341" android:strokeColor="#FFFFFF" android:strokeWidth="3.6" android:strokeLineCap="round" android:fillColor="#00000000" />
+        <path android:pathData="M21.349 5.266 A 8.6 8.6 0 1 1 18.892 7.659" android:strokeColor="#FFFFFF" android:strokeWidth="3.6" android:strokeLineCap="round" android:fillColor="#00000000" />
+    </group>
+</vector>

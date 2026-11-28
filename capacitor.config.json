@@ -1,0 +1,38 @@
+{
+  "appId": "ie.nosca.app",
+  "appName": "Nosca",
+  "webDir": "dist",
+  "backgroundColor": "#123C30",
+  "ios": {
+    "contentInset": "never",
+    "allowsLinkPreview": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": false,
+      "backgroundColor": "#123C30",
+      "showSpinner": false,
+      "androidScaleType": "CENTER",
+      "splashFullScreen": false,
+      "splashImmersive": false,
+      "launchFadeOutDuration": 250
+    },
+    "Keyboard": {
+      "resize": "native",
+      "style": "LIGHT",
+      "resizeOnFullScreen": true,
+      "autoBackdropColor": "dom"
+    },
+    "PushNotifications": {
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
+    },
+    "SystemBars": {
+      "insetsHandling": "css",
+      "initialViewportFitValueHint": "cover"
+    }
+  }
+}

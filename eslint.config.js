@@ -25,7 +25,8 @@ export default [
   /* dist-m is the e2e harness's own build: a minified bundle nobody
      wrote and nothing here should read. */
   /* website/vendor is GSAP and Lenis as their authors minified them; website/dist is the site's own working build */
-  { ignores: ["dist/**", "dist-*/**", "node_modules/**", ".claude/**", "website/vendor/**", "website/dist/**"] },
+  /* ios/ and android/ carry a copy of the built bundle (the App Store shell's): not ours to read either */
+  { ignores: ["dist/**", "dist-*/**", "node_modules/**", ".claude/**", "website/vendor/**", "website/dist/**", "ios/**", "android/**"] },
   {
     files: ["src/**/*.{js,jsx}"],
     plugins: { react },
