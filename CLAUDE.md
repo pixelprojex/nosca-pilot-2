@@ -327,6 +327,77 @@ seeded data and no account.
   shell: the code large on the wash (its size follows a narrow phone),
   Copy and Share as the app's quiet keys, and Show me around the one key,
   the Home Screen line above it and Skip under it.
+- **The sweep (28 November).** The founder: "there's still a lot of
+  problems with it … continue debugging, sweeping … I don't want to have
+  any problems after this." What the release's sweep settled:
+  - **A group's run ends with it.** New group writes a standing
+    arrangement under the group's name, and Remove took the group off the
+    coach's groups and left the arrangement running — Recurring lessons
+    listed it, Manage counted it, and anything it booked had nobody to
+    tell, the members being found through the group. Remove (there only
+    with nothing booked ahead) asks the server first for anything the
+    group's runs booked past the diary's two hundred days
+    (`groupRunsClear`, `seriesBookings`): a lesson out there keeps the
+    group and its run, and the sheet stays saying "1 lesson ahead — End
+    them first"; with nothing ahead the runs end (`removeRecurring`) —
+    End with nothing ahead, taking nothing from anyone — and then the
+    group goes. With lessons ahead the line has the run's own End under
+    it (`group-edit-end`, the red quiet key): the End sheet — why, which
+    lessons, the password — which tells the members as every End does.
+    `group-page.cjs` (h1)–(h4).
+  - **Booking for a child, the Diary is "Book"**, the child on the grey
+    line under it ("For Saoirse"), where "Book for Saoirse" was cut at
+    320 in the compact header. `narrow.cjs` (a), `families-requests.cjs`
+    (f).
+  - **A starred row's star is its poster's badge** (`data-star-badge`:
+    the gold star on a white disc on the poster's top-right corner, cut
+    out by a ring of the card it sits on, in the gap before the words):
+    its own column took 27 of the words, and at 320 a riding coach's
+    "Showjumping" broke inside itself. `sprint-3.cjs` (n3).
+  - **Nothing cut on the rows drawn by hand.** The register's list of the
+    day's lessons, the Calendar view's lesson blocks and its Recurring
+    rows, the log's drills and the drill library cut a long name on one
+    line; each takes a second and a third line before an ellipsis
+    (`upTo(n)`, the person row's rule). The peek's last lessons and
+    Compare's picker read what was worked on as `Facts`, as every lesson
+    row does. `narrow.cjs` (b3).
+  - **The archive's filters are a group (C1)**: Filter and its five are
+    the rows of one white card of Settings' groups (`archive-filter`),
+    the five unfolding inside it as Settings' value rows do, the label in
+    ink and the value grey; Filter's value, once something is set, in ink
+    at 600. A filter on its own — the tips' Worked on, the drill library's
+    Area, the bell's Show — is a group of one (`FilterBox`). They were
+    rows ruled across the whole page, the one flat stretch on a screen of
+    cards.
+  - **EditDay's held tiles go two across where a name needs it**: three
+    across at 320, "Maximiliano" ended on an ellipsis inside the tile;
+    a word wider than its tile says so and the grid gives the tiles room
+    (the EditDay bullet). `edit-day.cjs` (t2 320).
+  - **The serif keeps its descent inside a clip** (`SERIF_LINE`,
+    `serifRoom`): Noto Serif Display stands 1.362 of its size from ascent
+    to descent, and a title held to a tighter line inside a line clamp or
+    `truncate` lost the tails of its g's and y's — "Diary" in the compact
+    header, the feed's five areas, the log's long name, the peek's name.
+    The compact title's line is the face's own height; a clamped title
+    keeps room under its last line, given back by a margin, so nothing
+    under it moves. `feed.cjs` (a), `sprint-3.cjs` (g).
+  - **One transport for Mark it up, Compare and Study (C4)**
+    (`ClipTransport`): Play the one action, the sport's deep lead on its
+    ledge, 44; a frame either way the round pale keys the month's arrows
+    are, 36 drawn and 44 to a finger (they were 32px outlined circles
+    that answered 32); the scrub's fill the sport's colour, as every
+    progress fill is; the speed a word key, the chosen answer once it is
+    not full speed; the time in the sub grey. Study's Sound and Loop and
+    Mark it up's five tools and Photo are the app's keys, the chosen one
+    `SEL` — they were the ink, black among the app's keys. The suites'
+    selectors and words are kept (`study-play`, `compare-transport`,
+    "Half speed" …).
+  This supersedes, where they say otherwise: "Held for the founder, not
+  done" in the visual audit; "The parent's Diary is titled "Book for
+  Saoirse" … cut there until the title is decided" and "One break inside a
+  word is left, held for the founder" under "Nothing is cut at 320"; "a
+  starred row carries a small filled star as a value"; and, for the End
+  under its line, the group page's "offers no removal".
 - **Sign-up is a database trigger** (`on_auth_user_created` →
   `handle_new_user()`). The browser sends everything as metadata in one
   `signUp` call and never touches `profiles` during sign-up. Nothing on
@@ -782,10 +853,10 @@ seeded data and no account.
     person-and-plus, where both fell to the slate and a bell; the push
     prompt's answers reach 44; Chat's preview stays in the sub grey
     when unread.
-  Held for the founder, not done: the archive's Filter rows as a group
-  (C1), the transport of Mark it up, Compare and Study (C4); the home's
-  Actions filter (A2) was settled that day by the art direction round
-  (the next bullet). `boxes.cjs` (i), (r4), (n0)–(n5), (s5b);
+  Held for the founder that day and done in the sweep of 28 November
+  (that bullet): the archive's Filter rows as a group (C1), the transport
+  of Mark it up, Compare and Study (C4); the home's Actions filter (A2)
+  was settled that day by the art direction round (the next bullet). `boxes.cjs` (i), (r4), (n0)–(n5), (s5b);
   `lists.cjs` (aa), (x2); `families-requests.cjs` (b), (c), (d), (e);
   `join-requests.cjs` (a), (g); `narrow.cjs` (e), (e2); `rating.cjs`
   (h2); `ease.cjs` (c); `signup.cjs`.
@@ -1243,11 +1314,15 @@ seeded data and no account.
   (`TileName`, 24 November): each word a box of its own, so a line only
   breaks at a space; the whole name where it fits in two lines, else
   the first name and the surname's initial (`nameShort`: "Maximiliano Ó
-  S.", the particle kept), and a word wider than the tile ends on an
-  ellipsis, never broken — measured as laid out, and again when the
+  S.", the particle kept) — measured as laid out, and again when the
   width changes; a group's name is never initialled. At 320 it read
   "Maximilian" over "o Ó…" (`edit-day.cjs` (t), which reads every line
-  off the characters' own boxes at 320 and 390). **Add a time**
+  off the characters' own boxes at 320 and 390). Where even so a word is
+  wider than a tile three across — at 320 a tile has 71 inside and
+  "Maximiliano" ended on an ellipsis — the tile says so (`onTight`) and
+  the day's tiles go two across, where the whole name stands on two
+  lines (28 November, `data-cols`); Cian Murphy keeps three across at
+  every width. **Add a time**
   (`editday-add`) is the half hours not on the day as the app's
   `TimeGrid`, and is not drawn when there are none.
   The subtitle is "5 times" or nothing; an empty day reads "Nothing
@@ -1813,7 +1888,8 @@ seeded data and no account.
   begun by the clock, read off the booking's own date — a day key holds
   no year, and last month's session read as next year's); otherwise one
   line says so — "3 lessons ahead — End them first" — and offers no
-  removal. Remove group is the red quiet
+  removal, the group's run's own End under it (`group-edit-end`, 28
+  November; the sweep bullet). Remove group is the red quiet
   key, then a plain confirm (Remove, the one `DANGER` key; Keep it the
   way back; the sessions logged stay in All lessons, and the line says
   so), and it takes the group off the coach's groups, lands on the
@@ -2473,7 +2549,9 @@ seeded data and no account.
   nothing threads it through props. The control is a star: beside View
   lesson on the feed card (`feed-star`), in the header of the lesson
   page (`lesson-star`), filled once starred; a starred row carries a
-  small filled star as a value, not a control. The section is the
+  small filled star on its poster's top-right corner (`data-star-badge`,
+  28 November: a column of its own cut a riding coach's "Showjumping" at
+  320), a mark, not a control. The section is the
   Starred half of **Saved** (below); it was a row above a player's
   lesson list and under All lessons on the coach's home for a day, and
   the founder could not find it there. Until the SQL has been
@@ -2785,7 +2863,9 @@ seeded data and no account.
   foot, the coach home's To do row, the file's All lessons) always
   shows its search and its filters — Year, Month, Player, Worked on,
   Kind, behind one Filter row that unfolds (what is set reads on the
-  row while it is folded) — one boxed list of the same `LessonRow`s
+  row while it is folded; since 28 November Filter and the five are the
+  rows of one white group card, `archive-filter`, as Settings' are) —
+  one boxed list of the same `LessonRow`s
   with the same poster box, no month headings, and the same full-width
   List · Feed `Segmented` at the top: the feed runs over whatever the
   filters left, so a coach flicks through a month's clips the way a
@@ -3793,10 +3873,11 @@ seeded data and no account.
   on a 60px row at 360 and 375, and the long name drops it under at both
   (since the 16px names of 21 November; at 14.5 it stayed beside at 375).
   The Diary's rows carry `data-name` for the suites (`rsvp.cjs` read
-  them by `.truncate`). The parent's Diary is titled
-  "Book for Saoirse", the carried decision since 24 October, and sixteen
-  letters do not fit the 80px a root screen's row leaves at 320 whatever
-  the pill does — it is cut there until the title is decided. Material's
+  them by `.truncate`). The parent's Diary, booking for a child, is
+  titled **Book** with "For Saoirse" on the grey line under it (28
+  November): "Book for Saoirse", the carried decision since 24 October,
+  was sixteen letters the 80px a root screen's row leaves at 320 could
+  not hold whatever the pill did, and it was cut there. Material's
   app bar guidance: do not truncate a title; SAP Fiori's top app bar:
   avoid truncating or shrinking text. `scripts/e2e/narrow.cjs` measures
   all of it at 320, 360 and 375. Since 22 November the lesson on now is
@@ -3810,10 +3891,10 @@ seeded data and no account.
   that moves whole to the next line, its dot riding at its head in the
   strip the clip takes, and a name or an area wider than the line wraps
   inside itself — Saved and the archive read "Cian Murphy · Sun 22 …"
-  and "Short game · Pu…". One break inside a word is left, held for the
-  founder: a starred row at 320 gives its words 95 beside the star's
-  column, under the 106 "Showjumping" needs (the star on the poster's
-  corner would give it back). The camera's filing pill is the same, grown to
+  and "Short game · Pu…". A starred row's star is the poster's badge
+  (28 November): in a column of its own beside the words it left a
+  riding coach's areas 95 at 320, under the 106 "Showjumping" needs, and
+  the word broke inside itself (`sprint-3.cjs` (n3)). The camera's filing pill is the same, grown to
   its words where it was held to 150 ("Saoirse · 10:30…"). A door's
   value is `Row`'s: beside the label while both fit, whole on the line
   under it where they do not (the player file's Recurring lessons read
