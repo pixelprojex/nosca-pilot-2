@@ -297,7 +297,9 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       const pushRow = await rowsOf(page, SCREEN, `const r = root.querySelector('[data-tour="push-prompt"]'); return r ? [r.parentElement.classList.contains("nsc-list") ? r : r] : [];`);
       const pushA = await audit(page, SCREEN, EDGE.golf);
       await shot("y-push-prompt");
-      if (process.env.VAPID) check("(y) the push prompt is a boxed row on the card's edge, like the alert rows under it, no rule inside", boxedRows(pushRow, EDGE.golf) && pushRow.length === 1 && fine(pushA), `${rowSaid(pushRow)} · ${said(pushA)}`);
+      /* a row of Settings' white group since 28 November, as the bell's days under it are (it was a pale card of its own) */
+      const pushIn = await page.evaluate(() => { const r = document.querySelector('[data-tour="push-prompt"]'); return r ? { group: r.parentElement.classList.contains("nsc-group") } : null; });
+      if (process.env.VAPID) check("(y) the push prompt is a row of the white group, as the bell's days under it are, no rule inside", !!pushIn && pushIn.group && pushRow.length === 1 && fine(pushA), `${JSON.stringify(pushIn)} · ${rowSaid(pushRow)} · ${said(pushA)}`);
       await M.back(page);
 
       /* (v) the Compare picker */

@@ -112,6 +112,10 @@ select (select count(*) from public.notifications where user_id = :'j1' and kind
        (select count(*) from public.notifications where user_id = :'a1' and kind = 'drill') as da \gset
 select (:dj = 1 and :'dt' = '2 new drills' and :da = 1) as ok \gset
 \if :ok \echo PASS drills set together arrive as one notification per player ("2 new drills") \else \echo FAIL drill notifications j=:dj t=:dt a=:da \endif
+-- the adult's line carries the child, so a tap opens the child's own screen (28 November)
+select (select count(*) from public.notifications where user_id = :'p1' and kind = 'drill' and data->>'screen' = 'family' and data->>'id' = :'j1') as dpid \gset
+select (:dpid = 1) as ok \gset
+\if :ok \echo PASS a junior s drills tell the adult in the family with the child s id on the notice \else \echo FAIL the adult s drill notice does not carry the child p=:dpid \endif
 insert into public.drills (coach_id, player_id, title, due) values (:'c1', :'a1', 'Gate drill', (now() at time zone 'Europe/Dublin')::date);
 select body as db1 from public.notifications where user_id = :'a1' and kind = 'drill' order by created_at desc limit 1 \gset
 -- a1 has not chosen an hour: eight in the morning is the default

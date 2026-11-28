@@ -2480,16 +2480,95 @@ seeded data and no account.
   after the app loaded (the phone asleep when the coach booked) is not
   in the diary yet: the Diary opens, a fresh load is asked for, and it
   lands when the row arrives (`pendingLanding`, fifteen seconds). A
-  booking the diary never holds opens the Diary as it was; a junior's
-  adults' notices still land on Family. `notifications.cjs` (e)–(e9).
-- **The bell reads itself.** Opening the list shows Today, Yesterday and
-  Earlier with the unread ones in ink; tapping one marks it, and closing
-  the list marks the rest read. The right-hand button is "Mark all read"
-  while anything is unread and "Clear all" after. The away card's
-  Dismiss is the same mark-all.
+  booking the diary never holds opens the Diary as it was. A junior's
+  adults' notices land on the child's lesson, the child's day (the Diary
+  For the child) or the child's own screen since 28 November (the bullet
+  below); they landed on Family. `notifications.cjs` (e)–(e9).
+- **The bell is one card a day; the catch-up is the app's own sheet;
+  every notice opens what it is about (28 November).** The founder, of
+  the bell: "the notifications place is still very messy and things
+  don't all fit on one line", then "a little bit over the top … imagine
+  someone has hundreds of notifications, they don't want it this
+  format"; of the catch-up: "it doesn't look great, it's not very
+  simplified … it doesn't contain the full notification, it's only a
+  shortened version. And then when you click on it, it just brings you
+  into the main app." So:
+  - **One white card a day** (`BellDays`, Settings' own `.nsc-group`):
+    Today, Yesterday, then the date (`bellDay`; the year only when it is
+    not this one) as the serif section head, and the day's notices as
+    compact rows on the card's rule (`BellRow`, `data-bell-row`) — a 40
+    face (`BELL_FACE`) with the kind badged on its corner, the title
+    whole across the row's full width (bold while unread), and under it
+    the detail as `Facts` (each fact whole, broken only at its dot) with
+    the time on the clock at the right (`bellClock`: "6:40 pm" under
+    Yesterday, never "Yesterday" again) and the unread dot beside it. A
+    notice was a pale card of its own on a ledge, its title wrapping
+    round a time column on its right. A row swipes to Clear as before
+    (`.nsc-group > .nsc-swipe`).
+  - **Requests stay on top**, a white card of their own (`BellAsk`,
+    `data-bell-ask`): the name; the day and the time of a lesson asked
+    for as one fact on one line (`data-ask-when`, nowrap — "Tue 1 Dec"
+    sat over "9:00 am" beside Accept · Decline); the player's note,
+    whole; Accept · Decline beside the name only where the whole name
+    fits on its line beside them (measured, `textWidthOf`; `data-beside`),
+    else a line of their own at the foot of the request, on the right,
+    44 tall either way. They were a sky card each.
+  - **Thirty are drawn** (`BELL_SHOWN`), the newest; **Show earlier**
+    (`alerts-earlier`) draws thirty more, kept across a Back, so three
+    hundred are never laid out at once. A filter (`FilterBox`) still
+    appears only past eight of more than one kind, and starts the thirty
+    again.
+  - **The catch-up is the app's one sheet** (`CatchUpBody`, the
+    `catchUp` sheet): "While you were away" in the serif, the count
+    ("3 new"), the bell's own rows on their days' cards with every
+    notice whole — the title and the detail wrap, nothing is cut — thirty
+    at a time, and **Done** (`catchup-done`, the one key, kept in reach
+    at the sheet's foot while the list scrolls), which marks every one
+    read as Dismiss did. The scrim and the handle do the same. It rises
+    once the splash has gone and nothing else holds the screen, and once
+    shown it never comes back in that sitting (`catchUpShown`). It was a
+    dark takeover over everything: six rows cut to a line each, "and 4
+    more under the bell", a Dismiss pill.
+  - **Every notice opens what it is about** (`openNotification`, from the
+    catch-up, the bell, and a push opened cold): a lesson, a clip, a
+    practice, a rating asked for, a reply on a clip — its page; a join
+    request — Requests; a message — its thread; a booking — the Diary on
+    its day (above); a coach's "asked for a lesson" or "asked to move" —
+    that request in its hour on the Diary (`cal-ask`, Decline · Accept),
+    Today once the Diary no longer holds it; an adult's notice about a
+    child — the child's lesson, the child's day in the Diary For the
+    child (`landOnDay(at, b, kid)`, a group's lesson by `forIds`), or the
+    child's own screen (`familyKid:<id>`) for a drill, a tip or an import
+    taken away — the triggers carry the child's id on those three now
+    (`trg_drills_notify`, `trg_tips_notify`, `trg_lesson_imports_notify`;
+    a row written before is found by the first name its title opens
+    with); "accepted you" — the coach's profile; "can't take you on" —
+    Add your coach (a coachless player's home, the code boxes ready; a
+    parent's, Add a coach in the switcher), where the next ask is made; a
+    junior's "messaged your family" — Family; an import's — its newest
+    lesson, or for the coach the player's file. Only a notice about
+    nothing in particular lands on a tab. The face is `notifFaceFor`,
+    one lookup for the bell and the catch-up.
+  This supersedes, where they say otherwise: the bell's rows in "One
+  person row" (the badged face in PersonRow's face slot, the title
+  unclamped beside the time, the body clamped at two lines), the bell's
+  request row in "A request carries words both ways" (`textMin` 220),
+  the bell's requests in the sky card of "A hue a function", the 10px
+  dot of the visual audit's "The bell", and "a junior's adults' notices
+  still land on Family". `notifications.cjs` (a), (b), (f), (g1)–(g17),
+  (h) — a hundred and fifty notices, thirty drawn, Show earlier to the
+  end, and the time the bell takes to come up; `person-row.cjs`
+  (q1)–(q6) at 375 and 320 for the coach, an adult, a parent and a
+  junior; behaviour.sql 4 (the adult's drill notice carries the child).
+- **The bell reads itself.** Opening the list shows its days — Today,
+  Yesterday, then the date, one card each (the bullet above) — with the
+  unread ones in bold beside the sport's dot; tapping one marks it, and
+  closing the list marks the rest read. The right-hand button is "Mark
+  all read" while anything is unread and "Clear all" after. The
+  catch-up's Done is the same mark-all.
 - **An alert is a face and a badge.** Whatever happened, happened
   because of a person, and a face is read before any word beside it:
-  `faceFor` matches the name the title opens with, and falls back to the
+  `notifFaceFor` matches the name the title opens with, and falls back to the
   coach for the kinds only a coach sends a player (`tip`, `lesson`,
   `drill`, `rating`). The kind rides as a small glyph badged on the
   corner of that face, so the line does not have to spell it out; where

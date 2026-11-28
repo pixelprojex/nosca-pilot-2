@@ -2393,9 +2393,10 @@ begin
       case when r.n = 1 then r.one || case when r.due_on is not null then ' · by ' || public.nice_date(r.due_on) else '' end || ' · ' || public.name_of(r.coach_id)
            else case when r.due_on is not null then 'by ' || public.nice_date(r.due_on) || ' · ' else '' end || public.name_of(r.coach_id) end,
       jsonb_build_object('screen', 'practice'));
+    -- the adults' line carries the child, so it opens the child's own screen (28 November)
     for a in select public.adults_for(r.player_id) loop
       perform public.notify(a, 'drill', public.first_name_of(r.player_id) || ' has ' || case when r.n = 1 then 'a new drill' else r.n || ' new drills' end,
-        public.name_of(r.coach_id), jsonb_build_object('screen', 'family'));
+        public.name_of(r.coach_id), jsonb_build_object('screen', 'family', 'id', r.player_id));
     end loop;
   end loop;
   return null;
@@ -2547,7 +2548,7 @@ begin
     jsonb_build_object('screen', 'tips'));
   for a in select public.adults_for(new.player_id) loop
     perform public.notify(a, 'tip', public.first_name_of(new.player_id) || ' has something to work on', new.title,
-      jsonb_build_object('screen', 'family'));
+      jsonb_build_object('screen', 'family', 'id', new.player_id));
   end loop;
   return new;
 exception when others then return new;
@@ -3035,7 +3036,7 @@ begin
       perform public.notify(a, 'lesson', public.name_of(new.removed_by) || ' removed ' || n, span,
         case when a = new.coach_id then jsonb_build_object('screen','player','id',new.player_id)
              when a = new.player_id then jsonb_build_object('screen','home')
-             else jsonb_build_object('screen','family') end);
+             else jsonb_build_object('screen','family','id',new.player_id) end);
     end loop;
     return new;
   end if;
