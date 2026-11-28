@@ -386,11 +386,11 @@ function onDrillsInsert(db, rows) {
     const dueOn = g.map((x) => x.due).filter(Boolean).sort()[0] || null;
     notify(db, r.player_id, "drill", n === 1 ? "New drill" : `${n} new drills`,
       n === 1 ? `${r.title}${dueOn ? ` · by ${niceDate(dueOn)}` : ""} · ${nameOf(db, r.coach_id)}` : `${dueOn ? `by ${niceDate(dueOn)} · ` : ""}${nameOf(db, r.coach_id)}`, { screen: "practice" });
-    adultsFor(db, r.player_id).forEach((a) => notify(db, a, "drill", `${firstOf(db, r.player_id)} has ${n === 1 ? "a new drill" : `${n} new drills`}`, nameOf(db, r.coach_id), { screen: "family" })); });
+    adultsFor(db, r.player_id).forEach((a) => notify(db, a, "drill", `${firstOf(db, r.player_id)} has ${n === 1 ? "a new drill" : `${n} new drills`}`, nameOf(db, r.coach_id), { screen: "family", id: r.player_id })); });
 }
 function onTipInsert(db, t) {
   notify(db, t.player_id, "tip", "Something to work on", `${t.title} · ${nameOf(db, t.coach_id)}`, { screen: "tips" });
-  adultsFor(db, t.player_id).forEach((a) => notify(db, a, "tip", `${firstOf(db, t.player_id)} has something to work on`, t.title, { screen: "family" }));
+  adultsFor(db, t.player_id).forEach((a) => notify(db, a, "tip", `${firstOf(db, t.player_id)} has something to work on`, t.title, { screen: "family", id: t.player_id }));
 }
 function onFamilyJoin(db, p) { if (!p.family_id) return; Object.values(db.profiles).filter((m) => m.family_id === p.family_id && m.id !== p.id).forEach((m) => notify(db, m.id, "family", `${p.name} joined your family`, null, { screen: "family" })); }
 
@@ -434,7 +434,7 @@ function onImportStatus(db, b, oldStatus) {
     const span = importSpan(b.first_day, b.last_day) || null;
     [...new Set([b.coach_id, b.player_id, ...adults])].filter((x) => x && x !== b.removed_by).forEach((a) =>
       notify(db, a, "lesson", `${nameOf(db, b.removed_by)} removed ${n}`, span,
-        a === b.coach_id ? { screen: "player", id: b.player_id } : a === b.player_id ? { screen: "home" } : { screen: "family" }));
+        a === b.coach_id ? { screen: "player", id: b.player_id } : a === b.player_id ? { screen: "home" } : { screen: "family", id: b.player_id }));
     return;
   }
   if (b.status !== "done" || b.lessons + b.files < 1) return;
@@ -1232,7 +1232,13 @@ const SPLASH_MS = 7200;
 async function settle(page, { carryOn = true, wait = SPLASH_MS } = {}) {
   if (wait) await page.waitForTimeout(wait);
   const skip = page.getByText("Skip", { exact: true }); if (await skip.count()) { await skip.first().click().catch(() => {}); await page.waitForTimeout(500); }
-  if (carryOn) { const co = page.getByRole("button", { name: "Dismiss", exact: true }); if (await co.count()) { await co.first().click().catch(() => {}); await page.waitForTimeout(500); } }
+  /* what landed while the app was closed: the catch-up's Done (the app's sheet since 28 November; it
+     was the dark takeover's Dismiss), and any other Dismiss as before */
+  if (carryOn) {
+    const done = page.locator('[data-tour="catchup-done"]');
+    if (await done.count()) { await done.first().click().catch(() => {}); await page.waitForTimeout(600); }
+    else { const co = page.getByRole("button", { name: "Dismiss", exact: true }); if (await co.count()) { await co.first().click().catch(() => {}); await page.waitForTimeout(500); } }
+  }
 }
 /* a stored session, so a script starts inside the app without the sign-in screens */
 async function injectSession(page, sess, { seen = true } = {}) {

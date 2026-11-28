@@ -152,7 +152,7 @@ const { check, results, summary } = M.checker("group-notify");
       check("(c) a group nobody saved is called off and tells nobody", db.bookings.find((b) => b.id === BK.popup).status === "cancelled" && !db.notifications.some((n) => n.data && n.data.id === BK.popup), JSON.stringify(db.notifications.filter((n) => n.data && n.data.id === BK.popup)));
       await ctx.close();
     }
-    /* ---------- (d) the member's tap lands on the Diary's day; the adult's on Family ---------- */
+    /* ---------- (d) the member's tap lands on the Diary's day; the adult's on the child's day ---------- */
     {
       const landed = (page) => page.evaluate(() => {
         const on = document.querySelector('[data-day][aria-pressed="true"]');
@@ -175,8 +175,10 @@ const { check, results, summary } = M.checker("group-notify");
       {
         const { ctx, page, text, shot } = await boot(dbB, "parent", { carryOn: false });
         const ok = await open(page, "Saoirse's Saturday clinic called off");
-        const t = await text(); await shot("04-adult-lands");
-        check("(d) the adult's opens Family", ok && /Orla's family|Saoirse/.test(t) && (await page.locator('[data-tour="family-people"]').count()) >= 1, `${ok} · ${t.slice(0, 160)}`);
+        const l = await landed(page), t = await text(); await shot("04-adult-lands");
+        /* every notice opens what it is about (28 November): the child's clinic on its day, the Diary for the
+           child (by the group's members, forIds) — it opened Family, a tap and a hunt away from the clinic */
+        check("(d) the adult's opens the Diary on the clinic's day, for the child", ok && l.day === String(Number(dayPlus(dbB, 0).slice(8, 10))) && l.view === "Calendar" && /For Saoirse/.test(t), `${ok} ${JSON.stringify(l)} · ${t.slice(0, 160)}`);
         await ctx.close();
       }
     }

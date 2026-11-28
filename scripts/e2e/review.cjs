@@ -315,7 +315,8 @@ const { check, results, summary } = M.checker("review");
     /* ---------- (j) the player: the take is on the lesson ---------- */
     {
       const { page: p2, text: text2, shot: shot2, ctx: ctx2 } = await boot("adult", db);
-      const catchup = p2.locator("button", { hasText: "Dismiss" });
+      /* the catch-up's one key is Done since 28 November (it was Dismiss) */
+      const catchup = p2.locator('[data-tour="catchup-done"]');
       if (await catchup.count()) { await catchup.first().click(); await p2.waitForTimeout(600); }
       const t6 = await text2();
       check("(j) the player's bell carries the new clip", /New clip on Putting/.test(t6) || db.notifications.some((n) => n.user_id === IDS.adult && /New clip/.test(n.title)));

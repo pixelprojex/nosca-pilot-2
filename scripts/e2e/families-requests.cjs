@@ -83,7 +83,8 @@ const leaks = [];
   const rpc = (fn) => db.rpcs.filter((x) => x.fn === fn);
   /* the bell's mark on a notice: the kind's colour and glyph, on the badge at the face's corner or on the disc where there is no face */
   const kindMark = (page, re) => page.evaluate((src) => {
-    const row = [...document.querySelectorAll('[data-tour="alerts-list"] [data-person-row]')].find((r) => new RegExp(src).test(r.textContent)); if (!row) return null;
+    /* the bell's own row since 28 November (it was a PersonRow): the face first, the badge on its corner */
+    const row = [...document.querySelectorAll('[data-tour="alerts-list"] [data-bell-row]')].find((r) => new RegExp(src).test(r.textContent)); if (!row) return null;
     const svg = [...row.firstElementChild.querySelectorAll("svg")].find((s) => { const bg = getComputedStyle(s.parentElement).backgroundColor; return bg && bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent"; });
     return svg ? { bg: getComputedStyle(svg.parentElement).backgroundColor, glyph: String(svg.getAttribute("class") || "").replace("lucide ", "") } : { bg: null, glyph: null };
   }, re.source);
@@ -123,7 +124,7 @@ const leaks = [];
       const { ctx, page, leak, shot } = await boot("coach", { carryOn: false });
       const cu = await leak("coach catch-up"); await shot("03-coach-catchup");
       check("(b) the request landed under the coach's catch-up on opening", (await page.locator('[data-tour="catchup-list"]').count()) === 1 && cu.includes("Eoin Walsh asked to join"), cu.slice(0, 200));
-      await click(page, "Dismiss", 900);
+      await page.locator('[data-tour="catchup-done"]').click(); await page.waitForTimeout(900);   /* the catch-up's one key since 28 November (it was Dismiss) */
       const t0 = await leak("coach today"); await shot("04-coach-today");
       const strip = page.locator('[data-tour="today-requests"]');
       check("(b) Today says how many asked to join", (await strip.count()) === 1 && /Join requests/i.test(M.norm(await strip.innerText())), t0.slice(0, 200));
@@ -214,7 +215,7 @@ const leaks = [];
       const { ctx, page, leak, shot } = await boot("eoin", { carryOn: false });
       const t0 = await leak("eoin catch-up"); await shot("11-eoin-catchup");
       check("(c) the accepted player is told on opening: '<coach> accepted you'", t0.includes("Niamh Byrne accepted you"), t0.slice(0, 200));
-      await click(page, "Dismiss", 900);
+      await page.locator('[data-tour="catchup-done"]').click(); await page.waitForTimeout(900);   /* the catch-up's one key since 28 November (it was Dismiss) */
       const t1 = await leak("eoin home"); await shot("12-eoin-home");
       check("(c) …and opens on Home, not the coachless screen", !t1.includes("Add your coach") && !t1.includes("Request sent"), t1.slice(0, 200));
       /* the answer to a request is the request's kind of thing: its glyph (22 November) — 'accepted' was taught
@@ -233,7 +234,7 @@ const leaks = [];
       const { ctx, page, leak, shot } = await boot("aoife", { carryOn: false });
       const c0 = await leak("aoife catch-up"); await shot("13-aoife-catchup");
       check("(c) the declined player is told on opening: '<coach> couldn't take you on'", c0.includes("Niamh Byrne couldn't take you on"), c0.slice(0, 200));
-      await click(page, "Dismiss", 900);
+      await page.locator('[data-tour="catchup-done"]').click(); await page.waitForTimeout(900);   /* the catch-up's one key since 28 November (it was Dismiss) */
       const t0 = await leak("aoife declined"); await shot("14-aoife-declined");
       check("(c) …and opens on Add your coach with the code boxes ready", t0.includes("Add your coach") && (await M.codeBoxes(page).count()) >= 6, t0.slice(0, 200));
       /* the home screen's own line about the decline reads the coach's row, which the
