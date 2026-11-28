@@ -11407,7 +11407,7 @@ function TipsHistory({ cfg, tips, pop }) {
         ) : (
           <>
             {anyFocus && (
-              <div className="pb-4"><FilterRow label={tr("Worked on")} options={chips} value={f} onChange={setF} last /></div>
+              <div className="px-6 pb-4"><FilterBox label={tr("Worked on")} options={chips} value={f} onChange={setF} /></div>
             )}
             <div className="px-6 pb-4">
               {shown.length === 0 ? (
@@ -16087,6 +16087,16 @@ function FilterRow({ options, value, onChange, label, last, plain, inset = false
   );
 }
 
+/* A FILTER ON ITS OWN IS A GROUP OF ONE (28 November): the white card of
+   Settings' groups with the filter as its row, the label in ink and the
+   value grey — the archive's filters are the same card with five rows in
+   it. They were rows ruled across the whole page under a list of cards. A
+   filter with one choice draws nothing, and nor does its card. */
+function FilterBox({ tour, ...props }) {
+  if (!props.options || props.options.length <= 1) return null;
+  return <div className="nsc-group" data-group="" data-tour={tour}><div className="nsc-flush"><FilterRow inset plain {...props} /></div></div>;
+}
+
 function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlayerId, onClearPlayer, liveMedia, onNeedMedia, sport, onDownload, title, onOpen, showWho, empty, head, plain, metaText, factsFor, onRemove, foot, startView }) {
   const openRow = onOpen || ((x) => push(`clesson:${x.id}:${x.who}`));
   const showName = showWho ?? !forPlayer;
@@ -16188,21 +16198,36 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
           </button>
         )}
 
+        {/* THE FILTERS ARE A GROUP (28 November; C1, held since the visual
+            audit). They were rows ruled across the whole page — the one flat
+            stretch on a screen of cards. Now they are Settings' own group: one
+            white card on the warm ring and its ledge, Filter its first row, the
+            five unfolding inside it as Settings' value rows do (the label in
+            ink, the value grey, the chevron turning), each on the group's rule.
+            What is set reads on Filter while it is folded, whole — on the line
+            under the word where the row cannot hold both. */}
         {sift && (
-          <div className="mb-2">
-            <button onClick={() => { haptic(6); setFilters((v) => !v); }} className="w-full flex items-center gap-3 px-6 text-left active:opacity-50"
-                    style={{ minHeight: 52, borderTop: RULE.hair(t.ink), borderBottom: filters ? "none" : RULE.hair(t.ink) }}>
-              <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.sub }}>{tr("Filter")}</span>
-              <span className="shrink-0 truncate" style={{ ...TYPE.body, fontWeight: 600, color: t.ink, maxWidth: "60%" }}>{active.length ? active.join(" · ") : tr("All")}</span>
-              <ChevronRight size={15} color={t.trace || t.faint} style={{ transform: filters ? "rotate(90deg)" : "none", transition: "transform 200ms" }} />
-            </button>
-            {filters && (<>
-              <FilterRow label={tr("Year")} options={years} value={year} onChange={setYear} />
-              <FilterRow label={tr("Month")} options={months} value={month} onChange={setMonth} />
-              {!forPlayer && people.length > 2 && <FilterRow label={tr("Player")} options={people} value={who} onChange={setWho} />}
-              <FilterRow label={tr("Worked on")} options={["All", ...cfg.focus.map((f) => f.label)]} value={focus} onChange={setFocus} />
-              <FilterRow last label={tr("Kind")} options={["All", "Private", "Group"]} value={kind} onChange={setKind} />
-            </>)}
+          <div className="px-6 mb-4">
+            <div className="nsc-group" data-group="" data-tour="archive-filter">
+              <button data-row="" onClick={() => { haptic(6); setFilters((v) => !v); }} aria-expanded={filters}
+                      className="w-full flex items-center gap-3.5 text-left active:opacity-50" style={{ minHeight: 56, paddingTop: 6, paddingBottom: 6 }}>
+                <span className="flex-1 min-w-0 flex flex-wrap items-baseline justify-between" style={{ columnGap: 14 }}>
+                  <span data-row-label="" style={{ ...TYPE.body, color: t.ink }}>{tr("Filter")}</span>
+                  <span data-filter-value="" className="min-w-0" style={{ ...TYPE.body, color: active.length ? t.ink : t.sub, fontWeight: active.length ? 600 : 400, maxWidth: "100%", overflowWrap: "anywhere" }}>{active.length ? active.join(" · ") : tr("All")}</span>
+                </span>
+                <ChevronRight size={17} color={t.trace || t.faint} style={{ transform: filters ? "rotate(90deg)" : "none", transition: "transform 200ms" }} />
+              </button>
+              {filters && [
+                [tr("Year"), years, year, setYear],
+                [tr("Month"), months, month, setMonth],
+                !forPlayer && people.length > 2 ? [tr("Player"), people, who, setWho] : null,
+                [tr("Worked on"), ["All", ...cfg.focus.map((f) => f.label)], focus, setFocus],
+                [tr("Kind"), ["All", "Private", "Group"], kind, setKind],
+              ].filter((f) => f && f[1].length > 1).map(([label, options, value, onChange]) => (
+                /* a filter with one choice draws nothing, and nor does its rule */
+                <div key={label} className="nsc-flush"><FilterRow inset plain label={label} options={options} value={value} onChange={onChange} /></div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -17487,7 +17512,7 @@ function DrillLibrary({ cfg, sport, library, addDrill, removeDrill, pop, assign,
         )}
 
         {library.length > 8 && (
-          <FilterRow label={tr("Area")} options={chips} value={filter} onChange={setFilter} />
+          <div className="px-6 mb-4"><FilterBox label={tr("Area")} options={chips} value={filter} onChange={setFilter} /></div>
         )}
 
         <div className="px-6 pb-2">
@@ -20499,8 +20524,8 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
               </div>
             )}
             {canFilter && (
-              <div className="-mx-6" style={{ marginBottom: SPACE.block }}>
-                <FilterRow label={tr("Show")} value={only} onChange={setOnly} last
+              <div style={{ marginBottom: SPACE.block }}>
+                <FilterBox label={tr("Show")} value={only} onChange={setOnly}
                            options={[tr("Everything"), ...kinds]} />
               </div>
             )}

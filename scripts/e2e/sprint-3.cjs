@@ -527,12 +527,13 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       const note = await page.evaluate(() => { const p = [...document.querySelectorAll("p")].find((x) => x.textContent === "Splash, not dig."); return p ? getComputedStyle(p).fontSize : null; });
       await shot("l-lesson-note");
       check("(l) C20: the lesson page's note is on the ladder, 20 regular since 21 November (TYPE.section's size; it was the title's 19)", note === "20px", String(note));
-      /* C22: the library's Area row sits on its rule */
+      /* C22: the library's Area row sits as the archive's Filter row does — on its rule until 28 November, when the
+         archive's filters became one white group card (C1) and a filter on its own a group of one (FilterBox) */
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await openSettings(page); await tap(page, '[data-tour="settings-library"]', 1000);
-      const area = await page.evaluate(() => { const s = [...document.querySelectorAll("button span")].find((x) => x.textContent === "Area"); const b = s && s.closest("button"); return b ? b.style.borderTop : null; });
+      const area = await page.evaluate(() => { const s = [...document.querySelectorAll("button span")].find((x) => x.textContent === "Area"); const b = s && s.closest("button"); const g = b && b.closest(".nsc-group"); return b ? { group: !!g, ring: g ? getComputedStyle(g).borderTopColor : null } : null; });
       await shot("l-library");
-      check("(l) C22: the drill library's Area row carries its top rule, as the archive's Filter row does", !!area && area !== "none" && /solid/.test(area), String(area));
+      check("(l) C22: the drill library's Area row sits as the archive's Filter row does: a row of one white group card on the warm ring", !!area && area.group && area.ring === "rgb(230, 226, 217)", JSON.stringify(area));
       /* C23: every wordless tile on the log is one height */
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-log"]', 1000);
