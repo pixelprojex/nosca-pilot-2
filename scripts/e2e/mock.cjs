@@ -42,11 +42,11 @@ let CLIP = null;
 try { CLIP = require("fs").readFileSync(require("path").join(__dirname, "fixtures", "clip.webm")); } catch (e) { CLIP = null; }
 const WEBM = Buffer.from("GkXfo0AgQoaBAUL3gQFC8oEEQvOBCEKChHdlYm1Ch4ECQoWBAhhTgGcBAAAAAAAB", "base64");
 /* the sports' areas, the same list nosca.sql's import_areas block is generated from */
-const IMPORT_AREAS = (() => {
+const IMPORT_FOCUS = (() => {
   try { const src = require("fs").readFileSync(path.join(ROOT, "src/lib/taxonomy.js"), "utf8");
-        const FOCUS = new Function(src.replace("export const FOCUS =", "return "))();
-        return Object.entries(FOCUS).flatMap(([sport, list]) => list.map((a) => `${sport}|${a.label}`)); } catch (e) { return []; }
+        return new Function(src.replace("export const FOCUS =", "return "))(); } catch (e) { return {}; }
 })();
+const IMPORT_AREAS = Object.entries(IMPORT_FOCUS).flatMap(([sport, list]) => list.map((a) => `${sport}|${a.label}`));
 const sha256 = (s) => require("crypto").createHash("sha256").update(String(s), "utf8").digest("hex");
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEklEQVR42mNk+M9Qz8DAwMAAAA0BAgD8A9wJAAAAAElFTkSuQmCC", "base64"); // 2×2
 
@@ -1151,8 +1151,66 @@ async function importRoute(route, db) {
   if (req.method() !== "POST") return answer(405, {});
   return importPost(route, db, answer);
 }
-/* the POST, until the sorting function's own rules are written (phase 4): busy */
-async function importPost(route, db, answer) { return answer(200, { status: "busy", retryAfter: 2 }); }
+/* THE POST, by the function's own rules (netlify/functions/lesson-import.mjs): the caller from the
+   bearer's sub, 401 with no other work; the shared validator, imported from lib/import-shared.mjs, so
+   the mock refuses what the function refuses; the mock's import_gate, with the same predicate and caps;
+   then every body that passed the token is kept in db.importPosts for the privacy checks, and the answer
+   comes from importFail at that index, then importPlan, then a plain reading of the coach's own words. */
+let SHARED = null;
+const shared = async () => SHARED || (SHARED = await import(require("url").pathToFileURL(path.join(ROOT, "netlify/functions/lib/import-shared.mjs")).href));
+const failKind = (db, i, body) => { const f = db.importFail; if (!f) return null; return typeof f === "function" ? f(i, body) : f[i] || null; };
+async function importPost(route, db, answer) {
+  const req = route.request(), hdr = req.headers();
+  const m = /^Bearer ([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]*)$/.exec(hdr["authorization"] || "");
+  let meId = null; try { meId = m ? JSON.parse(Buffer.from(m[2], "base64url")).sub : null; } catch (e) { meId = null; }
+  if (!meId) return answer(401, { status: "failed" });
+  const raw = req.postData() || "";
+  const S = await shared();
+  if (S.bytesOf(raw) > S.BUDGET.bodyBytes) return answer(400, { status: "failed" });
+  let body = null; try { body = JSON.parse(raw); } catch (e) { body = null; }
+  const index = db.importPosts.push(body === null ? raw : body) - 1;
+  if (S.validate(body) !== null) return answer(400, { status: "failed" });
+  if (db.noImport) return answer(200, { status: "busy", retryAfter: 2 });
+  const gate = importRpc(db, "import_gate", { p_player: body.player }, meId).data;
+  if (gate === "no") return answer(403, { status: "failed" });
+  if (gate === "over") return answer(200, { status: "over" });
+  const kind = failKind(db, index, body);
+  if (kind === "timeout") { await new Promise((r) => setTimeout(r, 1200)); return route.fulfill({ status: 502, contentType: "text/html", body: "<html><body>Bad gateway</body></html>" }); }
+  if (kind === 500 || kind === "500") return answer(500, { status: "busy" });
+  if (kind === "busy") return answer(200, { status: "busy", retryAfter: 1 });
+  if (kind) return answer(200, { status: kind });
+  const plan = db.importPlan;
+  let v = typeof plan === "function" ? plan(body, index) : plan && typeof plan === "object" ? importPlanned(plan, body) : null;
+  if (typeof v === "string") return answer(200, v === "busy" ? { status: "busy", retryAfter: 1 } : { status: v });
+  if (!v) v = importReading(body);
+  const clean = S.cleanVerdict(v, body.sport, S.issuedIds(body));
+  return answer(200, clean ? { status: "ok", ...clean } : { status: "retry" });
+}
+/* importPlan as an object: a key that is the day's number of segments, or a phrase in the coach's lines of the day */
+function importPlanned(plan, body) {
+  const said = body.segs.filter((x) => x.a === "C" && x.part === "day").map((x) => x.text).join(" \n ").toLowerCase();
+  if (plan[String(body.segs.length)]) return plan[String(body.segs.length)];
+  const key = Object.keys(plan).find((k) => !/^\d+$/.test(k) && said.includes(k.toLowerCase()));
+  return key ? plan[key] : null;
+}
+/* the mock's reading of a day, deterministic: what a careful reader would answer from the coach's own words */
+function importReading(body) {
+  const day = body.segs.filter((x) => x.part === "day");
+  const coach = day.filter((x) => x.a === "C" && Number.isInteger(x.id));
+  const theirs = day.filter((x) => x.a === "P").map((x) => x.text);
+  const text = coach.map((x) => x.text).join(" \n ").toLowerCase();
+  const focus = (IMPORT_FOCUS[body.sport] || []).filter((a) => [a.label, ...(a.subs || [])].some((w) => w && text.includes(String(w).toLowerCase()))).map((a) => a.id);
+  const arranging = /\b(pay|paid|euro|€|what time|see you|tomorrow at|book(ed)?|cancel|running late)\b/i;
+  const note = coach.filter((x) => !arranging.test(x.text)).map((x) => x.id);
+  const tip = coach.filter((x) => /^tip\b/i.test(x.text)).map((x) => x.id).slice(0, 1);
+  const drills = coach.filter((x) => /\b(drill|practi[cs]e|reps|times a day|each day)\b/i.test(x.text)).map((x) => x.id);
+  let kind = "unsure";
+  if (!coach.length || !note.length) kind = "chat";
+  else if (/\b(today|lesson|session|great work|good work|well done)\b/.test(text)) kind = "lesson";
+  else if (/\byesterday\b/.test(text)) kind = "recap";
+  else if (theirs.some((t) => t === "[video]" || t === "[photo]") && /\b(looks|better|nice|good|keep)\b/.test(text)) kind = "practice";
+  return kind === "chat" ? { day: "chat", focus: [], note: [], tip: [], drills: [] } : { day: kind, focus, note, tip, drills };
+}
 
 /* ---------------------------------------------------------------- the built app */
 async function startServer(distDir, port) {
@@ -1289,7 +1347,7 @@ module.exports = {
   SB, ROOT, b64u, uuid, code6, pad, ymd, MON, MP4, WEBM, PNG, yearsOld, juniorRow,
   emptyDb, addUser, addProfile, addFamily, addLesson, addMedia, addAttendee, addRequest, addNotification, addBooking, addRecurring, addDrill, addMessage, setPrefs, weekOf,
   session, signupTrigger, notify, groupMembers, scopeFor, lessonsView, attach, startServer, stopServer,
-  importKey, importSpan, importRpc, importSweep, IMPORT_AREAS,
+  importKey, importSpan, importRpc, importSweep, importRoute, IMPORT_AREAS, IMPORT_FOCUS,
   norm, rootText, rootEmpty, SPLASH_MS, settle, injectSession, tap, byText, click, back, codeBoxes, fillCode, bellCount, rowLead, plainRow, checker, SEEDED,
   factsFit, factsWhole, fingerFit,
 };

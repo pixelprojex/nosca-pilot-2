@@ -10,6 +10,10 @@
 #           "Once a day"
 #   resub   a device whose subscription rotated, telling us its new
 #           address before the app is next opened
+# And two for the import (docs/import/SPEC.md):
+#   lesson-import  sorts one day of a chat; answers { ready: false }
+#                  until its key is set
+#   import-sweep   hourly, removes the files no imported lesson names
 # netlify/functions/lib/ is shared code, not an endpoint: Netlify only
 # makes a URL of a subdirectory holding a file of its own name.
 [functions]
