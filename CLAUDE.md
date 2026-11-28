@@ -152,6 +152,22 @@ seeded data and no account.
   the lesson is logged the clip exists nowhere else and a swipe on the
   log takes it off for good. The app never depends on that copy being
   there and says nothing about it that it cannot see.
+- **The front door is one shell, and a choice goes on by itself (28
+  November).** Sign-up and sign-in are `AuthShell` in Auth.jsx: Back, the
+  brand's mark in the middle of the bar in its bottle green, the title,
+  a body that scrolls, the one key at the foot. Join as (it was "Who are
+  you?" — a title is never a question) and Main sport answer and go on
+  with the tap (`useAnswer`: the chosen tile shows for 240 ms, then the
+  next screen), so neither carries Continue; Join as carries Sign in top
+  right. The fields are the app's own text box (`AuthField`: the wash on
+  its soft foot, 54 tall, 16px, the brand's ring while typing, a red ring
+  and one plain line for a problem; the name with dictation). The mobile
+  is no longer asked — it was optional, Personal details takes it, and
+  the trigger still receives the empty value. The server's words become
+  one short line (`friendly`). A Home Screen app on an iPhone keeps its
+  own storage, so it opens on Sign in with "Signed up in Safari? Sign in
+  once here." (until anyone has signed in inside it, `nosca.here`) and
+  Create account under the key.
 - **Sign-up is a database trigger** (`on_auth_user_created` →
   `handle_new_user()`). The browser sends everything as metadata in one
   `signUp` call and never touches `profiles` during sign-up. Nothing on
@@ -2910,6 +2926,28 @@ seeded data and no account.
   MOO foils both sides or neither. The README there is the order, and
   `public/card/` serves the files at `/card/` for a phone (copy them
   there after a re-run). `scripts/e2e/install.cjs`.
+  **Tidied (28 November).** The founder: people "thought that they just
+  tapped on the buttons on it, rather than following those instructions
+  … way too much text … really complex." So no step draws a key: the
+  control is a glyph inside the sentence at the words' height ("Tap
+  [three lines], then Share [share]", `insSay`, `InsIn`, its name for a
+  screen reader beside it), and step one alone carries a flat sketch of
+  the browser's bar with a gold loop drawn round the spot (`InsScene`) —
+  no face, no ledge, no shadow. Four steps at most: two taps in one sheet
+  are one step, and "Leave Open as Web App on" and "Scroll down the list"
+  are gone (the phone does both); the device row (`install-device`) sits
+  under the steps. The page has ONE key: Install Nosca where the browser
+  offers it, with the steps folded behind "Or by hand" (`install-hand`;
+  `InsFold` opens it out rather than jumping when the offer comes late),
+  else Continue in the browser, filled in the olive. The two cards are
+  smaller (212 wide on a phone) and lie still — no turn, no foil drawn
+  in, one soft rise. **The hand-over is in place**: Continue and the X
+  push "/" and the gate swaps the page for sign-up opened on its first
+  question, Join as (the app for a member), under a view-transition
+  cross-fade where the browser has one (`leaveInstall`, `crossFade` in
+  App.jsx) — no reload, no white page; Back returns to the guide. Opened
+  from a Home Screen at /install (iOS can keep the address an app was
+  added from) the app goes straight to "/" (`installAtStart`).
 - **Two Netlify sites, one repository; the first address is a signpost
   (23 November).** The business cards are printed, and the code on them
   opens `nosca-pilot-2.netlify.app/install` for good — so that site is
