@@ -40,10 +40,8 @@ import {
  * sport — the chosen tile shows for a beat, then the next screen), so
  * those two screens carry no Continue; the fields are the app's own text
  * box (the wash on its soft foot, 16px, a red ring and one plain line
- * under it for a problem); the mobile number is no longer asked — it was
- * optional, the profile's Personal details takes it, and the trigger
- * still receives the empty value it always did; every message the
- * server's words become is one short line (`friendly`). A Home Screen
+ * under it for a problem); every message the server's words become is
+ * one short line (`friendly`). A Home Screen
  * app on an iPhone has its own storage, so somebody who signed up in
  * Safari is signed out there: it opens on Sign in, saying so in one line,
  * with Create account under it for the person who has no account yet. */
@@ -51,7 +49,7 @@ import {
 const MIN_PASS = 8;
 const ADULT = 18;
 const FAMILY_REQUIRED = "Ask a parent: Settings › Family";
-const ALREADY = "That email already has an account";
+const ALREADY = "There's already an account with that email";
 
 /* the server's words, as one short line a person can act on */
 export const friendly = (msg) => {
@@ -159,7 +157,7 @@ function AuthField({ label, value, onChange, type = "text", error, onBlur, revea
                                                   border: `${EDGE_W}px solid ${bad ? DANGER : focus ? t.accent : "transparent"}`, boxShadow: lipOf(SOFT_LIP(t), 2),
                                                   transition: "border-color 160ms" }}>
         <input type={reveal && shown ? "text" : type} value={value} autoFocus={autoFocus} autoComplete={autoComplete} inputMode={inputMode}
-               aria-invalid={bad || undefined}
+               aria-label={typeof label === "string" ? label : undefined} aria-invalid={bad || undefined}
                onFocus={() => setFocus(true)} onBlur={() => { setFocus(false); onBlur && onBlur(); }}
                onChange={(e) => onChange(e.target.value)} className="flex-1 min-w-0 outline-none"
                style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent", height: 50 }} />
@@ -219,8 +217,11 @@ function Landing({ invite, onCreate, onSignIn }) {
         <div className="px-7" style={{ paddingBottom: "max(28px, env(safe-area-inset-bottom, 28px))",
                                         animation: "fadeUp 640ms cubic-bezier(.22,1,.36,1) 200ms both" }}>
           {invite && (
-            <p className="text-center mb-5" style={{ ...TYPE.body, color: NEUTRAL.sub }}>
-              {invite.kind === "family" ? tr("Family code") : tr("Coach code")} <span style={{ fontWeight: 600, color: NEUTRAL.ink, letterSpacing: "0.08em" }}>{invite.code}</span>
+            <p className="text-center mb-5" style={{ ...TYPE.body, color: NEUTRAL.ink }}>
+              {tr("You've been invited")}
+              <span className="block" style={{ ...TYPE.small, color: NEUTRAL.sub, marginTop: 2 }}>
+                {invite.kind === "family" ? tr("Family code") : tr("Coach code")} {invite.code}
+              </span>
             </p>
           )}
           <div className="mb-2.5">
@@ -275,6 +276,7 @@ function DetailsStep({ role, initial, busy, err, onBack, onDone, onSignInInstead
   const wantsDob = role === "player";
   const [name, setName] = useState(initial?.name || "");
   const [email, setEmail] = useState(initial?.email || "");
+  const [phone, setPhone] = useState(initial?.phone || "");
   const [pass, setPass] = useState(initial?.password || "");
   const [d, setD] = useState(initial?.dob?.d || "");
   const [m, setM] = useState(initial?.dob?.m || "");
@@ -306,8 +308,7 @@ function DetailsStep({ role, initial, busy, err, onBack, onDone, onSignInInstead
     if (busy) return;
     if (problems.length) { setTried(true); hapticWarn(); showProblem(problems[0]); return; }
     hapticSuccess();
-    /* no mobile is asked here any more: the trigger takes the empty value it always took for an unanswered one */
-    onDone({ name: name.trim(), email: email.trim().toLowerCase(), phone: "", password: pass,
+    onDone({ name: name.trim(), email: email.trim().toLowerCase(), phone: phone.trim(), password: pass,
              dob: wantsDob ? { d, m, y } : null, age });
   };
 
@@ -338,6 +339,7 @@ function DetailsStep({ role, initial, busy, err, onBack, onDone, onSignInInstead
       )}
 
       <div ref={emailWrap}><AuthField label={tr("Email")} value={email} onChange={setEmail} onBlur={() => mark("email")} type="email" error={errEmail} autoComplete="email" inputMode="email" /></div>
+      <AuthField label={`${tr("Mobile")} · ${tr("optional")}`} value={phone} onChange={setPhone} type="tel" autoComplete="tel" inputMode="tel" />
       <div ref={passWrap}><AuthField label={tr("Password")} value={pass} onChange={setPass} onBlur={() => mark("pass")} type="password" error={errPass} reveal autoComplete="new-password" /></div>
       <p style={{ ...TYPE.caption, color: t.faint, marginTop: 4 }}>{tr("By continuing you accept the Terms and Privacy Policy.")}</p>
     </AuthShell>

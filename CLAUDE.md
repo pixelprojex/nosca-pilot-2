@@ -161,10 +161,9 @@ seeded data and no account.
   next screen), so neither carries Continue; Join as carries Sign in top
   right. The fields are the app's own text box (`AuthField`: the wash on
   its soft foot, 54 tall, 16px, the brand's ring while typing, a red ring
-  and one plain line for a problem; the name with dictation). The mobile
-  is no longer asked — it was optional, Personal details takes it, and
-  the trigger still receives the empty value. The server's words become
-  one short line (`friendly`). A Home Screen app on an iPhone keeps its
+  and one plain line for a problem; the name with dictation; the mobile
+  still asked, optional, since the trigger stores it). The server's words
+  become one short line (`friendly`). A Home Screen app on an iPhone keeps its
   own storage, so it opens on Sign in with "Signed up in Safari? Sign in
   once here." (until anyone has signed in inside it, `nosca.here`) and
   Create account under the key.
@@ -2935,13 +2934,18 @@ seeded data and no account.
   the browser's bar with a gold loop drawn round the spot (`InsScene`) —
   no face, no ledge, no shadow. Four steps at most: two taps in one sheet
   are one step, and "Leave Open as Web App on" and "Scroll down the list"
-  are gone (the phone does both); the device row (`install-device`) sits
-  under the steps. The page has ONE key: Install Nosca where the browser
-  offers it, with the steps folded behind "Or by hand" (`install-hand`;
-  `InsFold` opens it out rather than jumping when the offer comes late),
-  else Continue in the browser, filled in the olive. The two cards are
-  smaller (212 wide on a phone) and lie still — no turn, no foil drawn
-  in, one soft rise. **The hand-over is in place**: Continue and the X
+  are gone (the phone does both); the device row (`install-device`) is a
+  quiet line under the title, above the steps, so a choice never moves it
+  from under the finger. The page has ONE key: Install Nosca where the
+  browser offers it, with the steps folded behind "Or by hand"
+  (`install-hand`; `InsFold` opens it out rather than jumping when the
+  offer comes late, and a folded part is not in the page at all), else
+  Continue in the browser, filled in the olive. The two cards are small
+  and quiet — 168 wide on a phone, 188 on a computer, enough to say which
+  card was scanned (the founder: "taking the focus away from the business
+  cards") — and lie still, no turn, no foil drawn in, one soft rise; the
+  page is one column on a computer too (it was two, the cards standing
+  large beside the steps). **The hand-over is in place**: Continue and the X
   push "/" and the gate swaps the page for sign-up opened on its first
   question, Join as (the app for a member), under a view-transition
   cross-fade where the browser has one (`leaveInstall`, `crossFade` in
