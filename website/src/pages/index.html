@@ -12,14 +12,14 @@ preloadImage: assets/photo/loop-lake-mist-2-poster.webp
      own first frame stands in place before it plays. Nothing is pinned and nothing is tied to the scroll: each piece
      plays once, on its own clock, as it arrives (html.glide, site.js), and the header's three anchors reach every part. -->
 
-<!-- 1. WHAT IT IS. A still lake at sunrise under the deep green, the name of the thing in a few words, and the app
-     itself: the coach's day, arriving once. The gold mark is a signature, small. -->
+<!-- 1. WHAT IT IS. A still lake at sunrise under the deep green, the name of the thing in the app's own title face,
+     and the app itself: the coach's day, arriving once. The gold mark is a seal, small, with NOSCA beside it. -->
 <section class="g-green op" id="top" data-header="green" aria-labelledby="op-title">
   <!-- @include loop name="loop-lake-mist-2" class="op__vid bgv vid--veil" alt="" first="1" bg="1" -->
   <div class="op__in wrap wrap--wide">
     <div class="op__copy">
-      <p class="op__sig" aria-hidden="true"><!-- @include mark class="op__mark" --><span class="wordmark">Nosca</span></p>
-      <h1 class="op__h" id="op-title" data-rise>Coaching, linked.</h1>
+      <p class="op__sig" aria-hidden="true"><span class="seal"><!-- @include mark --></span><span class="wordmark">Nosca</span></p>
+      <h1 class="op__h" id="op-title" data-rise><span>Coaching,</span> <span>linked.</span></h1>
       <p class="op__p" data-rise="lines">One app for coach, player and parent.</p>
       <a class="key key--paper op__key" href="{{appUrl}}" rel="noopener">Open Nosca <!-- @include arrow --></a>
     </div>
@@ -52,7 +52,7 @@ preloadImage: assets/photo/loop-lake-mist-2-poster.webp
   <div class="fd__in wrap">
     <div class="fd__copy">
       <h2 class="fd__h" id="fd-title" data-rise>Every lesson, kept.</h2>
-      <p class="fd__p" data-rise="lines">For the player: the coach's clips, photos and notes in one feed. A parent books and answers for a child.</p>
+      <p class="fd__p" data-rise="lines">For the player: the coach’s clips, photos and notes in one feed. A parent books and answers for a child.</p>
     </div>
     <div class="fd__dev">
       <!-- @include phone film="feed-demo" screens="player-progress" alt="A player's lessons in Nosca: a swing playing, slowed to half speed, starred, a swipe across to the lesson's photo and its next clip, then up to the next lesson" alts="A player's progress in Nosca" class="fd__phone" -->
@@ -72,11 +72,11 @@ preloadImage: assets/photo/loop-lake-mist-2-poster.webp
   <div class="wrap">
     <ul class="sp__list">
       <li><h3 class="sp__n"><i class="sport-dot" data-sport="golf" aria-hidden="true"></i>Golf</h3><p class="sp__w">Full swing, short game, on course</p><p class="sp__l">Handicap Index</p></li>
-      <li><h3 class="sp__n"><i class="sport-dot" data-sport="tennis" aria-hidden="true"></i>Tennis</h3><p class="sp__w">Serve, return, rally, net</p><p class="sp__l">Red, Orange, Green and Yellow ball, then WTN</p></li>
+      <li><h3 class="sp__n"><i class="sport-dot" data-sport="tennis" aria-hidden="true"></i>Tennis</h3><p class="sp__w">Serve, return, rally, net</p><p class="sp__l">Red, Orange, Green and Yellow ball, <span>then WTN</span></p></li>
       <li><h3 class="sp__n"><i class="sport-dot" data-sport="rowing" aria-hidden="true"></i>Rowing</h3><p class="sp__w">Technique, rhythm, racing, erg</p><p class="sp__l">J13 to J18, Novice to Senior</p></li>
-      <li><h3 class="sp__n"><i class="sport-dot" data-sport="squash" aria-hidden="true"></i>Squash</h3><p class="sp__w">Drives, volleys, front court, movement</p><p class="sp__l">The ball's dot</p></li>
+      <li><h3 class="sp__n"><i class="sport-dot" data-sport="squash" aria-hidden="true"></i>Squash</h3><p class="sp__w">Drives, volleys, front court, movement</p><p class="sp__l">The ball’s dot</p></li>
       <li><h3 class="sp__n"><i class="sport-dot" data-sport="padel" aria-hidden="true"></i>Padel</h3><p class="sp__w">Net game, overheads, walls</p><p class="sp__l">Levels 0 to 7</p></li>
-      <li><h3 class="sp__n"><i class="sport-dot" data-sport="equestrian" aria-hidden="true"></i>Equestrian</h3><p class="sp__w">Flatwork, poles, jumping, cross-country</p><p class="sp__l">Pony Club tests and riding-school stages</p></li>
+      <li><h3 class="sp__n"><i class="sport-dot" data-sport="equestrian" aria-hidden="true"></i>Equestrian</h3><p class="sp__w">Flatwork, poles, jumping, cross-country</p><p class="sp__l">Pony Club tests and <span>riding-school stages</span></p></li>
     </ul>
   </div>
 </section>
@@ -87,9 +87,10 @@ preloadImage: assets/photo/loop-lake-mist-2-poster.webp
   <div class="st__hero">
     <!-- @include loop name="loop-lake-steam-3" class="st__bg bgv vid--veil" alt="" bg="1" -->
     <div class="st__name wrap">
-      <!-- @include weave foil="1" class="st__rings" attrs="data-weave" label="Two rings, each passing through the other: the Nosca mark" -->
-      <h2 class="t-quote st__h" id="st-title">From the Irish <i lang="ga">nascadh</i>, linking.</h2>
-      <p class="st__long" data-rise="lines">Nosca is an anglicised spelling of the Irish word <i lang="ga">nascadh</i>, which means linking. Made in Ireland.</p>
+      <span class="seal st__seal"><!-- @include weave attrs="data-weave" label="Two rings, each passing through the other: the Nosca mark" --></span>
+      <h2 class="st__h" id="st-title">From the Irish <i lang="ga">nascadh</i>, linking.</h2>
+      <p class="st__long" data-rise="lines">Nosca is an anglicised spelling of the Irish word <i lang="ga">nascadh</i>, which means linking.</p>
+      <p class="st__made">Made in Ireland</p>
     </div>
   </div>
   <div class="st__why wrap">
