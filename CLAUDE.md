@@ -167,7 +167,10 @@ seeded data and no account.
   become one short line (`friendly`). A Home Screen app on an iPhone keeps its
   own storage, so it opens on Sign in with "Signed up in Safari? Sign in
   once here." (until anyone has signed in inside it, `nosca.here`) and
-  Create account under the key.
+  Create account under the key. Arrival (`pages/Arrival.jsx`) stands in the same
+  shell: the code large on the wash (its size follows a narrow phone),
+  Copy and Share as the app's quiet keys, and Show me around the one key,
+  the Home Screen line above it and Skip under it.
 - **Sign-up is a database trigger** (`on_auth_user_created` →
   `handle_new_user()`). The browser sends everything as metadata in one
   `signUp` call and never touches `profiles` during sign-up. Nothing on

@@ -116,7 +116,7 @@ const QuietLink = ({ children, onClick, disabled, tour }) => {
    the title, a line under it only when it says something, the body —
    which scrolls, so nothing is ever under the keyboard or the foot — and
    the one key at the foot. */
-function AuthShell({ onBack, right, title, sub, children, footer }) {
+export function AuthShell({ onBack, right, title, sub, children, footer }) {
   const t = useT();
   return (
     /* one column, 480 at most: on a computer the front door is a phone's width in the middle, never a form stretched across the screen */

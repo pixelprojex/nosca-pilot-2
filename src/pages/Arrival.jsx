@@ -1,8 +1,9 @@
 import React, { useRef, useState } from "react";
 import { Copy, Share2 } from "lucide-react";
-import { ThemeCtx, NEUTRAL, BRAND, tr, ui, display, TYPE, R, STEADY, DANGER, Mark, Button, haptic, hapticSuccess } from "../Nosca";
+import { ThemeCtx, NEUTRAL, BRAND, tr, ui, display, TYPE, SPACE, R, STEADY, DANGER, Button, haptic, lipOf, SOFT_LIP } from "../Nosca";
 import { joinLink, shareOrCopy, copyText } from "../lib/share";
 import { isStandalone } from "../lib/install";
+import { AuthShell } from "./Auth";
 
 /* ARRIVAL
  *
@@ -12,7 +13,14 @@ import { isStandalone } from "../lib/install";
  * and Share right there. A player sees who they are linked to, or that
  * they can add a coach later. Then into the app, with or without the
  * walkthrough. Nothing here is asked again; the codes live in Settings
- * and Family from now on. */
+ * and Family from now on.
+ *
+ * IN THE FRONT DOOR'S SHELL (28 November): the bar with the brand's mark,
+ * the title, the code on the wash as the app's own panel, Copy and Share
+ * as the app's quiet keys (they were two pills on a 1px hairline), and
+ * one key at the foot, Show me around — the line for the Home Screen
+ * above it in a browser tab, Skip under it. Every key here is the app's
+ * `Button`, which buzzes on the tap, so no handler adds a beat of its own. */
 export default function Arrival({ role, profile, data, onDone }) {
   const [note, setNote] = useState("");
   const timer = useRef(null);
@@ -28,25 +36,21 @@ export default function Arrival({ role, profile, data, onDone }) {
   };
   const copy = async () => {
     if (!code) return;
-    haptic(8);
     const ok = await copyText(code);
-    if (ok) hapticSuccess();
     flash(ok ? tr("Copied") : tr("Couldn't copy"), !ok);
   };
   const share = async () => {
     if (!code) return;
-    haptic(8);
     const text = isCoach
       ? `${tr("Join me on")} ${BRAND}. ${tr("Code")} ${code}`
       : `${tr("Join our family on")} ${BRAND}. ${tr("Code")} ${code}`;
     const r = await shareOrCopy({ title: `${tr("Join me on")} ${BRAND}`, text, url });
-    if (r === "shared") { hapticSuccess(); flash(tr("Shared")); }
-    else if (r === "copied") { hapticSuccess(); flash(tr("Link copied")); }
+    if (r === "shared") flash(tr("Shared"));
+    else if (r === "copied") flash(tr("Link copied"));
     else if (r === "failed") flash(tr("Couldn't share"), true);
   };
 
   const go = (tour, install = false) => {
-    haptic(10);
     /* The one thing that opens the walkthrough. Nothing else does — a
        sign-in on a new device used to replay it, because "have you seen
        this" was kept per browser rather than tied to signing up. The
@@ -73,65 +77,41 @@ export default function Arrival({ role, profile, data, onDone }) {
     else { title = tr("You're set up"); sub = tr("Add a coach from Home"); }
   }
 
-  const pill = (Icon, label, onClick) => (
-    <button onClick={onClick} disabled={!code}
-            className="inline-flex items-center justify-center gap-2 px-5 active:opacity-70 disabled:opacity-30"
-            style={{ minHeight: 46, borderRadius: R.pill, border: `1px solid ${NEUTRAL.hair}`, background: NEUTRAL.surface,
-                     fontFamily: ui, fontSize: 14.5, fontWeight: 600, color: NEUTRAL.ink }}>
-      <Icon size={15} strokeWidth={2} />{label}
-    </button>
-  );
-
+  const quiet = { minHeight: 44, fontFamily: ui, fontSize: 15, fontWeight: 600, color: NEUTRAL.sub };
   return (
     <ThemeCtx.Provider value={NEUTRAL}>
-      <div className="flex flex-col" style={{ height: "100dvh", background: NEUTRAL.page }}>
-        <div className="shrink-0" style={{ height: "env(safe-area-inset-top, 0px)" }} />
-        <div className="shrink-0 flex items-center justify-center gap-2 pt-4" style={{ animation: "fadeUp 620ms cubic-bezier(.22,1,.36,1) both" }}>
-          <Mark size={15} color={NEUTRAL.faint} />
-          <span data-tour="wordmark" style={{ fontFamily: display, fontSize: 9, letterSpacing: "0.34em", color: NEUTRAL.faint }}>{BRAND}</span>
-        </div>
-
-        <div className="flex-1 flex flex-col items-center justify-center px-7 text-center min-h-0" style={{ overflowY: "auto" }}>
-          <h1 style={{ ...TYPE.screen, color: NEUTRAL.ink,
-                       animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) both" }}>{title}</h1>
-
-          {code ? (
-            <>
-              <div className="mt-9" aria-label={tr("Your code")}
-                   style={{ fontFamily: display, fontSize: 48, lineHeight: 1, letterSpacing: "0.24em", paddingLeft: "0.24em", color: NEUTRAL.ink,
-                            animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 120ms both" }}>
+      <div style={{ height: "100dvh", background: NEUTRAL.page }}>
+        <AuthShell title={title} sub={code ? null : sub}
+                   footer={<>
+                     {/* still in a browser tab: the way onto the phone, before the app */}
+                     {!isStandalone() && (
+                       <button onClick={() => { haptic(6); go(false, true); }} data-tour="arrival-install" className="w-full active:opacity-60" style={{ ...quiet, marginBottom: 4 }}>
+                         {tr("Add Nosca to your Home Screen")}
+                       </button>
+                     )}
+                     <Button tone="ink" onClick={() => go(true)}>{tr("Show me around")}</Button>
+                     <button onClick={() => { haptic(6); go(false); }} className="w-full active:opacity-60" style={{ ...quiet, marginTop: 2 }}>
+                       {tr("Skip")}
+                     </button>
+                   </>}>
+          {code && (<>
+            {/* the code, on the wash as the app's own panel: large, spaced, never cut — its size follows a narrow phone */}
+            <div data-arrival-code="" className="text-center" style={{ padding: "26px 12px 20px", borderRadius: R.surface, background: NEUTRAL.wash, boxShadow: lipOf(SOFT_LIP(NEUTRAL), 2) }}>
+              <div aria-label={`${tr("Your code")} ${code.split("").join(" ")}`} style={{ fontFamily: display, fontSize: "clamp(34px, 11vw, 46px)", fontWeight: 600, lineHeight: 1,
+                                                                                     letterSpacing: "0.2em", paddingLeft: "0.2em", color: NEUTRAL.ink, fontVariantNumeric: "tabular-nums lining", whiteSpace: "nowrap" }}>
                 {code}
               </div>
-              <p className="mt-4" style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.5, color: NEUTRAL.sub, maxWidth: 300,
-                                            animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) 200ms both" }}>{sub}</p>
-              <div className="mt-7 flex items-center justify-center gap-2.5" style={{ animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) 280ms both" }}>
-                {pill(Copy, tr("Copy"), copy)}
-                {pill(Share2, tr("Share"), share)}
-              </div>
-              <p className="mt-4" aria-live="polite" style={{ fontFamily: ui, fontSize: 13, minHeight: 20, color: note && note.bad ? DANGER : STEADY,
-                                            opacity: note ? 1 : 0, transition: "opacity 200ms" }}>{note ? note.m : ""}</p>
-            </>
-          ) : (
-            <p className="mt-4" style={{ fontFamily: ui, fontSize: 15, lineHeight: 1.55, color: NEUTRAL.sub, maxWidth: 300,
-                                          animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) 120ms both" }}>{sub}</p>
-          )}
-        </div>
-
-        <div className="px-7 shrink-0" style={{ paddingBottom: "max(28px, env(safe-area-inset-bottom, 28px))",
-                                                 animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 360ms both" }}>
-          {/* still in a browser tab: the way onto the phone, before the app */}
-          {!isStandalone() && (
-            <button onClick={() => go(false, true)} data-tour="arrival-install" className="w-full mb-3 active:opacity-60"
-                    style={{ minHeight: 44, fontFamily: ui, fontSize: 14.5, color: NEUTRAL.sub }}>
-              {tr("Add Nosca to your Home Screen")}
-            </button>
-          )}
-          <Button tone="ink" onClick={() => go(true)}>{tr("Show me around")}</Button>
-          <button onClick={() => go(false)} className="w-full mt-3 active:opacity-60"
-                  style={{ minHeight: 44, fontFamily: ui, fontSize: 14.5, color: NEUTRAL.sub }}>
-            {tr("Skip")}
-          </button>
-        </div>
+              <p style={{ ...TYPE.small, color: NEUTRAL.sub, marginTop: 14 }}>{sub}</p>
+            </div>
+            <div className="grid grid-cols-2" style={{ gap: SPACE.tight, marginTop: SPACE.row }}>
+              <Button tone="quiet" onClick={copy}><span className="inline-flex items-center justify-center gap-2"><Copy size={17} strokeWidth={2} aria-hidden="true" />{tr("Copy")}</span></Button>
+              <Button tone="quiet" onClick={share}><span className="inline-flex items-center justify-center gap-2"><Share2 size={17} strokeWidth={2} aria-hidden="true" />{tr("Share")}</span></Button>
+            </div>
+            {/* the answer, in the room kept for it: nothing moves when it comes and goes */}
+            <p aria-live="polite" className="text-center" style={{ ...TYPE.small, minHeight: 20, marginTop: SPACE.tight, color: note && note.bad ? DANGER : STEADY,
+                                                                  opacity: note ? 1 : 0, transition: "opacity 200ms" }}>{note ? note.m : ""}</p>
+          </>)}
+        </AuthShell>
       </div>
     </ThemeCtx.Provider>
   );
