@@ -38,7 +38,7 @@ WHAT CHANGED, AND WHY (every blocker and major is fixed in the design, not in a 
   - The coach's switch gives them notice and the choice before any player's import is sorted.
 - 18 and 20, the parser. The file's header shape is locked from its first lines. A new message needs that exact shape plus an author label and ": ", or a system phrase. An out-of-order time never joins another author's message: it keeps file order and its own date.
 - 21, siblings. "For" can be changed per day, and the import makes one batch per player. A day whose coach lines name another child of the roster or family is unticked with "Names Ellie".
-- 24, recaps. The model labels a day `recap`; its chosen lines join the previous day's lesson and the day itself is Left out.
+- 24, recaps. The model labels a day `recap`; its chosen lines and its files join the previous day's lesson (the files by their own day's defaults, a file the lesson already has taken once by its hash) and the day itself is Left out.
 - 25, a second chat. A day already imported offers "Add N new files" (deduped by SHA-256), through the same RPC.
 - 26 and 35, latency and budgets.
   - The blocks are smaller: 150 segments and 6,000 bytes of text, context and markers included.
@@ -440,6 +440,7 @@ FILES
 
 GROUPING (`days.js`, `plan.js`)
 - One calendar day of messages for one player is one proposed lesson. Always private, or practice. No drills, tips, messages or attendee rows are written.
+- A recap day is the one day that is not its own lesson: its chosen lines and its files join the lesson it recaps (NOTE and FILE DEFAULTS below), and the day itself is Left out.
 - Segments: each coach text message is split at newlines, and after `.` `!` `?` only when followed by whitespace and then a capital letter or the end of the line. Never between digits (`HI 18.4`, `9.30`), and never after Dr, Mr, Mrs, Ms, St, vs, e.g., i.e. or approx. Each segment is `{ msg, start, end }` into the original body.
 - The block sent for a day part:
   - `[before]`: the last 6 coach segments of the previous active day, only if it is the calendar day before; for a later part of a split day, the last 6 of the part before;
@@ -464,7 +465,7 @@ GROUPING (`days.js`, `plan.js`)
   - The server runs the same scrub again as a backstop.
 - Lesson key (the client's hint only): hex SHA-256 of `nosca-import|<coachId>|<playerId>|<YYYY-MM-DD>`, the same formula as the server's `import_key`, compared with `lessons_view.import_key`.
 - NOTE: each run of contiguous chosen segments of one message is `body.slice(firstStart, lastEnd)` of the ORIGINAL unscrubbed text. Runs are joined by newlines, then "Tip · <line>" and "Drills · <lines>". A tip line is lifted out of the note. The note is cut at a message boundary at 4,000.
-  - A recap day's chosen lines are appended to the previous day's note.
+  - A recap day's chosen lines are appended to the previous day's note, and its files join that lesson's files.
   - For a junior's day, no note is built.
 - FOCUS: validated ids become labels joined with " · ". With none: "Lesson", or "Practice" on a practice day. `progressOf` and the archive's Worked on filter skip both words.
 - FILE DEFAULTS on a ticked day:
@@ -473,14 +474,15 @@ GROUPING (`days.js`, `plan.js`)
   - its photos: ticked on lesson days only;
   - its voice notes: unticked;
   - a second player-side label's files: unticked ("From Pat");
-  - screenshot-shaped photos: unticked ("Looks like a screenshot").
+  - screenshot-shaped photos: unticked ("Looks like a screenshot");
+  - a recap day's files, on the lesson they join: by their own day — the coach's ticked, the player's side's unticked (a recap is neither a lesson nor a practice day), a screenshot unticked — each naming the day it was sent ("Fri 14 Mar · 9:06 am · Niamh"), following the lesson's tick and ticked in one place, the lesson's, on either day's page. A file the lesson already has is taken once: the upload's hash check and `import_lessons`' `import_hash` both skip it.
 - DECISION TABLE, first match wins:
   1. The key matches an imported lesson: with no new hashes, "Imported already" (cannot be ticked); with new files, "Imported already · N new files", ticked when the new files are the coach's.
   2. Another lesson for that player that day (`playerId`, or `attendeeIds` including them): unticked, "Already a lesson that day".
   3. The coach's lines name another child of the roster or family (capitalised, whole word): unticked, "Names Ellie".
   4. lesson: ticked.
   5. practice, when the player's side sent a video or photo: ticked as Practice; otherwise treated as unsure.
-  6. recap, when the previous calendar day is a lesson in the plan: merged into it, and the day goes to Left out; otherwise treated as unsure.
+  6. recap, when the previous calendar day is a lesson in the plan: merged into it, its lines and its files, and the day goes to Left out; otherwise treated as unsure.
   7. unsure: unticked, "Not sure".
   8. chat: Left out without media; with media, unticked, "Looks like chat".
   9. A refusal: unticked, "Check this day"; the tick sleeps until the day has been opened.
@@ -1232,7 +1234,7 @@ BUDGET AND BLOCKS
 THE PLAN
 - The note is rebuilt from the UNSCRUBBED originals. The tip is lifted out. An unissued id is dropped. The 4,000 cut lands at a message boundary.
 - A junior's day builds no note.
-- A recap merges into the previous day. A practice day needs a player-side file.
+- A recap merges into the previous day, its files too, by their own day's defaults. A practice day needs a player-side file.
 - "Names Ellie" fires on a capitalised sibling.
 - The decision table, every row. The client's key equals the server's formula.
 
@@ -1337,7 +1339,7 @@ E2E: `scripts/e2e/import.cjs` (new; added to CLAUDE.md step 4)
   - the track and "Sorting · n of N days" are real;
   - Back and a return keep it;
   - a "Not sure" row is unticked;
-  - a recap is in Left out as "Recap · added to …" and its lines are in the previous note;
+  - a recap is in Left out as "Recap · added to …", its lines are in the previous note and its files on the previous lesson (the coach's ticked, the player's photo and a screenshot not, a photo the lesson already has once);
   - a practice day reads Practice;
   - a refusal reads "Check this day" and cannot be ticked until opened;
   - a sibling day reads "Names Ellie".

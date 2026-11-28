@@ -40,6 +40,14 @@ fs.writeFileSync(chat("chat-dave.txt"), fs.readFileSync(chat("chat-plain.txt"), 
   const files = r.files.map((f) => (/^\d+-PHOTO-2025-03-13-17-55/.test(f.name) && !k++ ? { ...f, data: Buffer.concat([f.data, Buffer.from("more")]) } : f));
   fs.writeFileSync(chat("chat-more.zip"), FX.zip([{ name: "_chat.txt", data: Buffer.from(r.text, "utf8") }, ...files]));
 }
+/* the iPhone chat with files on 14 March, the recap of 13 March's lesson: the coach's clip, the coach's photo of the
+   day before sent again (the same bytes), the player's photo and a screenshot */
+{
+  const days = FX.DAYS.map(([iso, msgs]) => [iso, iso === "2025-03-14" ? [...msgs, ["09:06", "C", "", { kind: "video", caption: "The low runner" }], ["09:07", "C", "", { kind: "photo" }],
+    ["09:10", "P", "Mine from after", { kind: "photo" }], ["09:12", "P", "", { kind: "png" }]] : msgs]);
+  const r = FX.render("iphone", days);
+  fs.writeFileSync(chat("chat-recap.zip"), FX.zip([{ name: "_chat.txt", data: Buffer.from(r.text, "utf8") }, ...r.files]));
+}
 
 const IDS = { coach: "c0000000-0000-4000-8000-00000000c0ac", cian: "a0000000-0000-4000-8000-0000000ad017", orla: "b0000000-0000-4000-8000-0000000b0001",
   tom: "b0000000-0000-4000-8000-0000000b0002", saoirse: "d0000000-0000-4000-8000-000000005a01", ellie: "e0000000-0000-4000-8000-00000000e111",
@@ -541,7 +549,7 @@ const cut = (page) => page.evaluate(() => {
       await coachToReview(c.page);
       const rows = await rowsOf(c.page);
       const done = rows.filter((r) => r.state === "already");
-      check("(l1) the same zip again: every day it wrote reads Imported already, and cannot be ticked", done.length >= before - 2 && done.every((r) => !r.on && !r.tick && /Imported already/.test(r.text)), `${done.length} of ${before}`);
+      check("(l1) the same zip again: every day it wrote reads Imported already, and cannot be ticked", done.length >= before - 2 && done.every((r) => !r.on && !r.tick && /Imported already/.test(r.text)), `${done.length} of ${before} · not already: ${rows.filter((r) => r.state !== "already").map((r) => `${r.day} ${r.state} ${r.text}`).join(" | ").slice(0, 600)}`);
       await c.page.locator('[aria-label="Back"]').first().dispatchEvent("click"); await c.page.waitForTimeout(500);
       await c.close();
       const c2 = await boot(db, "coach");
@@ -973,6 +981,36 @@ const cut = (page) => page.evaluate(() => {
       await p.shot("w9-progress");
       check("(w9) Progress counts them, says how many came in, and reads what they worked on", prog.trim() === `Includes ${n} imported` && /Bunker play/.test(areas) && /Putting/.test(areas), `${prog} · ${areas.slice(0, 120)}`);
       await p.close();
+      /* A RECAP'S FILES JOIN THE LESSON IT RECAPS, as its lines do: the clip the coach sent the morning after comes in on
+         that lesson, the photo it already had comes in once, the player's photo and a screenshot start unticked as on
+         their own day, and the recap day itself still reads Left out */
+      {
+        const d2 = freshDb({ allow: true });
+        const c2 = await boot(d2, "coach");
+        await openImport(c2.page, true);
+        await coachToReview(c2.page, chat("chat-recap.zip"));
+        await c2.page.locator(sel("import-leftout")).click(); await c2.page.waitForTimeout(700);
+        const lo = await c2.text();
+        await backBtn(c2.page);
+        await openDay(c2.page, "2025-03-13");
+        const f13 = await c2.page.$$eval(sel("import-day-file"), (els) => els.map((e) => ({ src: e.dataset.src, on: e.dataset.on === "1", text: e.innerText.replace(/\s+/g, " ").trim() })));
+        await c2.shot("w10-recap-files");
+        await backBtn(c2.page);
+        const joined = f13.filter((f) => f.src === "2025-03-14");
+        check("(w10) a recap day's files join the lesson it recaps, each naming its day: the coach's clip and photo ticked, the player's photo and a screenshot not",
+          joined.length === 4 && joined.every((f) => /Fri 14 Mar/.test(f.text)) && joined.filter((f) => f.on).length === 2 && joined.filter((f) => f.on).every((f) => /Niamh/.test(f.text))
+          && joined.some((f) => !f.on && /Looks like a screenshot/.test(f.text)) && joined.some((f) => !f.on && /^Photo/.test(f.text) && /Cian/.test(f.text) && !/screenshot/i.test(f.text)), JSON.stringify(f13));
+        check("(w10b) …and the recap day itself still reads Left out", /Recap · added to Thu 13 Mar/.test(lo), lo.slice(0, 200));
+        await c2.page.locator(sel("import-go")).click();
+        await doneFor(d2, IDS.cian);
+        await c2.page.waitForTimeout(1200);
+        const l13 = d2.lessons.find((l) => l.import_id && l.lesson_date === "2025-03-13");
+        const m13 = l13 ? d2.media.filter((m) => m.lesson_id === l13.id) : [];
+        check("(w11) …and come in on it: the clip, and the photo the lesson already had once, by its hash — nothing filed on the recap day",
+          !!l13 && m13.map((m) => m.kind).sort().join(",") === "photo,video" && new Set(m13.map((m) => m.import_hash)).size === m13.length
+          && !d2.lessons.some((l) => l.import_id && l.lesson_date === "2025-03-14"), JSON.stringify(m13.map((m) => [m.kind, String(m.import_hash).slice(0, 8)])));
+        await c2.close();
+      }
     }
 
     /* ================================================================ (s) NOTHING CUT AT 320 AND 375 */
