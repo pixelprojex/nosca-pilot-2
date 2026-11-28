@@ -41,6 +41,13 @@ const MP4 = Buffer.from("AAAAGGZ0eXBpc29tAAAAAGlzb21tcDQxAAAACGZyZWU=", "base64"
 let CLIP = null;
 try { CLIP = require("fs").readFileSync(require("path").join(__dirname, "fixtures", "clip.webm")); } catch (e) { CLIP = null; }
 const WEBM = Buffer.from("GkXfo0AgQoaBAUL3gQFC8oEEQvOBCEKChHdlYm1Ch4ECQoWBAhhTgGcBAAAAAAAB", "base64");
+/* the sports' areas, the same list nosca.sql's import_areas block is generated from */
+const IMPORT_AREAS = (() => {
+  try { const src = require("fs").readFileSync(path.join(ROOT, "src/lib/taxonomy.js"), "utf8");
+        const FOCUS = new Function(src.replace("export const FOCUS =", "return "))();
+        return Object.entries(FOCUS).flatMap(([sport, list]) => list.map((a) => `${sport}|${a.label}`)); } catch (e) { return []; }
+})();
+const sha256 = (s) => require("crypto").createHash("sha256").update(String(s), "utf8").digest("hex");
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEklEQVR42mNk+M9Qz8DAwMAAAA0BAgD8A9wJAAAAAElFTkSuQmCC", "base64"); // 2×2
 
 /* the same sum the database's is_junior_of() does */
@@ -76,6 +83,19 @@ function emptyDb() {
     slowFetch: 0,         // ms — every signed file takes this long to start coming down
     offline: false,       // true: every request to the mock fails as a lost connection
     alive: true,
+    /* THE IMPORT (supabase/nosca.sql section 10c): its batches, what sorting
+       has cost, and the sports' areas read from src/lib/taxonomy.js */
+    imports: [], importUsage: {}, importTotal: {}, importAreas: IMPORT_AREAS,
+    noImport: false,      // a project whose SQL has not been re-run: every import RPC is PGRST202, the table 42P01
+    importReady: false,   // the function's GET answers { ready } — false, so no existing suite ever sees Import
+    importPlan: null,     // canned verdicts: (body) => answer, or { "<weekday>|<segments>": answer }
+    importFail: null,     // per call index: busy · paused · over · review · retry · timeout · 500
+    importPosts: [],      // every POST body the function was handed, for the privacy checks
+    uploadLostResponse: null, // (path) => true: the upload is stored, and its answer lost on the way back
+    zipReadFail: null,    // N: the page's zip reader throws NotReadableError reading entry N
+    uploadCalls: 0,       // media uploads asked for, counted
+    /* where netlify/functions/import-sweep.mjs would have run */
+    sweep() { return importSweep(this); },
   };
 }
 const nowIso = (db) => new Date(db.now()).toISOString();
@@ -95,13 +115,13 @@ function addProfile(db, { id, role, name, sport = "golf", type = null, coachId =
   return row;
 }
 function addFamily(db, { id = uuid("fa000000"), code = code6(), name = null, createdBy = null }) { const f = { id, code, name, created_by: createdBy, created_at: nowIso(db) }; db.families[id] = f; return f; }
-function addLesson(db, { id = uuid("1e000000"), coachId, playerId = null, groupName = null, date, focus, subs = [], notes = null, unread = true, ratingRequested = false, sentBy = null, createdAt = null, kind = null }) {
-  const row = { id, coach_id: coachId, player_id: playerId, group_name: groupName, kind: kind || (groupName ? "group" : "private"), focus, subs, notes, lesson_date: date, unread, rating_requested: ratingRequested, sent_by: sentBy, created_at: createdAt || `${date}T10:00:00Z` };
+function addLesson(db, { id = uuid("1e000000"), coachId, playerId = null, groupName = null, date, focus, subs = [], notes = null, unread = true, ratingRequested = false, sentBy = null, createdAt = null, kind = null, importId = null, importKey = null }) {
+  const row = { id, coach_id: coachId, player_id: playerId, group_name: groupName, kind: kind || (groupName ? "group" : "private"), focus, subs, notes, lesson_date: date, unread, rating_requested: ratingRequested, sent_by: sentBy, created_at: createdAt || `${date}T10:00:00Z`, import_id: importId, import_key: importKey };
   db.lessons.push(row); return row;
 }
 /* who was at a group lesson — lessons carry a name, not a player */
 function addAttendee(db, { lessonId, playerId }) { const row = { lesson_id: lessonId, player_id: playerId, created_at: nowIso(db) }; db.attendees.push(row); return row; }
-function addMedia(db, { id = uuid("2e000000"), lessonId, kind, path: p, createdAt }) { const row = { id, lesson_id: lessonId, kind, storage_path: p, created_at: createdAt || nowIso(db) }; db.media.push(row); db.files.media[p] = { size: 10, type: kind }; return row; }
+function addMedia(db, { id = uuid("2e000000"), lessonId, kind, path: p, createdAt, importId = null, importHash = null }) { const row = { id, lesson_id: lessonId, kind, storage_path: p, created_at: createdAt || nowIso(db), import_id: importId, import_hash: importHash }; db.media.push(row); db.files.media[p] = db.files.media[p] || { size: 10, type: kind }; return row; }
 function addRequest(db, { id = uuid("ce000000"), playerId, coachId, status = "pending", createdAt, notify: tell = false }) {
   const row = { id, player_id: playerId, coach_id: coachId, status, created_at: createdAt || nowIso(db), decided_at: status === "pending" ? null : nowIso(db) };
   db.requests.push(row); if (tell) onRequestInsert(db, row); return row;
@@ -125,7 +145,7 @@ function addRecurring(db, { id = uuid("7e000000"), coachId, playerId = null, gro
 }
 function addDrill(db, { id = uuid("d0000000"), coachId, playerId, title, done = false }) { const row = { id, coach_id: coachId, player_id: playerId, title, done, created_at: nowIso(db) }; db.drills.push(row); return row; }
 function addMessage(db, { id = uuid("30000000"), coachId, playerId, senderId, body, readAt = null, createdAt, lessonId = null }) { const row = { id, coach_id: coachId, player_id: playerId, sender_id: senderId, body, read_at: readAt, lesson_id: lessonId, created_at: createdAt || nowIso(db) }; db.messages.push(row); return row; }
-function setPrefs(db, id, patch) { db.prefs[id] = { id, log_view: "feed", cal_view: "list", notify: "instant", attendance: "all", show_record: true, show_comps: true, reduce_data: false, ask_for_review: true, custom_drills: {}, custom_tips: {}, extra_sports: [], setup_done: false, availability: {}, groups: [], layout: {}, starred: [], player_notes: {}, default_view: null, reminder_time: null, updated_at: nowIso(db), ...(db.prefs[id] || {}), ...patch }; return db.prefs[id]; }
+function setPrefs(db, id, patch) { db.prefs[id] = { id, log_view: "feed", cal_view: "list", notify: "instant", attendance: "all", show_record: true, show_comps: true, reduce_data: false, ask_for_review: true, custom_drills: {}, custom_tips: {}, extra_sports: [], setup_done: false, availability: {}, groups: [], layout: {}, starred: [], player_notes: {}, default_view: null, reminder_time: null, player_imports: false, updated_at: nowIso(db), ...(db.prefs[id] || {}), ...patch }; return db.prefs[id]; }
 
 /* a week of hours in the shape the app saves: Monday-first day keys */
 const weekOf = (times = ["9:00 am", "10:00 am", "11:00 am", "2:00 pm", "3:00 pm"], days = [0, 1, 2, 3, 4]) =>
@@ -161,6 +181,7 @@ const adultsFor = (db, playerId) => { const j = db.profiles[playerId]; if (!j ||
 function notify(db, userId, kind, title, body, data) { if (!userId) return null; return addNotification(db, { userId, kind, title, body: body || null, data: data || {} }); }
 
 function onLessonInsert(db, l) {
+  if (l.import_id) return;   /* an import is told once, when it is done */
   if (!l.player_id) return;
   /* a clip the player sent: the coach is told, nobody else */
   if (l.sent_by) {
@@ -185,7 +206,7 @@ function onAttendeesInsert(db, rows) {
   const seen = new Set();
   rows.forEach((r) => {
     const l = db.lessons.find((x) => x.id === r.lesson_id); const k = `${r.lesson_id}|${r.player_id}`;
-    if (!l || l.player_id || l.sent_by || seen.has(k)) return; seen.add(k);
+    if (!l || l.player_id || l.sent_by || l.import_id || seen.has(k)) return; seen.add(k);
     notify(db, r.player_id, "lesson", "Lesson logged", `${l.focus} · ${nameOf(db, l.coach_id)}`, { screen: "lesson", id: l.id });
     adultsFor(db, r.player_id).forEach((a) => notify(db, a, "lesson", `${firstOf(db, r.player_id)}'s lesson logged`, `${l.focus} · ${nameOf(db, l.coach_id)}`, { screen: "family", id: l.id }));
   });
@@ -193,6 +214,7 @@ function onAttendeesInsert(db, rows) {
 /* a clip added to a lesson more than half an hour after it was logged —
    to the player, or for a group lesson to everybody marked there */
 function onMediaInsert(db, m) {
+  if (m.import_id) return;   /* a file the import carried in is part of its one notice */
   const l = db.lessons.find((x) => x.id === m.lesson_id); if (!l) return;
   /* a sent clip: the sender's own upload says nothing; the coach's reply is told at once */
   if (l.sent_by) { if (String(m.storage_path).split("/")[0] === l.sent_by) return; }
@@ -372,6 +394,185 @@ function onTipInsert(db, t) {
 }
 function onFamilyJoin(db, p) { if (!p.family_id) return; Object.values(db.profiles).filter((m) => m.family_id === p.family_id && m.id !== p.id).forEach((m) => notify(db, m.id, "family", `${p.name} joined your family`, null, { screen: "family" })); }
 
+/* ---------------------------------------------------------------- section 10c: importing a chat */
+const IMPORT_PATH = (b) => new RegExp(`^import/${b}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.(mp4|m4v|mov|3gp|jpg|jpeg|png|webp|opus|ogg|m4a|mp3|aac)$`);
+const IMPORT_FOLDER = /^import\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\//;
+const importKey = (coachId, playerId, day) => sha256(`nosca-import|${coachId}|${playerId}|${day}`);
+const monYear = (iso) => { if (!iso) return ""; const [y, m] = String(iso).split("-").map(Number); return `${MON[m - 1]} ${y}`; };
+const importSpan = (d1, d2) => (!d1 ? "" : monYear(d1) === monYear(d2) ? monYear(d1) : `${monYear(d1)} – ${monYear(d2)}`);
+/* import_may(): the coach; the adult player or an adult for a junior they look after now, once the coach allows it */
+function importMay(db, meId, pid) {
+  const me = db.profiles[meId]; if (!me || !pid || juniorRow(me, db.now())) return null;
+  const coach = (db.profiles[pid] || {}).coach_id || null; if (!coach) return null;
+  if (coach === meId) return pid !== meId ? "coach" : null;
+  if (!((db.prefs[coach] || {}).player_imports)) return null;
+  if (pid === meId) return "player";
+  if (scopeFor(db, meId).looked.includes(pid)) return "adult";
+  return null;
+}
+/* a lesson whose import is still filling is read by its importer alone (the restrictive policy) */
+const importHeld = (db, l, meId) => { if (!l || !l.import_id) return false; const b = (db.imports || []).find((x) => x.id === l.import_id); return !!b && b.status === "adding" && b.imported_by !== meId; };
+/* trg_import_media_gone: any file row of an import gone wakes the sweep for its batch */
+function dropMedia(db, pred) {
+  const gone = db.media.filter(pred); if (!gone.length) return gone;
+  db.media = db.media.filter((m) => !gone.includes(m));
+  gone.forEach((m) => { const hit = IMPORT_FOLDER.exec(String(m.storage_path)); const b = hit && (db.imports || []).find((x) => x.id === hit[1]); if (b) b.touched_at = nowIso(db); });
+  return gone;
+}
+function dropLessons(db, ids) {
+  const set = new Set(ids); db.lessons = db.lessons.filter((l) => !set.has(l.id));
+  dropMedia(db, (m) => set.has(m.lesson_id)); db.attendees = db.attendees.filter((a) => !set.has(a.lesson_id));
+  db.messages.forEach((m) => { if (set.has(m.lesson_id)) m.lesson_id = null; });
+}
+/* trg_lesson_imports_notify, word for word: one per recipient when done, never the importer; a finished import removed tells everyone told but the remover */
+function onImportStatus(db, b, oldStatus) {
+  if (b.status === oldStatus) return;
+  const adults = adultsFor(db, b.player_id);
+  if (b.status === "removed") {
+    if (oldStatus !== "done") return;
+    const n = b.lessons > 0 ? `${b.lessons} imported ${b.lessons === 1 ? "lesson" : "lessons"}` : `${b.files} imported ${b.files === 1 ? "file" : "files"}`;
+    const span = importSpan(b.first_day, b.last_day) || null;
+    [...new Set([b.coach_id, b.player_id, ...adults])].filter((x) => x && x !== b.removed_by).forEach((a) =>
+      notify(db, a, "lesson", `${nameOf(db, b.removed_by)} removed ${n}`, span,
+        a === b.coach_id ? { screen: "player", id: b.player_id } : a === b.player_id ? { screen: "home" } : { screen: "family" }));
+    return;
+  }
+  if (b.status !== "done" || b.lessons + b.files < 1) return;
+  const n = b.lessons > 0 ? `${b.lessons} ${b.lessons === 1 ? "lesson" : "lessons"}` : `${b.files} ${b.files === 1 ? "file" : "files"}`;
+  const span = importSpan(b.first_day, b.last_day);
+  const mine = (l) => l.import_id === b.id || db.media.some((m) => m.import_id === b.id && m.lesson_id === l.id);
+  const newest = db.lessons.filter(mine).sort((x, y) => String(y.lesson_date).localeCompare(String(x.lesson_date)) || String(y.created_at).localeCompare(String(x.created_at)))[0];
+  const dl = newest ? { screen: "lesson", id: newest.id, import: b.id } : { screen: "home" };
+  const df = { screen: "family", id: newest ? newest.id : null, import: b.id };
+  const ws = (...xs) => xs.filter(Boolean).join(" · ") || null;
+  if (b.coach_id !== b.imported_by) notify(db, b.coach_id, "lesson", b.imported_by === b.player_id ? `${nameOf(db, b.player_id)} imported ${n}` : `${n} imported for ${nameOf(db, b.player_id)}`,
+    b.imported_by === b.player_id ? (span || null) : ws(nameOf(db, b.imported_by), span), dl);
+  if (b.player_id !== b.imported_by) notify(db, b.player_id, "lesson", `${n} imported`, ws(span, nameOf(db, b.imported_by)), dl);
+  adults.filter((a) => a !== b.imported_by).forEach((a) => notify(db, a, "lesson", `${firstOf(db, b.player_id)}'s lessons imported`, ws(n, span), df));
+}
+function setImportStatus(db, b, status, extra = {}) { const old = b.status; Object.assign(b, { status, touched_at: nowIso(db), ...extra }); onImportStatus(db, b, old); }
+const importDays = (db, b) => { const days = db.lessons.filter((l) => l.import_id === b.id || db.media.some((m) => m.import_id === b.id && m.lesson_id === l.id)).map((l) => l.lesson_date).sort(); return [days[0] || null, days[days.length - 1] || null]; };
+/* the RPCs of section 10c: import_targets, import_begin, import_lessons, undo_import, import_gate — the checks, the words, the idempotence */
+function importRpc(db, fn, args, meId) {
+  const S = scopeFor(db, meId); const fail = (msg) => ({ error: msg });
+  if (fn === "import_targets") {
+    const ids = [...new Set([...Object.values(db.profiles).filter((p) => p.coach_id === meId).map((p) => p.id), meId, ...S.looked])];
+    return { data: ids.map((id) => ({ player_id: id, role: importMay(db, meId, id) })).filter((r) => r.role) };
+  }
+  if (fn === "import_gate") {
+    if (!meId || !importMay(db, meId, args.p_player)) return { data: "no" };
+    const d = ymd(new Date(db.now()));
+    if ((db.importTotal[d] || 0) >= 3000) return { data: "over" };
+    db.importTotal[d] = (db.importTotal[d] || 0) + 1;
+    const k = `${meId}|${d}`;
+    if ((db.importUsage[k] || 0) >= 600) { db.importTotal[d] -= 1; return { data: "over" }; }
+    db.importUsage[k] = (db.importUsage[k] || 0) + 1;
+    return { data: "ok" };
+  }
+  if (fn === "import_begin") {
+    if (!args.p_id) return { data: null };
+    if (!meId) return fail("Sign in first");
+    if (!importMay(db, meId, args.p_player)) return fail("Not yours to import");
+    if (!["golf", "tennis", "rowing", "squash", "padel", "equestrian"].includes(args.p_sport)) return fail("Unknown sport");
+    if ((args.p_source || "whatsapp") !== "whatsapp") return fail("Unknown source");
+    const held = db.lessons.filter((x) => x.player_id === args.p_player && x.import_id).length;
+    let b = db.imports.find((x) => x.id === args.p_id);
+    if (!b) { b = { id: args.p_id, coach_id: (db.profiles[args.p_player] || {}).coach_id, player_id: args.p_player, imported_by: meId, removed_by: null, source: "whatsapp", sport: args.p_sport,
+                    status: "adding", lessons: 0, files: 0, first_day: null, last_day: null, created_at: nowIso(db), touched_at: nowIso(db), done_at: null, swept_at: null }; db.imports.push(b); }
+    else if (b.status === "adding" && b.imported_by === meId) b.touched_at = nowIso(db);
+    if (b.imported_by !== meId || b.player_id !== args.p_player) return fail("Not your import");
+    return { data: { status: b.status, lessons: b.lessons, room: Math.max(600 - held, 0) } };
+  }
+  if (fn === "import_lessons") {
+    if (!args.p_id) return { data: null };
+    if (!meId) return fail("Sign in first");
+    const b = db.imports.find((x) => x.id === args.p_id);
+    if (!b || b.imported_by !== meId) return fail("Not your import");
+    if (b.status === "removed") return fail("That import was removed");
+    if (b.status === "done") return { data: { status: "done", total: b.lessons, lessons: [] } };
+    const r = importMay(db, meId, b.player_id); if (!r) return fail("Not yours to import");
+    if ((db.profiles[b.player_id] || {}).coach_id !== b.coach_id) return fail(`${firstOf(db, b.player_id)} is with another coach now`);
+    const arr = args.p_lessons == null ? [] : args.p_lessons;
+    if (!Array.isArray(arr)) return fail("Nothing to import");
+    if (arr.length > 50) return fail("Too many lessons at once");
+    if (arr.reduce((n, l) => n + ((l && l.files) || []).length, 0) > 600) return fail("Too many files at once");
+    if (db.lessons.filter((x) => x.player_id === b.player_id && x.import_id).length + arr.length > 600) return fail("Too many lessons");
+    /* all or nothing, as the function's transaction is: checked first, written after */
+    const today = ymd(new Date(db.now())), re = IMPORT_PATH(b.id), plan = [];
+    for (const l of arr) {
+      const d = /^\d{4}-\d{2}-\d{2}$/.test(String(l.day || "")) ? l.day : null, knd = l.kind || "private";
+      if (!d || d < "2009-01-01" || d > today) return fail("A lesson needs a day");
+      if (!["private", "practice"].includes(knd)) return fail("Unknown kind");
+      const focus = String(l.focus || "").trim(); if (!focus) return fail("A lesson needs an area");
+      if (String(l.note || "").length > 4000) return fail("Too long");
+      if ((l.files || []).length > 200) return fail("Too many files on one day");
+      if (focus.split(" · ").some((part) => !["Lesson", "Practice"].includes(part) && !(db.importAreas || []).includes(`${b.sport}|${part}`))) return fail("Unknown area");
+      for (const f of (l.files || [])) {
+        if (!["video", "photo", "audio"].includes(f.kind)) return fail("Unknown file kind");
+        if (!re.test(String(f.path || ""))) return fail("A file outside this import");
+        if (!/^[0-9a-f]{64}$/.test(String(f.hash || ""))) return fail("A file needs its hash");
+        if (!db.files.media[f.path]) return fail("A file that isn't uploaded");
+      }
+      plan.push({ l, d, knd, focus });
+    }
+    const out = []; let nl = 0, nf = 0; const now = nowIso(db);
+    const clamp = (at) => { const t = at ? new Date(at) : null; return t && !isNaN(t) && t.getTime() < db.now() ? t.toISOString() : now; };
+    for (const { l, d, knd, focus } of plan) {
+      const k = importKey(b.coach_id, b.player_id, d);
+      let lesson = db.lessons.find((x) => x.import_key === k), st;
+      if (!lesson) {
+        lesson = addLesson(db, { id: uuid("1e000000"), coachId: b.coach_id, playerId: b.player_id, date: d, focus, notes: String(l.note || "").trim() || null, unread: false,
+          sentBy: knd === "practice" ? b.player_id : r === "coach" ? null : meId, createdAt: clamp(l.at || `${d}T12:00:00Z`), kind: knd, importId: b.id, importKey: k });
+        st = "added"; nl += 1;
+      } else if (l.add) st = "appended";
+      else { out.push({ day: d, state: "skipped" }); continue; }
+      let n = 0;
+      (l.files || []).forEach((f, i) => {
+        if (db.media.some((m) => m.lesson_id === lesson.id && m.import_hash === f.hash)) return;
+        addMedia(db, { lessonId: lesson.id, kind: f.kind, path: f.path, createdAt: clamp(f.at), importId: b.id, importHash: f.hash }); n += 1;
+      });
+      nf += n; out.push({ day: d, id: lesson.id, state: st, files: n });
+    }
+    b.lessons += nl; b.files += nf; b.touched_at = now; [b.first_day, b.last_day] = importDays(db, b);
+    if (args.p_done) setImportStatus(db, b, b.lessons + b.files > 0 ? "done" : "removed", { done_at: now });
+    return { data: { status: b.status, total: b.lessons, lessons: out } };
+  }
+  if (fn === "undo_import") {
+    if (!args.p_id) return { data: null };
+    if (!meId) return fail("Sign in first");
+    const b = db.imports.find((x) => x.id === args.p_id);
+    if (!b || b.status === "removed") return { data: 0 };
+    const me = db.profiles[meId] || {}, sixteen = yearsOld(me.date_of_birth, db.now()) != null && yearsOld(me.date_of_birth, db.now()) >= 16;
+    const may = meId === b.coach_id || (meId === b.player_id && (!juniorRow(me, db.now()) || sixteen)) || S.looked.includes(b.player_id) || (b.status === "adding" && meId === b.imported_by);
+    if (!may) return fail("Not yours to remove");
+    if (args.p_lesson) {
+      const ids = db.lessons.filter((l) => l.id === args.p_lesson && l.import_id === b.id).map((l) => l.id); dropLessons(db, ids);
+      const left = b.lessons - ids.length; b.lessons = Math.max(left, 0); b.touched_at = nowIso(db);
+      if (left <= 0) setImportStatus(db, b, "removed", { removed_by: meId });
+      return { data: ids.length };
+    }
+    const ids = db.lessons.filter((l) => l.import_id === b.id).map((l) => l.id); dropLessons(db, ids);
+    dropMedia(db, (m) => m.import_id === b.id);
+    setImportStatus(db, b, "removed", { removed_by: meId });
+    return { data: ids.length };
+  }
+  return null;
+}
+/* netlify/functions/import-sweep.mjs, played on the mock's storage: the due batches, expiry, every file under a
+   batch's folder that no row names removed, then swept — or the batch deleted when removed and nothing is left */
+function importSweep(db) {
+  const week = 7 * 86400000, due = db.imports.filter((b) => (["done", "removed"].includes(b.status) && (!b.swept_at || b.swept_at < b.touched_at)) || (b.status === "adding" && db.now() - new Date(b.touched_at) > week)).slice(0, 20);
+  const out = { due: due.length, expired: 0, removed: 0 };
+  due.forEach((b) => {
+    if (b.status === "adding") { setImportStatus(db, b, b.lessons + b.files > 0 ? "done" : "removed", { done_at: nowIso(db) }); out.expired += 1; }
+    const refs = new Set(db.media.filter((m) => String(m.storage_path).startsWith(`import/${b.id}/`)).map((m) => m.storage_path));
+    Object.keys(db.files.media).filter((pth) => pth.startsWith(`import/${b.id}/`) && !refs.has(pth)).forEach((pth) => { delete db.files.media[pth]; out.removed += 1; });
+    b.swept_at = new Date(db.now() + 1).toISOString();
+    if (b.status === "removed" && !refs.size) db.imports = db.imports.filter((x) => x !== b);
+  });
+  return out;
+}
+
 /* ---------------------------------------------------------------- section 5: the sign-up trigger */
 function signupTrigger(db, u) {
   const m = u.meta || {};
@@ -414,9 +615,10 @@ function scopeFor(db, meId) {
   /* my_lesson_ids(): a group lesson you were actually marked at stays
      yours, even after you leave that coach */
   const attendedIds = db.attendees.filter((a) => a.player_id === meId || looked.includes(a.player_id)).map((a) => a.lesson_id);
-  const lessonVisible = (l) => l.coach_id === meId || playerScope(l.player_id)
+  /* the restrictive policy: a lesson whose import is still filling is read by its importer alone */
+  const lessonVisible = (l) => !importHeld(db, l, meId) && (l.coach_id === meId || playerScope(l.player_id)
     || (l.kind === "group" && !!mine && l.coach_id === mine.coach_id)
-    || attendedIds.includes(l.id);
+    || attendedIds.includes(l.id));
   return { mine, famId, iAmJunior, looked, profileVisible, playerScope, isCoach, lessonVisible };
 }
 
@@ -455,6 +657,19 @@ function applyQuery(rows, url) {
   return out;
 }
 
+/* the size of the file a storage upload carries: the part of a multipart form with a filename, or the whole body */
+function multipartFileSize(buf, ct) {
+  if (!buf) return 0;
+  const m = /boundary=([^;]+)/i.exec(String(ct || "")); if (!m) return buf.length;
+  const bnd = Buffer.from(`--${m[1].replace(/^"|"$/g, "")}`); let at = 0;
+  while ((at = buf.indexOf(bnd, at)) >= 0) {
+    const head = buf.indexOf("\r\n\r\n", at); if (head < 0) break;
+    const next = buf.indexOf(bnd, head); if (next < 0) break;
+    if (/filename=/i.test(buf.slice(at, head).toString("latin1"))) return next - (head + 4) - 2;
+    at = next;
+  }
+  return buf.length;
+}
 /* storage listing, one level deep, files with ids and folders without */
 function listPrefix(files, prefix) {
   const p = (prefix || "").replace(/\/+$/, ""); const seen = new Map();
@@ -481,6 +696,9 @@ async function attach(page, db, opts = {}) {
      person; nothing needs to come down it here */
   if (typeof page.routeWebSocket === "function") await page.routeWebSocket(/realtime/, () => {});
   const confirmOn = !!(opts.confirmEmail || db.confirmEmail);
+  /* THE NETLIFY FUNCTIONS. lesson-import answers { ready } to a GET and sorts a day on a POST (importRoute,
+     below); every other function answers {} — nothing in the app may hang on one. */
+  await page.route(/\/\.netlify\/functions\//, (route) => importRoute(route, db));
 
   await page.route(`${SB}/**`, async (route) => {
     /* db.offline: the network is gone — every request fails the way a
@@ -544,12 +762,24 @@ async function attach(page, db, opts = {}) {
       if (rest.startsWith("sign/") && method === "GET") { const isVid = /\.mp4$/.test(p) || /(markup|compare)-\d+\.webm$/.test(p); return bytes(isVid ? (CLIP || MP4) : /\.(webm|m4a)$/.test(p) ? WEBM : PNG, isVid ? (CLIP ? "video/webm" : "video/mp4") : /\.(webm|m4a)$/.test(p) ? "audio/webm" : "image/png"); }
       /* a public picture: a PNG, or a 404 for a path a suite has declared gone (db.failPublic) */
       if (rest.startsWith("public/") && method === "GET") { if (db.failPublic && db.failPublic(rest.slice(7))) return json(404, { statusCode: "404", error: "not_found", message: "Object not found" }); return bytes(PNG, "image/png"); }
-      if (rest.startsWith("list/") && method === "POST") { const bucket = rest.slice(5); return json(200, listPrefix(db.files[bucket] || {}, body && body.prefix)); }
+      if (rest.startsWith("list/") && method === "POST") { const bucket = rest.slice(5);
+        let rows = listPrefix(db.files[bucket] || {}, body && body.prefix);
+        /* an import folder is listed by its importer while the batch fills ("media: read your open import") */
+        const hitL = IMPORT_FOLDER.exec(String((body && body.prefix) || "").replace(/\/?$/, "/"));
+        if (hitL) { const b = db.imports.find((x) => x.id === hitL[1]); if (!b || b.imported_by !== me() || b.status !== "adding") rows = []; }
+        if (body && body.search) rows = rows.filter((r) => r.name.includes(body.search));
+        rows = rows.slice(Number((body && body.offset) || 0), Number((body && body.offset) || 0) + Number((body && body.limit) || 100));
+        return json(200, rows); }
       const [bucket, ...more] = rest.split("/"); const objPath = more.join("/");
       if ((method === "DELETE" || (method === "POST" && body && Array.isArray(body.prefixes))) && !objPath) {
-        const gone = (body && body.prefixes) || []; gone.forEach((g) => { if (db.files[bucket]) delete db.files[bucket][g]; }); db.deletes.push({ table: "storage:" + bucket, rows: gone, by: me() });
+        const asked = (body && body.prefixes) || [];
+        /* nothing under import/ is a client's to delete: the sweep owns it */
+        const gone = asked.filter((g) => !String(g).startsWith("import/"));
+        if (asked.length && !gone.length) { db.deletes.push({ table: "storage:" + bucket, rows: [], by: me(), refused: asked }); return json(403, { statusCode: "403", error: "Unauthorized", message: "new row violates row-level security policy" }); }
+        gone.forEach((g) => { if (db.files[bucket]) delete db.files[bucket][g]; }); db.deletes.push({ table: "storage:" + bucket, rows: gone, by: me() });
         return json(200, gone.map((n) => ({ name: n }))); }
       if (method === "POST" && objPath) {
+        if (bucket === "media") db.uploadCalls += 1;
         const spec = db.failUpload ? db.failUpload(objPath, bucket) : null;
         db.uploads.push({ bucket, path: objPath, by: me(), refused: !!spec, size: Number(hdr["content-length"] || 0) });
         if (spec) return json(spec.status || 413, spec.body || { statusCode: "413", error: "Payload too large", message: "The object exceeded the maximum allowed size" });
@@ -561,12 +791,16 @@ async function attach(page, db, opts = {}) {
           db.uploads[db.uploads.length - 1].refused = true;
           return json(409, { statusCode: "409", error: "Duplicate", message: "The resource already exists" });
         }
-        /* the storage INSERT policy: your own folder only */
-        if (String(objPath).split("/")[0] !== me()) {
+        /* the storage INSERT policy: your own folder only — or, under import/, your own batch while it fills */
+        const hitU = IMPORT_FOLDER.exec(String(objPath)), batchU = hitU && db.imports.find((x) => x.id === hitU[1]);
+        const importOk = !!batchU && batchU.imported_by === me() && batchU.status === "adding";
+        if (hitU ? !importOk : String(objPath).split("/")[0] !== me()) {
           db.uploads[db.uploads.length - 1].refused = true;
           return json(403, { statusCode: "403", error: "Unauthorized", message: "new row violates row-level security policy" });
         }
-        db.files[bucket][objPath] = { size: Number(hdr["content-length"] || 0), type: hdr["content-type"] || "" };
+        /* an import's file keeps its own size (the file part of the form), as Storage lists it */
+        db.files[bucket][objPath] = { size: hitU ? multipartFileSize(req.postDataBuffer(), hdr["content-type"]) : Number(hdr["content-length"] || 0), type: hdr["content-type"] || "" };
+        if (hitU && db.uploadLostResponse && db.uploadLostResponse(objPath)) { db.posts.push({ table: "upload", rows: [p], by: me(), lost: true }); return route.abort("connectionreset"); }
         db.posts.push({ table: "upload", rows: [p], by: me() });
         return json(200, { Key: `${bucket}/${objPath}`, Id: uuid("f1000000") }); }
       return json(404, { statusCode: "404", error: "not_found", message: "Object not found" });
@@ -716,6 +950,13 @@ async function attach(page, db, opts = {}) {
         delete db.profiles[meId]; for (const k of Object.keys(db.users)) if (db.users[k].id === meId) delete db.users[k];
         db.alive = false; db.deletes.push({ table: "account", rows: [meId], by: meId }); return json(204, undefined);
       }
+      /* section 10c: the import's functions — none at all on a project whose SQL has not been re-run */
+      if (["import_targets", "import_begin", "import_lessons", "undo_import", "import_gate"].includes(fn)) {
+        if (db.noImport) return json(404, { code: "PGRST202", message: `Could not find the function public.${fn} in the schema cache` });
+        const res = importRpc(db, fn, args, meId);
+        if (res && res.error) return human(res.error);
+        return json(200, res ? res.data : null);
+      }
       return json(404, { code: "PGRST202", message: `Could not find the function public.${fn}` });
     }
 
@@ -741,11 +982,14 @@ async function attach(page, db, opts = {}) {
       messages: { rows: () => db.messages, see: (x) => x.coach_id === meId || S.playerScope(x.player_id) },
       reviews: { rows: () => db.reviews, see: (x) => x.coach_id === meId || x.player_id === meId },
       ...(db.noAbsences ? {} : { group_absences: { rows: () => db.absences, see: (x) => x.coach_id === meId || S.playerScope(x.player_id) } }),
+      /* "lesson_imports: the people it concerns": the coach, the player, an adult who looks after them now */
+      ...(db.noImport ? {} : { lesson_imports: { rows: () => db.imports, see: (x) => x.coach_id === meId || x.player_id === meId || S.looked.includes(x.player_id) } }),
     };
     const st = stores[table];
     if (!st) return json(404, { code: "42P01", message: `relation "public.${table}" does not exist` });
-    /* group_absences is read only: written through set_group_absence() */
+    /* group_absences is read only: written through set_group_absence(); lesson_imports through section 10c's functions */
     if (table === "group_absences" && method !== "GET") return json(403, { code: "42501", message: "permission denied for table group_absences" });
+    if (table === "lesson_imports" && method !== "GET") return json(403, { code: "42501", message: "permission denied for table lesson_imports" });
     if (!mine) return json(401, { message: "JWT expired" });
     const visible = () => applyQuery(st.rows().filter(st.see), url);
     /* a project whose SQL has not been re-run answers a select naming a
@@ -771,6 +1015,9 @@ async function attach(page, db, opts = {}) {
 
     if (method === "POST") {
       const rows = (Array.isArray(body) ? body : [body || {}]).map((r) => ({ ...r }));
+      /* the guard (trg_import_guard): a client sets no import column, and a client's file row names only its own folder */
+      if (table === "lessons" || table === "lesson_media") rows.forEach((r) => { delete r.import_id; delete r.import_key; delete r.import_hash; });
+      if (table === "lesson_media" && rows.some((r) => String(r.storage_path || "").split("/")[0] !== meId)) { db.posts.push({ table, rows, by: meId, refused: true }); return human("A file outside your folder"); }
       const ok = (r) => {
         /* the coach's own, or a clip a player sends their coach: sent_by themselves, for themselves or a junior they look after, to that player's coach */
         if (table === "lessons") return (S.isCoach && r.coach_id === meId)
@@ -814,7 +1061,8 @@ async function attach(page, db, opts = {}) {
       if (!rows.every(ok)) { db.posts.push({ table, rows, by: meId, refused: true }); return forbidden(); }
       const made = rows.map((r) => {
         const base = { id: uuid(), created_at: nowIso(db) };
-        if (table === "lessons") Object.assign(base, { player_id: null, group_name: null, kind: "private", subs: [], notes: null, lesson_date: ymd(new Date(db.now())), unread: true, rating_requested: false, sent_by: null });
+        if (table === "lessons") Object.assign(base, { player_id: null, group_name: null, kind: "private", subs: [], notes: null, lesson_date: ymd(new Date(db.now())), unread: true, rating_requested: false, sent_by: null, import_id: null, import_key: null });
+        if (table === "lesson_media") Object.assign(base, { import_id: null, import_hash: null });
         if (table === "bookings") Object.assign(base, { player_id: null, group_name: null, duration: 45, kind: "private", status: "confirmed", logged_id: null, recurring_id: null, note: null });
         if (table === "recurring") Object.assign(base, { player_id: null, group_name: null, cadence: "weekly", until_date: null });
         if (table === "drills") Object.assign(base, { done: false, due: null });
@@ -840,6 +1088,8 @@ async function attach(page, db, opts = {}) {
     }
 
     if (method === "PATCH") {
+      if (table === "lessons" || table === "lesson_media") { delete body.import_id; delete body.import_key; delete body.import_hash;
+        if (table === "lesson_media" && body.storage_path !== undefined && String(body.storage_path).split("/")[0] !== meId) return human("A file outside your folder"); }
       let upd = visible();
       if (table === "profiles") upd = upd.filter((r) => r.id === meId && (body.coach_id === undefined || body.coach_id === r.coach_id) && (body.family_id === undefined || body.family_id === r.family_id));
       if (table === "notifications" || table === "preferences") upd = upd.filter((r) => (r.user_id || r.id) === meId);
@@ -872,6 +1122,8 @@ async function attach(page, db, opts = {}) {
       if (table === "attendance_sessions") gone = gone.filter((r) => r.coach_id === meId);
       const target = { notifications: db.notifications, drills: db.drills, tips: db.tips, recurring: db.recurring, competitions: db.competitions, bookings: db.bookings, push_subscriptions: db.pushSubs, messages: db.messages, lesson_media: db.media, reviews: db.reviews, attendance_sessions: db.sessions }[table];
       if (target) gone.forEach((r) => { const i = target.indexOf(r); if (i >= 0) target.splice(i, 1); });
+      /* trg_import_media_gone: a file row of an import gone wakes the sweep for its batch */
+      if (table === "lesson_media") gone.forEach((m) => { const hit = IMPORT_FOLDER.exec(String(m.storage_path)); const b = hit && db.imports.find((x) => x.id === hit[1]); if (b) b.touched_at = nowIso(db); });
       /* attendance_marks references attendance_sessions on delete cascade */
       if (table === "attendance_sessions") { const ids = new Set(gone.map((r) => r.id)); for (let i = db.marks.length - 1; i >= 0; i--) if (ids.has(db.marks[i].session_id)) db.marks.splice(i, 1); }
       /* bookings.recurring_id references recurring on delete set null:
@@ -883,6 +1135,19 @@ async function attach(page, db, opts = {}) {
     return json(405, { message: "method not mocked" });
   });
 }
+
+/* ---------------------------------------------------------------- the import's function */
+async function importRoute(route, db) {
+  const req = route.request(), url = new URL(req.url());
+  const answer = (status, body) => route.fulfill({ status, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(body) });
+  if (db.offline) return route.abort("internetdisconnected");
+  if (!/\/\.netlify\/functions\/lesson-import\/?$/.test(url.pathname)) return answer(200, {});
+  if (req.method() === "GET") return answer(200, { ready: !!db.importReady });
+  if (req.method() !== "POST") return answer(405, {});
+  return importPost(route, db, answer);
+}
+/* the POST, until the sorting function's own rules are written (phase 4): busy */
+async function importPost(route, db, answer) { return answer(200, { status: "busy", retryAfter: 2 }); }
 
 /* ---------------------------------------------------------------- the built app */
 async function startServer(distDir, port) {
@@ -1019,6 +1284,7 @@ module.exports = {
   SB, ROOT, b64u, uuid, code6, pad, ymd, MON, MP4, WEBM, PNG, yearsOld, juniorRow,
   emptyDb, addUser, addProfile, addFamily, addLesson, addMedia, addAttendee, addRequest, addNotification, addBooking, addRecurring, addDrill, addMessage, setPrefs, weekOf,
   session, signupTrigger, notify, groupMembers, scopeFor, lessonsView, attach, startServer, stopServer,
+  importKey, importSpan, importRpc, importSweep, IMPORT_AREAS,
   norm, rootText, rootEmpty, SPLASH_MS, settle, injectSession, tap, byText, click, back, codeBoxes, fillCode, bellCount, rowLead, plainRow, checker, SEEDED,
   factsFit, factsWhole, fingerFit,
 };
