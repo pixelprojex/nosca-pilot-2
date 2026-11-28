@@ -165,13 +165,15 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
          the heading (four tiles naming Requests · Join requests · Messages stood over rows that named themselves) */
       const act1 = await actionsOf(page);
       check("(c2) Actions with more than two kinds but a handful of rows carries no filter — the rows sit straight under the heading", !!act1 && act1.kinds > 2 && act1.rows <= 6 && !act1.filter && act1.gap !== null && act1.gap <= 16, JSON.stringify(act1));
-      /* 23 November: a row of words carries no icon. An Actions row is its word, its count in the sub grey and the
+      /* 28 November: the home's Actions carry no Messages row — the Chat tab's badge says it — and a count of what
+         waits is the level's chip (the CountPill); All lessons keeps its plain figure.
+         23 November: a row of words carries no icon. An Actions row is its word, its count in the sub grey and the
          chevron, on the box's 16 inset, 60 tall — each led with a glyph on a coloured tile for two days (a pencil, a
          person-and-plus, a bubble, an hourglass, a trophy, a camera) — and All lessons under them the same door */
       const nJobs = await page.locator('[data-scroll="screen"] .nsc-ruled > [data-row-door]').count(), jobs = [];
       for (let i = 0; i < nJobs; i++) jobs.push(await M.rowLead(page, '[data-scroll="screen"] .nsc-ruled > [data-row-door]', i));
       check("(c2b) the home's Actions rows and All lessons lead with their word: no glyph before any, the chevron after, 60 tall on the box's inset",
-        jobs.length >= 3 && jobs.every((j) => M.plainRow(j) && j.h === 60 && j.inset === 16 && j.color === "rgb(29, 27, 23)") && jobs.some((j) => j.label === "Join requests") && jobs.some((j) => j.label === "Messages") && jobs[jobs.length - 1].label === "All lessons",
+        jobs.length >= 3 && jobs.every((j) => M.plainRow(j) && j.h === 60 && j.inset === 16 && j.color === "rgb(29, 27, 23)") && jobs.some((j) => j.label === "Join requests") && !jobs.some((j) => j.label === "Messages") && jobs[jobs.length - 1].label === "All lessons",
         JSON.stringify(jobs.map((j) => j && `${j.label} lead ${j.lead} before ${j.before} [${j.glyphs}] h${j.h}`)));
       {
         /* the same coach on a heavy morning: three requests, a join request, a message, a lesson to log, somebody drifting */
@@ -179,6 +181,8 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
         M.addBooking(db2, { coachId: IDS.coach, playerId: IDS.adult, date: M.ymd(dayFrom(3)), time: "9:00 am", status: "requested" });
         M.addBooking(db2, { coachId: IDS.coach, playerId: IDS.junior, date: M.ymd(dayFrom(4)), time: "4:00 pm", status: "requested" });
         M.addBooking(db2, { coachId: IDS.coach, playerId: IDS.adult, date: M.ymd(dayFrom(-1)), time: "9:00 am" });
+        /* a clip to review, so the morning still runs past six rows now the Messages row is gone (28 November) */
+        M.addLesson(db2, { coachId: IDS.coach, playerId: IDS.adult, date: M.ymd(dayFrom(-1)), focus: "Chipping", sentBy: IDS.adult, unread: true });
         for (const [id, email, name] of [["00000000-0000-4000-8000-0000000da2a0", "dara@t.ie", "Dara Quinn"], ["00000000-0000-4000-8000-0000000f1011", "fionn@t.ie", "Fionn Daly"]]) {
           M.addUser(db2, { id, email }); M.addProfile(db2, { id, role: "player", name, type: "adult", coachId: IDS.coach, dob: "1990-02-02" });
         }
@@ -351,6 +355,8 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
         await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
         return { ctx, page, shot: (name) => page.screenshot({ path: path.join(outDir, `${name}.png`) }) };
       };
+      /* 28 November, the design render: the disc is 96, the lead's pale on its ledge, and the line the titles'
+         serif at 24/700 — it was 88 on the wash with the line in TYPE.section's 20 */
       const heroOf = (page) => page.evaluate(() => {
         const hs = [...document.querySelectorAll('[data-scroll="screen"] [data-empty-hero]')], h = hs[0]; if (!h) return { n: 0 };
         const disc = h.querySelector("[data-hero-disc]"), line = h.querySelector("[data-hero-line]"), dr = disc.getBoundingClientRect(), lr = line.getBoundingClientRect(), ls = getComputedStyle(line), ds = getComputedStyle(disc), glyph = disc.querySelector("svg");
@@ -358,7 +364,7 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
                  line: line.textContent.trim(), size: ls.fontSize, weight: ls.fontWeight, under: lr.top >= dr.bottom, centred: Math.abs((dr.left + dr.width / 2) - (lr.left + lr.width / 2)) <= 1, boxed: !!h.closest(".nsc-list, .nsc-day"),
                  buttons: [...h.querySelectorAll("button")].map((b) => ({ tour: b.getAttribute("data-tour"), text: b.textContent.trim(), h: Math.round(b.getBoundingClientRect().height) })) };
       });
-      const hero = (o, words) => !!o && o.n === 1 && o.disc[0] === 88 && o.disc[1] === 88 && o.round && o.discBg !== NONE && o.discBg !== CARD && o.glyph >= 36 && o.line === words && o.size === "20px" && o.weight === "700" && o.under && o.centred && !o.boxed;
+      const hero = (o, words) => !!o && o.n === 1 && o.disc[0] === 96 && o.disc[1] === 96 && o.round && o.discBg !== NONE && o.discBg !== CARD && o.glyph >= 36 && o.line === words && o.size === "24px" && o.weight === "700" && o.under && o.centred && !o.boxed;
       const c = await bootAs(E.coach);
       await tap(c.page, '[aria-label="Today"]', 900);
       const h1 = await heroOf(c.page); await c.shot("09-empty-coach-home");

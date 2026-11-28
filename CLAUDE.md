@@ -161,7 +161,9 @@ seeded data and no account.
     the level in the lead at 700. A lesson
     with nothing filmed (`Poster`) is the lead's pale with the sport's
     glyph in the lead, never the grey square. `EmptyHero`'s disc is 96,
-    the lead's pale on its ledge.
+    the lead's pale on its ledge, and its line the serif at 24/700 —
+    superseding the art direction's "88px disc of the wash" and its line
+    "in `TYPE.section`".
   `scripts/e2e/keys.cjs`, `boxes.cjs`, `ease.cjs`, `narrow.cjs`,
   `type-floor.cjs`, `person-row.cjs`, `calendar-day.cjs`, `diary.cjs`,
   `edit-day.cjs`, `lists.cjs`, `sprint-3.cjs` and `shortcuts.cjs` read it.
