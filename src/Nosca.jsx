@@ -17049,11 +17049,16 @@ function CreateGroup({ roster, nouns, times: own, onCreate, close, say }) {
    the group was made with (preferences.groups). Remove is there only when
    nothing is booked ahead — otherwise one line says so and offers no
    removal — and it is the red quiet key, then a plain confirm. */
-function GroupEditBody({ group, roster, nouns, picked: start, ahead = 0, sessions = 0, onSave, onRemove, close, say }) {
+function GroupEditBody({ group, roster, nouns, picked: start, ahead: aheadNow = 0, sessions = 0, run = null, onEnd, onSave, onRemove, close, say }) {
   const t = useT();
   const [members, setMembers] = useState(start || []);
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState(false);
+  /* lessons ahead the diary could not see (a run past its window): the
+     server said so when Remove was pressed, and the sheet says it as the
+     diary's own count is said */
+  const [late, setLate] = useState(0);
+  const ahead = Math.max(aheadNow, late);
   const changed = members.length !== (start || []).length || members.some((id) => !(start || []).includes(id));
   const save = async () => {
     if (busy || !changed || !members.length) return;
@@ -17072,7 +17077,13 @@ function GroupEditBody({ group, roster, nouns, picked: start, ahead = 0, session
           {`${countOf(sessions, "sessions")} ${sessions === 1 ? tr("stays in All lessons") : tr("stay in All lessons")}`}
         </p>
       )}
-      <Button tone="danger" tour="group-remove-go" disabled={busy} onClick={async () => { setBusy(true); await onRemove(); }}>{tr("Remove")}</Button>
+      <Button tone="danger" tour="group-remove-go" disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                const res = await onRemove();
+                /* refused: the sheet stays, back on the group, saying why */
+                if (res && (res.ahead || res.error)) { setBusy(false); setConfirm(false); if (res.ahead) setLate(res.ahead); }
+              }}>{tr("Remove")}</Button>
       <button onClick={() => { haptic(6); setConfirm(false); }} className="w-full mt-2.5 active:opacity-60"
               style={{ minHeight: 48, ...TYPE.body, color: t.sub }}>{tr("Keep it")}</button>
     </>
@@ -17090,8 +17101,18 @@ function GroupEditBody({ group, roster, nouns, picked: start, ahead = 0, session
       </div>
       <Button tour="group-edit-save" disabled={busy || !changed || !members.length} onClick={save}>{busy ? tr("Saving…") : tr("Save")}</Button>
       {ahead > 0 ? (
-        /* nothing is taken from under a booked lesson: the run is ended first */
-        <p data-tour="group-edit-ahead" className="mt-4 text-center" style={{ ...TYPE.small, color: t.sub }}>{`${countOf(ahead, "lessons")} ${tr("ahead")} — ${tr("End them first")}`}</p>
+        /* nothing is taken from under a booked lesson: the run is ended first
+           — and where the group has its run, End is here, the run's own End
+           (why, which lessons, the password), which tells the members as
+           every End does; the line alone sent the coach looking for it */
+        <>
+          <p data-tour="group-edit-ahead" className="mt-4 text-center" style={{ ...TYPE.small, color: t.sub }}>{`${countOf(ahead, "lessons")} ${tr("ahead")} — ${tr("End them first")}`}</p>
+          {run && onEnd && (
+            <div className="mt-3">
+              <Button tone="dangerQuiet" tour="group-edit-end" onClick={() => onEnd(run)}>{tr("End")}</Button>
+            </div>
+          )}
+        </>
       ) : (
         <div className="mt-3">
           <Button tone="dangerQuiet" tour="group-edit-remove" onClick={() => setConfirm(true)}>{tr("Remove group")}</Button>
@@ -22976,8 +22997,33 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     done(tr("Saved"), [g.name, countOf(chosen.length, cfg.nouns)].filter(Boolean).join(" · "));
     return {};
   };
-  const removeGroup = async (g) => {
+  /* A GROUP'S RUN ENDS WITH IT (28 November). New group writes a standing
+     arrangement under the group's name, and Remove took the group off the
+     coach's groups and left the arrangement running: Recurring lessons still
+     listed it, the Diary's Manage counted it, and anything it went on to
+     book had nobody to tell, the members being found through the group.
+     Remove is offered only with nothing booked ahead, so the run ends with
+     the group taking nothing from anyone — End with nothing ahead, one tap —
+     and the server is asked first, past the diary's window: a run with a
+     lesson still ahead is refused in the sheet with the line, and End is the
+     way to them, which tells the members as every End does. */
+  const groupRuns = (g) => (data ? (data.recurring || []) : []).filter((x) => x.groupName && sameGroupName(x.groupName, g.name) && (!x.coachId || !account || x.coachId === account.id));
+  const groupRunsClear = async (g) => {
+    const runs = groupRuns(g);
+    let ahead = 0;
+    for (const rec of runs) {
+      const r = await data.seriesBookings(rec);
+      if (r && r.error) return { error: { message: tr("Couldn't remove the group.") } };
+      ahead += ((r && r.rows) || []).length;
+    }
+    return { runs, ahead };
+  };
+  const removeGroup = async (g, runs = groupRuns(g)) => {
     if (data) {
+      for (const rec of runs) {
+        const r0 = await data.removeRecurring(rec.id);
+        if (r0 && r0.error) { hapticWarn(); say(tr("Couldn't remove the group.")); return r0; }
+      }
       const cur = (data.prefs && data.prefs.groups) || [];
       const r = await data.saveGroups(cur.filter((x) => !sameGroup(x, g)));
       if (r && r.error) { hapticWarn(); say(tr("Couldn't remove the group.")); return r; }
@@ -24613,8 +24659,24 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             ahead={groupAhead(editGroup)}
                                             sessions={data ? (data.lessons || []).filter((l) => l.type === "Group" && sameGroupName(l.who, editGroup.name)).length : 0}
                                             onSave={(ids) => saveGroupMembers(editGroup, ids)}
-                                            /* the page goes with the group: back on the roster, then the write */
-                                            onRemove={() => { const g = editGroup; setSheet(null); setEditGroup(null); pop(); return removeGroup(g); }}
+                                            /* the group's run, when lessons are ahead: End is the way
+                                               to them, the End every arrangement has, so its members
+                                               are told as End tells them */
+                                            run={groupRuns(editGroup)[0] || null}
+                                            onEnd={(rec) => openEndSeries(rec)}
+                                            /* the server is asked first — a run with a lesson ahead past
+                                               the diary's window keeps the sheet, saying so; then the
+                                               page goes with the group: back on the roster, then the write */
+                                            onRemove={async () => {
+                                              const g = editGroup;
+                                              if (data) {
+                                                const chk = await groupRunsClear(g);
+                                                if (chk.error) { hapticWarn(); say(chk.error.message); return chk; }
+                                                if (chk.ahead) { hapticWarn(); return { ahead: chk.ahead }; }
+                                                setSheet(null); setEditGroup(null); pop(); return removeGroup(g, chk.runs);
+                                              }
+                                              setSheet(null); setEditGroup(null); pop(); return removeGroup(g);
+                                            }}
                                             close={() => { setSheet(null); setEditGroup(null); }} />
               : sheet === "newThread" ? <NewThread role={role} roster={roster} conns={conns.filter((c) => c.profileId === activeProfileId)}
                                             people={data && role !== "coach" ? (liveThreads || []).map((c) => ({ id: c.playerId, name: c.who, sub: c.sub })) : null}
