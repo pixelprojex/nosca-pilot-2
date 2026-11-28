@@ -3948,6 +3948,59 @@ seeded data and no account.
 - No pricing anywhere. No progress bar in sign-up. No region or
   language screens. Plain labels, no sales copy.
 
+## The native shell — App Store and Google Play
+
+- **The same bundle, carried by Capacitor 8; everything native is behind
+  `isNative()` (28 November).** The founder: "please build the iPhone
+  shell around it … so that the website would be optimized to move into
+  the iOS after when we get to the stage in about 2 months' time", and
+  Google Play beside it. `capacitor.config.json` (the id `ie.nosca.app`,
+  changed everywhere at once by `npm run native:id -- <id>` before the
+  first upload, never after), `ios/` (Swift Package Manager — no CocoaPods,
+  no Mac needed to generate it; iPhone only, portrait; `Info.plist` words
+  the camera, microphone, photo and dictation asks) and `android/` are
+  committed; their copies of the bundle are not. `npm run native:sync`
+  builds for the shell (`NOSCA_NATIVE=1`: the public settings are read off
+  the first site as Netlify reads them, and a build with no database
+  stops) and copies it in; `codemagic.yaml` builds, signs and uploads both
+  on Codemagic's machines; `node scripts/icons.mjs` draws the native icons
+  and launch screens from the mark's numbers with the web's.
+  `docs/native/README.md` is how it ships and the founder's list. What the
+  shell does differently is `src/lib/native.js` and nothing else, every
+  plugin a dynamic import the web never loads: the launch screen (the
+  brand and the mark) holds until something other than the white loader
+  is drawn, then fades; the status bar is read off what is drawn under it
+  (light over the splash, the feed, the camera and the dark stages, dark
+  over the white app); `haptic`, `hapticSuccess`, `hapticWarn` and
+  `hapticCommit` go to the phone's engine; `shareTextFile` and
+  `shareOrCopy` to the share sheet (Android's WebView has no Web Share,
+  and a download in a WebView goes nowhere); `saveToDevice` to the app's
+  Documents; `openAbout` to the phone's browser at the public address;
+  `joinLink` and the reset email's `redirectTo` carry
+  `PUBLIC_ORIGIN` (`https://nosca.netlify.app` — a real domain changes it
+  with index.html's and `signpost.mjs`'s), never the shell's localhost;
+  Android's back presses the topmost reachable way back — a `Close`, an
+  open sheet's `data-sheet-scrim`, a `Back` (aria-labels: a new screen's
+  Back gets it for free) — else the app goes to the background.
+  `isStandalone()` is true in the shell, so the Add to Home Screen guide,
+  its Settings row and the arrival line never show, and `registerSw()`
+  registers nothing; the signpost hops only from its own host. Push: a
+  device token is filed in `push_subscriptions` as `apns:<token>` or
+  `fcm:<token>` with no keys — no new column — through the same
+  `subscribePush`, `syncSubscription`, `unsubscribePush` and
+  `currentSubscription`; the web relay sends only to `https://` endpoints
+  (`push-relay.mjs` holds it), and the native sender is written down in
+  the README, not built, until the founder's APNs and Firebase keys exist.
+  Android's push is offered only when `android/app/google-services.json`
+  was there at build (`VITE_NATIVE_PUSH_ANDROID`): without it the push
+  library takes the app down. A tapped notification reaches Nosca through
+  `onNativeOpen` with the worker's own keys. Nothing that sells or points
+  to a purchase, ever (Apple 3.1.3(f), Google's payments policy): the
+  harness's mock plan picker is behind `?demo`, which the shell cannot
+  open. The web is unchanged — `install.cjs`, `refresh.cjs`,
+  `notifications.cjs` and `capture.cjs` on a mock build; the shell itself
+  is checked on a phone (the README's last section).
+
 ## Database
 
 `supabase/nosca.sql` is the only SQL file. Adding a column is one
