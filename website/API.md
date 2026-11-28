@@ -23,6 +23,13 @@
 > (`<!-- @include loop … class="op__vid vid--veil" alt="" -->`, absolutely filling the section) with the app's own
 > screen arriving once (a CSS animation with `backwards` fill, under `html.glide` only). The band is only a fine
 > detail at the top of the story, and the card as an object stands only at the pilot.
+>
+> Since the third pass the grounds are loops: `<!-- @include loop name="…" class="… bgv vid--veil" alt="" bg="1" -->`
+> fills its part (`.bgv`) under one even veil (`--veil`), and `first="1"` marks the opening's (`preload="auto"`; its
+> poster named in the page's `preloadImage:` is preloaded with `fetchpriority="high"`). Every loop and photograph carries
+> its placeholder from the manifest's `lqip` (`--lqip`, painted under it by site.css); a photograph with `avif` files is a
+> `<picture>`. `<!-- @include phone film="feed-demo" … -->` puts a film of the app in a phone (a muted loop that plays
+> only in view, its poster first). The band is no longer used on the page.
 
 Read `BRIEF.md` first (the founder's words and this round's direction). This file says how to build a page on
 the shared kit. Every piece below is on one page, working: build with `--kit` and open `_kit.html`
