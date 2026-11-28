@@ -26,6 +26,14 @@
    the guide with Home under it; the gold that is read as a figure or a
    word measures 4.5:1; Reduce Motion lands the page whole at once;
    nothing under 12px, and nothing cut at 320.
+   TIDIED (28 November): the founder said people pressed the drawn keys and
+   read too much, so a step's control is a glyph in its words, step one
+   alone carries a picture (the browser's bar, the spot ringed), four
+   steps at most, nothing in the steps drawn as a key; the page has one
+   key (Install Nosca where offered, the steps then behind Or by hand;
+   else Continue in the browser, filled); the cards are small and still;
+   a computer reads one column; and Continue and the X hand over in the
+   page, to sign-up's Join as.
    Usage: node install.cjs <distDir> <port> <outDir> */
 const path = require("path"), fs = require("fs");
 const { chromium, devices } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
@@ -77,6 +85,10 @@ const pictures = (page) => page.evaluate(() => Array.from(document.querySelector
            glyphs: pic ? Array.from(pic.querySelectorAll("[data-ins-tap]")).map((k) => { const g = k.querySelector("svg[data-glyph]"); return g ? g.getAttribute("data-glyph") : ""; }) : [],
            seen: pic ? (() => { const r = pic.getBoundingClientRect(); return r.width > 60 && r.height > 40 && getComputedStyle(pic).visibility !== "hidden"; })() : false };
 }));
+/* the controls drawn inside each step's words (28 November): their glyphs, step by step */
+const inlineGlyphs = (page) => page.evaluate(() => Array.from(document.querySelectorAll('[data-tour="install-steps"] > *')).map((li) => Array.from(li.querySelectorAll("[data-glyph-in]")).map((g) => g.getAttribute("data-glyph-in"))));
+/* anything in the steps drawn as a key: a face on a ledge, a cast shadow (an inset outline is a picture's line, not a key) */
+const keysDrawn = (page) => page.evaluate(() => Array.from(document.querySelectorAll('[data-tour="install-steps"] *')).filter((el) => { const b = getComputedStyle(el).boxShadow; return b && b !== "none" && !/inset/.test(b); }).length);
 const lum = (rgb) => { const [r, g, b] = rgb.match(/[\d.]+/g).slice(0, 3).map((v) => { const c = Number(v) / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
 const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
 const openSettings = async (page) => {
@@ -128,32 +140,34 @@ const openSettings = async (page) => {
       check("(a) only this device's steps: one quiet row names the device and offers Change; no platform or version control until it is tapped",
         /^Computer · Chrome or Edge/.test(d0) && /Change$/.test(d0) && (await page.locator('[data-tour="install-platform"]').count()) === 0 && (await page.locator('[data-tour="install-version"]').count()) === 0 && (await page.locator('[data-tour="install-hint"]').count()) === 0, d0);
       const s0 = await steps(page), w0 = await words(page), a0 = await alts(page), p0 = await pictures(page);
-      check("(a) a computer's Chrome reads the install icon at the right of the address bar — Chrome's and Edge's drawn side by side — then Install", s0.length === 2 && w0[0] === "Click the install icon" && /address bar/.test(a0[0]) && /Chrome/.test(a0[0]) && /Edge/.test(a0[0]) && p0[0].taps === 2 && w0[1] === "Click Install" && /Install/.test(s0[1]), s0.join(" | "));
+      check("(a) a computer's Chrome reads: click the install icon in the address bar — drawn in the words, Edge's under them, the bar pictured with the icon ringed — then Install",
+        s0.length === 2 && w0[0] === "Click the install icon in the address bar" && /In Edge it looks like/.test(s0[0]) && p0[0].role === "img" && /address bar/.test(a0[0]) && p0[0].taps === 1 && p0[0].glyphs.join(",") === "monitorDown" && w0[1] === "Click Install", s0.join(" | "));
       check("(a) three platforms behind Change, opened on Computer for a desktop browser", (await pressed(page)) === "Computer" && (await page.locator('[data-tour="install-platform"] button').count()) === 3 && /Done$/.test(await device(page)), await pressed(page));
       await pick(page, "iPhone"); const s1 = await steps(page), w1 = await words(page), a1 = await alts(page), p1 = await pictures(page);
-      check("(a) iPhone opens on the newest, iOS 27: the three lines (named and drawn), Share, View More, Add to Home Screen, Add with Open as Web App left on, then Nosca on the Home Screen — sign up or sign in there, on a page read by people with no account yet",
-        (await pressed(page, "version")) === "iOS 27" && s1.length === 6 && w1[0] === "Tap the three lines" && p1[0].glyphs[0] === "lines" && /left of the address bar/.test(a1[0]) && w1[1] === "Tap Share" && w1[2] === "Tap View More"
-        && w1[3] === "Tap Add to Home Screen" && w1[4] === "Tap Add" && /Leave Open as Web App on/.test(s1[4]) && /Open as Web App/.test(a1[4]) && w1[5] === "Tap Nosca on the Home Screen" && /Home Screen/.test(s1[5]) && /Sign up or sign in there/.test(s1[5]) && !/Sign in there once/.test(s1[5])
+      check("(a) iPhone opens on the newest, iOS 27, in four steps: the three lines then Share, View More then Add to Home Screen, Add, then Nosca from the Home Screen — sign up or sign in there, on a page read by people with no account yet",
+        (await pressed(page, "version")) === "iOS 27" && s1.length === 4 && w1[0] === "Tap the three lines, then Share" && /Or tap Share if you see it/.test(s1[0]) && p1[0].glyphs.join(",") === "lines" && /left of the address bar/.test(a1[0])
+        && w1[1] === "Tap View More, then Add to Home Screen" && w1[2] === "Tap Add" && w1[3] === "Open Nosca from your Home Screen" && /Sign up or sign in there/.test(s1[3]) && !/Sign in there once/.test(s1[3])
         && /iOS Version/.test(one(await page.locator('[data-tour="install-hint"]').innerText())), s1.join(" | "));
-      check("(a) where Safari can show either control, both are drawn side by side in the one step: the three lines in the address bar, or Share on the toolbar", p1[0].taps === 2 && p1[0].glyphs.join(",") === "lines,share" && /Or Share/.test(a1[0]), JSON.stringify(p1[0]));
+      const inl1 = await inlineGlyphs(page), keys1 = await keysDrawn(page);
+      check("(a) the controls are drawn inside the words — the three lines and Share, then the chevron and the plus — and NOTHING in the steps is drawn as a key: no face on a ledge, no shadow; step one alone carries a picture, its one spot ringed (28 November: people pressed the drawn keys)",
+        inl1[0].join(",") === "lines,share,share" && inl1[1].join(",") === "chevDown,plusSquare" && inl1[3].join(",") === "app" && keys1 === 0 && p1[0].taps === 1 && p1.slice(1).every((p) => !p.role), JSON.stringify({ inl1, keys1, p1: p1.map((p) => p.role) }));
       /* STEP ONE IS TRUE BY SHAPE (24 November): the picture is there, drawn and seen; the words name the control THIS
          version shows by default — the founder's "three lines", never "three dots" on iOS 27 — and the second line sends
          a person who tapped Share straight to step 3, where the share sheet already is (they were told to tap Share twice) */
-      check("(a) step one's picture is there and seen — an address bar with the control ringed in it — its words name iOS 27's own control and never the dots, and its second line sends Share to step 3",
-        p1[0].seen && p1[0].drawn >= 2 && p1[0].role === "img" && w1[0] === "Tap the three lines" && !s1.some((x) => /three dots/i.test(x)) && /Or Share, then go to step 3/.test(s1[0]), `${w1.join(" | ")} · ${JSON.stringify(p1[0])}`);
+      check("(a) step one's picture is there and seen — the address bar with the control ringed in it — its words name iOS 27's own control and never the dots, and its second line is for the Share a toolbar may show",
+        p1[0].seen && p1[0].drawn >= 2 && p1[0].role === "img" && w1[0] === "Tap the three lines, then Share" && !s1.some((x) => /three dots/i.test(x)) && /Or tap Share if you see it/.test(s1[0]), `${w1.join(" | ")} · ${JSON.stringify(p1[0])}`);
       /* the share sheet's last round button is View More, a chevron: one key, the one every source draws */
-      check("(a) View More is the one ringed key at the end of the share sheet's round buttons — a chevron, under its name, with nothing beside it to choose from — and the last step draws Nosca among the icons of a Home Screen",
-        p1[2].taps === 1 && p1[2].glyphs.join(",") === "chevDown" && /View More/.test(s1[2]) && !/\bor\b/.test(s1[2]) && p1[5].taps === 1 && /Nosca$/.test(s1[5]) && /Home Screen/.test(a1[5]), `${s1[2]} | ${JSON.stringify(p1[2])} | ${s1[5]}`);
+      check("(a) the last step names Nosca with its own icon in the words, and no step after the first carries a picture", inl1[3].join(",") === "app" && w1[3] === "Open Nosca from your Home Screen" && !p1[2].role && !p1[3].role, `${s1[2]} | ${s1[3]}`);
       await pick(page, "iOS 26", "version"); const s26 = await steps(page), w26 = await words(page), a26 = await alts(page), p26 = await pictures(page);
-      check("(a) iOS 26: the three dots at the right of the address bar, named and drawn — or Share — and never three lines, then the same five steps", s26.length === 6 && w26[0] === "Tap the three dots" && /Or Share, then go to step 3/.test(s26[0]) && p26[0].glyphs.join(",") === "dots,share" && p26[0].seen && /Three dots at the right of the address bar/.test(a26[0]) && p26[0].taps === 2 && !s26.some((x) => /three lines/i.test(x)) && w26.slice(1).join("|") === w1.slice(1).join("|") && /^iPhone · iOS 26/.test(await device(page)), s26.join(" | "));
+      check("(a) iOS 26: the three dots at the right of the address bar, named, drawn in the words and pictured — or Share — never three lines, then the same three steps", s26.length === 4 && w26[0] === "Tap the three dots, then Share" && /Or tap Share if you see it/.test(s26[0]) && p26[0].glyphs.join(",") === "dots" && p26[0].seen && /three dots, at the right of the address bar/i.test(a26[0]) && p26[0].taps === 1 && !s26.some((x) => /three lines/i.test(x)) && w26.slice(1).join("|") === w1.slice(1).join("|") && /^iPhone · iOS 26/.test(await device(page)), s26.join(" | "));
       await pick(page, "Earlier", "version"); const s1b = await steps(page), w1b = await words(page), a1b = await alts(page);
-      check("(a) iOS 18 or earlier: Share on Safari's toolbar, Add to Home Screen further down, Add, then Nosca on the Home Screen",
-        s1b.length === 4 && w1b[0] === "Tap Share" && /toolbar/.test(a1b[0]) && w1b[1] === "Tap Add to Home Screen" && /Scroll down the list/.test(s1b[1]) && w1b[2] === "Tap Add" && w1b[3] === "Tap Nosca on the Home Screen" && /Sign up or sign in there/.test(s1b[3]) && /^iPhone · iOS 18 or earlier/.test(await device(page)), s1b.join(" | "));
+      check("(a) iOS 18 or earlier: Share on Safari's toolbar, then Add to Home Screen, Add, and Nosca from the Home Screen",
+        s1b.length === 4 && w1b[0] === "Tap Share" && /toolbar/.test(a1b[0]) && w1b[1] === "Tap Add to Home Screen" && w1b[2] === "Tap Add" && w1b[3] === "Open Nosca from your Home Screen" && /Sign up or sign in there/.test(s1b[3]) && /^iPhone · iOS 18 or earlier/.test(await device(page)), s1b.join(" | "));
       await pick(page, "Android"); const s2 = await steps(page), w2 = await words(page), a2 = await alts(page), p2 = await pictures(page);
       /* Chrome 150 (July 2026) renamed the menu row: the new name and the old are both drawn, and the words name neither */
-      check("(a) Android in Chrome: the three dots, then the menu row under both its names — Install and create shortcut, or Add to Home screen — Install rather than a shortcut, then Nosca on the Home screen",
-        s2.length === 4 && w2[0] === "Tap the three dots" && p2[0].glyphs[0] === "dotsV" && /top right/.test(a2[0]) && w2[1] === "Tap one of these" && /Install and create shortcut/.test(s2[1]) && /Add to Home screen/.test(s2[1]) && p2[1].taps === 2
-        && w2[2] === "Tap Install" && /Create shortcut/.test(s2[2]) && w2[3] === "Tap Nosca on the Home screen" && !/Sign in/.test(s2[3]), s2.join(" | "));
+      check("(a) Android in Chrome: the three dots, then the menu row by its new name with the old one under it, then Install, then Nosca from the Home screen",
+        s2.length === 4 && w2[0] === "Tap the three dots" && p2[0].glyphs[0] === "dotsV" && /top right/.test(a2[0]) && w2[1] === "Tap Install and create shortcut" && /Or Add to Home screen/.test(s2[1])
+        && w2[2] === "Tap Install" && w2[3] === "Open Nosca from your Home screen" && !/Sign in/.test(s2[3]), s2.join(" | "));
       /* a step is a numeral, a few words and a picture: every platform and version, one after another */
       const bad = [];
       for (const [plat, subs] of [["iPhone", ["iOS 27", "iOS 26", "Earlier"]], ["Android", ["Chrome", "Samsung"]], ["Computer", ["Chrome or Edge", "Safari"]]]) {
@@ -163,15 +177,16 @@ const openSettings = async (page) => {
           const ws = await words(page), ps = await pictures(page), all = await steps(page);
           ps.forEach((p, i) => {
             if (p.n !== String(i + 1)) bad.push(`${sub} ${i + 1}: numeral "${p.n}"`);
-            if (p.role !== "img" || p.alt.length < 3) bad.push(`${sub} ${i + 1}: the picture says nothing to a screen reader`);
-            if (p.taps < 1) bad.push(`${sub} ${i + 1}: nothing ringed to tap`);
-            if (!ws[i] || ws[i].split(" ").length > 6) bad.push(`${sub} ${i + 1}: "${ws[i]}" is not a few words`);
-            if (SYMBOLS.test(all[i].replace(/Add to Dock…/, ""))) bad.push(`${sub} ${i + 1}: a symbol typed into "${all[i]}"`);
+            if (i === 0 && (p.role !== "img" || p.alt.length < 3 || p.taps !== 1)) bad.push(`${sub} 1: step one's picture is not there, unnamed, or rings ${p.taps} spots`);
+            if (i > 0 && p.role) bad.push(`${sub} ${i + 1}: a picture where the words say it`);
+            if (!ws[i] || ws[i].split(" ").length > 8) bad.push(`${sub} ${i + 1}: "${ws[i]}" is not a few words`);
+            if (SYMBOLS.test(all[i])) bad.push(`${sub} ${i + 1}: a symbol typed into "${all[i]}"`);
           });
-          if (ps.length !== ws.length || ps.length < 2) bad.push(`${sub}: ${ps.length} pictures for ${ws.length} steps`);
+          if (ps.length !== ws.length || ps.length < 2 || ps.length > 4) bad.push(`${sub}: ${ps.length} steps`);
+          if (await keysDrawn(page)) bad.push(`${sub}: a step draws a key`);
         }
       }
-      check("(a) every step, on every device, is a numeral, six words at most and a drawn picture with the thing to tap ringed — and no symbol is typed into a sentence", bad.length === 0, bad.join("; "));
+      check("(a) every step, on every device, is a numeral and eight words at most with the control drawn in them; step one alone carries a picture, its one spot ringed; four steps at most; nothing drawn as a key; no symbol typed into a sentence", bad.length === 0, bad.join("; "));
       /* the card is a picture of the printed card (role img, its words in its label): its words are drawn at the card's scale, as the wordmark is */
       const small = await page.evaluate(() => Array.from(document.querySelectorAll("#root *"))
         .filter((el) => !el.children.length && el.textContent.trim() && el.dataset.tour !== "wordmark" && !el.closest('[data-tour="install-card"]') && parseFloat(getComputedStyle(el).fontSize) < 12)
@@ -187,8 +202,8 @@ const openSettings = async (page) => {
           return { ground: rect ? rect.getAttribute("fill") : null, w: Math.round(r.width), markSeen: !!hit && c.contains(hit), z: Number(getComputedStyle(c).zIndex) }; };
         return { green: one("green"), olive: one("olive"), n: document.querySelectorAll("[data-card]").length };
       });
-      check("(a3) the page lays both cards the founder hands out — the deep green in front, the olive behind it — each on its own ground, each mark in sight",
-        pair.n === 2 && !!pair.green && !!pair.olive && pair.green.ground === "#183D3A" && /^#4F5B29$/i.test(pair.olive.ground) && pair.green.z > pair.olive.z && pair.green.markSeen && pair.olive.markSeen && pair.green.w > 150 && pair.olive.w > 150, JSON.stringify(pair));
+      check("(a3) the page lays both cards the founder hands out — the deep green in front, the olive behind it — each on its own ground, each mark in sight, small (28 November: the focus off the cards)",
+        pair.n === 2 && !!pair.green && !!pair.olive && pair.green.ground === "#183D3A" && /^#4F5B29$/i.test(pair.olive.ground) && pair.green.z > pair.olive.z && pair.green.markSeen && pair.olive.markSeen && pair.green.w >= 90 && pair.olive.w >= 90 && pair.green.w <= 140, JSON.stringify(pair));
       /* each card as it was printed (the founder, 24 November: "our original design … was the darker color with the
          vertical lines, not diagonal lines … I don't know why they both have the same diagonal lines"): the deep green
          is the first print file — pinstripes across its top and its foot, the band clear through the middle, no gold
@@ -205,7 +220,7 @@ const openSettings = async (page) => {
       check("(a4) each card is drawn as it was printed: the deep green's pinstripes across its top and its foot with the band clear through the middle, the olive's two corner wedges with their gold edges",
         !!designs.green && designs.green.design === "band" && designs.green.edges === 0 && designs.green.inBand === 0 && designs.green.top >= 15 && designs.green.foot >= 15
         && !!designs.olive && designs.olive.design === "wedges" && designs.olive.edges === 2 && designs.olive.n >= 20 && designs.olive.inBand > 0, JSON.stringify(designs));
-      check("(a) the card's back carries its own words, as printed — no grey bars standing in for them", !!drawn && drawn.words.includes("Coaching, linked.") && drawn.words.includes("Scan to start") && drawn.words.some((x) => /Golf · Tennis/.test(x)), JSON.stringify(drawn));
+      check("(a) the cards lie still, their fronts up: no back is drawn and nothing turns", !!drawn && drawn.words.every((x) => x === "NOSCA") && (await page.locator("[data-flip]").count()) === 0, JSON.stringify(drawn));
       /* the gold is a line's and a detail's; where it is read — a numeral, Change — it measures 4.5:1 on the paper */
       const gold = await page.evaluate(() => {
         const num = document.querySelector("[data-ins-num]"), dev = document.querySelector('[data-tour="install-device"]');
@@ -222,16 +237,19 @@ const openSettings = async (page) => {
       check("(a) Change, the X, the way out and About Nosca are each 44 to a finger", hits.every(([, w, h]) => w >= 44 && h >= 44), JSON.stringify(hits));
       /* the foot's way out is the quiet key and says what it does: the steps are the page's one action */
       const out = await page.evaluate(() => { const k = document.querySelector('[data-tour="install-open"]'); const p = document.querySelector('[data-tour="install-page"]'); return { word: k ? k.innerText.trim() : "", bg: k ? getComputedStyle(k).backgroundColor : "", page: p ? getComputedStyle(p).backgroundColor : "" }; });
-      check("(a) the foot's way out reads Continue in the browser, on the quiet key — the olive is not spent on it", out.word === "Continue in the browser" && out.bg !== "rgb(79, 91, 41)" && out.bg !== out.page, JSON.stringify(out));
+      check("(a) with nothing offered by the browser, Continue in the browser is the page's one key, filled in the olive", out.word === "Continue in the browser" && out.bg === "rgb(79, 91, 41)", JSON.stringify(out));
       await shot("a-install-computer");
       /* the website, for somebody who has only the card */
       await page.evaluate(() => { window.__opened = []; window.open = (u, target) => { window.__opened.push([u, target]); return null; }; });
       await M.tap(page, '[data-tour="install-about"]', 400);
       const aboutOpened = await page.evaluate(() => window.__opened);
       check("(a) About Nosca, a quiet line under the key, opens /about/ beside the page and the guide stays", /About Nosca/.test(await page.locator('[data-tour="install-about"]').innerText()) && aboutOpened.length === 1 && aboutOpened[0][0] === "/about/" && aboutOpened[0][1] === "_blank" && (await page.locator('[data-tour="install-steps"]').count()) === 1, JSON.stringify(aboutOpened));
-      await M.tap(page, '[data-tour="install-open"]', 300); await page.waitForLoadState("networkidle"); await page.waitForTimeout(900);
+      await page.evaluate(() => { window.__samePage = true; });
+      await M.tap(page, '[data-tour="install-open"]', 300); await page.waitForTimeout(900);
       const t2 = await text();
-      check("(a) Continue in the browser lands on sign-up", /Create account/.test(t2) && /Sign in/.test(t2) && new URL(page.url()).pathname === "/", `${page.url()} · ${t2.slice(0, 80)}`);
+      check("(a) Continue in the browser hands over IN THE PAGE — no reload — to sign-up's first question, Join as, at /", /Join as/.test(t2) && /Coach/.test(t2) && /Sign in/.test(t2) && new URL(page.url()).pathname === "/" && (await page.evaluate(() => window.__samePage === true)), `${page.url()} · ${t2.slice(0, 80)}`);
+      /* the landing itself, at / */
+      await page.goto(BASE, { waitUntil: "networkidle" }); await page.waitForTimeout(900);
       /* the front door carries the way to the company's website too, before an account exists */
       await page.evaluate(() => { window.__opened = []; window.open = (u, target) => { window.__opened.push([u, target]); return null; }; });
       const doorAbout = page.locator('[data-tour="auth-about"]');
@@ -265,9 +283,12 @@ const openSettings = async (page) => {
         }, 300));
       } });
       await guide(page); await page.waitForTimeout(600);
-      check("(c) an Android phone opens on Android", /^Android · Chrome/.test(await device(page)) && (await page.locator('[data-tour="install-platform"]').count()) === 0, await device(page));
+
       const btn = page.locator('[data-tour="install-now"]');
-      check("(c) a Chrome that offers to install leads with one button, Install Nosca, the steps under it as Or by hand", (await btn.count()) === 1 && /Install Nosca/.test(await btn.innerText()) && /Or by hand/.test(await text()) && (await steps(page)).length === 4, (await text()).slice(0, 220));
+      const foot = await page.evaluate(() => { const k = document.querySelector('[data-tour="install-open"]'); return k ? getComputedStyle(k).backgroundColor : ""; });
+      check("(c) a Chrome that offers to install leads with one key, Install Nosca, the steps folded behind Or by hand, and Continue in the browser steps back to the quiet key", (await btn.count()) === 1 && /Install Nosca/.test(await btn.innerText()) && (await page.locator('[data-tour="install-steps"]').count()) === 0 && (await page.locator('[data-tour="install-hand"]').count()) === 1 && foot !== "rgb(79, 91, 41)", `${(await text()).slice(0, 220)} · ${foot}`);
+      await M.tap(page, '[data-tour="install-hand"]', 600);
+      check("(c) Or by hand opens this phone's steps: Android, Chrome, four of them", /^Android · Chrome/.test(await device(page)) && (await page.locator('[data-tour="install-platform"]').count()) === 0 && (await steps(page)).length === 4, await device(page));
       await shot("c-android-offer");
       await btn.click(); await page.waitForTimeout(700);
       const prompted = await page.evaluate(() => window.__prompted);
@@ -282,7 +303,7 @@ const openSettings = async (page) => {
       const { ctx, page } = await boot({ ua: SAMSUNG });
       await guide(page);
       const d = await device(page), s = await steps(page), w = await words(page), a = await alts(page);
-      check("(d) Samsung's own browser opens on Samsung — the row says Samsung, a name true before and after it became Samsung Browser: the three lines bottom right, Add page to, Home screen, Add, then Nosca on the Home screen", /^Android · Samsung Change$/.test(d) && s.length === 5 && w[0] === "Tap the three lines" && /bottom right/.test(a[0]) && w[1] === "Tap Add page to" && w[2] === "Tap Home screen" && w[3] === "Tap Add" && w[4] === "Tap Nosca on the Home screen" && (await pictures(page))[0].glyphs.join(",") === "lines" && (await pressed(page)) === "Android" && (await pressed(page, "version")) === "Samsung", `${d} | ${s.join(" | ")}`);
+      check("(d) Samsung's own browser opens on Samsung — the row says Samsung, a name true before and after it became Samsung Browser: the three lines bottom right, Add page to then Home screen, Add, then Nosca from the Home screen", /^Android · Samsung Change$/.test(d) && s.length === 4 && w[0] === "Tap the three lines" && /bottom right/.test(a[0]) && w[1] === "Tap Add page to, then Home screen" && w[2] === "Tap Add" && w[3] === "Open Nosca from your Home screen" && (await pictures(page))[0].glyphs.join(",") === "lines" && (await pressed(page)) === "Android" && (await pressed(page, "version")) === "Samsung", `${d} | ${s.join(" | ")}`);
       await ctx.close();
     }
 
@@ -291,9 +312,9 @@ const openSettings = async (page) => {
       const { ctx, page } = await boot({ ua: IOS26 });
       await guide(page);
       const w = await words(page), p26b = await pictures(page);
-      check("(b2) an iOS 26 iPhone opens on iOS 26, whose first step names and draws the three dots — and no three lines anywhere in it", /^iPhone · iOS 26/.test(await device(page)) && w[0] === "Tap the three dots" && p26b[0].glyphs.join(",") === "dots,share" && !p26b[0].glyphs.includes("lines") && w.length === 6, `${w.join(" | ")} · ${JSON.stringify(p26b[0])}`);
+      check("(b2) an iOS 26 iPhone opens on iOS 26, whose first step names and draws the three dots — and no three lines anywhere in it", /^iPhone · iOS 26/.test(await device(page)) && w[0] === "Tap the three dots, then Share" && p26b[0].glyphs.join(",") === "dots" && !p26b[0].glyphs.includes("lines") && w.length === 4, `${w.join(" | ")} · ${JSON.stringify(p26b[0])}`);
       await M.tap(page, '[data-tour="install-close"]', 300); await page.waitForLoadState("networkidle"); await page.waitForTimeout(900);
-      check("(k) the X leaves the guide for the app: sign-up for a stranger", new URL(page.url()).pathname === "/" && /Create account/.test(await M.rootText(page)), page.url());
+      check("(k) the X leaves the guide for the app in the page: sign-up's first question for a stranger", new URL(page.url()).pathname === "/" && /Join as/.test(await M.rootText(page)), page.url());
       await ctx.close();
     }
 
@@ -302,16 +323,16 @@ const openSettings = async (page) => {
       const { ctx, page, shot } = await boot({ ua: IOS27 });
       await guide(page);
       const d = await device(page), s = await steps(page), w = await words(page), a = await alts(page), p27 = await pictures(page);
-      check("(b3) an iOS 27 iPhone opens on iOS 27: the three lines at the left of the address bar — the Page Menu — drawn, and no step says three dots",
-        /^iPhone · iOS 27/.test(d) && w[0] === "Tap the three lines" && p27[0].glyphs.join(",") === "lines,share" && /Three lines at the left of the address bar/.test(a[0]) && !s.some((x) => /three dots/i.test(x)) && !a.some((x) => /three dots/i.test(x)) && w.length === 6, `${d} | ${s.join(" | ")}`);
+      check("(b3) an iOS 27 iPhone opens on iOS 27: the three lines at the left of the address bar — the Page Menu — named, drawn and pictured, and no step says three dots",
+        /^iPhone · iOS 27/.test(d) && w[0] === "Tap the three lines, then Share" && p27[0].glyphs.join(",") === "lines" && /three lines, at the left of the address bar/i.test(a[0]) && !s.some((x) => /three dots/i.test(x)) && !a.some((x) => /three dots/i.test(x)) && w.length === 4, `${d} | ${s.join(" | ")}`);
       /* the three lines stand at the LEFT end of the address bar in the picture, as on the phone: ahead of the address, inside the bar */
       const place = await page.evaluate(() => {
         const pic = document.querySelector("[data-ins-pic]"), keys = Array.from(pic.querySelectorAll("[data-ins-tap]")).map((k) => k.getBoundingClientRect());
         const r = pic.getBoundingClientRect(), bar = keys[0] && pic.querySelector("[data-ins-bar]") ? pic.querySelector("[data-ins-bar]").getBoundingClientRect() : null;
         return { lines: keys[0] && [Math.round(keys[0].left), Math.round(keys[0].right)], share: keys[1] && [Math.round(keys[1].left), Math.round(keys[1].right)], bar: bar && [Math.round(bar.left), Math.round(bar.right)], pic: [Math.round(r.left), Math.round(r.right)], shown: r.top >= 0 && r.bottom <= window.innerHeight };
       });
-      check("(b3) …in the picture the three lines sit inside the address bar at its left end, Share apart on the right, and the picture is on the first screen",
-        !!place.bar && place.lines[0] >= place.bar[0] && place.lines[1] <= place.bar[0] + (place.bar[1] - place.bar[0]) / 2 && place.share[0] >= place.bar[1] && place.shown, JSON.stringify(place));
+      check("(b3) …in the picture the three lines sit inside the address bar at its left end, and the picture is on the first screen",
+        !!place.bar && place.lines[0] >= place.bar[0] && place.lines[1] <= place.bar[0] + (place.bar[1] - place.bar[0]) / 2 && place.shown, JSON.stringify(place));
       check("(b3) …with no platform, version or hint above the steps, and the first step on the first screen", (await page.locator('[data-tour="install-platform"], [data-tour="install-version"], [data-tour="install-hint"]').count()) === 0
         && (await page.evaluate(() => { const r = document.querySelector("[data-ins-step]").getBoundingClientRect(); return r.top > 0 && r.bottom <= window.innerHeight; })));
       await shot("b3-ios27");
@@ -334,7 +355,7 @@ const openSettings = async (page) => {
       await M.tap(page, '[data-tour="install-device"]', 400);
       const closed1 = { exp: await dev.getAttribute("aria-expanded"), text: await device(page), n: await page.locator('[data-tour="install-choices"], [data-tour="install-platform"], [data-tour="install-version"], [data-tour="install-hint"]').count(), first: (await pictures(page))[0].glyphs.join(","), steps: (await words(page)).length };
       check("(l) …a choice changes the steps at once (iOS 26: the dots), and Done folds the control away over the steps it chose",
-        /^iPhone · iOS 26 Done$/.test(mid.text) && mid.first === "dots,share" && closed1.exp === "false" && /^iPhone · iOS 26 Change$/.test(closed1.text) && closed1.n === 0 && closed1.first === "dots,share" && closed1.steps === 6, JSON.stringify({ mid, closed1 }));
+        /^iPhone · iOS 26 Done$/.test(mid.text) && mid.first === "dots" && closed1.exp === "false" && /^iPhone · iOS 26 Change$/.test(closed1.text) && closed1.n === 0 && closed1.first === "dots" && closed1.steps === 4, JSON.stringify({ mid, closed1 }));
       await ctx.close();
     }
 
@@ -355,9 +376,9 @@ const openSettings = async (page) => {
       const { ctx, page } = await boot({ ua: INAPP });
       await guide(page);
       const d = await device(page), w = await words(page), s = await steps(page), p = await pictures(page);
-      check("(b5) an app's own browser reads iPhone · In an app, and its one step is to open the page in Safari — no iOS it cannot know, no steps it cannot do", /^iPhone · In an app Change$/.test(d) && w.length === 1 && w[0] === "Open this page in Safari" && /From this app's menu/.test(s[0]) && p[0].glyphs.join(",") === "compass" && !/iOS/.test(d), `${d} | ${s.join(" | ")}`);
+      check("(b5) an app's own browser reads iPhone · In an app, and its one step is to open the page in Safari — no iOS it cannot know, no steps it cannot do", /^iPhone · In an app Change$/.test(d) && w.length === 1 && w[0] === "Open this page in Safari" && /From this app's menu/.test(s[0]) && (await inlineGlyphs(page))[0].join(",") === "compass" && !/iOS/.test(d), `${d} | ${s.join(" | ")}`);
       await pick(page, "iOS 27", "version");
-      check("(b5) …and a version picked by hand is that version's steps", (await words(page)).length === 6 && (await words(page))[0] === "Tap the three lines" && /^iPhone · iOS 27/.test(await device(page)), (await words(page)).join(" | "));
+      check("(b5) …and a version picked by hand is that version's steps", (await words(page)).length === 4 && (await words(page))[0] === "Tap the three lines, then Share" && /^iPhone · iOS 27/.test(await device(page)), (await words(page)).join(" | "));
       await ctx.close();
     }
 
@@ -400,7 +421,7 @@ const openSettings = async (page) => {
       });
       check("(m) on a 375 × 667 phone, with nothing scrolled, step one is whole on the first screen — its numeral, its words and its picture with the ringed key — under the card, the line and the title",
         first.y === 0 && first.card.top >= 0 && first.card.bottom <= first.what.top + 12 && first.what.bottom <= first.h1.top && first.h1.bottom <= first.num.top && first.num.top > 0 && first.text.bottom <= first.pic.top && first.pic.bottom <= first.vh && first.key.bottom <= first.pic.bottom, JSON.stringify(first));
-      check("(m) …and the card is not timid: seven tenths of the screen's width and over, clear of the X", first.card.w >= first.vw * 0.7 && first.card.right <= first.vw && (first.card.right <= first.x.left + 12 || first.card.top >= first.x.bottom - 12), JSON.stringify({ card: first.card, x: first.x }));
+      check("(m) …and the cards are small and quiet — under half the screen's width — clear of the X (28 November: the focus off the cards)", first.card.w <= first.vw * 0.5 && first.card.w >= 140 && first.card.right <= first.vw && (first.card.right <= first.x.left + 12 || first.card.top >= first.x.bottom - 12), JSON.stringify({ card: first.card, x: first.x }));
       await page.screenshot({ path: path.join(outDir, "m-first-screen-375x667.png") });
       await ctx.close();
     }
@@ -417,19 +438,19 @@ const openSettings = async (page) => {
                  card: box('[data-tour="install-card"]'), what: box('[data-tour="install-what"]'), open: box('[data-tour="install-open"]'), about: box('[data-tour="install-about"]'), h1: box("h1"), steps: box('[data-tour="install-steps"]'), dev: box('[data-tour="install-device"]'), x: box('[data-tour="install-close"]') };
       });
       const midL = (lay.card.left + lay.card.right) / 2, mid = lay.vw / 2;
-      check("(n) on a computer the page is two columns, not a phone stretched: the card, the line, the way out and About Nosca on the left; the title, the device and the steps on the right; the whole inside the screen with no scroll either way",
-        lay.over <= 0 && lay.tall <= lay.vh && lay.card.right < lay.h1.left && lay.open.right < lay.steps.left && lay.card.w >= 320 && lay.card.bottom <= lay.what.top + 16 && lay.what.bottom <= lay.open.top && lay.open.bottom <= lay.about.top + 8
-        && lay.h1.bottom <= lay.dev.top && lay.dev.bottom <= lay.steps.top + 4 && midL < mid && (lay.steps.left + lay.steps.right) / 2 > mid && Math.abs((mid - lay.card.left) - (lay.steps.right - mid)) <= 40 && lay.x.right <= lay.vw && lay.x.top >= 0, JSON.stringify(lay));
+      check("(n) on a computer the page is one calm column, centred, the cards small at its head: the cards, the line, the title, the device, the steps, the way out and About Nosca, in that order, the whole inside the screen with no scroll either way",
+        lay.over <= 0 && lay.tall <= lay.vh && lay.card.bottom <= lay.what.top + 16 && lay.what.bottom <= lay.h1.top && lay.h1.bottom <= lay.dev.top && lay.dev.bottom <= lay.steps.top + 4 && lay.steps.bottom <= lay.open.top && lay.open.bottom <= lay.about.top + 8
+        && Math.abs((lay.card.left + lay.card.right) / 2 - mid) <= 4 && Math.abs((lay.open.left + lay.open.right) / 2 - mid) <= 4 && lay.card.w <= 240 && lay.x.right <= lay.vw && lay.x.top >= 0, JSON.stringify(lay));
       check("(n) …with its controls a pointer's size and over: the X, Change, the way out and About Nosca 44 tall", [lay.x, lay.dev, lay.open, lay.about].every((b) => b.bottom - b.top >= 44), JSON.stringify([lay.x, lay.dev, lay.open, lay.about]));
       /* hung from a fixed top: opening Change pushes only what is under it — centred on its own height, the row just clicked jumped from under the pointer */
       const before = await page.evaluate(() => { const r = (s) => document.querySelector(s).getBoundingClientRect().top; return { dev: r('[data-tour="install-device"]'), card: r('[data-tour="install-card"]') }; });
       await M.tap(page, '[data-tour="install-device"]', 500);
       await pick(page, "iPhone"); await page.waitForTimeout(400);
       const after = await page.evaluate(() => { const r = (s) => document.querySelector(s).getBoundingClientRect().top; return { dev: r('[data-tour="install-device"]'), card: r('[data-tour="install-card"]') }; });
-      check("(n) …opening Change and choosing the iPhone's six steps moves neither the row just clicked nor the card", Math.abs(after.dev - before.dev) <= 1 && Math.abs(after.card - before.card) <= 1, JSON.stringify({ before, after }));
+      check("(n) …opening Change and choosing the iPhone's four steps moves neither the row just clicked nor the card", Math.abs(after.dev - before.dev) <= 1 && Math.abs(after.card - before.card) <= 1, JSON.stringify({ before, after }));
       await page.evaluate(() => window.scrollTo(0, 500)); await page.waitForTimeout(400);
-      const held = await page.evaluate(() => { const b = (s) => { const r = document.querySelector(s).getBoundingClientRect(); return { top: Math.round(r.top), bottom: Math.round(r.bottom) }; }; return { y: window.scrollY, card: b('[data-tour="install-card"]'), open: b('[data-tour="install-open"]'), vh: window.innerHeight }; });
-      check("(n) …and while the long steps scroll past, the card and the way out stand still on the left, the key under the card", held.y > 200 && held.card.top >= 0 && held.open.bottom <= held.vh && held.open.top >= held.card.bottom, JSON.stringify(held));
+      const held = await page.evaluate(() => { const b = (s) => { const r = document.querySelector(s).getBoundingClientRect(); return { top: Math.round(r.top), bottom: Math.round(r.bottom), mid: Math.round((r.left + r.right) / 2) }; }; return { steps: b('[data-tour="install-steps"]'), open: b('[data-tour="install-open"]'), vw: window.innerWidth }; });
+      check("(n) …and with the iPhone's steps chosen the way out still stands under them, centred", held.open.top >= held.steps.bottom && Math.abs(held.open.mid - held.vw / 2) <= 4, JSON.stringify(held));
       await page.screenshot({ path: path.join(outDir, "n-desktop-1280-iphone-scrolled.png") });
       await page.screenshot({ path: path.join(outDir, "n-desktop-1280.png") });
       await ctx.close();
@@ -478,13 +499,13 @@ const openSettings = async (page) => {
       /* one guide, two dresses: inside the app it is the app's own page — no card, no gold — with the same pictures and words */
       const dress = await page.evaluate(() => {
         const num = document.querySelector("[data-ins-num]"), dev = document.querySelector('[data-tour="install-device"]'), tap = document.querySelector("[data-ins-tap]");
-        return { card: document.querySelectorAll('[data-tour="install-card"], [data-tour="install-what"], [data-tour="install-about"]').length, num: num ? getComputedStyle(num).color : "", act: dev && dev.lastElementChild ? getComputedStyle(dev.lastElementChild).color : "", ring: tap ? getComputedStyle(tap).boxShadow : "" };
+        return { card: document.querySelectorAll('[data-tour="install-card"], [data-tour="install-what"], [data-tour="install-about"]').length, num: num ? getComputedStyle(num).color : "", act: dev && dev.lastElementChild ? getComputedStyle(dev.lastElementChild).color : "", ring: tap && tap.querySelector("svg:last-of-type path") ? getComputedStyle(tap.querySelector("svg:last-of-type path")).stroke : "" };
       });
       const wApp = await words(page), pApp = await pictures(page);
       check("(f) inside the app the guide is the app's own page: no card and no gold — the numerals in the ink, Change and the ring in the sport's colour — over the same steps and pictures",
-        dress.card === 0 && dress.num === "rgb(28, 28, 30)" && dress.act !== "rgb(142, 110, 38)" && !/154, 123, 43/.test(dress.ring) && dress.ring.includes(dress.act) && wApp.length === 2 && wApp[0] === "Click the install icon" && pApp.every((p) => p.taps >= 1 && p.role === "img"), JSON.stringify(dress));
+        dress.card === 0 && dress.num === "rgb(28, 28, 30)" && dress.act !== "rgb(142, 110, 38)" && !/194, 162, 76/.test(dress.ring) && dress.ring.includes(dress.act) && wApp.length === 2 && wApp[0] === "Click the install icon in the address bar" && pApp[0].taps === 1 && pApp[0].role === "img" && pApp.slice(1).every((p) => !p.role), JSON.stringify(dress));
       await pick(page, "iPhone");
-      check("(f) …and Change works there as it does on the page: iPhone, the newest iOS, six steps", (await pressed(page, "version")) === "iOS 27" && (await words(page)).length === 6 && /^iPhone · iOS 27/.test(await device(page)), await device(page));
+      check("(f) …and Change works there as it does on the page: iPhone, the newest iOS, four steps", (await pressed(page, "version")) === "iOS 27" && (await words(page)).length === 4 && /^iPhone · iOS 27/.test(await device(page)), await device(page));
       await shot("f-settings-install");
       await M.back(page);
       check("(f) Back returns to Settings", (await page.locator('[data-tour="settings-install"]').count()) === 1 && (await page.locator('[data-tour="install-steps"]').count()) === 0);
@@ -567,17 +588,17 @@ const openSettings = async (page) => {
           /* both cards: each one's turn, where it comes over from its white side */
           const card = document.querySelector('[data-tour="install-card"]'), flips = Array.from(card.querySelectorAll("[data-flip]"));
           const stripes = Array.from(card.querySelectorAll("svg path")).map((el) => parseFloat(getComputedStyle(el).strokeDashoffset) || 0);
-          const turns = flips.map((f) => getComputedStyle(f).transform), still = turns.length === 2 && turns.every((x) => x === "none" || /matrix\(1, 0, 0, 1, 0, 0\)/.test(x));
+          const turns = flips.map((f) => getComputedStyle(f).transform), still = turns.every((x) => x === "none" || /matrix\(1, 0, 0, 1, 0, 0\)/.test(x));
           return { running: document.getAnimations().filter((a) => a.playState === "running" || a.pending).length, faint: stepsEls.filter((el) => op(el) < 0.999).length, steps: stepsEls.length,
                    turn: still ? "none" : turns.join(" | "), undrawn: stripes.filter((v) => v > 0.001).length, h1: op(document.querySelector("h1")), word: op(card.querySelector('[data-tour="wordmark"]')) };
         });
       };
       const a = await boot({ ua: IOS27, reduce: true });
       const sys = await still(a.page); await a.shot("j-reduce-motion"); await a.ctx.close();
-      check("(j) under the phone's Reduce Motion the page is whole 150ms in: nothing running, the card on its green side with every stripe drawn, every step there", sys.running === 0 && sys.faint === 0 && sys.steps === 6 && (sys.turn === "none" || /matrix\(1, 0, 0, 1, 0, 0\)/.test(sys.turn)) && sys.undrawn === 0 && sys.h1 === 1 && sys.word === 1, JSON.stringify(sys));
+      check("(j) under the phone's Reduce Motion the page is whole 150ms in: nothing running, the card on its green side with every stripe drawn, every step there", sys.running === 0 && sys.faint === 0 && sys.steps === 4 && (sys.turn === "none" || /matrix\(1, 0, 0, 1, 0, 0\)/.test(sys.turn)) && sys.undrawn === 0 && sys.h1 === 1 && sys.word === 1, JSON.stringify(sys));
       const b = await boot({ ua: IOS27, init: () => { try { localStorage.setItem("nosca.ui.reduceMotion", "true"); } catch (e) { /* private mode */ } } });
       const own = await still(b.page); await b.ctx.close();
-      check("(j) …and under the app's own Reduce motion switch (.calm) the same", own.running === 0 && own.faint === 0 && own.steps === 6 && (own.turn === "none" || /matrix\(1, 0, 0, 1, 0, 0\)/.test(own.turn)) && own.undrawn === 0 && own.h1 === 1, JSON.stringify(own));
+      check("(j) …and under the app's own Reduce motion switch (.calm) the same", own.running === 0 && own.faint === 0 && own.steps === 4 && (own.turn === "none" || /matrix\(1, 0, 0, 1, 0, 0\)/.test(own.turn)) && own.undrawn === 0 && own.h1 === 1, JSON.stringify(own));
       /* and with motion: the arrival is brief, and what it leaves is each element's own style (fill-mode backwards, never both) */
       const c = await boot({ ua: IOS27 });
       await c.page.goto(`${BASE}/install`, { waitUntil: "domcontentloaded" });
@@ -586,7 +607,7 @@ const openSettings = async (page) => {
       await c.page.waitForTimeout(2600);
       const after = await c.page.evaluate(() => ({ running: document.getAnimations().filter((x) => x.playState === "running").length, faint: Array.from(document.querySelectorAll("[data-ins-step]")).filter((el) => parseFloat(getComputedStyle(el).opacity) < 1).length }));
       await c.ctx.close();
-      check("(j) with motion the arrival is brief — the card turns over, the foil draws, the steps rise in their turn, all over inside 2.4s — and every animation fills backwards", moving.n > 20 && moving.fills.length === 1 && moving.fills[0] === "backwards" && moving.longest <= 2400 && after.running === 0 && after.faint === 0, JSON.stringify({ moving, after }));
+      check("(j) with motion the arrival is brief and calm — the cards rise once and lie still, the steps rise in their turn, all over inside 1.6s — and every animation fills backwards", moving.n >= 6 && moving.fills.length === 1 && moving.fills[0] === "backwards" && moving.longest <= 1600 && after.running === 0 && after.faint === 0, JSON.stringify({ moving, after }));
     }
 
     check("no page errors", errors.length === 0, errors.join(" | ").slice(0, 300));
