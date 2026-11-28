@@ -283,7 +283,8 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       const on = page.locator('[data-tour="cal-view"] button[aria-pressed="true"]');
       if ((await on.count()) && (await on.getAttribute("aria-label")) !== "List") await tap(page, '[data-tour="cal-view"] [aria-label="List"]', 700);
       const foot = await page.locator('[data-tour="cal-recurring"]').first().evaluate((el) => { const r = el.getBoundingClientRect(); const day = document.querySelector(".nsc-day"); const d = day ? day.getBoundingClientRect() : null; return { bg: getComputedStyle(el).backgroundColor, l: Math.round(r.left), w: Math.round(r.width), dl: d ? Math.round(d.left) : null, dw: d ? Math.round(d.width) : null, rule: getComputedStyle(el).borderTopWidth }; });
-      check("(h) the Diary's Recurring lessons is a white card lined up with the day boxes above it", foot.bg === "rgb(255, 255, 255)" && foot.dl != null && Math.abs(foot.l - foot.dl) <= 1 && Math.abs(foot.w - foot.dw) <= 1, JSON.stringify(foot));
+      /* a Lares card since 28 November, filled in the sport's family as the day cards above it are */
+      check("(h) the Diary's Recurring lessons is a card lined up with the day boxes above it", foot.bg !== "rgba(0, 0, 0, 0)" && foot.bg !== "rgb(255, 255, 255)" && foot.dl != null && Math.abs(foot.l - foot.dl) <= 1 && Math.abs(foot.w - foot.dw) <= 1, JSON.stringify(foot));
       await shot("h-diary-foot");
       /* the Calendar view on a day with hours and nothing booked: a line, no Set hours */
       await tap(page, '[data-tour="cal-view"] [aria-label="Calendar"]', 700);
