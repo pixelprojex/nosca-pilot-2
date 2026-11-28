@@ -348,9 +348,13 @@ seeded data and no account.
     lessons, the password — which tells the members as every End does.
     `group-page.cjs` (h1)–(h4).
   - **Booking for a child, the Diary is "Book"**, the child on the grey
-    line under it ("For Saoirse"), where "Book for Saoirse" was cut at
-    320 in the compact header. `narrow.cjs` (a), `families-requests.cjs`
-    (f).
+    line under it beside the coach whose hours they are ("For Saoirse ·
+    with Niamh Byrne"), where "Book for Saoirse" was cut at 320 in the
+    compact header. `narrow.cjs` (a), `families-requests.cjs` (f).
+  - **One Manage beside a title** (`ManageKey`): the family screen's
+    Manage (`family-settings`) is the Diary's quiet key — the lead's pale
+    on its ledge, the word in the ink at 15/600, 38 drawn and 44 to a
+    finger — where it was still the bare word the Diary's had been.
   - **A starred row's star is its poster's badge** (`data-star-badge`:
     the gold star on a white disc on the poster's top-right corner, cut
     out by a ring of the card it sits on, in the gap before the words):
@@ -393,7 +397,19 @@ seeded data and no account.
     Mark it up's five tools and Photo are the app's keys, the chosen one
     `SEL` — they were the ink, black among the app's keys. The suites'
     selectors and words are kept (`study-play`, `compare-transport`,
-    "Half speed" …).
+    "Half speed" …). A key's reach is laid from inside its ring, which a
+    screen draws 1 or 1.5 by its density: sideways a point inside half the
+    gutter so neighbours never overlap, up and down the whole of it, and a
+    round key's corners covered — every key 44 to a finger at one, two
+    and three pixels a point (`study.cjs` (b3), `review.cjs` (m)).
+  - **Suites that lagged the design render read it**: the log's title at
+    the serif's 32 (`rating.cjs` (n)), the Diary's folded free hours and a
+    booked hour's face (`offer-times.cjs` (q2), (q4), (q9)), Settings'
+    groups on the warm ring (`new-group.cjs` (b3)), the warm ink
+    (`install.cjs` (f)), Manage as a quiet key (`diary-manage.cjs` (a1),
+    (a2)); and `away.cjs` (c), (d) read each day of a span in its own
+    month's grid, so the suite holds on any day (from the 28th the span
+    crossed into December and it read the 3rd and the 1st of November).
   This supersedes, where they say otherwise: "Held for the founder, not
   done" in the visual audit; "The parent's Diary is titled "Book for
   Saoirse" … cut there until the title is decided" and "One break inside a
