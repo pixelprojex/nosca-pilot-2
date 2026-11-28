@@ -4293,7 +4293,7 @@ const nameShort = (name) => {
    guessed — the words' own lines are counted as laid out, before the
    first paint — and made again when the tile's width changes. A group's
    name is not a person's and is never initialled. */
-function TileName({ name, person = true, lines = 2, style }) {
+function TileName({ name, person = true, lines = 2, style, onTight }) {
   const box = useRef(null), at = useRef(null);
   const full = String(name || "").trim().replace(/\s+/g, " ");
   const short = person ? nameShort(full) : full;
@@ -4304,10 +4304,17 @@ function TileName({ name, person = true, lines = 2, style }) {
   /* the whole name is drawn first; its lines counted, the short form is
      taken only where it would run past `lines` */
   useLayoutEffect(() => {
-    const el = box.current; if (!el || fit.key === key) return;
-    at.current = el.clientWidth;
-    const tops = new Set([...el.querySelectorAll("[data-word]")].map((w) => w.offsetTop));
-    setFit({ key, short: tops.size > lines && short !== full });
+    const el = box.current; if (!el) return;
+    if (fit.key !== key) {
+      at.current = el.clientWidth;
+      const tops = new Set([...el.querySelectorAll("[data-word]")].map((w) => w.offsetTop));
+      setFit({ key, short: tops.size > lines && short !== full });
+      return;
+    }
+    /* the form chosen, laid out: a word still wider than the tile ("Maximiliano"
+       three across at 320) tells the grid, which gives its tiles more room
+       rather than cut the word (28 November) */
+    if (onTight && [...el.querySelectorAll("[data-word]")].some((w) => w.scrollWidth > w.clientWidth + 0.5)) onTight();
   });
   useEffect(() => {
     const el = box.current; if (!el || typeof ResizeObserver === "undefined") return undefined;
@@ -4352,6 +4359,13 @@ function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onE
   const addable = away ? [] : HALF_HOURS.filter((h) => !tiles.includes(h) && !gone(h));
   const [editing, setEditing] = useState(false);
   const [adding, setAdding] = useState(false);
+  /* THREE ACROSS, OR TWO WHERE A NAME NEEDS IT (28 November): at 320 a
+     held tile three across has 71 inside, and "Maximiliano" ended on an
+     ellipsis there — a name cut inside a word. A tile whose name has a
+     word wider than it says so (TileName's onTight), and the day's tiles
+     go two across, where the whole name stands on two lines. Measured,
+     never guessed: Cian Murphy keeps three across at every width. */
+  const [cols, setCols] = useState(3);
   /* the last free time taken off ends Edit, so Add a time is back */
   useEffect(() => { if (editing && !free.length) setEditing(false); }, [editing, free.length]);
   const times = (n) => `${n} ${n === 1 ? tr("time") : tr("times")}`;
@@ -4383,7 +4397,7 @@ function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onE
       {tiles.length === 0 && !away && (
         <p data-tour="editday-empty" className="mb-3" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing offered")}</p>
       )}
-      <div className="grid gap-2" data-tour="editday-times" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
+      <div className="grid gap-2" data-tour="editday-times" data-cols={cols} style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
         {tiles.map((h) => {
           const bk = bookedAt(h);
           const face = { minHeight: 52, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, background: TINT(t),
@@ -4394,7 +4408,7 @@ function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onE
             <span className="block" style={FIG}>{h}</span>
             {/* who, each word whole: the name where it fits in two lines,
                 else the first name and the surname's initial (TileName) */}
-            {bk && <TileName name={bk.who} person={!(bk.group || bk.groupName || String(bk.kind || "").startsWith("Group"))} style={{ color: t.faint }} />}
+            {bk && <TileName name={bk.who} person={!(bk.group || bk.groupName || String(bk.kind || "").startsWith("Group"))} style={{ color: t.faint }} onTight={() => setCols(2)} />}
             {bk && bk.status === "requested" && <span className="block w-full px-1.5" style={{ ...TYPE.caption, fontWeight: 400, color: t.sub }}>{tr("Requested")}</span>}
           </>);
           if (editing && !bk) return (
