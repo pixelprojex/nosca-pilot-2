@@ -30,6 +30,15 @@
 > its placeholder from the manifest's `lqip` (`--lqip`, painted under it by site.css); a photograph with `avif` files is a
 > `<picture>`. `<!-- @include phone film="feed-demo" … -->` puts a film of the app in a phone (a muted loop that plays
 > only in view, its poster first). The band is no longer used on the page.
+>
+> Since the fourth pass (the elevation): headlines are `--title` (Nosca Serif, the app's title face; `fonts/NoscaSerif-*`,
+> preloaded by the shell) and every other word `--display` (Instrument Sans; the body is no longer the system face).
+> The grounds are ivory (`#FAF7F0` paper, `#F2ECE0` rest) with warm greys (`--fg-2 #57554F`, `--fg-3 #6B6A64`) and
+> `--gold-text-on-white #7A5C17`. `.wrap` and `.wrap--wide` are one measure (1240). New: `.seal` (the mark or the weave
+> inside a fine double ring of gold; `--seal` its size, `--seal-c` its colour), `.fine` (a short gold rule), and every
+> `.rule-gold` ends in a point (a clip-path). A loop's veil is graded (`.bgv.vid--veil::after`: `--veil-dir` and the three
+> stops `--veil-a/-b/-c`, deepest where the words stand; set them on the loop's own class). The page's grid, scale and
+> parts are in `src/css/index.css`.
 
 Read `BRIEF.md` first (the founder's words and this round's direction). This file says how to build a page on
 the shared kit. Every piece below is on one page, working: build with `--kit` and open `_kit.html`
@@ -113,8 +122,8 @@ Three grounds and no fourth. A section says which it stands on, and its words fo
 | class | token | value | what |
 |---|---|---|---|
 | `.g-green` | `--ground-green` (`--ground-green-deep`) | `#4F5B29` (`#3E4820`); `#123C30` (`#0A251D`) under `data-world="green"` | the card's front. The olive card's ground is CMYK 50/30/85/45 in `scripts/business-card.py` and measures `#505D27` in the print preview; the dark card is the brand's bottle green |
-| `.g-paper` | `--ground-paper` | `#FFFFFF` | the card's back |
-| `.g-rest` | `--ground-rest` | `#F6F4EE` | one quiet warm off-white, for rest (the table the card lies on in the preview is `#ECE9E3`) |
+| `.g-paper` | `--ground-paper` | `#FAF7F0` | ivory: the paper a heritage house prints on (the card's back, warmed) |
+| `.g-rest` | `--ground-rest` | `#F2ECE0` | a warmer ivory, for rest (the sports' list) |
 
 Gold is **a line, a numeral, a small-caps eyebrow, a hairline**. Never a fill, a gradient or a glow.
 
@@ -122,9 +131,9 @@ Gold is **a line, a numeral, a small-caps eyebrow, a hairline**. Never a fill, a
 |---|---|---|
 | `--gold-line` | `#C2A24C` | rules, the mark and pinstripes on white or rest. A line, never words |
 | `--gold-pin` | `#CDB065` | pinstripes, rules and the mark on the green |
-| `--gold-text-on-white` | `#85651A` | gold words on paper or rest: an eyebrow, a numeral |
+| `--gold-text-on-white` | `#7A5C17` | gold words on paper or rest: an eyebrow, a numeral |
 | `--gold-text-on-green` | `#E9CF7E` | gold words on the green: NOSCA, an eyebrow, a numeral |
-| `--ink --sub --faint --trace --hair --edge --ledge` | `#1C1C1E #5F5F65 #6E6E73 #AEAEB2 #EBEBF0 #E2E2E7 #D9D9DE` | the app's own greys |
+| `--ink --sub --faint --trace --hair --edge --ledge` | `#1C1C1E #5F5F65 #6E6E73 #AEAEB2 #EBEBF0 #E2E2E7 #D9D9DE` | the app's own greys (inside a vignette of the app). On the site's light grounds the words take the warm greys: `--fg-2 #57554F`, `--fg-3 #6B6A64`, lines `#E3DCCD` (paper) and `#D9CFBC` (rest) |
 | `--on-green --on-green-2` | `#F4F6F3 #DADED2` | words on the green |
 
 Inside any ground use `--bg --fg --fg-2 --fg-3 --fg-dim --line --rule --gold-text --focus`: they are already the
@@ -135,16 +144,16 @@ Measured contrast (WCAG) of every pair that is sanctioned for words. Use no othe
 
 | words | on paper | on rest | on olive green | on dark green |
 |---|---|---|---|---|
-| `--ink` | 17.0 | 15.5 | no | no |
-| `--sub` | 6.3 | 5.8 | no | no |
-| `--faint` (small print) | 5.1 | 4.6 | no | no |
-| `--gold-text-on-white` | 5.4 | 4.9 | no | no |
+| `--ink` | 15.9 | 14.5 | no | no |
+| `--fg-2` `#57554F` | 7.0 | 6.3 | no | no |
+| `--fg-3` `#6B6A64` (small print) | 5.1 | 4.6 | no | no |
+| `--gold-text-on-white` | 5.8 | 5.3 | no | no |
 | `--on-green` | no | no | 6.8 | 11.3 |
 | `--on-green-2` | no | no | 5.4 | 9.0 |
 | `--gold-text-on-green` | no | no | 4.8 | 8.0 |
-| white | no | no | 7.3 | 12.3 |
+| ivory (a key's face) `#FFFDF8` | no | no | 7.2 | 12.1 |
 
-Lines only, never words: `--gold-line` (2.5 on paper, 2.2 on rest), `--gold-pin` (3.5 on olive, 5.8 on dark),
+Lines only, never words: `--gold-line` (2.3 on paper, 2.1 on rest), `--gold-pin` (3.5 on olive, 5.8 on dark),
 `--trace`, `--hair`, `--edge`.
 
 **The six sports' colours** (`--golf --tennis --rowing --squash --padel --equestrian`, the app's own values from
@@ -160,8 +169,10 @@ Retired, kept as aliases so nothing breaks, **do not write them in new work**: `
 
 ## Type
 
-Instrument Sans is the voice (`--display`), set large and tight. Instrument Serif (`--serif`, OFL, self-hosted,
-with a true italic) speaks only in the few editorial moments. Body copy is the system face (`--text`) at 17.
+Every headline is Nosca Serif (`--title`), the app's own title face, bold and extra-condensed, set large and close and
+balanced over its lines. Instrument Sans (`--display`) is every other word, the body included, and the few labels are
+its small capitals tracked .16 to .42em. Instrument Serif's italic (`--serif`, OFL, self-hosted) speaks only in the
+Irish word, the one quotation and a caption. The table below is the kit's; the page's own scale is in `index.css`.
 Each web font has a fallback face cut with `size-adjust` and its own ascent and descent, so nothing moves when it lands.
 
 | class | size (320 → 1920) | for |
@@ -189,11 +200,12 @@ wrapped line never starts or ends on a dot (the card's `.bcard__sports` is spans
 
 | class | what |
 |---|---|
-| `.wrap` `.wrap--narrow` `.wrap--wide` | a centred column with gutters (1160 / 760 / 1440; the gutter is `--gut`) |
+| `.wrap` `.wrap--narrow` `.wrap--wide` | a centred column with gutters (1240 / 760 / 1240: one measure for the header and every part; the gutter is `--gut`, 20 → 108) |
 | `.section` `.section--tight` | vertical rhythm: 96 → 208 of air above and below (56 → 112) |
 | `.cols` | the editorial grid: twelve columns on a desk, four on a phone (where every child takes the full row). Place a child off-centre with `style="--at:3;--span:6"`. This is how asymmetry is made: do not centre everything |
 | `.grid .grid--2/3/4` `.stack` (`--stack`) `.center` `.keys` | utilities |
-| `.rule-gold` (`--hair`) | the card's gold rule; add `data-rule` and it draws from its left end with the scroll |
+| `.rule-gold` (`--hair`) | the card's gold rule, ending in a point at each end; add `data-rule` and it draws from its left end as it arrives. `.fine` is a short one |
+| `.seal` | the mark (or the weave) in a fine double ring of gold: `<span class="seal"><!-- @include mark --></span>`; `--seal` the size, `--seal-c` the colour |
 | `.sheet` (`.sheet--lift`, `.sheet--over`) | a section with round shoulders lying over the one before; `--over` slides right over the film or `.hold` before it, which stays pinned one more screen |
 | `.hold` | the section stays at its end while the next slides over it and it recedes a little (`data-hold="still"`, `data-hold="0.94"`). It stays under everything after it, the footer included |
 | `data-header="paper|rest|green|none"` on a section | the header is **solid**, the colour of the ground under its foot, closed by a gold hairline. With no attribute it reads the section's own ground. `none` slides it away while a full-bleed film plays (it returns on focus) |
