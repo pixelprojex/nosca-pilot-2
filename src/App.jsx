@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { flushSync } from "react-dom";
 import { AuthProvider, useAuth } from "./lib/AuthContext";
 import Auth from "./pages/Auth";
 import Arrival from "./pages/Arrival";
@@ -8,6 +9,7 @@ import { useNoscaData, avatarUrl, localDate } from "./lib/useNoscaData";
 import { registerSw, syncSubscription } from "./lib/push";
 import { supabase } from "./lib/supabase";
 import { BrandLoader } from "./lib/brandmark.jsx";
+import { isStandalone } from "./lib/install";
 
 /* The full designed application, behind the real sign-in.
  *
@@ -34,6 +36,42 @@ const isInstallUrl = () => typeof window !== "undefined" && !isDemoUrl() && (
   /^\/install\/?$/i.test(window.location.pathname)
   || new URLSearchParams(window.location.search).has("install")
 );
+
+/* /install OPENED FROM A HOME SCREEN. iOS can keep the address an app
+   was added from, so the installed app may open at /install — where the
+   guide has nothing left to say. The app opens on its own first screen
+   instead: sign-in, or the app (28 November). */
+const installAtStart = () => {
+  if (!isInstallUrl()) return false;
+  if (isStandalone()) { try { window.history.replaceState(null, "", "/"); } catch (e) { /* nothing depends on it */ } return false; }
+  return true;
+};
+
+/* THE HAND-OVER FROM /install (28 November). Continue in the browser and
+   the X used to load "/" afresh — a white page and the whole app booting
+   again between the card's page and sign-up. Now the page is swapped in
+   place: the address becomes "/" (pushed, so Back returns to the guide),
+   the gate renders sign-up — opened on its first question, Join as, since
+   a person holding the card is new — or the app for a member, and the two
+   cross-fade where the browser has view transitions (Chrome, Safari 18).
+   Where it has none, or under Reduce Motion, the swap is simply made; the
+   next screen's own rise is the motion. */
+const VT_CSS = "::view-transition-old(root){animation:200ms cubic-bezier(.4,0,1,1) both noscaVtOut}"
+  + "::view-transition-new(root){animation:340ms cubic-bezier(.22,1,.36,1) both noscaVtIn}"
+  + "@keyframes noscaVtOut{to{opacity:0}}@keyframes noscaVtIn{from{opacity:0;transform:translateY(10px)}}";
+const calmNow = () => {
+  try {
+    if (window.localStorage.getItem("nosca.ui.reduceMotion") === "true") return true;
+    return typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch (e) { return false; }
+};
+function crossFade(swap) {
+  if (typeof document === "undefined" || typeof document.startViewTransition !== "function" || calmNow()) { swap(); return; }
+  if (!document.getElementById("nosca-vt")) {
+    const st = document.createElement("style"); st.id = "nosca-vt"; st.textContent = VT_CSS; document.head.appendChild(st);
+  }
+  try { document.startViewTransition(swap); } catch (e) { swap(); }
+}
 
 /* A join link — https://<site>/?join=CODE or ?family=CODE — is read once
    when the app starts and taken out of the address bar, so a reload
@@ -175,6 +213,23 @@ function Gate() {
      then, so a later sign-in in this tab is not offered it again. */
   const [invite, setInvite] = useState(INVITE);
   const inviteUsed = () => setInvite(null);
+  /* /install, read once and then followed as the address moves (Back from sign-up returns to the guide) */
+  const [onInstall, setOnInstall] = useState(installAtStart);
+  const [authStart, setAuthStart] = useState(null);
+  useEffect(() => {
+    const read = () => setOnInstall(isInstallUrl());
+    window.addEventListener("popstate", read);
+    return () => window.removeEventListener("popstate", read);
+  }, []);
+  const leaveInstall = () => crossFade(() => {
+    const q = new URLSearchParams(window.location.search); q.delete("install");
+    const rest = q.toString();
+    try { window.history.pushState(null, "", "/" + (rest ? `?${rest}` : "")); } catch (e) { /* the swap stands without it */ }
+    flushSync(() => { setAuthStart("who"); setOnInstall(false); });
+    window.scrollTo(0, 0);
+  });
+  /* signed in inside this app at least once: a Home Screen app on an iPhone opens on sign-in, saying why, only before that */
+  useEffect(() => { if (session) { try { window.localStorage.setItem("nosca.here", "1"); } catch (e) { /* private mode */ } } }, [!!session]);
 
   React.useEffect(() => {
     if (!loadingProfile) { setStuck(false); return; }
@@ -184,10 +239,10 @@ function Gate() {
 
   // The design harness needs no account — it is for us, not for users.
   if (demo) return <Nosca demo />;
-  if (isInstallUrl()) return <InstallPage />;
+  if (onInstall) return <InstallPage onLeave={leaveInstall} />;
 
   if (session === undefined) return null;
-  if (!session) return <Auth invite={invite} onInviteUsed={inviteUsed} />;
+  if (!session) return <Auth invite={invite} onInviteUsed={inviteUsed} start={authStart} />;
 
   /* Arrived from a password-reset email. There is a session, but the
      one thing to do is set the new password — before the app. */
