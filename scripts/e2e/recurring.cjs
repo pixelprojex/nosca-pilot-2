@@ -177,7 +177,9 @@ const { check, results, summary } = M.checker("recurring");
         const box = [...list.children].find((c) => c === row || c.contains(row));
         const cs = getComputedStyle(box);
         /* a list row is Duolingo's card (21 November): white, every side on the one light grey line — the wash with no edge from 14 November */
-        const sides = cs.backgroundColor === "rgb(255, 255, 255)" && ["Top", "Right", "Bottom", "Left"].every((s) => cs[`border${s}Color`] === edge && parseFloat(cs[`border${s}Width`]) >= 1);
+        /* a Lares card since 28 November: filled, one 2px ring every side, 18px corners */
+        const ring = cs.borderTopColor;
+        const sides = cs.backgroundColor !== "rgba(0, 0, 0, 0)" && ["Top", "Right", "Bottom", "Left"].every((s) => cs[`border${s}Color`] === ring && parseFloat(cs[`border${s}Width`]) >= 2);
         const bw = box.getBoundingClientRect().width; const rules = [];
         [box, ...box.querySelectorAll("*")].forEach((el) => {
           const wide = el === box || el.getBoundingClientRect().width >= 0.6 * bw;
@@ -186,10 +188,10 @@ const { check, results, summary } = M.checker("recurring");
           const s = getComputedStyle(el);
           for (const side of ["Top", "Bottom"]) if (wide && parseFloat(s[`border${side}Width`]) > 0 && s[`border${side}Style`] !== "none" && !/rgba\(0, 0, 0, 0\)/.test(s[`border${side}Color`])) rules.push(`${side} ${s[`border${side}Width`]}`);
         });
-        const ok = sides && cs.borderTopLeftRadius === "14px" && rules.length === 0;
+        const ok = sides && cs.borderTopLeftRadius === "18px" && rules.length === 0;
         return { label, ok, why: `${cs.borderTopWidth} ${cs.borderTopColor} r${cs.borderTopLeftRadius} rules[${rules.slice(0, 2).join(" | ")}]` };
       }), "rgb(228, 224, 215)");
-      check("(a2) each Recurring row is its own row in a .nsc-list: the white card on the light grey line, 14px corners, no rule inside",
+      check("(a2) each Recurring row is its own row in a .nsc-list: a Lares card on its 2px ring, 18px corners, no rule inside",
         boxes.length === 3 && boxes.every((b) => b.ok), boxes.length ? boxes.map((b) => `${b.label}: ${b.ok ? "ok" : b.why}`).join(" || ") : "no cal-series rows");
 
       /* (b) Update after another time: the same row, changed in place */

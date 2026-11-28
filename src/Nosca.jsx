@@ -16526,7 +16526,7 @@ function JoinRequests({ requests, onAccept, onDecline, pop }) {
                row's text actions — Accept in ink, Decline quiet. Each was a
                card with a filled success-green Accept and an outlined Decline,
                the one person in the app drawn as a card. */
-            <div className="nsc-list">
+            <div className="nsc-list" style={cardOf(t, HUE.blue)}>
               {requests.map((r) => (
                 <PersonRow key={r.id || r.name} tour="request-card" className="pr-1" name={r.name}
                            sub={[r.note, r.sport && SPORTS[r.sport] ? SPORTS[r.sport].label : null, r.junior ? tr("Under 18") : null, askedOn(r)].filter(Boolean).join(" · ")}
@@ -17748,7 +17748,8 @@ function AwayLine({ role, name, booked = 0, onEdit }) {
        ledge, as the lesson boxes under it (21 November; it was the wash
        at 8px) — the word and its line in the label grey, no plane on a
        tile beside them (23 November: a row of words carries no icon) */
-    <div className="nsc-list mb-4">
+    /* a span away is time ahead: sky (28 November) */
+    <div className="nsc-list mb-4" style={cardOf(t, HUE.blue)}>
       <div data-tour="cal-away" className="flex items-center gap-3.5" style={{ minHeight: 62 }}>
         <span className="flex-1 min-w-0">
           <span className="block" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{tr("Away")}</span>

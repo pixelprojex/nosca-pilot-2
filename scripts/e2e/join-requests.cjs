@@ -27,6 +27,8 @@ const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], MON = ["Jan", "F
 const nice = (x) => `${DAYS[x.getDay()]} ${x.getDate()} ${MON[x.getMonth()]}`;
 const EDGE_GOLF = "rgba(47, 107, 58, 0.72)";
 const CARD = "rgb(255, 255, 255)";   // a list row is Duolingo's white card on the light grey line (21 November; the wash from 14 November)
+/* since 28 November a request is a Lares card in sky: golf's navy pale, #DFE9F7 */
+const SKY = "rgb(223, 233, 247)";
 const ACCENT_GOLF = "rgb(40, 89, 55)";   // #285937, golf's fairway since the colour study of 22 November (#207A30 before): Accept is the text action that acts, in the sport's colour
 
 function freshDb() {
@@ -97,8 +99,8 @@ const line = (r) => `${r.name.slice(0, 14)} face ${r.face} ${r.fs}/${r.fw} sub "
       await toRequests(page);
       const t0 = await text(); const R = await rows(page); await shot("01-requests-375");
       /* no subtitle (22 November): "2 waiting" over two rows said the count twice */
-      check("(a) Requests opens from Today's strip with no subtitle counting them, and each request is a person row in one list, the white card at 14px — no card of its own",
-        /Requests/.test(t0) && !/\d waiting/.test(t0) && R.length === 2 && R.every((r) => r.person && r.inList && r.bg === CARD && r.radius === "14px") && (await page.locator('[data-scroll="screen"] .nsc-list').count()) === 1,
+      check("(a) Requests opens from Today's strip with no subtitle counting them, and each request is a person row in one list, a sky Lares card at 18px — no card of its own",
+        /Requests/.test(t0) && !/\d waiting/.test(t0) && R.length === 2 && R.every((r) => r.person && r.inList && r.bg === SKY && r.radius === "18px") && (await page.locator('[data-scroll="screen"] .nsc-list').count()) === 1,
         `${t0.slice(0, 80)} · ${R.map(line).join(" | ")}`);
       check("(b) the one row: the face 44, the name 58px in at 16px/600, the grey line 14px", R.length === 2 && R.every((r) => r.face === 44 && r.inset === 58 && r.fs === "16px" && r.fw === "600" && r.sub && r.sub.fs === "14px"), R.map(line).join(" | "));
       const eoin = R.find((r) => r.name === "Eoin Walsh"), max = R.find((r) => r.name === LONG);
