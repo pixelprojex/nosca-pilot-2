@@ -181,8 +181,9 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
         M.addBooking(db2, { coachId: IDS.coach, playerId: IDS.adult, date: M.ymd(dayFrom(3)), time: "9:00 am", status: "requested" });
         M.addBooking(db2, { coachId: IDS.coach, playerId: IDS.junior, date: M.ymd(dayFrom(4)), time: "4:00 pm", status: "requested" });
         M.addBooking(db2, { coachId: IDS.coach, playerId: IDS.adult, date: M.ymd(dayFrom(-1)), time: "9:00 am" });
-        /* a clip to review, so the morning still runs past six rows now the Messages row is gone (28 November) */
-        M.addLesson(db2, { coachId: IDS.coach, playerId: IDS.adult, date: M.ymd(dayFrom(-1)), focus: "Chipping", sentBy: IDS.adult, unread: true });
+        /* a clip to review, so the morning still runs past six rows now the Messages row is gone (28 November) —
+           sent on another day than yesterday's lesson, which a lesson on its own day would mark as logged */
+        M.addLesson(db2, { coachId: IDS.coach, playerId: IDS.adult, date: M.ymd(dayFrom(-3)), focus: "Chipping", sentBy: IDS.adult, unread: true });
         for (const [id, email, name] of [["00000000-0000-4000-8000-0000000da2a0", "dara@t.ie", "Dara Quinn"], ["00000000-0000-4000-8000-0000000f1011", "fionn@t.ie", "Fionn Daly"]]) {
           M.addUser(db2, { id, email }); M.addProfile(db2, { id, role: "player", name, type: "adult", coachId: IDS.coach, dob: "1990-02-02" });
         }
