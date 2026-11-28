@@ -817,6 +817,8 @@ const cut = (page) => page.evaluate(() => {
       await c.page.evaluate(() => { document.dispatchEvent(new Event("visibilitychange")); window.dispatchEvent(new Event("focus")); });
       await c.page.waitForTimeout(2500);
       check("(t1) a newer build does not reload the app while an import runs", navs.length === 0, navs.join(","));
+      /* Import left the screen for the player's file; Settings is the home's pill */
+      await M.tap(c.page, '[aria-label="Today"]', 800);
       await openSettings(c.page, true);
       await c.page.locator(sel("settings-sync")).click().catch(() => {}); await c.page.waitForTimeout(700);
       check("(t2) Sync says Importing · wait or stop it first", /Importing · wait or stop it first/.test(await c.text()) && navs.length === 0);
