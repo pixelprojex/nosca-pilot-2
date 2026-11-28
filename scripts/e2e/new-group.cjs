@@ -111,9 +111,10 @@ const brief = (sh) => sh ? `${sh.title} · "${sh.ph}" · ${sh.people.length} peo
         !!A && A.title === "New group" && A.ph === "Group name" && A.people.length === 4 && A.days.length === 7 && A.times.length === OWN.length && A.create.length === 1 && A.create[0].label === "Create group" && A.create[0].disabled,
         brief(A));
       /* (b3) 24 November: several are chosen, so the people are rows of ONE grouped box, each with a square
-         tick box on its right — they were a box a person, each with a round ring, a radio's mark for a choice of one */
+         tick box on its right — they were a box a person, each with a round ring, a radio's mark for a choice of one.
+         Since 28 November (the design render) Settings' white groups stand on the white card's warm ring, #E6E2D9 */
       check("(b3) the people are the rows of one grouped box on the card's line — four rows, the group's rule between them and none under the last — never a box a person",
-        !!A && A.groups.length === 1 && A.groups[0].rows === 4 && A.people.every((p) => p.grouped && !p.inList) && A.groups[0].rules.every((w) => parseFloat(w) >= 1) && parseFloat(A.groups[0].last) === 0 && A.groups[0].edge === "rgb(226, 226, 231)",
+        !!A && A.groups.length === 1 && A.groups[0].rows === 4 && A.people.every((p) => p.grouped && !p.inList) && A.groups[0].rules.every((w) => parseFloat(w) >= 1) && parseFloat(A.groups[0].last) === 0 && A.groups[0].edge === "rgb(230, 226, 217)",
         JSON.stringify(A && { groups: A.groups, people: A.people.map((p) => [p.name, p.grouped, p.inList]) }));
       check("(b4) …each row ends on a square tick box, empty at rest, 22 across at the row's right — no round radio ring anywhere among them",
         !!A && A.people.every((p) => p.tick && p.tick.state === "off" && p.tick.w === 22 && p.tick.r > 0 && p.tick.r < 11 && p.tick.right <= 20) && A.rings === 0,
@@ -131,7 +132,7 @@ const brief = (sh) => sh ? `${sh.title} · "${sh.ph}" · ${sh.people.length} peo
 
       /* every key is filled since 23 November: the chosen day is golf's cloth tone with the hue's ink, the six others
          the quiet key in golf's pale (it was the pale face on a white key, and the ink before that); never the success green */
-      const SEL_FACE = "rgb(148, 189, 158)", SEL_FG = "rgb(22, 49, 30)";   // fairway's cloth #94BD9E; its ink
+      const SEL_FACE = "rgb(164, 201, 172)", SEL_FG = "rgb(22, 49, 30)";   // fairway's cloth #A4C9AC; its ink
       const QUIET = "rgb(219, 238, 223)";                                     // fairway's pale #DBEEDF
       const on = C ? C.days.filter((d) => d.bg === SEL_FACE) : [], off = C ? C.days.filter((d) => d.bg !== SEL_FACE) : [];
       check("(e) the chosen day is the chosen answer, golf's light colour filling it with the word in its ink; the six others are the quiet key in golf's pale; none is the success green",

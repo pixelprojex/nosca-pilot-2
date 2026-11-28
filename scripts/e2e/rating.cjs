@@ -139,7 +139,8 @@ const { check, results, summary } = M.checker("rating");
       const opened = await page.evaluate(() => ({
         burst: [...document.querySelectorAll('[aria-live="polite"]')].some((el) => /logged today/.test(el.innerText || "")),
         log: !!document.querySelector('[data-tour="wiz-focus"]'),
-        hero: [...document.querySelectorAll("span")].filter((s) => getComputedStyle(s).fontSize === "30px").map((s) => s.textContent.trim()).find((x) => /Aoife|Cian/.test(x)) || null,
+        /* the log's title, at TYPE.screen's size: 32 in the bold serif since 28 November (it was 30) */
+        hero: [...document.querySelectorAll("span")].filter((s) => getComputedStyle(s).fontSize === "32px").map((s) => s.textContent.trim()).find((x) => /Aoife|Cian/.test(x)) || null,
       }));
       check("(n) Log next clears the burst and opens the log on the other lesson, Aoife's", !opened.burst && opened.log && opened.hero === "Aoife Doyle", JSON.stringify(opened));
       await shot("07-log-next-opened");

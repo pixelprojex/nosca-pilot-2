@@ -106,7 +106,7 @@ const offenders = (page) => page.evaluate((FLOOR) => {
          was known by the board's Log and Register until the board went (18 November),
          which left the check passing only when a lesson on the day happened to carry Log */
       const tabs = role === "coach" ? [["Diary", /Diary/], ["Roster", /Roster/], ["Chat", /Chat/], ["Today", /(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday) \d{1,2} [A-Z][a-z]+/]]
-        : role === "parent" ? [["Lessons", /Lessons|List|Feed/], ["Diary", /Diary|Book for/], ["Chat", /Chat/], ["Family", /family/i]]
+        : role === "parent" ? [["Lessons", /Lessons|List|Feed/], ["Diary", /Diary|Book For/], ["Chat", /Chat/], ["Family", /family/i]]
         : role === "junior" ? [["Drills", /Drills/], ["Diary", /Diary/], ["Family", /family/i]]   /* a junior has no Chat: the thread is the family's */
         : [["Drills", /Drills/], ["Diary", /Diary/], ["Chat", /Chat/], ["Home", /List|Feed|Lessons/]];
       const must = async (label, sel, sig, wait = 900) => { const ok = await clickIf(page, sel, wait); if (!ok) check(`${role} · ${label}: reached`, false, `no ${sel}`); else await read(page, role, label, sig); return ok; };

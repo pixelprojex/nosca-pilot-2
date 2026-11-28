@@ -133,7 +133,7 @@ const last = (arr, table) => arr.filter((x) => x.table === table).slice(-1)[0];
         const sq = el.querySelector('span[aria-hidden="true"]');
         return { word: word ? getComputedStyle(word).color : null, sq: sq ? getComputedStyle(sq).backgroundColor : null, face: getComputedStyle(el.querySelector("[data-face]") || el).backgroundColor };
       });
-      check("(b) Call off is the red of the family: the key filled with the brick's light colour, the word in the brick's ink, no small square inside", red.word === "rgb(85, 28, 23)" && red.sq === null && red.face === "rgb(217, 171, 164)", JSON.stringify(red));   // #D9ABA4, the brick's cloth since the reds' and blues' were capped (24 November; #DAA198 before)
+      check("(b) Call off is the red of the family: the key filled with the brick's light colour, the word in the brick's ink, no small square inside", red.word === "rgb(85, 28, 23)" && red.sq === null && red.face === "rgb(224, 177, 170)", JSON.stringify(red));   // #E0B1AA, the brick's cloth since the reds' and blues' were capped (24 November; #DAA198 before)
 
       /* ---------- (c) Call off: a reason, the days, the lessons, the password ---------- */
       await tap(page, '[data-tour="quick-weather"]', 900);

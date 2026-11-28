@@ -7,6 +7,10 @@ import { useDownloads, fmtBytes } from "./lib/useDownloads";
 import { pushSupport, subscribePush, unsubscribePush, currentSubscription } from "./lib/push";
 import { canPromptInstall, onInstallPromptChange, promptInstall, isStandalone, platformOf, browserOf, iosMajor, isIpad } from "./lib/install";
 import { supabase } from "./lib/supabase";
+import { FOCUS } from "./lib/taxonomy";
+import { importJob, importBusy } from "./lib/importJob";
+import { useSyncExternalStore } from "react";
+import { listImports, clearImports } from "./lib/offline";
 import { Mark, BrandLoader, RING_L, RING_R, RING_LEN, BRAND as BRAND_COLOUR, BRAND_PAPER } from "./lib/brandmark.jsx";
 /* THE LIST'S OWN RULES, shared with the pages that render without
    Nosca mounted (pages/Install.jsx): a list is a column of soft rows,
@@ -14,29 +18,38 @@ import { Mark, BrandLoader, RING_L, RING_R, RING_LEN, BRAND as BRAND_COLOUR, BRA
    style block below at the place the rules have always held, so the
    cascade inside the app is unchanged; the comments that explain them
    are there. */
-export const LIST_CSS = `    .nsc-list { border: none !important; padding-bottom: 2px; }
-    /* WHITE CARDS (21 November): a row is Duolingo's card — white, a light
-       grey line round it and a ledge of the same under it — never a slab of
-       the sport's tint; the founder: "White background throughout" */
-    .nsc-list > * { background: var(--surface, #fff); border: 1.5px solid var(--edge, #E2E2E7) !important; border-radius: 14px;
-                    box-shadow: 0 2px 0 var(--edge, #E2E2E7);
+export const LIST_CSS = `    .nsc-list { border: none !important; padding-bottom: 4px; }
+    /* THE LARES CARD (28 November, the design render's second pass): a row
+       is a card FILLED with the pale of its function's hue (--card), a 2px
+       ring of the pale's ledge (--card-ring) and a 4px ledge a step deeper
+       in the same hue (--card-ledge), 18px corners — Lares's cards,
+       Duolingo's 3D on calm colours. A list says its hue once on the
+       container (cardOf); a row may say its own. It was white on a grey
+       line (21 November), which the founder read as "the exact same". */
+    .nsc-list > * { background: var(--card, var(--surface, #fff)); border: 2px solid var(--card-ring, var(--edge, #E4E0D7)) !important; border-radius: 18px;
+                    box-shadow: 0 4px 0 var(--card-ledge, var(--edge, #E4E0D7));
                     transition: transform .15s cubic-bezier(.2,.7,.3,1), box-shadow .15s cubic-bezier(.2,.7,.3,1), background-color .15s;
-                    margin-bottom: 10px; padding-left: 16px !important; padding-right: 16px !important; }
+                    margin-bottom: 12px; padding-left: 15px !important; padding-right: 15px !important; }
+    /* 15 inside the 2px ring: the row's words keep the width they had inside the 1.5px line and 16, which a
+       phone at one pixel a point draws as 1 and 16 (a long name took a fourth line and was cut at 320 with a
+       point less) */
     /* a row that is one button sinks onto its ledge under the finger (the one press, data-down) */
-    .nsc-list > button[data-down]:not(:disabled) { transform: translateY(2px); box-shadow: 0 0 0 var(--edge, #E2E2E7); transition: none; opacity: 1; }
+    .nsc-list > button[data-down]:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--card-ledge, var(--edge, #E4E0D7)); transition: none; opacity: 1; }
     .nsc-list > *:last-child { margin-bottom: 0; }
     /* SETTINGS IN GROUPS (21 November): a group of rows is one soft box on
        its foot, the rows inside on a fine rule — iOS's grouped list, and
        Lares's own More sheet — where it was twenty slabs down the page */
-    .nsc-group { background: var(--surface, #fff); border: 1.5px solid var(--edge, #E2E2E7); border-radius: 16px; box-shadow: 0 2px 0 var(--edge, #E2E2E7); overflow: hidden; }
+    /* Settings keeps white groups, as Lares's settings are plain, on the warm
+       ring and ledge of the white card (28 November) */
+    .nsc-group { background: var(--surface, #fff); border: 2px solid var(--white-ring, #E6E2D9); border-radius: 18px; box-shadow: 0 4px 0 var(--white-ledge, #DAD5C9); overflow: hidden; }
     .nsc-group > * { background: transparent; padding-left: 16px !important; padding-right: 16px !important;
-                     border-bottom: 1.5px solid var(--edge, #E2E2E7) !important; border-radius: 0; }
+                     border-bottom: 1.5px solid var(--white-ring, #E6E2D9) !important; border-radius: 0; }
     .nsc-group > *:last-child { border-bottom: 0 !important; }
     .nsc-group > .nsc-flush { padding: 0 !important; }
     /* THE MESSENGER'S LIST (21 November): Apple Messages and WhatsApp — no
        card round a row, a fine separator that starts where the words do */
     .nsc-plain > * { position: relative; }
-    .nsc-plain > *::after { content: ""; position: absolute; left: var(--sep-in, 70px); right: 0; bottom: 0; height: 1px; background: #ECECF0; }
+    .nsc-plain > *::after { content: ""; position: absolute; left: var(--sep-in, 70px); right: 0; bottom: 0; height: 1px; background: #ECE9E2; }
     .nsc-plain > *:last-child::after { display: none; }
     /* a swipeable row pads its sliding surface, not the box, so the
        red action behind it never peeks out at the edges */
@@ -45,7 +58,7 @@ export const LIST_CSS = `    .nsc-list { border: none !important; padding-bottom
        options so the open list's wash runs to the box's edge and the
        head's label lines up with every other row */
     .nsc-list > .nsc-flush { padding: 0 !important; overflow: hidden; }
-    .nsc-list > .nsc-swipe > div:last-child { background: var(--surface, #fff) !important; padding-left: 16px; padding-right: 16px; }
+    .nsc-list > .nsc-swipe > div:last-child { background: var(--card, var(--surface, #fff)) !important; padding-left: 15px; padding-right: 15px; }
 `;
 
 import {
@@ -159,6 +172,10 @@ const FaceCtx = createContext(null);
    it through props. "Starred", never "favourite": a coach favouriting
    clips of children reads wrong, and the founder said so. */
 const StarCtx = createContext({ ids: [], has: () => false, toggle: null });
+/* THE IMPORT, as a lesson page reads it: who is looking (an importer reads
+   "Imported", anyone else "Imported by Cian Murphy") and, for whoever may
+   remove the import, the one lesson's Remove. Provided by Nosca. */
+const ImportCtx = createContext({ meId: null, mayRemove: () => false, removeOne: null });
 /* DOWNLOADS, BY CONTEXT: what is on the phone, how far a save has got,
    and the one tap every disc makes — so no list threads it through
    props. `offline` is whether the app is running on its kept copy. */
@@ -454,9 +471,17 @@ export const HAIR = (ink, a = 0.09) => `${ink}${Math.round(a * 255).toString(16)
    tints throughout this site. But what I want is fixed colors, and also a
    white background … White background throughout". The sport's colour is
    the tab bar's, the one action's and a chosen key's. */
-export const EDGE = (t) => (darkPage(t) ? HAIR(t.mark || t.accent || t.ink, 0.72) : "#E2E2E7");
+/* WARM NEUTRALS (28 November, the design render): the greys are the
+   card's, not Apple's — the ink, the sub and faint greys, the wash, the
+   card's line, its ledge and the hairline all lean to the gold's hue, as
+   Lares's neutrals do, so the club colours sit on stone rather than on a
+   cool violet-grey that fought every warm key. The page stays #FFFFFF.
+   ink #1D1B17, sub #5D5950 (7.0:1), faint #6C685E (5.6:1), trace #B2ADA3,
+   hair #ECE9E2, wash #F4F2ED, edge #E4E0D7, its ledge #D9D4C9, a tick
+   box's ring #8B867B (3.6:1). */
+export const EDGE = (t) => (darkPage(t) ? HAIR(t.mark || t.accent || t.ink, 0.72) : "#E4E0D7");
 /* a control whose outline is all it has (a tick box) keeps a line that reads 3:1 */
-export const LINE_STRONG = "#8E8E93";
+export const LINE_STRONG = "#8B867B";
 /* THE CLUB COLOURS (22 November, the colour study). The founder, three
    times in a day: of ten bright hues, "way too colourful. Not cohesive
    or classy"; of everything in the sport's one green, "I do want
@@ -494,16 +519,16 @@ export const CLUB = { fairway: "#285937", olive: "#4F5B29", bottle: "#123C30", l
    bubble, a badge; what labels is pale with the deep as its ink — a
    glyph tile, a face with no picture, what is chosen. */
 const CLUB_PALE = {
-  fairway: ["#DBEEDF", "#C1DAC6", "#94BD9E"], olive: ["#E5EBD7", "#CFD7BC", "#ABB78D"],
-  bottle: ["#DCECE6", "#C3D8D0", "#98BAAE"], lawn: ["#E0ECDC", "#C8D8C2", "#A0BA98"],
-  court: ["#D7EDEC", "#BBDAD8", "#8ABCBA"], petrol: ["#D9ECF1", "#BED8DF", "#9EBEC7"],
-  river: ["#DBEAFA", "#C1D5EC", "#A7BACE"], navy: ["#DFE9F7", "#C7D4E7", "#A9B9CF"],
-  steel: ["#DFE9F2", "#C6D5E0", "#A4BBCD"], aubergine: ["#EDE3F9", "#D9CCEA", "#BDB2CA"],
-  indigo: ["#E4E6FA", "#CDD0EC", "#B2B5CF"], plum: ["#F3E2ED", "#E2CBDA", "#C8AFBF"],
-  claret: ["#F7E2E4", "#E9C9CC", "#CDAEB1"], sienna: ["#F6E4DA", "#E7CCBE", "#D6A589"],
-  rust: ["#F7E3DC", "#E8CCC1", "#D8A38E"], saddle: ["#F3E5D9", "#E2CFBE", "#C8AB91"],
-  chestnut: ["#F4E4DC", "#E3CEC2", "#CAA998"], gold: ["#F0E7D0", "#DED2B2", "#C3AF7E"],
-  slate: ["#E3E9EC", "#CBD4D9", "#A5BBC7"], brick: ["#F8E2DF", "#EACAC6", "#D9ABA4"],
+  fairway: ["#DBEEDF", "#C1DAC6", "#A4C9AC"], olive: ["#E5EBD7", "#CFD7BC", "#B9C3A3"],
+  bottle: ["#DCECE6", "#C3D8D0", "#ABC5BB"], lawn: ["#E0ECDC", "#C8D8C2", "#B1C5AB"],
+  court: ["#D7EDEC", "#BBDAD8", "#97C9C6"], petrol: ["#D9ECF1", "#BED8DF", "#A6C4CC"],
+  river: ["#DBEAFA", "#C1D5EC", "#ABC0D9"], navy: ["#DFE9F7", "#C7D4E7", "#B0BFD4"],
+  steel: ["#DFE9F2", "#C6D5E0", "#ABC1D2"], aubergine: ["#EDE3F9", "#D9CCEA", "#C4B7D4"],
+  indigo: ["#E4E6FA", "#CDD0EC", "#B9BCD4"], plum: ["#F3E2ED", "#E2CBDA", "#CDB6C5"],
+  claret: ["#F7E2E4", "#E9C9CC", "#D7B3B7"], sienna: ["#F6E4DA", "#E7CCBE", "#DCB49E"],
+  rust: ["#F7E3DC", "#E8CCC1", "#D9B5A7"], saddle: ["#F3E5D9", "#E2CFBE", "#CFB9A5"],
+  chestnut: ["#F4E4DC", "#E3CEC2", "#D1B8AB"], gold: ["#F0E7D0", "#DED2B2", "#CABD9D"],
+  slate: ["#E3E9EC", "#CBD4D9", "#ABC2CE"], brick: ["#F8E2DF", "#EACAC6", "#E0B1AA"],
 };
 const PALE_BY_HEX = Object.fromEntries(Object.keys(CLUB).map((k) => [CLUB[k].toUpperCase(), CLUB_PALE[k]]));
 /* A FUNCTION HAS A HUE, AND A SPORT SAYS WHICH COLOUR THAT IS. `HUE`
@@ -523,10 +548,10 @@ const clubSet = (lead, teal, blue, orange, purple, wine, brand) => ({ green: CLU
 export const CLUB_SETS = {
   brand:      clubSet("bottle",    "olive",   "navy",  "saddle", "plum",      "claret",   "bottle"),
   golf:       clubSet("fairway",   "olive",   "navy",  "saddle", "plum",      "claret",   "bottle"),
-  tennis:     clubSet("court",     "lawn",    "navy",  "rust",   "aubergine", "claret",   "bottle"),
-  rowing:     clubSet("river",     "court",   "indigo", "saddle", "plum",      "claret",   "bottle"),
-  squash:     clubSet("sienna",    "petrol",  "navy",  "saddle", "plum",      "claret",   "bottle"),
-  padel:      clubSet("aubergine", "petrol",  "navy",  "rust",   "plum",      "claret",   "bottle"),
+  tennis:     clubSet("court",     "lawn",    "navy",  "saddle", "aubergine", "claret",   "bottle"),
+  rowing:     clubSet("river",     "olive",   "indigo", "saddle", "plum",      "claret",   "bottle"),
+  squash:     clubSet("sienna",    "petrol",  "navy",  "olive",  "plum",      "claret",   "bottle"),
+  padel:      clubSet("aubergine", "petrol",  "navy",  "saddle", "plum",      "claret",   "bottle"),
   equestrian: clubSet("claret",    "fairway", "navy",  "saddle", "aubergine", "chestnut", "bottle"),
 };
 /* NO TWO KEYS OF A SPORT THE SAME COLOUR (24 November). The cool and red
@@ -603,6 +628,21 @@ export const fillOf = (t, hue) => {
   const c = hueOf(t, hue);
   return { face: clothOf(c), fg: onCloth(c), lip: clothLip(c) };
 };
+/* A ROUND KEY, LARES'S WAY (24 November, the founder's call): the round
+   keys — a player's file, a lesson's peek, a group's page, the log's
+   Video · Photo · Voice — are their hue's PALE face in a fine ring of its
+   CLOTH tone, the glyph in the deep colour itself (5.4:1 and over on its
+   pale; the gold a deeper gold), on the cloth's own ledge: Lares's
+   practice node. They were filled with the cloth tone, the glyph its
+   near-black ink, and the founder chose the lighter key beside it. On a
+   dark page the deep colour is the face and its cloth tone the glyph, as
+   a face with no picture is there. { face, ring, fg, lip } */
+export const roundOf = (t, hue) => {
+  const c = hueOf(t, hue);
+  if (darkPage(t)) return { face: c, ring: LIP(c), fg: clothOf(c), lip: LIP(c) };
+  const [pale, , cloth] = lightsOf(c);
+  return { face: pale, ring: cloth, fg: inkOf(c), lip: MIX(cloth, inkOf(c), 0.22) };
+};
 /* EVERY KEY FILLED: a quiet key (an option, a second button) is the
    sport's own pale on its ledge and a chosen one its cloth tone, where
    both were the white key. One switch, so the two can be compared. */
@@ -637,7 +677,7 @@ const darkPage = (t) => { const [r, g, b] = rgbOf(t.page || "#FEFEFE"); return (
 /* under a strong face (the accent, the ink, red): the face a third deeper */
 export const LIP = (c) => MIX(c, "#000000", 0.3);
 /* under a soft face (the wash): the wash with a fifth of the sport's mark */
-export const SOFT_LIP = (t) => (darkPage(t) ? MIX(t.wash, "#000000", 0.5) : "#E2E2E7");
+export const SOFT_LIP = (t) => (darkPage(t) ? MIX(t.wash, "#000000", 0.5) : "#E4E0D7");
 /* THE TINT: a saturated fill of the sport's own colour for every key that
    is not the one action (the founder, 18 November: "the saturated colors
    for the buttons … a lot of the buttons on the Nosca app are like white
@@ -670,9 +710,9 @@ export const TINT = (t) => (darkPage(t) ? MIX(t.surface, t.accent, 0.12) : KEYS_
    with no fill, whose outline is the only thing that says where it is.
    It was the sport's edge for three days — a white key with a green rule
    round it, the very thing the founder asked to have filled. */
-export const TINT_LIP = (t) => (darkPage(t) ? MIX(t.surface, "#000000", 0.45) : KEYS_TINTED ? MIX(lightsOf(t.accent)[1], t.accent, 0.12) : "#D9D9DE");
+export const TINT_LIP = (t) => (darkPage(t) ? MIX(t.surface, "#000000", 0.45) : KEYS_TINTED ? MIX(lightsOf(t.accent)[1], t.accent, 0.12) : "#D9D4C9");
 /* the stone key's fine ring, Lares's inset line of its ledge at 60% */
-export const KEY_RING = (t) => (darkPage(t) ? "transparent" : KEYS_TINTED ? lightsOf(t.accent)[1] : "#E2E2E7");
+export const KEY_RING = (t) => (darkPage(t) ? "transparent" : KEYS_TINTED ? lightsOf(t.accent)[1] : "#E4E0D7");
 /* CHOSEN (21 November): Duolingo's chosen answer — the sport's colour faint
    on the face, its ring and its ledge, the word in the sport's colour —
    where a chosen key was the ink, black among white keys */
@@ -699,7 +739,24 @@ export const redKey = (t) => { const k = RED_KEY(t); return { background: k.face
    Decline): the list's white card at rest, Duolingo's chosen answer once
    picked — the sport's colour faint on the face, its ring and ledge (the
    card's --edge), the word in the sport's colour, a tick */
-export const pickRow = (t, on) => (on ? { background: SEL(t).face, "--edge": SEL(t).ring } : null);
+export const pickRow = (t, on) => (on ? { background: SEL(t).face, "--edge": SEL(t).ring, "--card-ring": SEL(t).ring, "--card-ledge": SEL(t).lip } : null);
+/* THE LARES CARD'S COLOURS (28 November): a function's hue as a card — the
+   pale as the fill, the pale's ledge as the 2px ring, a 4px ledge a step
+   deeper in the same hue. Given as the CSS custom properties the card
+   rules read (--card, --card-ring, --card-ledge), on a list's container
+   or on one row; no hue is the white card on the warm ring. The lessons
+   are the sport's own family (HUE.green), requests and what is ahead sky
+   (HUE.blue), what waits to be logged sand (HUE.orange), a clip to review
+   heather (HUE.purple), a player drifting blush (HUE.red), the record
+   pale gold (HUE.gold), people the teal role — a calm paint chart, the
+   page itself white. */
+export const CARD_WHITE = { "--card": "#FFFFFF", "--card-ring": "#E6E2D9", "--card-ledge": "#DAD5C9" };
+export const cardOf = (t, hue) => {
+  if (darkPage(t)) return { "--card": t.surface, "--card-ring": EDGE(t), "--card-ledge": EDGE(t) };
+  if (!hue) return CARD_WHITE;
+  const [pale, ledge, cloth] = lightsOf(hueOf(t, hue));
+  return { "--card": pale, "--card-ring": ledge, "--card-ledge": MIX(ledge, cloth, 0.75) };
+};
 /* a small key chosen from a set (a day of the week): Duolingo's white
    key on its grey ledge at rest (an n-key), the chosen answer once picked */
 export const keyPick = (t, on) => ({ background: on ? SEL(t).face : TINT(t), border: `${EDGE_W}px solid ${on ? SEL(t).ring : KEY_RING(t)}`,
@@ -785,9 +842,9 @@ const BAND_TO_PLAN = { "Just starting out": "solo", "Under 20": "solo", "20 to 6
    its mark are the brand colour — the one anchor Nosca has before a
    sport tints anything — and its text stays ink. */
 export const NEUTRAL = {
-  ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2",
-  hair: "#EBEBF0", page: "#FFFFFF", surface: "#FFFFFF",
-  wash: "#F2F2F7", mark: BRAND_COLOUR, accent: BRAND_COLOUR, onAccent: BRAND_PAPER,
+  ink: "#1D1B17", sub: "#5D5950", faint: "#6C685E", trace: "#B2ADA3",
+  hair: "#ECE9E2", page: "#FFFFFF", surface: "#FFFFFF",
+  wash: "#F4F2ED", mark: BRAND_COLOUR, accent: BRAND_COLOUR, onAccent: BRAND_PAPER,
   club: CLUB_SETS.brand,
 };
 /* Three states, learned once, applied everywhere — the WHOOP model.
@@ -822,8 +879,8 @@ export const SPORTS = {
   golf: {
     noun: "player", nouns: "players",
     label: "Golf", tagline: "Full swing, short game, on course",
-    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#285937", accent: "#285937", onAccent: "#FFFFFF", club: CLUB_SETS.golf },
+    theme: { ink: "#1D1B17", sub: "#5D5950", faint: "#6C685E", trace: "#B2ADA3", hair: "#ECE9E2",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F4F2ED", mark: "#285937", accent: "#285937", onAccent: "#FFFFFF", club: CLUB_SETS.golf },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -836,17 +893,7 @@ export const SPORTS = {
     ],
     extras: [],
     formats: ["Lesson", "Playing lesson", "Group clinic", "Short game clinic", "Junior class", "Camp", "TrackMan session", "Video analysis", "Custom fitting", "Get into Golf", "GolfSixes"],
-    focus: [
-      { id: "swing", label: "Full swing", subs: ["Driver", "Fairway woods", "Hybrids", "Irons", "Wedges", "Ball striking", "Setup"] },
-      { id: "pitch", label: "Pitching", subs: ["Distance control", "Trajectory", "Spin"] },
-      { id: "chip", label: "Chipping", subs: ["Contact", "Landing spot", "Club choice"] },
-      { id: "bunker", label: "Bunker play", subs: ["Greenside", "Fairway bunker", "Plugged lies"] },
-      { id: "putt", label: "Putting", subs: ["Stroke", "Green reading", "Pace", "Short putts"] },
-      { id: "course", label: "On course", subs: ["Playing lesson", "Course management", "Strategy", "Club selection"] },
-      { id: "mental", label: "Mental game", subs: ["Routine", "Commitment", "Pressure"] },
-      { id: "fitness", label: "Fitness", subs: ["Mobility", "Speed", "Stability"] },
-      { id: "fitting", label: "Custom fitting", subs: ["Driver", "Irons", "Putter"] },
-    ],
+    focus: FOCUS.golf,
     angles: ["Face-on", "Down the line", "Overhead", "Slow motion"],
     drills: [
       { t: "Gate drill", d: "Two tees just wider than the putter head. Three feet, then back to ten.", focus: "putt" },
@@ -911,8 +958,8 @@ export const SPORTS = {
   tennis: {
     noun: "player", nouns: "players",
     label: "Tennis", tagline: "Serve, return, rally, net",
-    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#125856", accent: "#125856", onAccent: "#FFFFFF", club: CLUB_SETS.tennis },
+    theme: { ink: "#1D1B17", sub: "#5D5950", faint: "#6C685E", trace: "#B2ADA3", hair: "#ECE9E2",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F4F2ED", mark: "#125856", accent: "#125856", onAccent: "#FFFFFF", club: CLUB_SETS.tennis },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -926,16 +973,7 @@ export const SPORTS = {
       { id: "level", label: "Tournament level", options: ["Level 1", "Level 2", "Level 3", "Level 4", "Level 5", "Level 6", "Level 7"] },
     ],
     formats: ["Individual", "Group", "Squad", "Cardio Tennis", "Tennis Xpress", "Match play", "Tournament"],
-    focus: [
-      { id: "serve", label: "Serve", subs: ["First serve", "Second serve", "Toss", "Placement"] },
-      { id: "return", label: "Return", subs: ["First-serve return", "Second-serve return", "Chip and charge"] },
-      { id: "fh", label: "Forehand", subs: ["Topspin", "Slice", "Inside-out", "Contact point"] },
-      { id: "bh", label: "Backhand", subs: ["Two-handed", "One-handed", "Slice", "Contact point"] },
-      { id: "net", label: "Net game", subs: ["Volley", "Smash", "Approach", "Drop shot", "Lob"] },
-      { id: "rally", label: "Rally", subs: ["Depth", "Height over the net", "Direction", "Consistency"] },
-      { id: "move", label: "Movement", subs: ["Split step", "Footwork", "Recovery", "Court coverage"] },
-      { id: "match", label: "Match play", subs: ["Tactics", "Point construction", "Physical", "Mental"] },
-    ],
+    focus: FOCUS.tennis,
     angles: ["Behind baseline", "Side on", "Court level", "Slow motion"],
     drills: [
       { t: "Wall rally", d: "Chalk a net line; twenty in a row.", focus: "rally" },
@@ -1003,8 +1041,8 @@ export const SPORTS = {
   rowing: {
     noun: "rower", nouns: "rowers",
     label: "Rowing", tagline: "Technique, rhythm, racing, erg",
-    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#264A70", accent: "#264A70", onAccent: "#FFFFFF", club: CLUB_SETS.rowing },
+    theme: { ink: "#1D1B17", sub: "#5D5950", faint: "#6C685E", trace: "#B2ADA3", hair: "#ECE9E2",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F4F2ED", mark: "#264A70", accent: "#264A70", onAccent: "#FFFFFF", club: CLUB_SETS.rowing },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -1026,13 +1064,7 @@ export const SPORTS = {
       { id: "boat", label: "Boat", options: ["1x", "2x", "4x", "4x+", "2-", "2+", "4-", "4+", "8+"] },
     ],
     formats: ["Water", "Erg", "S&C", "Circuits", "Cross-training", "Race"],
-    focus: [
-      { id: "technique", label: "Technique", subs: ["Catch", "Drive", "Finish", "Recovery", "Blade work", "Balance"] },
-      { id: "rhythm", label: "Rhythm & rating", subs: ["Ratio", "Rate", "Sequencing", "Length"] },
-      { id: "racing", label: "Racing", subs: ["Starts", "Pieces", "Pacing", "Steering"] },
-      { id: "erg", label: "Erg", subs: ["2k test", "5k", "30 min r20", "UT2", "UT1", "AT", "TR", "AN"] },
-      { id: "sc", label: "S&C", subs: ["Weights", "Circuits", "Core", "Cross-training"] },
-    ],
+    focus: FOCUS.rowing,
     angles: ["Side on", "Bow mounted", "From the launch", "Slow motion"],
     drills: [
       { t: "Pause drill", d: "Pause at the finish, then arms away, then body over. Twenty each.", focus: "technique" },
@@ -1098,8 +1130,8 @@ export const SPORTS = {
   squash: {
     noun: "player", nouns: "players",
     label: "Squash", tagline: "Drives, volleys, front court, movement",
-    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#844925", accent: "#844925", onAccent: "#FFFFFF", club: CLUB_SETS.squash },
+    theme: { ink: "#1D1B17", sub: "#5D5950", faint: "#6C685E", trace: "#B2ADA3", hair: "#ECE9E2",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F4F2ED", mark: "#844925", accent: "#844925", onAccent: "#FFFFFF", club: CLUB_SETS.squash },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -1113,16 +1145,7 @@ export const SPORTS = {
       { id: "age", label: "Age group", options: ["U11", "U13", "U15", "U17", "U19"] },
     ],
     formats: ["Individual", "Group", "Junior", "Squad", "Club night", "Conditioned games", "Match play", "Solo", "Pairs"],
-    focus: [
-      { id: "drives", label: "Drives", subs: ["Straight drive", "Cross-court", "Length", "Width"] },
-      { id: "volleys", label: "Volleys", subs: ["Straight volley", "Cross-court volley", "Taking it early"] },
-      { id: "serve", label: "Serve & return", subs: ["Serve", "Return of serve"] },
-      { id: "front", label: "Front court", subs: ["Drop", "Boast", "Lob", "Kill"] },
-      { id: "move", label: "Movement", subs: ["Ghosting", "The T", "Footwork"] },
-      { id: "tactics", label: "Tactics", subs: ["Length & width", "Pressure", "Court craft"] },
-      { id: "physical", label: "Physical & mental", subs: ["Fitness", "Mental"] },
-      { id: "games", label: "Games", subs: ["Conditioned games", "Match play", "Solo practice"] },
-    ],
+    focus: FOCUS.squash,
     angles: ["Back wall", "Side on", "Court level", "Slow motion"],
     drills: [
       { t: "Straight drives", d: "Solo, twenty in a row each side.", focus: "drives" },
@@ -1184,8 +1207,8 @@ export const SPORTS = {
   padel: {
     noun: "player", nouns: "players",
     label: "Padel", tagline: "Net game, overheads, walls",
-    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#4D3566", accent: "#4D3566", onAccent: "#FFFFFF", club: CLUB_SETS.padel },
+    theme: { ink: "#1D1B17", sub: "#5D5950", faint: "#6C685E", trace: "#B2ADA3", hair: "#ECE9E2",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F4F2ED", mark: "#4D3566", accent: "#4D3566", onAccent: "#FFFFFF", club: CLUB_SETS.padel },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -1200,16 +1223,7 @@ export const SPORTS = {
       { id: "age", label: "Age group", options: ["U12", "U14", "U16", "U18"] },
     ],
     formats: ["Private", "Pair", "Group", "Clinic", "Match play", "Americano", "Junior", "Camp"],
-    focus: [
-      { id: "net", label: "Net game", subs: ["Volleys", "Net position", "Transitions"] },
-      { id: "overhead", label: "Overheads", subs: ["Bandeja", "Víbora", "Smash"] },
-      { id: "lob", label: "Lob", subs: ["Defensive lob", "Attacking lob"] },
-      { id: "wall", label: "Back wall", subs: ["Off the back wall", "Side wall", "Double wall"] },
-      { id: "chiquita", label: "Chiquita", subs: ["Placement", "Approach"] },
-      { id: "serve", label: "Serve & return", subs: ["Serve", "Return", "Serve & volley"] },
-      { id: "defence", label: "Defence & tactics", subs: ["Back-court defence", "Tactics", "Footwork"] },
-      { id: "match", label: "Match play", subs: ["Points", "Pairs", "Americano"] },
-    ],
+    focus: FOCUS.padel,
     angles: ["Behind the glass", "Side on", "Court level", "Slow motion"],
     drills: [
       { t: "Wall volleys", d: "Solo, close to the glass. Two minutes.", focus: "net" },
@@ -1270,8 +1284,8 @@ export const SPORTS = {
   equestrian: {
     noun: "rider", nouns: "riders",
     label: "Equestrian", tagline: "Flatwork, poles, jumping, cross-country",
-    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#6B2935", accent: "#6B2935", onAccent: "#FFFFFF", club: CLUB_SETS.equestrian },
+    theme: { ink: "#1D1B17", sub: "#5D5950", faint: "#6C685E", trace: "#B2ADA3", hair: "#ECE9E2",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F4F2ED", mark: "#6B2935", accent: "#6B2935", onAccent: "#FFFFFF", club: CLUB_SETS.equestrian },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -1297,18 +1311,7 @@ export const SPORTS = {
     ],
     formats: ["Private", "Semi-private", "Group", "Lead rein", "Lunge", "Hack", "Clinic", "Rally", "Camp", "Competition"],
     mount: { label: "Horse or pony", prefix: "on " },
-    focus: [
-      { id: "flat", label: "Flatwork", subs: ["Walk", "Trot", "Canter", "Transitions", "Contact", "Bend", "Lateral work"] },
-      { id: "dressage", label: "Dressage", subs: ["Test riding", "Centre line", "Circles & serpentines", "Accuracy"] },
-      { id: "poles", label: "Pole work", subs: ["Trotting poles", "Canter poles", "Cavaletti"] },
-      { id: "grid", label: "Gridwork", subs: ["Placing pole", "Cross", "One stride", "Related distances"] },
-      { id: "sj", label: "Showjumping", subs: ["Course work", "Related distances", "Turns", "Rhythm"] },
-      { id: "xc", label: "Cross-country", subs: ["Schooling", "Ditches & water", "Banks", "Undulating ground"] },
-      { id: "hack", label: "Hacking", subs: ["Road sense", "Open ground"] },
-      { id: "lunge", label: "Lunge", subs: ["Lunge lesson", "Long reining"] },
-      { id: "seat", label: "Position & seat", subs: ["Rising trot", "Light seat", "Without stirrups", "Balance"] },
-      { id: "care", label: "Horse care", subs: ["Tacking up", "Grooming", "Feeding", "Yard"] },
-    ],
+    focus: FOCUS.equestrian,
     angles: ["Side on", "Head on", "Arena corner", "Slow motion"],
     drills: [
       { t: "Transitions every 10 strides", d: "Walk–trot–walk, then trot–canter–trot.", focus: "flat" },
@@ -1519,6 +1522,29 @@ export const useT = () => useContext(ThemeCtx);
    San Francisco is what every app the founder admires is set in. */
 export const display = "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
 export const ui = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
+/* THE TITLES' BOLD SERIF (24 November, the founder's calls). The titles
+   are a narrow display serif at 700: a screen's H1 (TYPE.screen) and a
+   heading inside a page or a sheet (TYPE.head). The founder approved
+   Instrument Serif, the business card's face, and then asked for it bold;
+   it has one weight, so the face is Noto Serif Display at its narrowest
+   width, bold — the same tall, narrow, high-contrast letter. Nothing else
+   is the serif — a row, a key, a note, a figure stays the phone's face
+   above. It is the one web font the app loads (src/index.css; preloaded
+   in index.html and kept offline with the shell); the fallback is Times
+   Bold at the serif's own measure, so a face that could not load moves
+   and cuts nothing. */
+export const serif = "'Nosca Serif', 'Nosca Serif Fallback', Georgia, 'Times New Roman', serif";
+/* THE SERIF'S OWN HEIGHT (28 November). Noto Serif Display stands 1.362 of
+   its size from ascent to descent (1.069 above the baseline, 0.293 under:
+   a g's tail reaches 0.236, an accent on a capital 0.931 up), so a title
+   held to a tighter line inside a clip — a line clamp, `truncate` — lost
+   the tails of its g's and y's on the last line: "Diary" in the compact
+   header, the feed's areas, the log's title. SERIF_LINE is the one line
+   that holds the whole face; serifRoom(lineHeight) is the room under a
+   clamped title's last line for the descent the line does not hold,
+   given back by a margin so nothing under it moves. */
+export const SERIF_LINE = 1.362;
+export const serifRoom = (lh) => { const r = Math.max(0, (SERIF_LINE - lh) / 2 + 0.01); return r ? { paddingBottom: `${r.toFixed(3)}em`, marginBottom: `-${r.toFixed(3)}em` } : {}; };
 
 /* ------------------------------------------------------------------
    TYPE SCALE
@@ -1539,11 +1565,27 @@ export const ui = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
    asked kept as it was; iOS's own are 10pt) and the sign-up wordmark, a
    logotype drawn, not read. scripts/e2e/type-floor.cjs reads the
    computed size of every word on every screen as every role and fails
-   on anything under 12 outside those two. */
+   on anything under 12 outside those two.
+   THE TITLES IN A BOLD SERIF (24 November, the founder's calls): the one
+   place a web font is loaded. A screen's H1 is the serif at 32/700
+   (`screen`), a section's heading and a sheet's title at 22/700 (`head`);
+   the rest of the ladder is the system face as it was, and `title` and
+   `section` stay it for what borrows their size. */
 export const TYPE = {
   hero:     { fontFamily: display, fontSize: 34, lineHeight: 1.08, letterSpacing: "-0.022em", fontWeight: 700 },
-  /* every screen's H1, and the app's only one — see PageHead. */
-  screen:   { fontFamily: display, fontSize: 30, lineHeight: 1.1, letterSpacing: "-0.02em",  fontWeight: 700 },
+  /* every screen's H1, and the app's only one — see PageHead — and the
+     title of a moment that stands for a screen (Logged, a walkthrough's
+     step, the log's who). The bold serif since 24 November, at 32: the
+     narrow bold sets "Wednesday 30 September" in 336, on one line at 390
+     and on two at 320, never cut (it was the system face at 30/700) */
+  screen:   { fontFamily: serif,   fontSize: 32, lineHeight: 1.1, letterSpacing: "-0.004em", fontWeight: 700 },
+  /* A HEADING INSIDE A PAGE OR A SHEET (24 November): a section of a
+     screen (RowHead — Today, Actions, Coming up) and every sheet's title,
+     in the bold serif at 22. It was TYPE.section's 20 and TYPE.title's
+     22 in the system face at 700; those two stay what they were for what
+     borrows their size and is no heading — the lesson's note and the
+     coach's reply at 20, the tip's title, a name in a row, a figure */
+  head:     { fontFamily: serif,   fontSize: 22, lineHeight: 1.2, letterSpacing: "0em", fontWeight: 700 },
   title:    { fontFamily: display, fontSize: 22, lineHeight: 1.2, letterSpacing: "-0.015em", fontWeight: 700 },
   section:  { fontFamily: display, fontSize: 20, lineHeight: 1.25, letterSpacing: "-0.012em", fontWeight: 700 },
   /* heading sits 1px above body deliberately: the contrast is family
@@ -2272,6 +2314,8 @@ const LEGAL = {
   ]},
   licences: { title: "Licences", updated: "Open-source software used in this app", body: [
     ["Third-party components", "This build includes open-source libraries released under permissive licences. Full attribution text ships with the app."],
+    /* the titles' face ships inside the app, so its notice does too (src/fonts/OFL-NotoSerifDisplay.txt) */
+    ["Noto Serif Display", "The titles are set in Noto Serif Display, Copyright 2016 Google Inc., used under the SIL Open Font License, Version 1.1 (openfontlicense.org)."],
   ]},
 };
 
@@ -2337,10 +2381,11 @@ function EmptyHero({ Icon, sport, children, tour, action, className = "" }) {
   return (
     <div data-tour={tour} data-empty-hero="" className={`flex flex-col items-center text-center ${className}`.trim()} style={{ paddingTop: SPACE.block, paddingBottom: SPACE.row }}>
       <span aria-hidden="true" data-hero-disc="" className="flex items-center justify-center rounded-full"
-            style={{ width: 88, height: 88, background: t.wash, marginBottom: SPACE.row + 4, animation: `setIn ${MOTION.move}ms ${MOTION.curve} backwards` }}>
-        {Icon ? <Icon size={38} color={t.mark} strokeWidth={1.8} /> : <SportGlyph sport={sport} size={44} color={t.mark} />}
+            style={{ width: 96, height: 96, background: TINT(t), border: `2px solid ${KEY_RING(t)}`, boxShadow: `0 4px 0 ${TINT_LIP(t)}`, marginBottom: SPACE.row + 8, animation: `setIn ${MOTION.move}ms ${MOTION.curve} backwards` }}>
+        {Icon ? <Icon size={40} color={t.mark} strokeWidth={2} /> : <SportGlyph sport={sport} size={46} color={t.mark} />}
       </span>
-      <p data-hero-line="" style={{ ...TYPE.section, color: t.ink }}>{children}</p>
+      {/* the line in the titles' serif, as a heading: the empty tab says one thing, and says it as the app's own voice */}
+      <p data-hero-line="" style={{ ...TYPE.head, fontSize: 24, color: t.ink }}>{children}</p>
       {action && <div className="w-full" style={{ marginTop: SPACE.block }}>{action}</div>}
     </div>
   );
@@ -2362,7 +2407,11 @@ const ShimmerCSS = () => (
        the one action, cards and the sheet; a row of content sits on the
        wash, so a screen reads as paper with a few objects on it). The
        transparent border keeps the old width, so nothing moves. */
-${LIST_CSS}    .nsc-day { background: var(--surface); border: 1.5px solid var(--edge); border-radius: 16px; overflow: hidden; box-shadow: 0 2px 0 var(--edge); }
+${LIST_CSS}    .nsc-day { background: var(--card, var(--surface)); border: 2px solid var(--card-ring, var(--edge)); border-radius: 20px; overflow: hidden; box-shadow: 0 4px 0 var(--card-ledge, var(--edge)); }
+    /* a row's rule inside a card is the card's own ring, never a grey line on the colour */
+    .nsc-day:not(.nsc-chips) > * { border-bottom-color: var(--card-ring, var(--edge)) !important; }
+    .nsc-day.nsc-rows > * { padding-left: 16px; padding-right: 16px; }
+    [data-card] > * { border-bottom-color: var(--card-ring, var(--edge)) !important; }
     /* A KEY: an outlined control standing on a lip of its own edge, three
        points deep, that sinks two under the finger — Lares's secondary
        button, for every control that draws its own outline. --key-lip
@@ -2705,7 +2754,7 @@ function VideoCompare({ cfg, lessons, onClose }) {
 
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Side by side")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Side by side")}</h2>
       
 
       <div className="flex gap-3 mb-4">
@@ -2779,6 +2828,21 @@ function DrillTimer({ seconds, onDone }) {
    at a size that makes them the subject, and the months as a plain
 
 
+/* A FREE TIME'S PLUS IS A KEY (28 November, the design render): a 30px
+   round key of the sport's pale on its ledge, the plus in the sport's
+   colour — the Diary's one offer drawn as something to press. It sits
+   inside a row that is itself the button, so it draws and takes nothing. */
+const PlusKey = ({ on = false }) => {
+  const t = useT();
+  return (
+    <span aria-hidden="true" data-plus-key="" className="shrink-0 flex items-center justify-center rounded-full"
+          style={{ width: 30, height: 30, background: on ? SEL(t).face : TINT(t), border: `${EDGE_W}px solid ${on ? SEL(t).ring : KEY_RING(t)}`,
+                   boxShadow: `0 2px 0 ${on ? SEL(t).lip : TINT_LIP(t)}` }}>
+      {on ? <Check size={15} color={SEL(t).fg} strokeWidth={2.6} /> : <Plus size={15} color={t.accent} strokeWidth={2.4} />}
+    </span>
+  );
+};
+
 /* The whole diary as one scroll. A coach thinks in days, not in a
    grid — so every day gets its own block with the lessons and the gaps
    between them, running as far forward as they want to look. */
@@ -2791,6 +2855,21 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
   const calendar = useCalendar();
   const cx = now ? { ...calendar, today: now } : calendar;
   const T = cx.today;
+  const narrow = useNarrow();
+  /* THE DAY'S CHIPS (28 November): a free hour the white key on the card's
+     ring and ledge; a lesson the sport's cloth, a ring and a ledge of the
+     same hue a step deeper; a request sky; the person's next lesson the
+     deep colour on its own ledge */
+  const CHIP = useMemo(() => {
+    const cloth = clothOf(t.accent), sky = cardOf(t, HUE.blue);
+    const r = 14;
+    return {
+      free: { background: "#FFFFFF", border: "2px solid var(--card-ring)", boxShadow: "0 3px 0 var(--card-ledge)", borderRadius: r },
+      booked: { background: cloth, border: `2px solid ${MIX(cloth, t.accent, 0.14)}`, boxShadow: `0 3px 0 ${MIX(cloth, t.accent, 0.42)}`, borderRadius: r },
+      ask: { background: sky["--card"], border: `2px solid ${sky["--card-ring"]}`, boxShadow: `0 3px 0 ${sky["--card-ledge"]}`, borderRadius: r },
+      lit: { border: `2px solid ${t.accent}`, boxShadow: `0 3px 0 ${LIP(t.accent)}`, borderRadius: r },
+    };
+  }, [t]);
   /* Names are stripped for anyone who is not the coach. A player has no
      business knowing who else is on the sheet, and filtering at render
      is not good enough — the data must not reach them. */
@@ -2835,6 +2914,7 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
   });
 
   const [focus, setFocus] = useState(null);   // day jumped to from the ticker
+  const [openDays, setOpenDays] = useState([]);   // the days whose free hours a tap laid out
   const shown = focus ? days.filter((x) => x.m === focus.m && x.d === focus.d) : days;
   /* The walkthrough rings a bookable hour; with the free hours back in
      the day's own column there is no grid to hang it off, so the first
@@ -2875,23 +2955,30 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
           behind the one that is isolated, a wash disc under today, and
           for a coach one mark under a day that has anything booked.
           Tap a day to isolate it; tap it again to release. */}
-      <div className="flex overflow-x-auto px-6 pb-4" style={{ scrollbarWidth: "none", gap: 2 }}>
+      {/* THE WEEK AS KEYS (28 November, the design render): each day a key
+          standing on its ledge — the weekday over the date, a dot for a day
+          with lessons — the isolated day the sport's colour on its own deep
+          ledge, today the sport's pale. It was plain figures over a disc,
+          Apple Calendar's week, and the Diary read as it always had. */}
+      <div className="flex overflow-x-auto px-6 pt-1 pb-6" style={{ scrollbarWidth: "none", gap: 4 }}>
         {days.slice(0, 10).map((day) => {
           const on = focus && focus.m === day.m && focus.d === day.d;
           const isToday = day.m === T.m && day.d === T.d;
           const any = isCoach ? day.booked.length > 0 : day.mine.length > 0;
+          /* only the isolated day and today are keys; every other day is its
+             figures on the paper, so the strip reads as one calm line with the
+             day that matters standing out of it */
+          const keyed = on || isToday;
+          const face = on ? t.accent : isToday ? TINT(t) : "transparent";
           return (
-            <button key={key(day.m, day.d)} aria-pressed={!!on}
+            <button key={key(day.m, day.d)} aria-pressed={!!on} data-today={isToday ? "1" : undefined}
                     onClick={() => { haptic(7); soft(); setFocus(on ? null : { m: day.m, d: day.d }); }}
-                    className="shrink-0 flex flex-col items-center active:opacity-70" style={{ width: 44, paddingTop: 2 }}>
-              <span style={{ ...TYPE.caption, color: t.faint }}>{DAY_NAMES[dowOf(day.m, day.d, cx)].slice(0, 3)}</span>
-              {/* Apple Calendar's week: the chosen day a solid disc of the sport's
-                  colour, today's figure in the colour, a day with lessons its dot */}
-              <span className="flex items-center justify-center rounded-full mt-1"
-                    style={{ width: 34, height: 34, background: on ? t.accent : "transparent", transition: "background 200ms" }}>
-                <span style={{ ...TYPE.figureSm, fontSize: 17, fontWeight: on || isToday ? 600 : 500, color: on ? "#fff" : isToday ? t.accent : t.ink }}>{day.d}</span>
-              </span>
-              <span className="rounded-full mt-1" style={{ width: 5, height: 5, background: any ? t.accent : "transparent" }} />
+                    className={`shrink-0 flex flex-col items-center justify-center ${keyed ? "n-key" : "active:opacity-60"}`}
+                    style={{ width: 50, height: 68, borderRadius: 16, background: face, ...(keyed ? { "--key-lip": on ? LIP(t.accent) : TINT_LIP(t) } : null),
+                             border: `${EDGE_W}px solid ${on ? t.accent : isToday ? KEY_RING(t) : "transparent"}` }}>
+              <span style={{ ...TYPE.caption, fontWeight: 600, color: on ? t.onAccent : t.sub }}>{DAY_NAMES[dowOf(day.m, day.d, cx)].slice(0, 3)}</span>
+              <span style={{ ...TYPE.figureSm, fontSize: 19, fontWeight: 700, lineHeight: 1.15, color: on ? t.onAccent : isToday ? t.accent : t.ink }}>{day.d}</span>
+              <span className="rounded-full" style={{ width: 5, height: 5, marginTop: 3, background: any ? (on ? t.onAccent : t.accent) : "transparent" }} />
             </button>
           );
         })}
@@ -2917,21 +3004,37 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
         const coachDay = [...new Set([...day.hours, ...bookedTimes])].sort((a, b) => (parseTime(a) ?? 0) - (parseTime(b) ?? 0));
         const rows = day.away ? (isCoach ? coachDay.filter((h) => bookedTimes.includes(h)) : mineTimes) : isCoach ? coachDay : ownDay;
         if (!rows.length && !day.away) return null;
+        /* a day that is only the person's next lesson is the coloured card whole */
+        const whole = rows.length === 1 && !day.away && litKey === `${day.m}-${day.d}-${rows[0]}`;
+        /* A COACH'S FREE HOURS FOLD (28 November, the class plan's S3): on
+           every day but the one holding the first bookable hour, two free
+           hours or more are one chip, "Free · 4", the plus on it — a tap
+           lays them out in their places. The day the walkthrough rings
+           stays open, so "Tap a free slot" always has its slot. A player's
+           day keeps every hour: they are here to find one. */
+        const freeHere = isCoach && !day.away ? rows.filter((h) => !day.booked.find((b) => b.time === h) && !day.blockedHere.includes(h)) : [];
+        const dk = key(day.m, day.d);
+        const folded = freeHere.length > 1 && !openDays.includes(dk) && !(firstFree && firstFree.startsWith(`${day.m}-${day.d}-`));
+        const dayRows = folded ? rows.filter((h) => !freeHere.includes(h)) : rows;
 
         return (
           <div key={`${day.m}-${day.d}`} className="mb-6">
 
             {/* one quiet line, not a header competing with the rows */}
-            <div className="flex items-center gap-2.5 mb-2.5 px-1">
-              <span style={{ ...TYPE.heading, color: t.ink }}>
+            {/* the day's name is a heading, the app's bold serif as every
+                section's; the pencil a small round key on its ledge, 44 to a
+                finger (it was a 14px grey glyph) */}
+            <div className="flex items-center gap-2.5 mb-3 px-1" style={{ minHeight: 34 }}>
+              <span style={{ ...TYPE.head, color: t.ink }}>
                 {isToday ? tr("Today") : (day.m === tomorrow.m && day.d === tomorrow.d) ? tr("Tomorrow") : `${DAY_NAMES[dowOf(day.m, day.d, cx)].slice(0, 3)} ${day.d} ${day.mo.name.split(" ")[0].slice(0, 3)}`}
               </span>
               <span className="flex-1" />
               {role === "coach" && (
-                <button data-tour="agenda-edit" onClick={() => { haptic(9); soft(); onEditDay(day); }} className="relative p-1.5 active:opacity-50"
-                        aria-label={tr("Edit this day")}>
-                  <span aria-hidden="true" className="absolute" style={{ inset: -9 }} />
-                  <Edit3 size={14} color={t.faint} strokeWidth={2} />
+                <button data-tour="agenda-edit" onClick={() => { haptic(9); soft(); onEditDay(day); }} className="relative flex items-center justify-center rounded-full n-key"
+                        aria-label={tr("Edit this day")} style={{ width: 34, height: 34, border: `${EDGE_W}px solid ${KEY_RING(t)}`, "--key-lip": TINT_LIP(t) }}>
+                  {/* the reach is measured from inside the ring: 31 and 7 either side make 45 */}
+                  <span aria-hidden="true" className="absolute" style={{ inset: -7 }} />
+                  <Edit3 size={15} color={t.accent} strokeWidth={2.2} />
                 </button>
               )}
             </div>
@@ -2939,19 +3042,26 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
             {/* one box a day, its times as rows inside */}
             {/* a day that is only the person's next lesson is the coloured card
                 whole, on its own ledge, as the coach's next is on the home */}
-            <div className="nsc-day" data-away={day.away ? "1" : undefined}
-                 style={rows.length === 1 && !day.away && litKey === `${day.m}-${day.d}-${rows[0]}` ? { "--edge": t.accent, boxShadow: `0 ${LIP_H}px 0 ${LIP(t.accent)}` } : undefined}>
+            {/* THE DAY IS A LARES CARD OF CHIPS (28 November): the sport's pale
+                card, and in it each hour a chip on its own ledge — a lesson the
+                sport's cloth with the person's face, a request sky, a free hour
+                the white key with its plus, the person's next lesson the deep
+                colour; a blocked hour and Away are words on the card. It was a
+                white box of rows on hairlines. */}
+            <div className={whole ? "nsc-day" : "nsc-day nsc-chips"} data-away={day.away ? "1" : undefined}
+                 style={whole ? { "--edge": t.accent, "--card-ring": t.accent, boxShadow: `0 ${LIP_H}px 0 ${LIP(t.accent)}` } : { padding: 8, display: "flex", flexDirection: "column", gap: 8 }}>
               {day.away && (
-                <div className="flex items-center gap-3 px-4" style={{ minHeight: 48, borderBottom: rows.length ? `1px solid ${t.hair}` : "none" }}>
+                <div className="flex items-center gap-3 px-4" style={{ minHeight: 48 }}>
                   <span className="flex-1" style={{ ...TYPE.small, color: t.faint }}>{isCoach || rows.length ? tr("Away") : `${tr("Away")} · ${tr("no lessons")}`}</span>
                 </div>
               )}
-              {rows.map((h, ri) => {
+              {dayRows.map((h, ri) => {
                 const bk = day.booked.find((b) => b.time === h);
                 const isBlocked = day.blockedHere.includes(h);
                 const isGroup = bk && bk.kind && bk.kind.startsWith("Group");
-                const last = ri === rows.length - 1;
-                const line = { borderBottom: last ? "none" : `1px solid ${t.hair}` };
+                const last = ri === dayRows.length - 1 && !folded;
+                /* the chip each kind of hour stands as (none when the day is the card whole) */
+                const line = whole ? {} : CHIP.free;
 
                 /* the player's own lesson: the time, the coach's name, Requested
                    while it waits; a tap lands on the Calendar view's Your lesson
@@ -2976,14 +3086,14 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                     </span>
                     {mn.status === "requested" && <span className="shrink-0" style={{ ...TYPE.small, color: t.faint }}>{tr("Requested")}</span>}
                   </>);
-                  const litStyle = lit ? { background: t.accent, borderBottom: last ? "none" : `1px solid ${LIP(t.accent)}` } : null;
+                  const litStyle = lit ? { background: t.accent, ...(whole ? null : CHIP.lit) } : whole ? null : mn.status === "requested" ? CHIP.ask : CHIP.booked;
                   const mineRow = (juvenile || !onMine) ? (
-                    <div key={h} data-tour="agenda-mine" data-lit={lit ? "1" : undefined} className="w-full flex items-center gap-3 px-4" style={{ minHeight: 56, ...line, ...litStyle }}>{inner}</div>
+                    <div key={h} data-tour="agenda-mine" data-lit={lit ? "1" : undefined} className="w-full flex items-center gap-3 px-4" style={{ minHeight: 56, ...litStyle }}>{inner}</div>
                   ) : (
                     <button key={h} data-tour="agenda-mine" data-lit={lit ? "1" : undefined} onClick={() => { haptic(7); soft(); onMine(day); }}
-                            className="w-full flex items-center gap-3 px-4 text-left active:opacity-50" style={{ minHeight: 56, ...line, ...litStyle }}>
+                            className="w-full flex items-center gap-3 px-4 text-left active:opacity-50" style={{ minHeight: 56, ...litStyle }}>
                       {inner}
-                      <ChevronRight size={lit ? 16 : 14} color={lit ? foilOn(t.accent, t.onAccent) : t.trace || t.faint} strokeWidth={lit ? 2.2 : 2} />
+                      <ChevronRight size={lit ? 16 : 14} color={lit ? foilOn(t.accent, t.onAccent) : onCloth(t.accent)} strokeWidth={lit ? 2.2 : 2} />
                     </button>
                   );
                   return mineRow;
@@ -2999,7 +3109,7 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                    where it cannot, as Accept · Decline do on every person row */
                 if (bk && isCoach && bk.status === "requested") return (
                   <div key={h} data-tour="agenda-ask" data-ask={bk.id || ""} className="w-full flex flex-wrap items-center gap-x-3 px-4"
-                       style={{ minHeight: 56, paddingTop: 6, paddingBottom: 6, ...line }}>
+                       style={{ minHeight: 56, paddingTop: 6, paddingBottom: 6, ...CHIP.ask }}>
                     <Rail tone={t.ink} style={TIME_LEAD}>{h}</Rail>
                     <span className="min-w-0 py-1.5" style={{ flex: "1 1 120px" }}>
                       <span data-name="" className="block" style={{ ...TYPE.body, fontWeight: 600, color: t.ink, lineHeight: 1.2, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{bk.who}</span>
@@ -3017,7 +3127,7 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                 if (bk && isCoach) return (
                   <button key={h} data-tour="agenda-row" onClick={() => { haptic(7); soft(); onOpen(day, bk); }}
                           className="w-full flex items-center gap-3 px-4 text-left active:opacity-50"
-                          style={{ minHeight: 56, ...line }}>
+                          style={{ minHeight: 56, ...CHIP.booked }}>
                     <Rail tone={t.ink} style={TIME_LEAD}>{h}</Rail>
                     {/* THE ACCENT APPEARS ONCE A SCREEN. This bar spent it
                         on every booked row in the diary, and said nothing
@@ -3026,6 +3136,10 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                         stays only for a group, where the colour is the one
                         thing that tells a squad from a single lesson. */}
                     {isGroup && <span className="rounded-full shrink-0" style={{ width: 3, height: 26, background: GROUP }} />}
+                    {/* the person's face, as the home's day row carries it — a
+                        booked hour reads as somebody, a free one as a time; at 350
+                        and under the face gives its room to the name */}
+                    {!isGroup && !narrow && <span className="shrink-0 rounded-full" style={{ boxShadow: "0 0 0 2px #FFFFFF" }}><Avatar name={bk.who} size={34} /></span>}
                     {/* who said they will not be at the group's lesson, counted
                         under its name where the coach reads the day (beside it,
                         the name went to "Satur…" at 320); the peek names them */}
@@ -3037,12 +3151,12 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                       <span data-name="" className="block" style={{ ...TYPE.body, fontWeight: 600, color: t.ink, lineHeight: 1.2, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{bk.who}</span>
                       {isGroup && bk.outIds && bk.outIds.length > 0 && <span data-tour="agenda-out-count" className="block" style={{ ...TYPE.small, color: t.sub }}>{bk.outIds.length} {tr("not going")}</span>}
                     </span>
-                    <ChevronRight size={14} color={t.trace || t.faint} />
+                    <ChevronRight size={14} color={onCloth(t.accent)} />
                   </button>
                 );
 
                 if (isBlocked) return (
-                  <div key={h} className="flex items-center gap-3 px-4" style={{ minHeight: 56, ...line }}>
+                  <div key={h} className="flex items-center gap-3 px-4" style={{ minHeight: 56 }}>
                     <Rail style={{ width: TIME_LEAD.width }}>{h}</Rail>
                     <span className="flex-1" style={{ ...TYPE.small, color: t.faint }}>{tr("Blocked")}</span>
                   </div>
@@ -3069,13 +3183,21 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                           className="w-full flex items-center gap-3 px-4 text-left active:opacity-50"
                           style={{ minHeight: 56, ...line }}>
                     <Rail style={{ width: TIME_LEAD.width }}>{h}</Rail>
-                    {/* an empty row is empty; its plus, the hour on offer, in the
-                        sport's colour (it was the trace grey, 2.2:1 on white) */}
+                    {/* an empty row is empty; its plus, the hour on offer, on a
+                        small round key of the sport's pale (it was a bare 15px
+                        plus); the whole row is still the button */}
                     <span className="flex-1" />
-                    <Plus size={15} color={t.accent} strokeWidth={2.2} />
+                    <PlusKey />
                   </button>
                 );
               })}
+              {folded && (
+                <button data-tour="agenda-free" data-free={freeHere.length} onClick={() => { haptic(7); soft(); setOpenDays((o) => [...o, dk]); }}
+                        className="w-full flex items-center gap-3 px-4 text-left active:opacity-50" style={{ minHeight: 56, ...CHIP.free }}>
+                  <span className="flex-1 min-w-0" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{tr("Free")} <span style={{ color: t.sub, fontWeight: 500 }}>· {freeHere.length}</span></span>
+                  <PlusKey />
+                </button>
+              )}
             </div>
           </div>
         );
@@ -3131,7 +3253,7 @@ function MoveLessonBody({ ask, who, when, days, openFor, foot, onMove, close }) 
   };
   return (
     <div data-tour="move-sheet">
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{ask ? tr("Ask to move") : tr("Move")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{ask ? tr("Ask to move") : tr("Move")}</h2>
       {/* who, then when — "Cian Murphy · Fri 13 Nov · 10:30 am" was three facts on one grey line */}
       <p style={{ ...TYPE.small, color: t.sub }}>{who}</p>
       <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{when}</p>
@@ -3187,7 +3309,7 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, re
     <>
       {/* the title stands clear of the times, as a sheet's title does over
           its first content (it sat 4px over the tiles) */}
-      <h2 className="mb-5" style={{ ...TYPE.title, color: t.ink }}>{tr("Offer another time")}</h2>
+      <h2 className="mb-5" style={{ ...TYPE.head, color: t.ink }}>{tr("Offer another time")}</h2>
       <div className="mb-6">
         <TimeGrid cols={3} times={slots} picked={offer} onToggle={(sl) => setOffer(offer === sl ? null : sl)} />
       </div>
@@ -3203,7 +3325,7 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, re
 
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{request ? tr("Withdraw request") : tr("Cancel lesson")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{request ? tr("Withdraw request") : tr("Cancel lesson")}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{lesson}</p>
 
       <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Why")}</div>
@@ -3268,7 +3390,7 @@ function RecordTransfer({ name, fromCoach, toCoach, onDone, close }) {
 
   if (stage === "confirm") return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Share with")} {toCoach}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Share with")} {toCoach}</h2>
       <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, lineHeight: 1.55, color: t.faint }}>
         {parts.length} {tr("of")} {RECORD_PARTS.length} {tr("parts of your record")}
       </p>
@@ -3294,7 +3416,7 @@ function RecordTransfer({ name, fromCoach, toCoach, onDone, close }) {
 
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Your record")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Your record")}</h2>
       <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, lineHeight: 1.55, color: t.faint }}>
         {tr("Choose what")} {toCoach} {tr("can see. You can change this later.")}
       </p>
@@ -3968,8 +4090,8 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
         <span className="flex-1 min-w-0">
           {/* the whole name, a second line before an ellipsis — "Maximiliano
               Ó Súilleab…" at 320 */}
-          <span data-tour="peek-title" className="block" style={{ ...TYPE.title, color: t.ink, display: "-webkit-box", WebkitLineClamp: 2,
-                       WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{booking.who}</span>
+          <span data-tour="peek-title" className="block" style={{ ...TYPE.head, color: t.ink, display: "-webkit-box", WebkitLineClamp: 2,
+                       WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word", ...serifRoom(TYPE.head.lineHeight) }}>{booking.who}</span>
           <span className="block mt-0.5" style={{ ...TYPE.small, color: t.faint }}>
             {/* the booking's own length — a clinic is an hour here as on its block */}
             {booking.time} · {booking.duration || duration} {tr("min")}
@@ -4002,16 +4124,21 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
           chevron: it was "All 2 lessons" in the accent under the boxes, a
           second accent on a sheet whose one action is Log, and the rows
           above it opened the archive with nothing to say so */}
+      {/* ONE BOX (28 November, the class plan's S5): the last lessons and the
+          way to them all are the rows of one card of the sport's family, on
+          the card's own rules — three boxes stacked under the name read as
+          three things */}
       {(count > 0 || lessons.length > 0) && (
-      <div className="nsc-list mb-5" data-tour="peek-lessons">
+      <div className="nsc-day nsc-rows mb-5" data-tour="peek-lessons">
         {lessons.map((l, i) => (
           <button key={i} onClick={() => { haptic(7); onHistory && onHistory(); }}
                   className="w-full flex items-center gap-4 py-3 text-left active:opacity-50"
-                  style={{ minHeight: 60, animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
+                  style={{ minHeight: 60, borderBottom: i === lessons.length - 1 && !(count > 0) ? "none" : "1.5px solid", animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
             {/* the harness writes "14 Jun" into d; a real lesson keeps
                 the day and the month apart */}
-            <span className="shrink-0" style={{ width: 76, ...TYPE.caption, color: t.faint }}>{l.iso ? fmtWeekDay(localDate(l.iso)) : l.m ? `${l.d} ${l.m}` : l.d}</span>
-            <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{l.focus}</span>
+            <span className="shrink-0 whitespace-nowrap" style={{ minWidth: 76, ...TYPE.caption, color: t.faint }}>{l.iso ? fmtDayYear(l.iso) : l.m ? `${l.d} ${l.m}` : l.d}</span>
+            {/* what was worked on, each area whole, as every lesson row reads it */}
+            <span className="flex-1 min-w-0"><Facts parts={String(l.focus || "").split(" · ")} style={{ ...TYPE.body, color: t.ink }} /></span>
             <ChevronRight size={15} color={t.trace || t.faint} />
           </button>
         ))}
@@ -4031,7 +4158,7 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
               {/* the day, never a countdown — "12d" was the one in the app */}
               <span className="shrink-0" style={{ width: 76, ...TYPE.caption,
                              color: c.days <= 7 ? CAUTION : t.faint }}>{c.iso ? fmtWeekDay(localDate(c.iso)) : c.when || fmtWeekDay((() => { const x = new Date(); x.setHours(12, 0, 0, 0); x.setDate(x.getDate() + (c.days || 0)); return x; })())}</span>
-              <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{c.name}</span>
+              <span className="flex-1 min-w-0" style={{ ...TYPE.body, color: t.ink, ...upTo(2) }}>{c.name}</span>
               {c.mine && <span style={{ ...TYPE.caption, color: t.faint }}>{tr("Yours")}</span>}
             </div>
           ))}
@@ -4120,7 +4247,7 @@ const nameShort = (name) => {
    guessed — the words' own lines are counted as laid out, before the
    first paint — and made again when the tile's width changes. A group's
    name is not a person's and is never initialled. */
-function TileName({ name, person = true, lines = 2, style }) {
+function TileName({ name, person = true, lines = 2, style, onTight }) {
   const box = useRef(null), at = useRef(null);
   const full = String(name || "").trim().replace(/\s+/g, " ");
   const short = person ? nameShort(full) : full;
@@ -4131,10 +4258,17 @@ function TileName({ name, person = true, lines = 2, style }) {
   /* the whole name is drawn first; its lines counted, the short form is
      taken only where it would run past `lines` */
   useLayoutEffect(() => {
-    const el = box.current; if (!el || fit.key === key) return;
-    at.current = el.clientWidth;
-    const tops = new Set([...el.querySelectorAll("[data-word]")].map((w) => w.offsetTop));
-    setFit({ key, short: tops.size > lines && short !== full });
+    const el = box.current; if (!el) return;
+    if (fit.key !== key) {
+      at.current = el.clientWidth;
+      const tops = new Set([...el.querySelectorAll("[data-word]")].map((w) => w.offsetTop));
+      setFit({ key, short: tops.size > lines && short !== full });
+      return;
+    }
+    /* the form chosen, laid out: a word still wider than the tile ("Maximiliano"
+       three across at 320) tells the grid, which gives its tiles more room
+       rather than cut the word (28 November) */
+    if (onTight && [...el.querySelectorAll("[data-word]")].some((w) => w.scrollWidth > w.clientWidth + 0.5)) onTight();
   });
   useEffect(() => {
     const el = box.current; if (!el || typeof ResizeObserver === "undefined") return undefined;
@@ -4179,6 +4313,13 @@ function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onE
   const addable = away ? [] : HALF_HOURS.filter((h) => !tiles.includes(h) && !gone(h));
   const [editing, setEditing] = useState(false);
   const [adding, setAdding] = useState(false);
+  /* THREE ACROSS, OR TWO WHERE A NAME NEEDS IT (28 November): at 320 a
+     held tile three across has 71 inside, and "Maximiliano" ended on an
+     ellipsis there — a name cut inside a word. A tile whose name has a
+     word wider than it says so (TileName's onTight), and the day's tiles
+     go two across, where the whole name stands on two lines. Measured,
+     never guessed: Cian Murphy keeps three across at every width. */
+  const [cols, setCols] = useState(3);
   /* the last free time taken off ends Edit, so Add a time is back */
   useEffect(() => { if (editing && !free.length) setEditing(false); }, [editing, free.length]);
   const times = (n) => `${n} ${n === 1 ? tr("time") : tr("times")}`;
@@ -4195,7 +4336,7 @@ function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onE
 
   return (
     <>
-      <h2 style={{ ...TYPE.title, color: t.ink }}>{fmtIsoDay(iso)}</h2>
+      <h2 style={{ ...TYPE.head, color: t.ink }}>{fmtIsoDay(iso)}</h2>
       {(away || offered.length > 0) && (
         <p data-tour={away ? "editday-away" : undefined} className="mt-1.5" style={{ ...TYPE.small, color: t.faint }}>{away ? tr("Away") : times(offered.length)}</p>
       )}
@@ -4210,7 +4351,7 @@ function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onE
       {tiles.length === 0 && !away && (
         <p data-tour="editday-empty" className="mb-3" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing offered")}</p>
       )}
-      <div className="grid gap-2" data-tour="editday-times" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
+      <div className="grid gap-2" data-tour="editday-times" data-cols={cols} style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
         {tiles.map((h) => {
           const bk = bookedAt(h);
           const face = { minHeight: 52, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, background: TINT(t),
@@ -4221,7 +4362,7 @@ function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onE
             <span className="block" style={FIG}>{h}</span>
             {/* who, each word whole: the name where it fits in two lines,
                 else the first name and the surname's initial (TileName) */}
-            {bk && <TileName name={bk.who} person={!(bk.group || bk.groupName || String(bk.kind || "").startsWith("Group"))} style={{ color: t.faint }} />}
+            {bk && <TileName name={bk.who} person={!(bk.group || bk.groupName || String(bk.kind || "").startsWith("Group"))} style={{ color: t.faint }} onTight={() => setCols(2)} />}
             {bk && bk.status === "requested" && <span className="block w-full px-1.5" style={{ ...TYPE.caption, fontWeight: 400, color: t.sub }}>{tr("Requested")}</span>}
           </>);
           if (editing && !bk) return (
@@ -4810,7 +4951,7 @@ function AtRisk({ list, onMessage, pop }) {
                 <PersonRow key={x.id || x.name} name={x.name} subTone={x.weight >= 3 ? "caution" : "faint"}
                            /* the day of the last lesson, as the roster's row reads it — never
                               "31 days"; the harness, with days alone, counts back from today */
-                           sub={(() => { const d = x.last ? localDate(x.last) : x.gap != null ? new Date(Date.now() - x.gap * 86400000) : null; return d ? `${tr("Last lesson")} · ${fmtWeekDay(d)}` : tr(x.why); })()}
+                           sub={(() => { const d = x.last ? localDate(x.last) : x.gap != null ? new Date(Date.now() - x.gap * 86400000) : null; return d ? `${tr("Last lesson")} · ${fmtDayYear(d)}` : tr(x.why); })()}
                            /* a text action that acts is the sport's colour, as Log and Accept are on the Actions screens beside it */
                            actions={<TextBtn quiet color={t.accent} onClick={() => { hapticCommit(); onMessage(x.id || x.name); }}>{tr("Message")}</TextBtn>} />
               ))}
@@ -4969,7 +5110,7 @@ function PhotoSheet({ name, current, onSet, onClear, close, say }) {
   const tints = ["#8C6D28", "#0F7A69", "#6E5A93", "#B4472F", "#4F7A52", "#2F5D8C"];
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Photo")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Photo")}</h2>
       <p className="mb-6" style={{ ...TYPE.small, color: t.faint }}>{name}</p>
 
       <div className="flex justify-center mb-7">
@@ -5017,7 +5158,7 @@ function DefaultSport({ name, mine, current, onPick, close }) {
   const t = useT();
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Main sport")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Main sport")}</h2>
       <p className="mb-6" style={{ ...TYPE.small, color: t.faint }}>{name}</p>
       <div className="flex flex-col gap-2.5">
         {mine.map((c, i) => {
@@ -5197,14 +5338,14 @@ function QuickMenu({ liveLesson, onLog, onRun, order, onEdit }) {
       {/* the log first and full width; then the eight, two to a row,
           in the order the coach keeps — Call off among them, in red */}
       <ActTile tour="quick-log" tone="accent" block h={60} Icon={Plus} label={tr("Log a lesson")} onTap={() => { hapticCommit(); onLog(); }} />
-      {/* the eight as round keys, two to a row — the founder's own choice for
-          this sheet, kept when the tiles became round */}
+      {/* the eight, two to a row — the founder's own choice for this sheet —
+          as words on their function's cloth since 24 November */}
       <div style={{ marginTop: SPACE.block + 4 }}>
         <TileGrid cols={2}>
           {ids.map((id, i) => {
             const A = COACH_ACTIONS[id];
             return (
-              <ActTile key={id} tour={`quick-${id}`} h={88} wrap Icon={A.Ico} label={tr(A.label)} delay={Math.min(i, 5) * 22}
+              <ActTile key={id} tour={`quick-${id}`} h={60} wrap wordOnly Icon={A.Ico} label={tr(A.label)} delay={Math.min(i, 5) * 22}
                        tone={id === "weather" ? "dangerQuiet" : "quiet"} hue={A.hue}
                        dot={id === "attend" && !!liveLesson}
                        aria={id === "attend" && liveLesson ? `${tr(A.label)} · ${liveLesson.who}` : tr(A.label)}
@@ -5239,7 +5380,7 @@ function PickPerson({ roster, title, sub, onPick, close }) {
 
   return (
     <>
-      <h2 style={{ ...TYPE.title, color: t.ink }}>{title}</h2>
+      <h2 style={{ ...TYPE.head, color: t.ink }}>{title}</h2>
       {sub && <p className="mt-1 mb-5" style={{ ...TYPE.small, color: t.faint }}>{sub}</p>}
 
       <SearchField value={q} onChange={setQ} className="mb-4" />
@@ -5302,7 +5443,7 @@ function Announcement({ kind, title, body, action, actionLabel, onDismiss }) {
         {tr(cfg.eyebrow)}
       </span>
 
-      <h2 className="text-center" style={{ ...TYPE.hero, fontSize: 29, color: t.ink,
+      <h2 className="text-center" style={{ ...TYPE.screen, color: t.ink,
                     animation: "fadeUp 500ms cubic-bezier(.22,1,.36,1) 240ms both" }}>{title}</h2>
 
       {body && (
@@ -5475,7 +5616,7 @@ function Attendance({ lessons, roster, groups = [], taken, chosen, onSubmit, clo
           <ChevronLeft size={15} color={t.sub} strokeWidth={2.2} /> {tr("Today")}
         </button>
 
-        <h2 style={{ ...TYPE.title, color: t.ink }}>{picked.who}</h2>
+        <h2 style={{ ...TYPE.head, color: t.ink }}>{picked.who}</h2>
         {/* a register of one is the time alone: "1 person" under that person's name said nothing,
             and a roll with nobody on it is never "0 people" — a subtitle carries a value or is not there */}
         <p className="mt-1 mb-4" style={{ ...TYPE.small, color: t.faint }}>
@@ -5584,7 +5725,7 @@ function Attendance({ lessons, roster, groups = [], taken, chosen, onSubmit, clo
   /* ---------- pick a lesson ---------- */
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Register")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Register")}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{tr("Today")}</p>
 
       {(lessons || []).length === 0 && (
@@ -5607,9 +5748,13 @@ function Attendance({ lessons, roster, groups = [], taken, chosen, onSubmit, clo
                              animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
               <Rail>{l.time}</Rail>
               <span className="flex-1 min-w-0">
+                {/* the whole name, as every person row carries it: a second and
+                    a third line before an ellipsis, breaking at a space — two
+                    "Maximiliano Ó Súil…" are two players the coach cannot tell
+                    apart, and this is where the coach picks which register */}
                 <span className="flex items-center gap-2">
-                  <span className="truncate" style={{ ...TYPE.body, color: t.ink }}>{l.who}</span>
-                  {live && <span className="rounded-full" style={{ width: 6, height: 6, background: STEADY,
+                  <span data-name="" className="min-w-0" style={{ ...TYPE.body, color: t.ink, lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{l.who}</span>
+                  {live && <span className="rounded-full shrink-0" style={{ width: 6, height: 6, background: STEADY,
                                    animation: "pulseDot 1.6s ease-in-out infinite" }} />}
                 </span>
                 {reg && (
@@ -5964,6 +6109,20 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
    shares the app's paper with every other tab. */
 /* the sport, drawn once: what sits in a lesson's poster box when
    nothing was filmed. Plain line glyphs in the sport's own colour. */
+/* A VOICE NOTE THE PHONE CANNOT PLAY SAYS SO. WhatsApp's notes are Opus,
+   which an iPhone before iOS 18.4 does not decode: the browser's player
+   sits dead with no word, so the line says it rather than converting. */
+function NoteAudio({ src, audRef, dark = false }) {
+  const t = useT();
+  const [cannot, setCannot] = useState(false);
+  useEffect(() => { setCannot(false); }, [src]);
+  return (<>
+    <audio ref={audRef} src={src} controls preload="metadata" className="w-full" style={{ maxWidth: 320 }}
+           onError={(e) => { const c = e.currentTarget && e.currentTarget.error ? e.currentTarget.error.code : 0; if (c === 3 || c === 4) setCannot(true); }} />
+    {cannot && <span data-tour="audio-cannot" style={{ ...TYPE.small, color: dark ? "rgba(255,255,255,0.8)" : t.sub, textAlign: "center" }}>{tr("This voice note won't play on this phone")}</span>}
+  </>);
+}
+
 function SportGlyph({ sport, size = 22, color }) {
   const t = useT();
   const c = color || t.mark;
@@ -6014,9 +6173,12 @@ function Poster({ item, size = 56, radius = 8, sport }) {
     /* no clip: the same box, the sport's glyph in it, so every row lines up —
        Apple's grey with no ring, where a ring of the sport's tint drew a box
        inside the row's box */
-    <span className="flex items-center justify-center shrink-0" aria-hidden="true"
-          style={{ width: size, height: size, borderRadius: radius, background: t.wash }}>
-      <SportGlyph sport={sport} size={Math.round(size * 0.42)} />
+    /* since 28 November the sport's own pale with its glyph in the sport's
+       colour, ringed in its cloth: a lesson with nothing filmed is still
+       the sport, never a grey square (the design render) */
+    <span className="flex items-center justify-center shrink-0" aria-hidden="true" data-poster-blank=""
+          style={{ width: size, height: size, borderRadius: Math.max(radius, 12), background: "#FFFFFF", boxShadow: `inset 0 0 0 ${EDGE_W}px var(--card-ring, ${KEY_RING(t)})` }}>
+      <SportGlyph sport={sport} size={Math.round(size * 0.42)} color={t.accent} />
     </span>
   );
   const flat = item.type === "sim" || item.type === "audio";
@@ -6127,7 +6289,7 @@ function DownloadSheetBody({ lesson, onOpen, onUpdate, onShare, onRemove, onCanc
   const quiet = { minHeight: 48, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink };
   return (
     <div data-tour="download-sheet" data-download-sheet={status || "none"}>
-      <h2 style={{ ...TYPE.title, color: t.ink }}>{lesson.focus}</h2>
+      <h2 style={{ ...TYPE.head, color: t.ink }}>{lesson.focus}</h2>
       <p className="mt-1" style={{ ...TYPE.small, color: t.sub }}>{line}</p>
       {st && st.error && <p className="mt-1" style={{ ...TYPE.small, color: DANGER }}>{st.error}</p>}
       {status === "saving" && (
@@ -6169,10 +6331,12 @@ function LessonRow({ lesson: l, poster, need, onOpen, onDownload, showWho, first
      lesson's media up front */
   useEffect(() => { if (need && !asked.current) { asked.current = true; need(); } }, [need]);
   const files = l.media ?? l.videos ?? 0;
-  const when = l.iso ? fmtWeekDay(localDate(l.iso)) : `${l.d} ${l.m}`;
+  const when = l.iso ? fmtDayYear(l.iso) : `${l.d} ${l.m}`;
   /* two facts on the grey line, never three — and the whole name, because
-     two players with one first name are two files */
-  const sub = (facts || [showWho && l.who ? l.who : null, when, files > 1 ? `${files} ${tr("files")}` : null]).filter(Boolean).slice(0, 2);
+     two players with one first name are two files. A player's or a
+     parent's import says so as the second fact ("Imported by Orla"). */
+  const base = (facts || [showWho && l.who ? l.who : null, when, files > 1 ? `${files} ${tr("files")}` : null]).filter(Boolean);
+  const sub = (!facts && importedByLine(l) ? [base[0], importedByLine(l)] : base).filter(Boolean).slice(0, 2);
   /* NOTHING IS CUT, AT 390 OR 320 (24 November): the areas and the grey
      line are Facts — each part whole, breaking only between parts, a long
      name or area wrapping inside itself — where both were one truncated
@@ -6189,7 +6353,22 @@ function LessonRow({ lesson: l, poster, need, onOpen, onDownload, showWho, first
       <button data-tour={first ? "log-row" : undefined} onClick={() => { haptic(8); soft(); onOpen(l); }}
               className="flex-1 min-w-0 flex items-center gap-3.5 text-left active:opacity-50"
               style={{ paddingTop: 8, paddingBottom: 8 }}>
-        <Poster item={poster} sport={sport} />
+        {/* A STARRED ROW CARRIES ITS STAR ON THE POSTER'S CORNER (28 November):
+            a column of its own beside the words took 27 of them, and at 320 a
+            starred row gave its areas 95 — under the 106 "Showjumping" needs,
+            so the word broke inside itself. On the corner it is the phone's
+            own badge: the palette's gold on a white disc, cut out of the
+            poster by a ring of the card it sits on, in the gap before the
+            words, so nothing of the poster or the words is covered */}
+        <span className="relative shrink-0 flex">
+          <Poster item={poster} sport={sport} />
+          {isStar && (
+            <span role="img" aria-label={tr("Starred")} data-star-badge="" className="absolute flex items-center justify-center rounded-full"
+                  style={{ top: -6, right: -7, width: 22, height: 22, background: "#FFFFFF", boxShadow: "0 0 0 2px var(--card, #FFFFFF)" }}>
+              <Star size={12} color={STAR} fill={STAR} strokeWidth={1.6} />
+            </span>
+          )}
+        </span>
         <span className="flex-1 min-w-0">
           <span className="flex items-start gap-2">
             {/* the mark means "not yet opened" only where opening clears it —
@@ -6204,8 +6383,6 @@ function LessonRow({ lesson: l, poster, need, onOpen, onDownload, showWho, first
           </span>
           <Facts parts={sub} attrs={{ "data-sub": "" }} className="mt-0.5" style={{ ...TYPE.small, color: t.sub }} />
         </span>
-        {/* a star is the palette's gold, wherever it is drawn */}
-        {isStar && <span role="img" aria-label={tr("Starred")} className="shrink-0 flex"><Star size={13} color={STAR} fill={STAR} strokeWidth={1.6} /></span>}
         {!onDownload && <ChevronRight size={14} color={t.trace || t.faint} />}
       </button>
       {onDownload && <DownloadDisc lesson={l} onTap={onDownload} size={38} />}
@@ -6465,7 +6642,7 @@ function Evidence({ item, live, mark, muted = true, rate = 1, onProgress, onAuto
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 px-8" style={{ background: "#0B0F10" }}>
         <Mic size={40} color="rgba(255,255,255,0.85)" strokeWidth={1.4} />
-        <audio ref={aud} src={item.url} controls preload="metadata" className="w-full" style={{ maxWidth: 320 }} />
+        <NoteAudio audRef={aud} src={item.url} dark />
       </div>
     );
   }
@@ -6550,8 +6727,13 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
      the clip (held still while the thumb is down, the time on a pill
      above it), a tap on another segment goes to that file. It replaced
      a row of dots and a separate 2px progress line. */
+  /* PAST TWELVE FILES the strip is one bar for the file on screen and
+     "7 / 40" beside it: forty slivers are no strip (an imported day can
+     carry two hundred) */
+  const many = items.length > 12;
   const at = (clientX) => {
     const r = strip.current.getBoundingClientRect();
+    if (many) return { seg: frame, f: Math.min(1, Math.max(0, (clientX - r.left) / (r.width || 1))) };
     const n = items.length || 1;
     const pos = (Math.min(Math.max(0, clientX - r.left), r.width) / (r.width || 1)) * n;
     const seg = Math.min(n - 1, Math.floor(pos));
@@ -6664,7 +6846,13 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
           {/* the focus on a line of its own, the whole width of the panel */}
           <button onClick={open} className="w-full min-w-0 text-left active:opacity-80">
               <span data-tour="feed-focus" style={{ display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 2, overflow: "hidden", textWrap: "balance", whiteSpace: "normal",
-                                                     fontFamily: display, fontSize: titleSize, lineHeight: 1.08, letterSpacing: "-0.03em", color: "#fff" }}>
+                                                     /* the titles' bold serif (28 November): the lesson is
+                                                        titled as every screen is; the narrow face only ever
+                                                        sets the measure the sizing allowed for, never more */
+                                                     fontFamily: serif, fontWeight: 700, fontSize: titleSize + 2, lineHeight: 1.08, letterSpacing: "0em", color: "#fff",
+                                                     /* room under the last line for the serif's descent: held to 1.08 inside
+                                                        the clamp, "Course management · Mental game" lost the tails of its g's */
+                                                     ...serifRoom(1.08) }}>
                 {/* the dot rides inside the next area's nowrap span, so a line
                     breaks only in the space before it and never ends on a dot;
                     that space is the one place a line may break */}
@@ -6684,7 +6872,7 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
               discs at the right of that line */}
           <div className="flex items-center gap-3" style={{ marginTop: 6 }}>
             <button onClick={open} className="flex-1 min-w-0 text-left truncate active:opacity-80" style={{ ...TYPE.caption, color: "rgba(255,255,255,0.72)" }}>
-              {showWho && lesson.who ? `${lesson.who.split(" ")[0]} · ` : ""}{lesson.iso ? fmtWeekDay(localDate(lesson.iso)) : `${lesson.d} ${lesson.m}`}{lesson.type === "Group" ? ` · ${tr("Group")}` : ""}{stageOf(cfg, lesson) ? ` · ${stageOf(cfg, lesson)}` : ""}
+              {showWho && lesson.who ? `${lesson.who.split(" ")[0]} · ` : ""}{lesson.iso ? fmtDayYear(lesson.iso) : `${lesson.d} ${lesson.m}`}{importedByLine(lesson) ? ` · ${importedByLine(lesson)}` : ""}{lesson.type === "Group" ? ` · ${tr("Group")}` : ""}{stageOf(cfg, lesson) ? ` · ${stageOf(cfg, lesson)}` : ""}
             </button>
             {onDownload && <DownloadDisc lesson={lesson} onTap={onDownload} size={40} dark />}
             {current && current.type === "video" && (
@@ -6740,7 +6928,14 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
                aria-label={items.length > 1 ? `${frame + 1} ${tr("of")} ${items.length}` : tr("Progress")}
                onPointerDown={stripDown} onPointerMove={stripMove} onPointerUp={stripUp} onPointerCancel={stripUp}
                style={{ height: 24, touchAction: "none", cursor: "pointer" }}>
-            {items.map((it, i) => {
+            {many && (<>
+              <span className="flex-1" data-strip="one"
+                    style={{ height: scrub ? 4 : 2, borderRadius: 2, background: "rgba(255,255,255,0.26)", overflow: "hidden", transition: "height 160ms" }}>
+                <span className="block h-full" style={{ width: `${Math.round((current.type === "video" ? (scrub ? scrub.f : prog) : 1) * 1000) / 10}%`, background: "#fff", transition: scrub ? "none" : "width 240ms linear" }} />
+              </span>
+              <span data-tour="feed-strip-count" className="shrink-0" style={{ ...TYPE.caption, fontWeight: 600, color: "rgba(255,255,255,0.86)", fontVariantNumeric: "tabular-nums", marginLeft: 6 }}>{frame + 1} / {items.length}</span>
+            </>)}
+            {!many && items.map((it, i) => {
               const fill = i < frame ? 1 : i > frame ? 0 : it.type === "video" ? (scrub ? scrub.f : prog) : 1;
               return (
                 <span key={it.id || i} className="flex-1"
@@ -6751,7 +6946,7 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
             })}
             {scrub && (
               <span className="absolute px-2" data-tour="feed-scrub-time"
-                    style={{ bottom: 20, left: `clamp(30px, ${((frame + scrub.f) / (items.length || 1)) * 100}%, calc(100% - 30px))`, transform: "translateX(-50%)",
+                    style={{ bottom: 20, left: `clamp(30px, ${(many ? scrub.f : (frame + scrub.f) / (items.length || 1)) * 100}%, calc(100% - 30px))`, transform: "translateX(-50%)",
                              height: 24, lineHeight: "24px", borderRadius: 12, background: "rgba(255,255,255,0.94)",
                              fontFamily: ui, fontSize: 12, fontWeight: 600, color: "#111", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
                 {clock(scrub.t)} · {clock(scrub.d)}
@@ -6771,7 +6966,7 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
    the way autoplay allows; kept from then on until the app is closed. */
 const FEED_MEMORY = { sound: false, rate: 1 };
 
-function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loaded, onNeed, showWho, cfg, right, onDownload }) {
+function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loaded, onNeed, showWho, cfg, right, onDownload, pill = null }) {
   const nav = useContext(NavCtx);
   const [active, setActive] = useState(() => Math.max(0, Math.min(lessons.length - 1, kept(nav.key, "feed") || 0)));
   /* the clip runs to the very bottom of the screen, under the tab bar */
@@ -6867,6 +7062,8 @@ function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loa
           </div>
         )}
       </div>
+      {/* an import's progress, as a paper pill under the header row (docs/import/SPEC.md) */}
+      {pill && <div className="absolute flex" style={{ top: 26 + TOP_AIR + 50, left: 16, right: 12, zIndex: 30, pointerEvents: "none" }}><div style={{ pointerEvents: "auto", maxWidth: "100%" }}>{pill}</div></div>}
 
       <div ref={wrap} onScroll={onScroll} className="absolute inset-0 overflow-y-auto"
            style={{ scrollSnapType: "y mandatory", overscrollBehaviorY: "contain", scrollbarWidth: "none",
@@ -7218,7 +7415,7 @@ function InviteOffer({ invite, lookup, currentCoach, currentCoachName, currentGu
   };
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("You've been invited")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("You've been invited")}</h2>
       <p className="mb-1" style={{ ...TYPE.body, color: t.sub, lineHeight: 1.55 }}>{line}</p>
       <p className="mb-5" style={{ ...TYPE.caption, color: t.faint, letterSpacing: "0.12em" }}>{invite.code}</p>
       {err && <p className="mb-3" style={{ ...TYPE.small, color: DANGER }}>{err}</p>}
@@ -7264,7 +7461,7 @@ function ConfirmPassword({ title, detail, actionLabel, onConfirm, close, closeLa
       {/* Same as LiveCapture: a body inside the app's Sheet, not a Sheet
           of its own — which is why Delete account and the weather
           call-off confirmation opened onto an empty panel. */}
-      <h2 className="mb-2" style={{ ...TYPE.title, color: t.ink }}>{title}</h2>
+      <h2 className="mb-2" style={{ ...TYPE.head, color: t.ink }}>{title}</h2>
       <div className="pb-2">
         <p style={{ ...TYPE.body, color: t.sub, lineHeight: 1.55 }}>{detail}</p>
 
@@ -7326,7 +7523,7 @@ function JoinedCoach({ coachName, sport, onDone }) {
                 border: `3px solid ${t.ink}`, animation: "joinRight 1100ms cubic-bezier(.22,1,.36,1) 120ms both" }} />
       </div>
 
-      <h1 className="mt-9" style={{ ...TYPE.hero, fontSize: 30, color: t.ink,
+      <h1 className="mt-9" style={{ ...TYPE.screen, color: t.ink,
                      animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 900ms both" }}>
         {tr("You're in")}
       </h1>
@@ -7554,6 +7751,23 @@ function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, l
 /* bookings in the order they happen: "1:00 pm" sorts after "9:00 am"
    only if the clock is read, not the string */
 const byWhen = (x, y) => (x.date === y.date ? (parseTime(x.time) ?? 0) - (parseTime(y.time) ?? 0) : x.date < y.date ? -1 : 1);
+/* MANAGE, BESIDE A TITLE (28 November): the door to what runs a screen —
+   the coach's Diary (Hours, Away, Recurring lessons …) and the family (its
+   code, who is in it) — is one quiet key: the lead's pale on its ledge, the
+   word in the ink at 15/600, 38 drawn and 44 to a finger; never a glyph and
+   never the accent, which is a lesson's. */
+function ManageKey({ tour, label, onTap }) {
+  const t = useT();
+  return (
+    <button data-tour={tour} onClick={() => { haptic(6); onTap && onTap(); }} aria-label={label} className="shrink-0 relative n-key"
+            style={{ minHeight: 38, padding: "0 14px", marginTop: 4, borderRadius: 12, border: `${EDGE_W}px solid ${KEY_RING(t)}`, "--key-lip": TINT_LIP(t),
+                     ...TYPE.body, fontSize: 15, fontWeight: 600, color: t.ink }}>
+      <span aria-hidden="true" className="absolute" style={{ top: -5, bottom: -5, left: 0, right: 0 }} />
+      {tr("Manage")}
+    </button>
+  );
+}
+
 function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = [], bookings = [], onOpenKid, onSettings, onSetUp, right, todayIso }) {
   const t = useT();
   const ready = useLoad();
@@ -7608,7 +7822,10 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
 
   return (
     <Screen title={family.displayName} right={right}
-            action={<button data-tour="family-settings" onClick={() => { haptic(6); onSettings && onSettings(); }} className="shrink-0 active:opacity-50" style={{ minHeight: 44, ...TYPE.body, fontWeight: 500, color: t.ink }} aria-label={tr("Family settings")}>{tr("Manage")}</button>}>
+            /* the Diary's Manage, the same key: a quiet key beside the title (it
+               was the bare word the Diary's was until 28 November, so the two
+               Manages in the app were drawn two ways) */
+            action={<ManageKey tour="family-settings" label={tr("Family settings")} onTap={() => onSettings && onSettings()} />}>
       {!ready ? <HomeSkeleton /> : (
         <div className="px-6">
           {/* THE ONE THING HAPPENING NEXT, WHEN IT IS NOT ALREADY BELOW.
@@ -7744,7 +7961,7 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
               {shown.map((l) => (
                 <button key={l.id} onClick={() => { haptic(7); soft(); onOpenLesson && onOpenLesson(l); }} className="w-full flex items-center gap-3 text-left active:opacity-50"
                         style={{ minHeight: 46 }}>
-                  <span className="shrink-0" style={{ width: 76, ...TYPE.caption, color: t.faint }}>{l.iso ? fmtWeekDay(localDate(l.iso)) : `${l.d} ${l.m}`}</span>
+                  <span className="shrink-0 whitespace-nowrap" style={{ minWidth: 76, ...TYPE.caption, color: t.faint }}>{l.iso ? fmtDayYear(l.iso) : `${l.d} ${l.m}`}</span>
                   <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{l.focus}</span>
                   {(l.media || l.videos) > 0 && <Play size={12} color={t.faint} />}
                   <ChevronRight size={13} color={t.trace || t.faint} />
@@ -7813,9 +8030,10 @@ function Tile({ children, onPress, accent, className = "", style = {}, delay = 0
              one idea per box reads calmer and more expensive. */
           /* No outline unless it is carrying meaning. Whitespace and a
              hairline do the grouping; a border is reserved for emphasis. */
-          style={{ background: accent ? `${accent}0E` : t.surface, borderRadius: R.surface,
+          /* the Lares card (28 November): the card's tokens where nothing is accented */
+          style={{ background: accent ? `${accent}0E` : "var(--card, #fff)", borderRadius: 18,
                    position: "relative", overflow: "hidden", zIndex: 1,
-                   border: accent ? `${EDGE_W}px solid ${accent}2E` : `${EDGE_W}px solid ${EDGE(t)}`, boxShadow: p.rest,
+                   border: accent ? `${EDGE_W}px solid ${accent}2E` : "2px solid var(--card-ring, #E6E2D9)", boxShadow: accent ? p.rest : "0 4px 0 var(--card-ledge, #DAD5C9)",
                    transition: "transform 140ms ease-out, box-shadow 140ms ease-out",
                    /* backwards, never both: a held end frame beats the press's own transform */
                    animation: `liftIn 420ms cubic-bezier(.22,1,.36,1) ${delay}ms backwards`, ...style }}>
@@ -7901,7 +8119,7 @@ function Celebration({ label, sub, onDone, tone = "accent" }) {
       </svg>
 
       <div className="mt-7 px-10 text-center" style={{ animation: "labelUp 620ms cubic-bezier(.34,1.56,.64,1) 880ms both" }}>
-        <div style={{ fontFamily: display, fontSize: 25, letterSpacing: "-0.028em", color: t.ink }}>{label}</div>
+        <div style={{ ...TYPE.screen, color: t.ink }}>{label}</div>
         {sub && <div className="mt-2" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{sub}</div>}
       </div>
     </div>
@@ -7919,7 +8137,7 @@ function RateLesson({ focus, coach, onDone, close }) {
   const [picked, setPicked] = useState([]);
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Rate it")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Rate it")}</h2>
       <p className="mb-6" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{focus} · {coach}</p>
 
       <div className="flex justify-center gap-2.5 mb-7">
@@ -7989,7 +8207,7 @@ function NewThread({ role, roster, conns, people: given, groups = [], nouns = "p
   const shown = people.filter((p) => !term || p.name.toLowerCase().includes(term));
   return (
     <>
-      <h2 className="mb-4" style={{ ...TYPE.title, color: t.ink }}>{tr("New message")}</h2>
+      <h2 className="mb-4" style={{ ...TYPE.head, color: t.ink }}>{tr("New message")}</h2>
       <SearchField value={q} onChange={setQ} className="mb-4" />
       {shown.length === 0 ? (
         <EmptyLine>{people.length === 0 ? tr("Nobody to message yet") : `${tr("No one called")} “${q}”`}</EmptyLine>
@@ -8015,7 +8233,7 @@ function SuggestFocus({ cfg, sport, onSend, close }) {
   const [note, setNote] = useState("");
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Next time")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Next time")}</h2>
       
       <div className="mb-5">
         <FocusGrid areas={cfg.focus} picked={[pick]} onToggle={setPick} />
@@ -8059,7 +8277,7 @@ function EndSeries({ rec, rows, duration, group, reasonTravels = true, verify, o
             style={{ minHeight: 48, ...TYPE.body, color: t.sub }}>{tr("Back")}</button>
   );
   const head = (title, line) => (<>
-    <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{title}</h2>
+    <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{title}</h2>
     <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{line}</p>
   </>);
 
@@ -8180,7 +8398,7 @@ function CallOff({ days, startKeys = [], duration, onConfirm, close, verify }) {
 
   if (stage === "which") return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Which lessons")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Which lessons")}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{tr("Untick any that still go ahead")}</p>
       <div className="flex flex-col gap-3 mb-6">
         {chosenDays.map((d) => (
@@ -8217,7 +8435,7 @@ function CallOff({ days, startKeys = [], duration, onConfirm, close, verify }) {
 
   if (stage === "days") return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Which days")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Which days")}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{tr(reason || "")}</p>
       {days.length === 0
         ? <p className="mb-6" style={{ ...TYPE.body, color: t.faint }}>{tr("Nothing booked in the next month")}</p>
@@ -8240,7 +8458,7 @@ function CallOff({ days, startKeys = [], duration, onConfirm, close, verify }) {
 
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Call off")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Call off")}</h2>
       {/* one head across Call off · Cancel · End · Decline · Move: the facts
           in TYPE.small under the title (the day this was opened from), then
           Why as the eyebrow over the reasons — it was the grey subtitle
@@ -8272,7 +8490,7 @@ function RescheduleOffer({ lesson, slots, duration, onPick, close }) {
   const [sel, setSel] = useState(null);
   return (
     <>
-      <h2 className="mb-4" style={{ fontFamily: display, fontSize: 22, letterSpacing: "-0.025em", color: t.ink }}>{tr("Called off for weather")}</h2>
+      <h2 className="mb-4" style={{ ...TYPE.head, color: t.ink }}>{tr("Called off for weather")}</h2>
       <p className="mb-6" style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.6, color: t.sub }}>
         {lesson} {tr("won't go ahead. Pick a new time that suits you.")}
       </p>
@@ -8309,7 +8527,8 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
      and before that a pale accent card at 16px) — with a group marked as
      the List view marks it, the 3px bar */
   return (
-    <Tile tour="cal-block" delay={delay} className="mb-3" style={{ overflow: "hidden", borderRadius: 14, boxShadow: `0 2px 0 ${EDGE(t)}` }}>
+    /* a Lares card of the sport's own family, a group's too (its bar says which) */
+    <Tile tour="cal-block" delay={delay} className="mb-4" style={{ overflow: "hidden", ...cardOf(t, HUE.green) }}>
       <button onClick={() => { haptic(7); soft(); setOpen(!open); }} className="w-full text-left px-5 py-4">
         <div className="flex items-center gap-3.5">
           {isGroup && <span className="rounded-full shrink-0" style={{ width: 3, height: 26, background: GROUP }} />}
@@ -8317,7 +8536,7 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
             : <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 42, height: 42, background: t.wash }}>
                 <Users size={18} color={GROUP} strokeWidth={1.6} /></span>}
           <span className="flex-1 min-w-0">
-            <span className="block truncate" style={{ ...TYPE.heading, color: t.ink }}>{item.who}</span>
+            <span data-name="" style={{ ...TYPE.heading, color: t.ink, ...upTo(3) }}>{item.who}</span>
             {/* two facts, each kept whole: where the line must wrap at 320 it breaks
                 before the dot, which rides with the kind — a line never ends on it */}
             <span className="block mt-1" style={{ ...TYPE.small, color: t.faint }}>
@@ -8414,7 +8633,8 @@ function AskBlock({ item, duration, delay = 0, onAccept, onDecline }) {
   const len = item.duration || duration;
   const key = { minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, fontFamily: ui, fontSize: 15, fontWeight: 600 };
   return (
-    <Tile tour="cal-ask" delay={delay} className="mb-3" style={{ overflow: "hidden", borderRadius: 14, boxShadow: `0 2px 0 ${EDGE(t)}` }}>
+    /* a request is sky, as every request is (28 November) */
+    <Tile tour="cal-ask" delay={delay} className="mb-4" style={{ overflow: "hidden", ...cardOf(t, HUE.blue) }}>
       <div data-ask={item.id || ""} className="px-5 py-4">
         <div className="flex items-center gap-3.5">
           <Avatar name={item.who} size={42} />
@@ -8831,8 +9051,11 @@ function Screen({ title, meta, onBack, right, action, children, large = true, ba
           {/* the title is never cut: at 320 the pill on the right drops its
               name (`useNarrow`) rather than the title its letters; `truncate`
               stays only as the backstop narrow.cjs proves is never reached */}
+          {/* the serif's own height (its ascent and descent, 1.36 of its size): a
+              line held to 1.1 cut the tail off the y of "Diary" inside the clip
+              `truncate` draws (28 November) */}
           <span data-tour="screen-title" className="flex-1 min-w-0 text-center truncate px-1.5"
-                style={{ fontFamily: ui, fontSize: 16, fontWeight: 600, color: t.ink,
+                style={{ ...TYPE.head, fontSize: 20, lineHeight: SERIF_LINE, color: t.ink,
                          opacity: shrunk ? 1 : 0, transition: "opacity 180ms" }}>{title}</span>
           <span className="flex items-center justify-end gap-2.5 pr-3" style={{ minWidth: 41 }}>{right}</span>
         </div>
@@ -8952,19 +9175,24 @@ function Segmented({ options, value, onChange, tour, tall = false }) {
     /* Lares's control: the wash for a track with a fine ring of its own
        lip, and the chosen option a paper face standing on a two-point
        lip that glides to it */
-    <div data-tour={tour} className="relative flex rounded-xl p-0.5" style={{ background: t.wash, boxShadow: `inset 0 0 0 1px ${SOFT_LIP(t)}` }}>
+    /* THE CHOSEN SIDE IS THE CHOSEN ANSWER (28 November, the design render):
+       the thumb is the sport's cloth on its ledge with the word in its ink,
+       Duolingo's picked answer, where it was a white face on the grey — the
+       one switch on every list (List · Feed, List · Calendar) now says which
+       side is on at a glance */
+    <div data-tour={tour} className="relative flex p-1" style={{ borderRadius: 14, background: t.wash, boxShadow: `inset 0 0 0 1px ${SOFT_LIP(t)}` }}>
       {/* one thumb that glides to the chosen option, rather than a
           surface that jumps from one to the next */}
-      <span aria-hidden="true" className="absolute rounded-lg" data-lip=""
-            style={{ top: 2, bottom: 4, left: 2, width: `calc((100% - 4px) / ${n})`, transform: `translateX(${idx * 100}%)`,
-                     background: t.surface, boxShadow: `${lipOf(SOFT_LIP(t), 2)}, 0 0 0 1px ${SOFT_LIP(t)}`, transition: `transform ${MOTION.move}ms ${MOTION.curve}` }} />
+      <span aria-hidden="true" className="absolute" data-lip="" data-thumb=""
+            style={{ top: 4, bottom: 6, left: 4, width: `calc((100% - 8px) / ${n})`, transform: `translateX(${idx * 100}%)`, borderRadius: 10,
+                     background: SEL(t).face, boxShadow: `${lipOf(SEL(t).lip, 2)}, 0 0 0 ${EDGE_W}px ${SEL(t).ring}`, transition: `transform ${MOTION.move}ms ${MOTION.curve}` }} />
       {options.map((o) => {
         const on = value === o;
         return (
           <button key={o} aria-pressed={on} aria-label={o} onClick={() => { haptic(6); onChange(o); }} className="relative flex-1 rounded-lg"
                   /* `tall`: 44 to a finger, where the control is the only way to another answer (the install guide's Change) */
-                  style={{ minHeight: tall ? 44 : 34, paddingBottom: 2, background: "transparent", transition: `color ${MOTION.move}ms`,
-                           fontFamily: ui, fontSize: tall ? 14 : 13.5, fontWeight: 600, color: on ? t.ink : t.sub }}>{o}</button>
+                  style={{ minHeight: tall ? 44 : 38, paddingBottom: 2, background: "transparent", transition: `color ${MOTION.move}ms`,
+                           fontFamily: ui, fontSize: tall ? 14.5 : 14.5, fontWeight: on ? 700 : 600, color: on ? SEL(t).fg : t.sub }}>{o}</button>
         );
       })}
     </div>
@@ -8974,7 +9202,7 @@ function Toggle({ on, onChange }) {
   const t = useT();
   return (
     <button onClick={() => { haptic(6); onChange(!on); }} aria-pressed={on} className="rounded-full shrink-0 relative"
-            style={{ width: 50, height: 30, background: on ? t.accent : "#D6DAD3", transition: "background 280ms cubic-bezier(.22,1,.36,1)" }}>
+            style={{ width: 50, height: 30, background: on ? t.accent : "#DCD8CF", transition: "background 280ms cubic-bezier(.22,1,.36,1)" }}>
       <span className="absolute rounded-full" style={{ width: 26, height: 26, top: 2, left: on ? 22 : 2, background: "#fff",
                      boxShadow: "0 1px 3px rgba(0,0,0,0.2)", transition: "left 200ms cubic-bezier(.32,.72,0,1)" }} />
     </button>
@@ -9072,7 +9300,7 @@ function SearchField({ value, onChange, placeholder, tour, onEnter, className = 
     </div>
   );
 }
-function MicBtn({ onText, size = 34, tint, onNotice }) {
+export function MicBtn({ onText, size = 34, tint, onNotice }) {
   const t = useT();
   const notice = useContext(NoticeCtx);
   const { state, start, supported } = useDictation(onText, onNotice || notice);
@@ -9216,8 +9444,9 @@ const TIME_LEAD = { fontSize: 17, fontWeight: 600, letterSpacing: "-0.015em", wi
 
 const Card = ({ children, className = "", style = {}, delay = 0, tour }) => {
   const t = useT();
-  return (<div data-tour={tour} className={className} style={{ background: t.surface, borderRadius: R.surface, border: `${EDGE_W}px solid ${EDGE(t)}`,
-                  boxShadow: lipOf(EDGE(t), 2),
+  /* a Lares card on the list's own tokens: the sport's pale by default, the white card where a list says so */
+  return (<div data-tour={tour} data-card="" className={className} style={{ background: "var(--card, #fff)", borderRadius: 18, border: "2px solid var(--card-ring, #E6E2D9)",
+                  boxShadow: "0 4px 0 var(--card-ledge, #DAD5C9)",
                   animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`, ...style }}>{children}</div>);
 };
 /* A label over a list of rows. Eyebrow below carries the page's own
@@ -9225,10 +9454,11 @@ const Card = ({ children, className = "", style = {}, delay = 0, tour }) => {
 /* A SECTION IS A HEADING (21 November): the screen's subjects — Today,
    Actions, Coming up, Children — in the display face in ink, as Lares
    heads "Later" and "Countdowns", where they were the small grey label a
-   form field carries. The label stays the Eyebrow's, for a field. */
+   form field carries. The label stays the Eyebrow's, for a field. In the
+   bold serif since 24 November (TYPE.head, 22), as a sheet's title is. */
 const RowHead = ({ children }) => {
   const t = useT();
-  return <h2 className="px-1" style={{ ...TYPE.section, color: t.ink, marginBottom: SPACE.tight }}>{children}</h2>;
+  return <h2 className="px-1" style={{ ...TYPE.head, color: t.ink, marginBottom: SPACE.tight }}>{children}</h2>;
 };
 const Eyebrow = ({ children }) => {
   const t = useT();
@@ -9334,7 +9564,7 @@ export const sink = (t, restShadow) => {
    Drills · Tip). `tick`: a chosen answer carries the sport's tick in a disc
    on its top-right corner — the log's areas only; a key with a count or a
    dot keeps that on its corner and never a tick beside it. */
-function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, aria, h = 76, delay = 0, wrap = false, iconOnly = false, block = false, face: faceSize, round, hue, tick = false, big = false }) {
+function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, aria, h = 76, delay = 0, wrap = false, iconOnly = false, block = false, face: faceSize, round, hue, tick = false, big = false, wordOnly = false }) {
   const t = useT();
   const cols = useContext(GridColsCtx);
   /* dangerQuiet: the white key with the red in the glyph and the word
@@ -9389,6 +9619,26 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
      Duolingo's cards) — a circle in a cell twice its width read as a
      small button in the middle of a big page. Under 72 tall the glyph
      and the word share one line. */
+  /* THE PLUS SHEET'S EIGHT ARE WORDS (24 November, the founder's call):
+     its function keys carry the word alone, centred on the cloth fill at
+     60 — a glyph over a word, eight times, two to a row, was the busiest
+     thing in the sheet. The fill and its ledge are the function's, as
+     before, and Call off is still the brick's */
+  if (Icon && !block && round !== true && cols === 2 && wordOnly) {
+    const p = press3d(lipC, 3, 2, ring);
+    return (
+      <button data-tour={tour} data-lip="" data-tile="" data-word="" aria-label={aria || label} onClick={() => { haptic(9); soft(); onTap(); }}
+              {...p.handlers}
+              className="relative w-full flex items-center justify-center text-center"
+              data-fill={fill ? "" : undefined}
+              style={{ minHeight: h, padding: "8px 12px", borderRadius: R.surface, background: bg,
+                       boxShadow: p.rest, border: `${EDGE_W}px solid ${fill ? "transparent" : quietTile ? quietRing : "transparent"}`, animation: enter,
+                       transition: `background ${MOTION.settle}ms, box-shadow 140ms ease-out, transform 140ms ease-out` }}>
+        <span className="min-w-0" style={{ fontFamily: ui, fontSize: 16, fontWeight: 600, letterSpacing: "-0.01em", lineHeight: 1.2, color: fg }}>{label}</span>
+        {badge}
+      </button>
+    );
+  }
   if (Icon && !block && round !== true && cols === 2) {
     const p = press3d(lipC, 3, 2, ring);
     const stacked = h >= 72;
@@ -9417,17 +9667,24 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
     /* the face sinks the whole lip onto the paper, as Lares's node does —
        sized to its row: three across 64, four 56, more 46 */
     const f = faceSize || (cols >= 5 ? 46 : cols === 4 ? 56 : 64), lip = 3;
-    const rest = `${lipOf(lipC, lip)}${ring ? `, ${ring}` : ""}`, down = `${lipOf(lipC, 0)}${ring ? `, ${ring}` : ""}`;
+    /* LARES'S ROUND KEY (24 November, the founder's call): a function's
+       round key is its hue's pale in a ring of its cloth tone, the glyph
+       and the word in the deep colour, on a ledge a step under the ring;
+       what calls off is the brick's pale with the brick's word. The one
+       action (Log) stays the deep lead */
+    const rk = fill ? roundOf(t, redWord ? HUE.red : hue) : null;
+    const lipR = rk ? rk.lip : lipC;
+    const rest = `${lipOf(lipR, lip)}${ring ? `, ${ring}` : ""}`, down = `${lipOf(lipR, 0)}${ring ? `, ${ring}` : ""}`;
     return (
       <button data-tour={tour} data-round="" data-press="" aria-label={aria || label} onClick={() => { haptic(9); soft(); onTap(); }}
               className="relative w-full flex flex-col items-center"
               style={{ gap: 7, paddingTop: 2, animation: enter, WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}>
         <span data-face="" data-lip="" data-fill={fill ? "" : undefined} data-rest={rest} data-dn={down} data-by={lip} className="relative flex items-center justify-center rounded-full"
-              style={{ width: `min(${f}px, 100%)`, aspectRatio: "1 / 1", background: bg, boxShadow: rest,
-                       border: `${EDGE_W}px solid ${fill ? "transparent" : quietTile ? quietRing : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`,
+              style={{ width: `min(${f}px, 100%)`, aspectRatio: "1 / 1", background: rk ? rk.face : bg, boxShadow: rest,
+                       border: `${EDGE_W}px solid ${rk ? rk.ring : quietTile ? quietRing : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`,
                        transition: `background ${MOTION.settle}ms` }}>
-          {/* a function's key carries its glyph in the hue's own ink on its filled face */}
-          <Icon size={Math.round(f * 0.4)} color={fg} strokeWidth={fill ? 2.1 : quietTile || calm ? 1.8 : 2} />
+          {/* a function's key carries its glyph in the hue's deep colour on its pale */}
+          <Icon size={Math.round(f * 0.4)} color={rk ? rk.fg : fg} strokeWidth={fill ? 2.1 : quietTile || calm ? 1.8 : 2} />
           {badge}
         </span>
         {/* THE WORD IS WHOLE AT 320 (24 November): four across, a column is
@@ -9439,7 +9696,7 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
           <span className={wrap ? "px-0.5 text-center" : "truncate"}
                 style={{ marginTop: lip, fontFamily: ui, fontSize: 13, fontWeight: 600, lineHeight: 1.2, letterSpacing: "-0.005em",
                          ...(wrap ? null : { maxWidth: cols ? `calc(100% + ${TILE_GAP}px)` : "100%" }),
-                         color: tone === "danger" || redWord ? DANGER : tone === "accent" ? t.ink : t.sub }}>{label}</span>
+                         color: tone === "danger" || redWord ? DANGER : rk ? rk.fg : tone === "accent" ? t.ink : t.sub }}>{label}</span>
         )}
       </button>
     );
@@ -9515,14 +9772,35 @@ const TileGrid = ({ children, cols = 3, stagger = 22 }) => (
    value in the sub grey, the chevron. `danger` is the one row told apart
    by colour (the Diary's call-off): the red is in its word, where it was
    in its tile. */
-const HomeRow = ({ label, value, tone, onPress, tour, boxed = false, danger = false }) => {
+/* A COUNT IS A CHIP (28 November, the design render): where a row of the
+   home's Actions carries how many things wait on the coach (To log, To
+   review, Join requests, Drifting, Competitions) the figure stands on a
+   small chip of the sport's
+   pale with its ring, the figure in the sport's colour at 700 — the level's
+   chip, the same one shape — where it was a grey figure. A total (All
+   lessons, the next day's lessons) stays the plain grey figure: a chip
+   says something waits. One tone for every count: a column of five
+   colours read as a colouring book, and the founder asked for calm,
+   confident, nothing gimmicky. */
+/* on a card of its own colour since 28 November the chip is white, ringed in
+   the card's ring, the figure in the card's deep colour (Lares's "Legs 2") */
+const CountPill = ({ n, hue }) => {
   const t = useT();
   return (
-    <button data-tour={tour} data-row-door="" onClick={() => { haptic(8); soft(); onPress && onPress(); }}
+    <span data-count-pill="" className="shrink-0 inline-flex items-center justify-center"
+          style={{ minWidth: 30, height: 26, padding: "0 9px", borderRadius: 13, background: "#FFFFFF", border: `${EDGE_W}px solid var(--card-ring, ${KEY_RING(t)})`,
+                   fontFamily: ui, fontSize: 14, fontWeight: 700, color: inkOf(hueOf(t, hue || HUE.green)), fontVariantNumeric: "tabular-nums" }}>{n}</span>
+  );
+};
+const HomeRow = ({ label, value, tone, onPress, tour, boxed = false, danger = false, pill = false, hue }) => {
+  const t = useT();
+  return (
+    <button data-tour={tour} data-row-door="" data-hue={hue ? hue.slice(2) : undefined} onClick={() => { haptic(8); soft(); onPress && onPress(); }}
             className={`w-full flex items-center gap-3.5 text-left ${boxed ? "" : "active:opacity-50"}`}
-            style={{ minHeight: 60, borderBottom: boxed ? undefined : RULE.hair(t.ink) }}>
-      <span data-row-label="" className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: danger ? DANGER : t.ink }}>{label}</span>
-      <span className="shrink-0 truncate" style={{ ...TYPE.body, color: tone || t.sub, maxWidth: "55%" }}>{value}</span>
+            style={{ minHeight: 60, borderBottom: boxed ? undefined : RULE.hair(t.ink), ...(hue ? cardOf(t, hue) : danger && boxed ? cardOf(t, HUE.red) : null) }}>
+      <span data-row-label="" className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: pill ? 600 : 400, color: danger ? DANGER : t.ink }}>{label}</span>
+      {pill && value != null && value !== "" ? <CountPill n={value} hue={hue} />
+        : <span className="shrink-0 truncate" style={{ ...TYPE.body, color: tone || t.sub, maxWidth: "55%" }}>{value}</span>}
       <ChevronRight size={15} color={t.trace || t.faint} />
     </button>
   );
@@ -9616,7 +9894,7 @@ const DrillPicker = ({ drills, picked, onToggle, tour, boxed = false }) => {
           <button key={name} aria-pressed={on} onClick={() => { haptic(7); soft(); onToggle(name); }}
                   className="w-full flex items-center gap-3 text-left active:opacity-60"
                   style={{ minHeight: 50, borderBottom: boxed ? undefined : hair }}>
-            <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: on ? 600 : 400, color: t.ink }}>{name}</span>
+            <span className="flex-1 min-w-0" style={{ ...TYPE.body, fontWeight: on ? 600 : 400, color: t.ink, ...upTo(2) }}>{name}</span>
             {on && <Check size={15} color={t.accent} strokeWidth={2.4} />}
           </button>
         );
@@ -9652,19 +9930,21 @@ const TimeList = ({ times, picked, onPick, tour, muted = false }) => {
      its corners). */
   if (!times.length) return null;
   return (
-    <div data-tour={tour} className="nsc-day">
+    /* the free times are the Diary's own chips (28 November): white keys on
+       the pale card, a picked one the chosen answer */
+    <div data-tour={tour} className="nsc-day nsc-chips" style={{ padding: 8, display: "flex", flexDirection: "column", gap: 8 }}>
       {times.map((x) => {
         const on = picked === x;
         return (
           <button key={x} onClick={() => { haptic(8); soft(); onPick(x); }}
                   className="w-full flex items-center gap-3 px-3.5 text-left active:opacity-50"
-                  style={{ minHeight: 50, borderBottom: `1px solid ${t.hair}`, background: on ? SEL(t).face : undefined, transition: "background 180ms" }}>
+                  style={{ minHeight: 50, borderRadius: 14, background: on ? SEL(t).face : "#FFFFFF", border: `2px solid ${on ? SEL(t).ring : "var(--card-ring)"}`,
+                           boxShadow: `0 3px 0 ${on ? SEL(t).lip : "var(--card-ledge)"}`, transition: "background 180ms" }}>
             <span className="flex-1 truncate" style={{ ...TYPE.body, color: on ? SEL(t).fg : t.sub,
                            fontWeight: on ? 600 : 400, fontVariantNumeric: "tabular-nums lining" }}>{x}</span>
             {/* a read-only row (a junior's diary) offers nothing, so it carries no plus —
                 the row stays, a plain line, as the List view draws it */}
-            {on ? <Check size={16} color={t.accent} strokeWidth={2.4} />
-                : muted ? null : <Plus size={15} color={t.accent} strokeWidth={2.2} />}
+            {muted ? null : <PlusKey on={on} />}
           </button>
         );
       })}
@@ -9673,7 +9953,7 @@ const TimeList = ({ times, picked, onPick, tour, muted = false }) => {
 };
 
 /* the sports, each as its own colour — a sport has no glyph, it has a mark */
-const SportGrid = ({ ids, picked, onPick, cols = 3, tour, add, mainId }) => {
+export const SportGrid = ({ ids, picked, onPick, cols = 3, tour, add, mainId }) => {
   const t = useT();
   return (
     <div data-tour={tour}>
@@ -9794,6 +10074,10 @@ function Facts({ parts, className = "", style, attrs }) {
     </span>
   );
 }
+/* A NAME IS NEVER CUT ON ONE LINE: a second and a third before an ellipsis,
+   breaking at a space (a word wider than its box alone breaks inside
+   itself) — the person row's rule, for a name or a title drawn by hand */
+const upTo = (n = 3) => ({ display: "-webkit-box", WebkitLineClamp: n, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" });
 function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", subAttrs, meta, value, actions, trailing, chevron, onTap, tour, bold = false, minHeight = 64, textMin = PERSON_TEXT_MIN, nameLines = 3, subLines = 2, muted = false, className = "", style, attrs }) {
   const t = useT();
   const Tag = onTap ? "button" : "div";
@@ -10166,8 +10450,9 @@ export function Frame({ step, steps, onBack, children, footer }) {
   );
 }
 
-/* every sign-up title is the app's screen title, 30/700, as every H1 is —
-   one sign-up drew it three ways (34 bold, a thin 32, a thin 28) */
+/* every sign-up title is the app's screen title, as every H1 is — one
+   sign-up drew it three ways (34 bold, a thin 32, a thin 28); the bold
+   serif since 24 November, the front door's titles with the app's */
 export const Headline = ({ children }) => { const t = useT(); return <h1 style={{ ...TYPE.screen, color: t.ink, animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) both" }}>{children}</h1>; };
 export const Sub = ({ children }) => { const t = useT(); return <p className="mt-2.5" style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.5, color: t.faint, animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) 60ms both" }}>{children}</p>; };
 
@@ -10863,7 +11148,7 @@ function SportListPick({ t, onPick, title, onBack }) {
   return (
     <>
       <div className="flex items-center gap-1 mb-4 -ml-2"><button onClick={onBack} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>
-        <h2 style={{ fontFamily: display, fontSize: 23, color: t.ink }}>{title}</h2></div>
+        <h2 style={{ ...TYPE.head, color: t.ink }}>{title}</h2></div>
       <Card>{Object.entries(SPORTS).map(([id, sp], i, arr) => (
         <Row key={id} label={sp.label} chevron last={i === arr.length - 1}
              icon={<span className="rounded-full shrink-0" style={{ width: 10, height: 10, background: sp.theme.mark }} />}
@@ -10876,7 +11161,7 @@ function CoachCodeStep({ t, newSport, code, setCode, found, who, onBack, onJoin 
   return (
     <>
       <div className="flex items-center gap-1 mb-1 -ml-2"><button onClick={onBack} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>
-        <h2 style={{ fontFamily: display, fontSize: 22, color: t.ink }}>{SPORTS[newSport]?.label} coach code</h2></div>
+        <h2 style={{ ...TYPE.head, color: t.ink }}>{SPORTS[newSport]?.label} coach code</h2></div>
       <p className="mb-3 px-1" style={{ fontFamily: ui, fontSize: 13, color: t.sub }}>{who}</p>
       <div className="mb-2"><CodePad value={code} onChange={setCode} compact /></div>
       <div className="mb-4" style={{ minHeight: 44 }}>
@@ -10929,7 +11214,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
   const SportList = ({ onPick, title, onBack }) => (
     <>
       <div className="flex items-center gap-1 mb-4 -ml-2"><button onClick={onBack} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>
-        <h2 style={{ fontFamily: display, fontSize: 23, color: t.ink }}>{title}</h2></div>
+        <h2 style={{ ...TYPE.head, color: t.ink }}>{title}</h2></div>
       <Card>{Object.entries(SPORTS).map(([id, sp], i, arr) => (
         <Row key={id} label={sp.label} chevron last={i === arr.length - 1}
              icon={<span className="rounded-full shrink-0" style={{ width: 10, height: 10, background: sp.theme.mark }} />}
@@ -10941,7 +11226,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
   const CodeStep = ({ onBack, onJoin, who }) => (
     <>
       <div className="flex items-center gap-1 mb-1 -ml-2"><button onClick={onBack} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>
-        <h2 style={{ fontFamily: display, fontSize: 22, color: t.ink }}>{SPORTS[newSport]?.label} coach code</h2></div>
+        <h2 style={{ ...TYPE.head, color: t.ink }}>{SPORTS[newSport]?.label} coach code</h2></div>
       <p className="mb-3 px-1" style={{ fontFamily: ui, fontSize: 13, color: t.sub }}>{who}</p>
       <div className="mb-2"><CodePad value={code} onChange={setCode} compact /></div>
       <div className="mb-4" style={{ minHeight: 44 }}>
@@ -10959,7 +11244,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
   if (stage === "child") return (
     <>
       <div className="flex items-center gap-1 mb-5 -ml-2"><button onClick={() => setStage("root")} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>
-        <h2 style={{ fontFamily: display, fontSize: 23, color: t.ink }}>Add someone under 18</h2></div>
+        <h2 style={{ ...TYPE.head, color: t.ink }}>Add someone under 18</h2></div>
       <div className="mb-5"><VoiceInput value={childName} onChange={setChildName} ph={tr("Their name")} autoFocus /></div>
 
       <div className="mb-2.5" style={{ fontFamily: ui, fontSize: 12.5, color: t.sub }}>{tr("Date of birth")}</div>
@@ -11009,7 +11294,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
   if (stage === "code" && live) return (
     <>
       <div className="flex items-center gap-1 mb-1 -ml-2"><button onClick={() => setStage("root")} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>
-        <h2 style={{ fontFamily: display, fontSize: 22, color: t.ink }}>{tr("Coach code")}</h2></div>
+        <h2 style={{ ...TYPE.head, color: t.ink }}>{tr("Coach code")}</h2></div>
       <p className="mb-3 px-1" style={{ fontFamily: ui, fontSize: 13, color: t.sub }}>{tr("Six characters from the coach")}</p>
       {/* typed, not tapped: a real code is six letters and digits */}
       <input value={code} onChange={(e) => { setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6)); setJoinErr(null); }}
@@ -11041,7 +11326,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
 
   return (
     <>
-      <h2 className="mb-5" style={{ ...TYPE.title, color: t.ink }}>
+      <h2 className="mb-5" style={{ ...TYPE.head, color: t.ink }}>
         {kids.length ? "Profiles" : "Your account"}
       </h2>
       {kids.length > 0 && (
@@ -11126,7 +11411,7 @@ function TipsHistory({ cfg, tips, pop }) {
         ) : (
           <>
             {anyFocus && (
-              <div className="pb-4"><FilterRow label={tr("Worked on")} options={chips} value={f} onChange={setF} last /></div>
+              <div className="px-6 pb-4"><FilterBox label={tr("Worked on")} options={chips} value={f} onChange={setF} /></div>
             )}
             <div className="px-6 pb-4">
               {shown.length === 0 ? (
@@ -11157,7 +11442,7 @@ function TipBody({ prompts, onSet, close }) {
     <>
       {/* the word is TIP: the same word here, on the player's home, on
           the notification and on the lesson */}
-      <h2 className="mb-4" style={{ ...TYPE.title, color: t.ink }}>{tr("Tip")}</h2>
+      <h2 className="mb-4" style={{ ...TYPE.head, color: t.ink }}>{tr("Tip")}</h2>
       {prompts && prompts.length > 0 && !title && (
         <div className="mb-4 nsc-day">
           {prompts.map((pr) => (
@@ -11356,9 +11641,11 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
 
 
 
-function PlayerLog({ cfg, lessons, push, right, prefs, setPrefs, sport, ownMedia, onUpload, liveMedia, onNeedMedia, showWho = false, onDownload, view, setView }) {
+function PlayerLog({ cfg, lessons, push, right, prefs, setPrefs, sport, ownMedia, onUpload, liveMedia, onNeedMedia, showWho = false, onDownload, view, setView, top = null, emptyAction = null, feedPill = null }) {
   const t = useT();
   const ready = useLoad();
+  /* the list a page at a time, as the archive is: an imported chat alone can be hundreds of lessons */
+  const [shownCount, setShownCount] = useKept("shown", ARCHIVE_PAGE);
 
   /* Immersive is a different animal — it owns the screen, so it is not
      a segment inside this one. */
@@ -11385,7 +11672,7 @@ function PlayerLog({ cfg, lessons, push, right, prefs, setPrefs, sport, ownMedia
       return sim;
     };
     return <LessonFeed lessons={lessons} mediaFor={mediaFor} onNeed={onNeedMedia} showWho={showWho} cfg={cfg} right={right} onDownload={onDownload}
-                       view={view} setView={setView}
+                       view={view} setView={setView} pill={feedPill}
                        onPickFiles={liveMedia ? null : (files) => onUpload && onUpload(0, files)}
                        loaded={liveMedia ? 0 : Object.keys(ownMedia || {}).length}
                        onOpen={(l) => push(`lesson:${l.id}`)} />;
@@ -11408,17 +11695,26 @@ function PlayerLog({ cfg, lessons, push, right, prefs, setPrefs, sport, ownMedia
       {!ready ? (
         <div className="px-6"><Bone h={220} r={20} /></div>
       ) : lessons.length === 0 ? (
-        <EmptyHero className="px-6" sport={sport} tour="lessons-empty">{tr("No lessons yet")}</EmptyHero>
+        <EmptyHero className="px-6" sport={sport} tour="lessons-empty" action={emptyAction}>{tr("No lessons yet")}</EmptyHero>
       ) : (
         <>
+          {top}
           {/* the starred ones, as a section of their own — a row that is
               there only while something is starred */}
           <div className="px-6 pb-4 nsc-list" style={{ borderTop: "none" }}>
-            {lessons.map((l, i) => (
+            {lessons.slice(0, shownCount).map((l, i) => (
               <LessonRow key={l.id ?? i} lesson={l} index={i} first={i === 0} poster={posterFor(l, i)} need={needFor(l)} sport={sport}
                          showWho={showWho} onOpen={(x) => push(`lesson:${x.id}`)} onDownload={onDownload} />
             ))}
           </div>
+          {lessons.length > shownCount && (
+            <div className="px-6 pb-6">
+              <button data-tour="log-more" onClick={() => { haptic(7); setShownCount((n) => n + ARCHIVE_PAGE); }} className="w-full n-key"
+                      style={{ minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
+                {tr("Show more")}
+              </button>
+            </div>
+          )}
         </>
       )}
     </Screen>
@@ -11499,7 +11795,7 @@ function lessonLogHtml({ lesson, coach, who, media = [], drills = [], tip }) {
 </style></head><body><main>
   <div class="eyebrow">${e(BRAND)} · ${e(lesson.type === "Group" ? "Group lesson" : "Lesson")}</div>
   <h1>${e(lesson.focus)}</h1>
-  <p class="meta">${e(when)}${coach ? ` · ${e(coach)}` : ""}${who ? ` · ${e(who)}` : ""}</p>
+  <p class="meta">${e(when)}${coach ? ` · ${e(coach)}` : ""}${who ? ` · ${e(who)}` : ""}${importedByLine(lesson, true) ? ` · ${e(importedByLine(lesson, true))}` : ""}</p>
   ${section("Sub-focus", subs.length ? `<p>${subs.map(e).join(" · ")}</p>` : "")}
   ${section("Notes", lesson.note ? `<p>${e(lesson.note).replace(/\n/g, "<br>")}</p>` : "")}
   ${section("Drills set", drillList.length ? `<ul>${drillList.map((d) => `<li>${e(d)}</li>`).join("")}</ul>` : "")}
@@ -11599,7 +11895,7 @@ function seasonReportHtml({ name, coach, cfg, lessons, drills = [], tips = [], t
   const done = drills.filter((d) => d.done).length;
   const drillList = drills.length ? `<p>${done} of ${drills.length} done</p><ul>${drills.map((d) => `<li>${d.done ? "✓" : "·"} ${e(d.t || d.title)}</li>`).join("")}</ul>` : "";
   const tipList = tips.length ? `<ul>${tips.map((tp) => `<li>${e(tp.title || tp.t)}</li>`).join("")}</ul>` : "";
-  const list = p.rows.slice().reverse().map(({ l, d }) => `<li><strong>${e(longDay(d))}</strong> — ${e(l.focus || "")}${stageOf(cfg, l) ? ` · ${e(stageOf(cfg, l))}` : ""}${l.note ? `<br><span class="q">${e(String(l.note).split("\n")[0])}</span>` : ""}</li>`).join("");
+  const list = p.rows.slice().reverse().map(({ l, d }) => `<li><strong>${e(longDay(d))}</strong> — ${e(l.focus || "")}${stageOf(cfg, l) ? ` · ${e(stageOf(cfg, l))}` : ""}${importedByLine(l, true) ? ` · ${e(importedByLine(l, true))}` : ""}${l.note ? `<br><span class="q">${e(String(l.note).split("\n")[0])}</span>` : ""}</li>`).join("");
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${e(name)} · ${e(BRAND)} report</title>
@@ -11623,7 +11919,7 @@ function seasonReportHtml({ name, coach, cfg, lessons, drills = [], tips = [], t
   ${section("Lessons", n ? `<p>${n} ${n === 1 ? "lesson" : "lessons"}${months ? ` · ${e(months)}` : ""}</p>` : "")}
   ${section("Worked on", areas)}
   ${section("Drills", drillList)}
-  ${section("Attendance", attendance.length ? `<p>${attendance.filter((a) => a.state === "in").length} of ${attendance.length} ${attendance.length === 1 ? "lesson" : "lessons"}${attendance.some((a) => a.state === "out") ? ` · missed ${attendance.filter((a) => a.state === "out").map((a) => e(a.iso ? fmtWeekDay(localDate(a.iso)) : a.key)).join(", ")}` : ""}</p>` : "")}
+  ${section("Attendance", attendance.length ? `<p>${attendance.filter((a) => a.state === "in").length} of ${attendance.length} ${attendance.length === 1 ? "lesson" : "lessons"}${attendance.some((a) => a.state === "out") ? ` · missed ${attendance.filter((a) => a.state === "out").map((a) => e(a.iso ? fmtDayYear(a.iso) : a.key)).join(", ")}` : ""}</p>` : "")}
   ${section("Practice", practice.length ? `<p>${practice.length} ${practice.length === 1 ? "session" : "sessions"} logged</p>` : "")}
   ${section("Tips", tipList)}
   ${section("Every lesson", list ? `<ul>${list}</ul>` : "")}
@@ -11761,7 +12057,7 @@ function LessonStage({ item, onAnnotate, onCompare, onStudy }) {
       <div className="flex flex-col items-center justify-center gap-4 px-6" style={{ borderRadius: 16, height: 150, background: t.wash }}>
         {/* the words alone: a 13px microphone led them, beside a label that says Voice note (23 November) */}
         <span style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Voice note")}</span>
-        <audio key={item.url} src={item.url} controls preload="metadata" className="w-full" style={{ maxWidth: 320 }} />
+        <NoteAudio key={item.url} src={item.url} />
       </div>
     );
   }
@@ -11785,6 +12081,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
   const t = useT();
   const star = useContext(StarCtx); const isStar = star.has(lesson.id);
   const dl = useContext(DownloadCtx); const dlState = dl.state(lesson.id);
+  const imp = useContext(ImportCtx); const importLine = importLineFor(lesson, imp.meId);
   const starPop = usePop(isStar);
   const [a, setA] = useKept("clip", 0);   // the clip on the stage survives a Back from Study, Mark it up or Compare
   const [menu, setMenu] = useState(false);
@@ -11800,7 +12097,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
     ? tips.find((x) => x.playerId && x.playerId === lesson.playerId && near(x)) || null
     : (lesson.tip ? { title: lesson.tip } : null);
   /* the day it happened — a day, not a moment, so it never reads as the evening before */
-  const when = lesson.iso ? fmtWeekDay(localDate(lesson.iso)) : (lesson.date || `${lesson.d} ${lesson.m}`);
+  const when = lesson.iso ? fmtDayYear(lesson.iso) : (lesson.date || `${lesson.d} ${lesson.m}`);
   const withWhom = role === "coach" ? playerName : coachName;
   const first = (n) => (n || "").split(" ")[0];
   const hair = RULE.hair(t.ink);
@@ -11844,12 +12141,19 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
           <div className="mb-5" style={{ animation: "fadeUp 420ms cubic-bezier(.22,1,.36,1) both" }}>
             <span className="block truncate" style={{ ...TYPE.small, color: t.sub }}>
               {/* a clip the player sent says so first: who sent it to the coach, who the player sent it to */}
-              {lesson.sentBy && withWhom
+              {sentByPlayer(lesson) && withWhom
                 ? `${role === "coach" ? tr("Sent by") : tr("Sent to")} ${withWhom} · ${when}`
                 : <>{when}{withWhom ? ` · ${withWhom}` : ""}{groupLesson ? ` · ${tr("Group")}` : ""}</>}
             </span>
             <h1 className="mt-2" style={{ ...TYPE.screen, color: t.ink }}>{lesson.focus}</h1>
             <LessonTags lesson={lesson} cfg={cfg} className="mt-2.5" />
+            {/* an imported lesson says so, and who brought it in */}
+            {importLine && (
+              <span data-tour="lesson-imported" className="flex flex-wrap items-center gap-x-3 mt-2" style={{ ...TYPE.small, color: t.sub }}>
+                <span>{importLine}</span>
+                {imp.removeOne && imp.mayRemove(lesson) && <TextBtn color={DANGER} tour="lesson-import-remove" onClick={() => imp.removeOne(lesson)}>{tr("Remove")}</TextBtn>}
+              </span>
+            )}
             {/* a sent clip's standing: the coach has not answered yet. It goes
                 the moment their words or their take land. */}
             {standing && <span data-tour="clip-standing" className="block mt-2.5" style={{ ...TYPE.small, color: t.faint }}>{standing}</span>}
@@ -11907,15 +12211,18 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
           {tipHere && (
             <div className="py-5" data-tour="lesson-tip">
               <Label>{tr("Tip")}</Label>
-              <p style={{ ...TYPE.title, color: t.ink }}>{tipHere.title}</p>
-              {tipHere.body && <p className="mt-1.5" style={{ ...TYPE.small, lineHeight: 1.55, color: t.sub }}>{tipHere.body}</p>}
+              {/* the tip is a card of the gold's family (28 November), as Lares's Verse is */}
+              <div data-card="" style={{ background: "var(--card)", border: "2px solid var(--card-ring)", borderRadius: 18, boxShadow: "0 4px 0 var(--card-ledge)", padding: "16px 18px", ...cardOf(t, HUE.gold) }}>
+                <p style={{ ...TYPE.title, color: t.ink }}>{tipHere.title}</p>
+                {tipHere.body && <p className="mt-1.5" style={{ ...TYPE.small, lineHeight: 1.55, color: t.sub }}>{tipHere.body}</p>}
+              </div>
             </div>
           )}
 
           {drillsHere.length > 0 && (
             <div className="py-5" data-tour="lesson-drills">
               <Label>{tr("Drills")}</Label>
-              <div className="nsc-list">
+              <div className="nsc-list" style={cardOf(t, HUE.purple)}>
               {drillsHere.map((d) => {
                 const Tag = onGoDrills ? "button" : "div";
                 return (
@@ -11955,7 +12262,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
             {(() => {
               /* one primary button, then the secondary verbs as a quiet row */
               const acts = (role === "coach"
-                ? (lesson.sentBy && onReply
+                ? (sentByPlayer(lesson) && onReply
                     /* a clip the player sent is answered: Reply is the one
                        action, and there is no lesson here to log again */
                     ? [{ k: "r", lbl: tr("Reply"), act: onReply, accent: true, tour: "clip-reply" },
@@ -12029,8 +12336,8 @@ function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleS
      a wait. */
   const coachNameOf = l ? (l.coach || conn?.coach || "") : "";
   const knowable = media !== null && (items || []).every((it) => it.path);
-  const answered = (replies || []).length > 0 || (items || []).some((it) => it.path && l && l.sentBy && !String(it.path).startsWith(`${l.sentBy}/`));
-  const standing = live && !fresh && l && l.sentBy && knowable && !answered ? `${tr("Waiting on")} ${(coachNameOf || tr("the coach")).split(" ")[0]}` : null;
+  const answered = (replies || []).length > 0 || (items || []).some((it) => it.path && l && sentByPlayer(l) && !String(it.path).startsWith(`${l.sentBy}/`));
+  const standing = live && !fresh && l && sentByPlayer(l) && knowable && !answered ? `${tr("Waiting on")} ${(coachNameOf || tr("the coach")).split(" ")[0]}` : null;
   if (!fresh && lessonId != null && !base) {
     return (
       <SwipeBack onBack={pop}>
@@ -12071,6 +12378,59 @@ const REVEAL_MS = 380;                                    // one mark draws itse
 const FADE_MS = 450;                                      // the last moment's marks leave over this long
 const HOLD_MS = 900;                                      // Save rests on a moment this long after its marks arrive
 const secsLabel = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+
+/* ONE TRANSPORT FOR THE CLIP TOOLS (28 November; C4, held since the visual
+   audit). Mark it up, Compare and Study each drew their own: a black disc
+   for play, two 32px outlined circles that answered a finger 32, a hollow
+   speed pill filled with the ink once on, the scrub in the ink — the old
+   look three times over, under keys of the app's own everywhere else. Now
+   they are the app's keys and drawn once: Play the one action, the sport's
+   deep lead on its own ledge, 44; a frame either way the round pale keys
+   the month's arrows are (36 drawn, reaching 44 through the gutter, the
+   chevron in the sport's colour); the scrub's fill the sport's colour, as
+   every progress fill is; the speed a word key, the chosen answer once it
+   is not full speed (SEL, never the ink); the time in the sub grey. The
+   selectors and the words each tool's suites read are kept (`tours`). */
+function ClipTransport({ tour, tours = {}, playing, onToggle, onStep, time, span, step = 0.05, onScrub, off = false, scrubOff = false, speed }) {
+  const t = useT();
+  /* a reach is laid from inside the key's ring (an absolute child's box is the
+     padding box, and the ring is drawn 1 or 1.5 by the screen's density):
+     sideways it is one point inside half the gutter, so two neighbours never
+     overlap at either density; up and down, where nothing neighbours it, the
+     whole of it — a 36 key answers a finger 44 square */
+  const reach = () => <span aria-hidden="true" className="absolute" style={{ top: -(4 + EDGE_W), bottom: -(4 + EDGE_W), left: -5, right: -5 }} />;
+  return (
+    <div className="flex items-center" style={{ gap: 8 }} data-tour={tour}>
+      <button onClick={onToggle} disabled={off} data-tour={tours.play} aria-label={playing ? tr("Pause") : tr("Play")}
+              className="relative flex items-center justify-center shrink-0 rounded-full n-key disabled:opacity-30"
+              style={{ width: 44, height: 44, background: t.accent, "--key-lip": LIP(t.accent) }}>
+        {/* the round key's square: a finger at its corners lands on it too */}
+        <span aria-hidden="true" className="absolute" style={{ inset: 0 }} />
+        {playing ? <Pause size={17} color={t.onAccent} fill={t.onAccent} /> : <Play size={17} color={t.onAccent} fill={t.onAccent} style={{ marginLeft: 2 }} />}
+      </button>
+      {[[-1, ChevronLeft, tr("Back a frame"), tours.back], [1, ChevronRight, tr("On a frame"), tours.fwd]].map(([d, Ico, label, hook]) => (
+        <button key={d} onClick={() => onStep(d)} disabled={off} data-tour={hook} aria-label={label}
+                className="relative flex items-center justify-center shrink-0 rounded-full n-key disabled:opacity-30"
+                style={{ width: 36, height: 36, background: TINT(t), border: `${EDGE_W}px solid ${KEY_RING(t)}`, "--key-lip": TINT_LIP(t) }}>
+          {reach()}
+          <Ico size={18} color={t.accent} strokeWidth={2.4} />
+        </button>
+      ))}
+      <input type="range" min={0} max={Math.max(span || 0, 0.1)} step={step} value={Math.min(time, span || 0)} disabled={scrubOff} data-tour={tours.scrub}
+             onChange={(e) => onScrub(Number(e.target.value))} aria-label={tr("Scrub")}
+             className="flex-1 min-w-0" style={{ accentColor: t.accent, height: 36 }} />
+      {speed && (
+        <button onClick={speed.onTap} disabled={speed.off} aria-pressed={!!speed.on} aria-label={speed.aria} {...(speed.attrs || {})}
+                className="relative shrink-0 flex items-center justify-center n-key disabled:opacity-30"
+                style={{ minWidth: 44, height: 36, padding: "0 8px", borderRadius: 12, ...keyPick(t, !!speed.on), ...TYPE.caption, fontSize: 13, fontWeight: 700 }}>
+          {reach()}
+          {speed.label}
+        </button>
+      )}
+      <span style={{ ...TYPE.caption, color: t.sub, fontVariantNumeric: "tabular-nums", minWidth: 34, textAlign: "right" }}>{secsLabel(time)}</span>
+    </div>
+  );
+}
 
 /* One mark. `f` (0..1) is how much of it has been drawn: a line grows
    from its start, a circle from its centre, a pen stroke point by point
@@ -12616,7 +12976,10 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, onStill, onQ
   const cssW = fit ? Math.floor(dims.w * fit) : 0, cssH = fit ? Math.floor(dims.h * fit) : 0;
   fitRef.current = { w: cssW, h: cssH };
   const frozen = !dims || broken || rendering;                 // the transport while Save runs the clip itself
-  const round = (on) => ({ width: 40, height: 40, borderRadius: 20, background: on ? t.ink : "transparent" });
+  /* a tool is a round key of the app's (28 November): the sport's pale at
+     rest, the chosen answer once it is the tool in use — it was a bare glyph,
+     and the ink filled for the chosen one, black among the app's keys */
+  const round = (on) => ({ width: 40, height: 40, borderRadius: 20, ...keyPick(t, on) });
 
   /* THE SCREEN IS THE MARKUP SHEET OF A SCREENSHOT. The clip fills a dark
      stage from the header to a compact bar — no card, no 330px frame —
@@ -12683,24 +13046,9 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, onStill, onQ
             <div className="shrink-0 px-4" style={{ paddingTop: 10, paddingBottom: "calc(10px + env(safe-area-inset-bottom, 0px))", background: t.page }}>
               {!busy && (<>
                 {/* play, pause, scrub — while talking over it too: that is the point */}
-                <div className="flex items-center gap-2.5">
-                  <button onClick={toggle} disabled={frozen} aria-label={playing ? tr("Pause") : tr("Play")}
-                          className="flex items-center justify-center shrink-0 active:opacity-70 disabled:opacity-30"
-                          style={{ width: 40, height: 40, borderRadius: 20, background: t.ink }}>
-                    {playing ? <Pause size={16} color="#fff" fill="#fff" /> : <Play size={16} color="#fff" fill="#fff" style={{ marginLeft: 2 }} />}
-                  </button>
-                  <button onClick={() => stepFrame(-1)} disabled={frozen} aria-label={tr("Back a frame")} className="flex items-center justify-center shrink-0 disabled:opacity-30 n-key"
-                          style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}><ChevronLeft size={15} color={t.ink} strokeWidth={2.2} /></button>
-                  <button onClick={() => stepFrame(1)} disabled={frozen} aria-label={tr("On a frame")} className="flex items-center justify-center shrink-0 disabled:opacity-30 n-key"
-                          style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}><ChevronRight size={15} color={t.ink} strokeWidth={2.2} /></button>
-                  <input type="range" min={0} max={Math.max(dur, 0.1)} step={0.05} value={Math.min(time, dur || 0)} disabled={!dur || rendering}
-                         onChange={(e) => seek(Number(e.target.value))} aria-label={tr("Scrub")}
-                         className="flex-1 min-w-0" style={{ accentColor: t.ink }} />
-                  <button onClick={toggleSlow} disabled={rendering} aria-pressed={slow} aria-label={tr("Half speed")} className="shrink-0 active:opacity-60 disabled:opacity-30"
-                          style={{ minWidth: 40, height: 32, borderRadius: 16, padding: "0 8px", background: slow ? t.ink : "transparent", border: `${EDGE_W}px solid ${slow ? t.ink : EDGE(t)}`,
-                                   ...TYPE.caption, fontWeight: 700, color: slow ? "#fff" : t.ink }}>½×</button>
-                  <span style={{ ...TYPE.caption, color: t.sub, fontVariantNumeric: "tabular-nums", minWidth: 34, textAlign: "right" }}>{secsLabel(time)}</span>
-                </div>
+                <ClipTransport tour="markup-transport" playing={playing} onToggle={toggle} onStep={stepFrame} time={time} span={dur}
+                               onScrub={seek} off={frozen} scrubOff={!dur || rendering}
+                               speed={{ label: "½×", on: slow, onTap: toggleSlow, off: rendering, aria: tr("Half speed") }} />
 
                 {/* the tools, as a phone's markup draws them: icons, the one in use
                     filled. EVERY TOOL ON THE SCREEN AND 44 TO A FINGER (24
@@ -12717,16 +13065,18 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, onStill, onQ
                     const on = tool === id;
                     return (
                       <button key={id} aria-pressed={on} aria-label={tr(label)} title={tr(label)} onClick={() => { haptic(6); setTool(id); }}
-                              className="relative flex items-center justify-center shrink-0 active:opacity-70" style={round(on)}>
-                        <span aria-hidden="true" className="absolute" style={{ inset: -2 }} />
-                        <Ico size={19} color={on ? "#fff" : t.ink} strokeWidth={1.9} />
+                              className="relative flex items-center justify-center shrink-0 n-key" style={round(on)}>
+                        {/* laid from inside the ring, which a screen draws 1 or 1.5: 1.5 to 2 beyond the key,
+                            44 to a finger, and never over a neighbour in the 4 between */}
+                        <span aria-hidden="true" className="absolute" style={{ inset: -3 }} />
+                        <Ico size={19} color={on ? SEL(t).fg : t.ink} strokeWidth={1.9} />
                       </button>
                     );
                   })}
                   <span className="flex-1" />
                   <button onClick={still} disabled={!dims || broken} aria-label={tr("Photo")} title={tr("Photo")}
-                          className="relative flex items-center justify-center shrink-0 active:opacity-70 disabled:opacity-30" style={round(false)}>
-                    <span aria-hidden="true" className="absolute" style={{ inset: -2 }} />
+                          className="relative flex items-center justify-center shrink-0 n-key disabled:opacity-30" style={round(false)}>
+                    <span aria-hidden="true" className="absolute" style={{ inset: -3 }} />
                     <Camera size={19} color={t.ink} strokeWidth={1.9} />
                   </button>
                   <span data-tour="markup-inks" className="flex items-center ml-auto">
@@ -12806,7 +13156,7 @@ const COMPARE_FRAME = 1 / 30;
 const COMPARE_DRAG_PX = 6;                                  // one frame of nudge per this many pixels of drag
 const COMPARE_MAX_LESSONS = 24;                             // how far back the picker looks for clips
 const COMPARE_TAKE = { w: 1280, h: 720 };                   // the take's longer side; the shorter follows the layout
-const lessonDay = (l) => (l.iso ? fmtWeekDay(localDate(l.iso)) : (l.date || `${l.d} ${l.m}`));
+const lessonDay = (l) => (l.iso ? fmtDayYear(l.iso) : (l.date || `${l.d} ${l.m}`));
 /* THE COMPARISON IS MADE BEHIND THE COACH'S BACK TOO. Save on Compare
    used to play the pair through on the stage under a Saving pill, the
    coach watching the seconds; it goes the way of Mark it up's Save now.
@@ -13069,34 +13419,22 @@ function ClipStudy({ lesson, mediaId, mediaFor, who, pop }) {
 
             {/* the transport, on the paper */}
             <div className="shrink-0 px-4" style={{ paddingTop: 10, paddingBottom: "calc(10px + env(safe-area-inset-bottom, 0px))", background: t.page }}>
-              <div className="flex items-center gap-2.5" data-tour="study-transport">
-                <button onClick={toggle} disabled={!ready} data-tour="study-play" aria-label={playing ? tr("Pause") : tr("Play")}
-                        className="flex items-center justify-center shrink-0 active:opacity-70 disabled:opacity-30"
-                        style={{ width: 40, height: 40, borderRadius: 20, background: t.ink }}>
-                  {playing ? <Pause size={16} color="#fff" fill="#fff" /> : <Play size={16} color="#fff" fill="#fff" style={{ marginLeft: 2 }} />}
-                </button>
-                <button onClick={() => stepFrame(-1)} disabled={!ready} data-tour="study-back" aria-label={tr("Back a frame")} className="flex items-center justify-center shrink-0 disabled:opacity-30 n-key"
-                        style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}><ChevronLeft size={15} color={t.ink} strokeWidth={2.2} /></button>
-                <button onClick={() => stepFrame(1)} disabled={!ready} data-tour="study-fwd" aria-label={tr("On a frame")} className="flex items-center justify-center shrink-0 disabled:opacity-30 n-key"
-                        style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}><ChevronRight size={15} color={t.ink} strokeWidth={2.2} /></button>
-                <input type="range" min={0} max={Math.max(span, 0.1)} step={0.02} value={Math.min(time, span || 0)} disabled={!ready} data-tour="study-scrub"
-                       onChange={(e) => { const v = vid.current; if (v) v.pause(); seek(Number(e.target.value)); }} aria-label={tr("Scrub")}
-                       className="flex-1 min-w-0" style={{ accentColor: t.ink }} />
-                <button onClick={cycleRate} disabled={!ready} data-tour="study-rate" data-rate={rate} aria-pressed={rate !== 1} aria-label={tr("Speed")} className="shrink-0 active:opacity-60 disabled:opacity-30"
-                        style={{ minWidth: 40, height: 32, borderRadius: 16, padding: "0 8px", background: rate !== 1 ? t.ink : "transparent", border: `${EDGE_W}px solid ${rate !== 1 ? t.ink : EDGE(t)}`,
-                                 ...TYPE.caption, fontWeight: 700, color: rate !== 1 ? "#fff" : t.ink }}>{rateLabel(rate)}</button>
-                <span style={{ ...TYPE.caption, color: t.sub, fontVariantNumeric: "tabular-nums", minWidth: 34, textAlign: "right" }}>{secsLabel(time)}</span>
-              </div>
+              <ClipTransport tour="study-transport" tours={{ play: "study-play", back: "study-back", fwd: "study-fwd", scrub: "study-scrub" }}
+                             playing={playing} onToggle={toggle} onStep={stepFrame} time={time} span={span} step={0.02}
+                             onScrub={(x) => { const v = vid.current; if (v) v.pause(); seek(x); }} off={!ready} scrubOff={!ready}
+                             speed={{ label: rateLabel(rate), on: rate !== 1, onTap: cycleRate, off: !ready, aria: tr("Speed"), attrs: { "data-tour": "study-rate", "data-rate": rate } }} />
+              {/* the sound and the loop: keys like every other, the chosen answer
+                  once on (it was the ink, black among the app's keys) */}
               <div className="flex gap-2 mt-3" data-tour="study-actions">
                 <button onClick={toggleSound} disabled={!ready} data-tour="study-sound" aria-pressed={sound} aria-label={sound ? tr("Mute") : tr("Sound")}
                         className="flex items-center justify-center shrink-0 disabled:opacity-40 n-key"
-                        style={{ width: 46, height: 46, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${KEY_RING(t)}` }}>
-                  {sound ? <Volume2 size={17} color={t.ink} strokeWidth={1.9} /> : <VolumeX size={17} color={t.ink} strokeWidth={1.9} />}
+                        style={{ width: 46, height: 46, borderRadius: R.control, ...keyPick(t, sound) }}>
+                  {sound ? <Volume2 size={17} color={SEL(t).fg} strokeWidth={1.9} /> : <VolumeX size={17} color={t.ink} strokeWidth={1.9} />}
                 </button>
                 <button onClick={loopTap} disabled={!ready} data-tour="study-loop" data-loop={!loop ? "off" : loop.b == null ? "from" : "on"} aria-pressed={!!(loop && loop.b != null)}
-                        className="flex-1 flex items-center justify-center gap-2 active:opacity-60 disabled:opacity-40"
-                        style={{ minHeight: 46, borderRadius: R.control, background: loop && loop.b != null ? t.ink : TINT(t), border: `${EDGE_W}px solid ${loop && loop.b != null ? t.ink : KEY_RING(t)}`, ...TYPE.body, fontWeight: 600, color: loop && loop.b != null ? "#fff" : t.ink }}>
-                  <Repeat size={15} color={loop && loop.b != null ? "#fff" : t.ink} strokeWidth={2} />{loopLabel}
+                        className="flex-1 flex items-center justify-center gap-2 disabled:opacity-40 n-key"
+                        style={{ minHeight: 46, borderRadius: R.control, ...keyPick(t, !!(loop && loop.b != null)), ...TYPE.body, fontWeight: 600 }}>
+                  <Repeat size={15} color={loop && loop.b != null ? SEL(t).fg : t.ink} strokeWidth={2} />{loopLabel}
                 </button>
               </div>
             </div>
@@ -13316,11 +13654,14 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
             {a && (
               <div className="flex items-center gap-3.5" style={rowStyle}>
                 <Poster item={a.item} />
+                {/* a lesson's clip reads as a lesson row does (28 November): what was
+                    worked on at a name's 16/600 and the day under it, each part
+                    whole — "Custom fitting · Me…" at 320 */}
                 <span className="flex-1 min-w-0">
-                  <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{a.lesson.focus}</span>
-                  <span className="block truncate mt-0.5" style={{ ...TYPE.small, color: t.sub }}>{clipLabel(a)}</span>
+                  <Facts parts={String(a.lesson.focus || "").split(" · ")} style={{ ...TYPE.body, fontWeight: 600, color: t.ink }} />
+                  <Facts parts={clipLabel(a).split(" · ")} className="mt-0.5" style={{ ...TYPE.small, color: t.sub }} />
                 </span>
-                <span style={{ ...TYPE.small, color: t.sub }}>{tr("This clip")}</span>
+                <span className="shrink-0" style={{ ...TYPE.small, color: t.sub }}>{tr("This clip")}</span>
               </div>
             )}
             {others === null ? [0, 1, 2].map((i) => <div key={i} className="flex items-center gap-3.5" style={rowStyle}><Bone w={56} h={56} r={8} /><span className="flex-1"><Bone w="60%" h={14} /><Bone w="40%" h={12} mb={0} /></span></div>)
@@ -13331,10 +13672,10 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
                         style={{ ...rowStyle, animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                   <Poster item={x.item} />
                   <span className="flex-1 min-w-0">
-                    <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{x.lesson.focus}</span>
-                    <span className="block truncate mt-0.5" style={{ ...TYPE.small, color: t.sub }}>{clipLabel(x)}</span>
+                    <Facts parts={String(x.lesson.focus || "").split(" · ")} style={{ ...TYPE.body, fontWeight: 600, color: t.ink }} />
+                    <Facts parts={clipLabel(x).split(" · ")} className="mt-0.5" style={{ ...TYPE.small, color: t.sub }} />
                   </span>
-                  {b === x ? <Check size={16} color={t.ink} strokeWidth={2.4} /> : <ChevronRight size={14} color={t.trace || t.faint} />}
+                  {b === x ? <Check size={16} color={t.accent} strokeWidth={2.4} /> : <ChevronRight size={14} color={t.trace || t.faint} />}
                 </button>
               ))}
             </div>
@@ -13352,24 +13693,9 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
 
             {/* under the stages: one transport for both, then swap · change · save */}
             <div className="shrink-0 px-4" style={{ paddingTop: 10, paddingBottom: "calc(10px + env(safe-area-inset-bottom, 0px))", background: t.page }}>
-              <div className="flex items-center gap-2.5" data-tour="compare-transport">
-                <button onClick={toggle} disabled={!ready} aria-label={playing ? tr("Pause") : tr("Play")}
-                        className="flex items-center justify-center shrink-0 active:opacity-70 disabled:opacity-30"
-                        style={{ width: 40, height: 40, borderRadius: 20, background: t.ink }}>
-                  {playing ? <Pause size={16} color="#fff" fill="#fff" /> : <Play size={16} color="#fff" fill="#fff" style={{ marginLeft: 2 }} />}
-                </button>
-                <button onClick={() => stepFrame(-1)} disabled={!ready} aria-label={tr("Back a frame")} className="flex items-center justify-center shrink-0 disabled:opacity-30 n-key"
-                        style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}><ChevronLeft size={15} color={t.ink} strokeWidth={2.2} /></button>
-                <button onClick={() => stepFrame(1)} disabled={!ready} aria-label={tr("On a frame")} className="flex items-center justify-center shrink-0 disabled:opacity-30 n-key"
-                        style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}><ChevronRight size={15} color={t.ink} strokeWidth={2.2} /></button>
-                <input type="range" min={0} max={Math.max(span, 0.1)} step={0.05} value={Math.min(time, span || 0)} disabled={!ready}
-                       onChange={(e) => { pauseBoth(); seekBoth(Number(e.target.value)); }} aria-label={tr("Scrub")}
-                       className="flex-1 min-w-0" style={{ accentColor: t.ink }} />
-                <button onClick={toggleSlow} aria-pressed={slow} aria-label={tr("Half speed")} className="shrink-0 active:opacity-60 disabled:opacity-30"
-                        style={{ minWidth: 40, height: 32, borderRadius: 16, padding: "0 8px", background: slow ? t.ink : "transparent", border: `${EDGE_W}px solid ${slow ? t.ink : EDGE(t)}`,
-                                 ...TYPE.caption, fontWeight: 700, color: slow ? "#fff" : t.ink }}>½×</button>
-                <span style={{ ...TYPE.caption, color: t.sub, fontVariantNumeric: "tabular-nums", minWidth: 34, textAlign: "right" }}>{secsLabel(time)}</span>
-              </div>
+              <ClipTransport tour="compare-transport" playing={playing} onToggle={toggle} onStep={stepFrame} time={time} span={span}
+                             onScrub={(x) => { pauseBoth(); seekBoth(x); }} off={!ready} scrubOff={!ready}
+                             speed={{ label: "½×", on: slow, onTap: toggleSlow, aria: tr("Half speed") }} />
               {err && <p className="mt-2" style={{ ...TYPE.small, color: DANGER }}>{err}</p>}
               <div className="flex gap-2 mt-3" data-tour="compare-actions">
                 <button onClick={swap} className="flex-1 flex items-center justify-center gap-2 disabled:opacity-40 n-key" style={quiet}>
@@ -13429,7 +13755,7 @@ function CoachLessonView({ name, lesson, cfg, pop, push, say, assignDrills, live
                   onCompare={canCompare ? (it) => push(`compare:${lesson.id}:${it.id}`) : null}
                   onStudy={live ? (it) => push(`study:${lesson.id}:${it.id}`) : null}
                   /* a clip the player sent: the coach's words back, from this page */
-                  replies={replies || []} onReply={live && onReply && lesson.sentBy && lesson.playerId ? () => onReply(lesson) : null} pop={pop} />
+                  replies={replies || []} onReply={live && onReply && sentByPlayer(lesson) && lesson.playerId ? () => onReply(lesson) : null} pop={pop} />
   );
 }
 
@@ -13635,7 +13961,7 @@ function OnAccent({ children }) {
    off than under any other list */
 const accentCard = (t, last = false) => {
   const p = press3d(LIP(t.accent), LIP_H, LIP_PRESS);
-  return { style: { background: t.accent, "--edge": t.accent, borderRadius: 16, boxShadow: p.rest, marginBottom: last ? LIP_H - 2 : 10 + LIP_H }, handlers: p.handlers };
+  return { style: { background: t.accent, "--edge": t.accent, "--card-ring": t.accent, borderRadius: 18, boxShadow: p.rest, marginBottom: last ? LIP_H - 4 : 12 + LIP_H }, handlers: p.handlers };
 };
 /* THE CARD'S CORNER: the business card's pinstripe wedge, in the top-right
    corner of the day's one coloured card — the stripes at the card's 45°,
@@ -14103,7 +14429,8 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
 
         {/* ---- THE NEXT DAY, FOLDED ---- */}
         {nextRows.length > 0 && (
-          <Ruled style={{ marginBottom: SPACE.section }}>
+          /* what is ahead is sky, as Lares's Later is (28 November) */
+          <Ruled style={{ marginBottom: SPACE.section, ...cardOf(t, HUE.blue) }}>
             <button onClick={() => { haptic(6); soft(); setNextOpen(!nextOpen); }} aria-expanded={nextOpen} data-tour="today-nextday"
                     className="w-full flex items-center gap-3 text-left active:opacity-60" style={{ minHeight: 60 }}>
               <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{nextDay}</span>
@@ -14129,15 +14456,17 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
         {(() => {
           const jobs = [
             /* a clip a player sent and the coach has not looked at yet */
-            toReview.length > 0 && { key: "review", tour: "today-review", label: tr("To review"), n: toReview.length,
+            toReview.length > 0 && { key: "review", hue: HUE.purple, tour: "today-review", label: tr("To review"), n: toReview.length,
               go: () => onReview && onReview() },
-            toLog.length > 0 && { key: "write", tour: "today-writeup", label: tr("To log"), n: toLog.length,
+            toLog.length > 0 && { key: "write", hue: HUE.orange, tour: "today-writeup", label: tr("To log"), n: toLog.length,
               go: () => (onWriteUp ? onWriteUp() : push("unlogged")) },
-            (requests || []).length > 0 && { key: "join", tour: "today-requests", label: tr("Join requests"), n: requests.length,
+            (requests || []).length > 0 && { key: "join", hue: HUE.blue, tour: "today-requests", label: tr("Join requests"), n: requests.length,
               go: () => push("requests") },
-            unread > 0 && { key: "msg", label: tr("Messages"), n: unread, go: () => go("messages") },
-            drifting > 0 && { key: "drift", label: tr("Drifting"), n: drifting, go: () => push("atrisk") },
-            events.length > 0 && { key: "event", label: tr("Competitions"), n: events.length, go: () => push("events") },
+            /* no Messages row (28 November): the Chat tab's badge carries the
+               unread count, and a row saying it again was the home repeating
+               the bar under it (the class plan's simpler home) */
+            drifting > 0 && { key: "drift", hue: HUE.red, label: tr("Drifting"), n: drifting, go: () => push("atrisk") },
+            events.length > 0 && { key: "event", hue: HUE.gold, label: tr("Competitions"), n: events.length, go: () => push("events") },
           ].filter(Boolean);
           if (!asks.length && !jobs.length) return null;
           /* the kinds of thing here */
@@ -14167,7 +14496,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
             )}
             <Ruled style={{ marginBottom: SPACE.block }}>
               {showAsks && asks.slice(0, 3).map((r, i) => (
-                <PersonRow key={r.id} tour={i === 0 ? "today-asks" : undefined} className="pr-1" style={{ borderBottom: RULE.hair(t.ink) }}
+                <PersonRow key={r.id} tour={i === 0 ? "today-asks" : undefined} className="pr-1" style={{ borderBottom: RULE.hair(t.ink), ...cardOf(t, HUE.blue) }}
                            name={r.who} src={avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath)}
                            /* the player's words need the row's width: Accept · Decline drop under the name, the row's own way */
                            textMin={r.note ? 180 : undefined} subLines={r.note ? 0 : undefined}
@@ -14179,7 +14508,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
               ))}
               {/* the kind and its count, no glyph: the word says which (23 November) */}
               {shownJobs.map((j) => (
-                <HomeRow boxed key={j.key} tour={j.tour} label={j.label} value={String(j.n)} onPress={j.go} />
+                <HomeRow boxed key={j.key} tour={j.tour} label={j.label} value={String(j.n)} pill hue={j.hue} onPress={j.go} />
               ))}
             </Ruled>
           </>);
@@ -14189,7 +14518,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
             its own row, on its own */}
         {lessonCount > 0 && (
           <Ruled style={{ marginBottom: SPACE.section }}>
-            <HomeRow boxed tour="today-archive" label={tr("All lessons")} value={String(lessonCount)} onPress={() => push("archive")} />
+            <HomeRow boxed tour="today-archive" label={tr("All lessons")} value={String(lessonCount)} hue={HUE.gold} onPress={() => push("archive")} />
           </Ruled>
         )}
 
@@ -14248,8 +14577,10 @@ function areaSubsOf(cfg, lesson) {
 function StagePill({ label, small }) {
   const t = useT();
   if (!label) return null;
-  /* the line's own size, on the ladder: the 500 is what makes the level lead */
-  return <span style={{ ...TYPE.small, fontSize: small ? 13 : 14, fontWeight: 500, color: t.sub, whiteSpace: "nowrap" }}>{label}</span>;
+  /* a pill since 28 November, the player file's level chip at rest: the
+     sport's pale, its ring, the level in the sport's colour */
+  return <span data-stage-pill="" style={{ ...TYPE.small, fontSize: small ? 13 : 14, fontWeight: 700, color: t.accent, whiteSpace: "nowrap",
+                       display: "inline-block", padding: "3px 11px", borderRadius: 999, background: TINT(t), border: `${EDGE_W}px solid ${KEY_RING(t)}` }}>{label}</span>;
 }
 function LessonTags({ lesson, cfg, className = "" }) {
   const t = useT();
@@ -14257,7 +14588,7 @@ function LessonTags({ lesson, cfg, className = "" }) {
   if (!stage && !extras.length && !mount && !areas.length) return null;
   const rest = [...extras, ...areas, mount ? `${tr("on")} ${mount}` : null].filter(Boolean);
   return (
-    <div className={`flex flex-wrap items-baseline gap-x-1.5 ${className}`}>
+    <div className={`flex flex-wrap items-center gap-x-1.5 gap-y-1 ${className}`}>
       {stage && <StagePill label={stage} />}
       {stage && rest.length > 0 && <span style={{ ...TYPE.small, color: t.faint }}>·</span>}
       {rest.length > 0 && <span style={{ ...TYPE.small, color: t.sub }}>{rest.join(" · ")}</span>}
@@ -14350,6 +14681,40 @@ const DAY_ABBR = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];   // getDay(
 /* "Wed 23 Sep" — the locale gives "Sept" for September in en-IE while
    every table in the file says "Sep"; one spelling, from one table */
 const fmtWeekDay = (d) => `${DAY_ABBR[d.getDay()]} ${d.getDate()} ${WIZ_MONTHS[d.getMonth()]}`;
+/* ---- IMPORTED LESSONS (docs/import/SPEC.md): the groundwork every surface reads ---- */
+/* A LESSON'S DAY, WITH ITS YEAR WHEN IT IS NOT THIS ONE. An imported chat
+   reaches back years, and "Sat 14 Jun" alone reads as this June. Takes a
+   date column's ISO day or a Date. */
+const fmtDayYear = (x, thisYear = new Date().getFullYear()) => {
+  const d = x instanceof Date ? x : localDate(x);
+  if (!d || isNaN(d.getTime())) return String(x || "");
+  return d.getFullYear() === thisYear ? fmtWeekDay(d) : `${fmtWeekDay(d)} ${d.getFullYear()}`;
+};
+/* a clip the player sent the coach — never an import (whose sent_by is its
+   importer) and never a practice they logged: To review and the standing read this */
+const isSentClip = (l) => !!(l && l.sentBy) && !l.imported && !l.practice;
+/* something the player sent, a clip or a practice — never an import: Reply,
+   "Sent by" and the coach's opening of it read this */
+const sentByPlayer = (l) => !!(l && l.sentBy) && !l.imported;
+/* "Imported by Orla" on a player's or a parent's import, wherever a lesson's
+   facts are printed; "Imported by Orla Kelly" in a file; nothing on a coach's own */
+/* WHAT A REGISTER SAID ABOUT ONE PERSON AT ONE LESSON, matched on the
+   whole day ("2024-06-14|…"): the old key was the day and the month, so a
+   register taken this 14 June marked an imported lesson of 14 June 2024.
+   The old key only where a lesson has no ISO day (the harness). */
+const markFor = (l, pid, byDay, regs) => {
+  if (!l || !pid) return null;
+  if (l.iso && byDay) { const k = Object.keys(byDay).find((x) => x.startsWith(`${l.iso}|`) && byDay[x][pid]); return k ? byDay[k][pid] : null; }
+  const k = Object.keys(regs || {}).find((x) => x.startsWith(`${l.d} ${l.m}`)); return k ? ((regs[k] || {})[pid] || null) : null;
+};
+/* the lesson page's line: "Imported" to whoever imported it, else "Imported by" their whole name — the coach's own included */
+const importLineFor = (l, meId) => {
+  if (!l || !l.imported) return null;
+  const by = l.importedBy || l.coachId;
+  const name = l.importedBy ? l.importedByName : l.coach;
+  return by && meId && by === meId ? tr("Imported") : name ? `${tr("Imported by")} ${name}` : tr("Imported");
+};
+const importedByLine = (l, whole = false) => (l && l.imported && l.importedByName ? `${tr("Imported by")} ${whole ? l.importedByName : l.importedByName.split(" ")[0]}` : null);
 /* the day a booking's notice lands the Diary on, year and all */
 const landingDay = (iso) => { if (!iso) return null; const x = localDate(iso); return isNaN(x) ? null : { y: x.getFullYear(), m: x.getMonth() + 1, d: x.getDate() }; };
 const wizNorm = (s) => String(s || "").normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
@@ -14936,7 +15301,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
             <div className="flex items-center gap-3">
               <button onClick={() => { haptic(6); setAdding(false); setView("who"); }} className="flex-1 min-w-0 text-left active:opacity-60" style={{ minHeight: 44 }}>
                 <span className="flex items-end gap-1.5">
-                  <span className="min-w-0" style={{ ...TYPE.screen, color: t.ink, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{heroText}</span>
+                  <span className="min-w-0" style={{ ...TYPE.screen, color: t.ink, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word", ...serifRoom(TYPE.screen.lineHeight) }}>{heroText}</span>
                   <ChevronDown size={14} color={t.trace || t.faint} strokeWidth={2} style={{ marginBottom: 6, flexShrink: 0 }} />
                 </span>
               </button>
@@ -15144,7 +15509,7 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
           {searchable && (
             <SearchField value={q} onChange={setQ} className="mb-4" />
           )}
-          <div className="nsc-list">
+          <div className="nsc-list" style={cardOf(t, HUE.teal)}>
             {list.length === 0 ? (
               <EmptyLine>{q ? `${tr("No one called")} “${q}”` : tr("No players yet")}</EmptyLine>
             ) : list.map((r, i) => {
@@ -15173,11 +15538,11 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
               the count a step fainter) */}
           {lessonCount > 0 && (
             <div className="nsc-list" style={{ marginTop: SPACE.block }}>
-              <HomeRow boxed tour="roster-archive" label={tr("All lessons")} value={String(lessonCount)} onPress={() => push("archive")} />
+              <HomeRow boxed tour="roster-archive" label={tr("All lessons")} value={String(lessonCount)} hue={HUE.gold} onPress={() => push("archive")} />
             </div>
           )}
         </>) : (<>
-          <div className="nsc-list">
+          <div className="nsc-list" style={cardOf(t, HUE.teal)}>
             {groups.map((g) => row(g.id, "roster-group", () => { haptic(6); push("group:" + g.name); }, <Avatar name={g.name} size={PERSON_FACE} group />, g.name,
                 /* the members still on the roster — the picker's count and the
                    page's list, one number on all three; never a nought */
@@ -15250,12 +15615,14 @@ function progressOf(cfg, lessons, today) {
   rows.forEach((x) => { const tag = stageOf(cfg, x.l); const st = named.find((n) => n.label === tag); if (st) { reached.add(st.id); if (!current || current.st.id !== st.id) current = { st, d: x.d }; } });
   /* what was worked on, counted the way the log joined it */
   const areaCount = new Map();
-  rows.forEach((x) => String(x.l.focus || "").split(" · ").map((a) => a.trim()).filter(Boolean).forEach((a) => areaCount.set(a, (areaCount.get(a) || 0) + 1)));
+  /* "Lesson" and "Practice" are what an imported or sent day says when no area was named: never an area */
+  rows.forEach((x) => String(x.l.focus || "").split(" · ").map((a) => a.trim()).filter((a) => a && a !== "Lesson" && a !== "Practice").forEach((a) => areaCount.set(a, (areaCount.get(a) || 0) + 1)));
   const areas = [...areaCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
   /* the last six months, this one last */
   const months = Array.from({ length: 6 }, (_, i) => { const d = new Date(today.getFullYear(), today.getMonth() - (5 - i), 1); return { y: d.getFullYear(), m: d.getMonth(), n: 0 }; });
   rows.forEach((x) => { const hit = months.find((mo) => mo.y === x.d.getFullYear() && mo.m === x.d.getMonth()); if (hit) hit.n++; });
-  return { rows, points, inputStage, named, reached, current, areas, months, first: rows[0] ? rows[0].d : null, last: rows.length ? rows[rows.length - 1].d : null };
+  return { rows, points, inputStage, named, reached, current, areas, months, first: rows[0] ? rows[0].d : null, last: rows.length ? rows[rows.length - 1].d : null,
+           imported: rows.filter((x) => x.l.imported).length };
 }
 /* one small line, drawn by hand — no library for forty points */
 function LevelLine({ points, tag, color, ink, faint }) {
@@ -15332,11 +15699,16 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
   const n = p.rows.length;
   const mineDrills = drills || [];
   const done = mineDrills.filter((d) => d.done).length;
-  const meta = n ? [`${n} ${n === 1 ? tr("lesson") : tr("lessons")}`, p.first ? `${tr("since")} ${fmtWeekDay(p.first)}` : null].filter(Boolean).join(" · ") : "";
+  const meta = n ? [`${n} ${n === 1 ? tr("lesson") : tr("lessons")}`, p.first ? `${tr("since")} ${fmtDayYear(p.first)}` : null].filter(Boolean).join(" · ") : "";
   /* each block is a card as every card is — the light grey line and the ledge
      of it under it, 14px corners — under its subject as a heading (RowHead):
      they were flat 8px boxes under grey field labels */
-  const box = { background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, borderRadius: 14, boxShadow: lipOf(EDGE(t), 2), padding: "14px 16px" };
+  /* THE PROGRESS IS A PAINT CHART (28 November): each block a Lares card in
+     its subject's family — the level the sport's own, what was worked on
+     sky, the months pale gold, attendance the people's teal, practice sand,
+     drills heather — where every block was the white card on the grey line */
+  const boxOf = (hue) => { const c = cardOf(t, hue); return { background: c["--card"], border: `2px solid ${c["--card-ring"]}`, borderRadius: 18, boxShadow: `0 4px 0 ${c["--card-ledge"]}`, padding: "16px 18px" }; };
+  const box = boxOf(HUE.green);
   const firstPoint = p.points[0], lastPoint = p.points[p.points.length - 1];
   return (
     <SwipeBack onBack={pop}>
@@ -15345,27 +15717,29 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
           {n === 0 ? (
             <EmptyLine>{tr("No lessons yet")}</EmptyLine>
           ) : (<>
+            {/* lessons that came in from a chat are counted, and said to be */}
+            {p.imported > 0 && <p data-progress="imported" style={{ ...TYPE.small, color: t.sub, marginBottom: SPACE.block }}>{tr("Includes")} {p.imported} {tr("imported")}</p>}
             {/* the level, where the lessons carry one */}
             {p.points.length > 0 && (
               <div style={{ marginBottom: SPACE.block }} data-progress="level">
                 <RowHead>{p.inputStage.label}</RowHead>
-                <div style={box}>
+                <div style={boxOf(HUE.green)}>
                   {/* the level then takes a line of its own under the level now
                       where the two cannot sit apart (at 320 they touched) */}
                   <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5" style={{ marginBottom: 6 }}>
                     <span style={{ ...TYPE.title, color: t.ink }}>{p.inputStage.tag} {lastPoint.v}</span>
-                    {p.points.length > 1 && <span style={{ ...TYPE.small, color: t.sub }}>{tr("from")} {p.inputStage.tag} {firstPoint.v} · {fmtWeekDay(firstPoint.d)}</span>}
+                    {p.points.length > 1 && <span style={{ ...TYPE.small, color: t.sub }}>{tr("from")} {p.inputStage.tag} {firstPoint.v} · {fmtDayYear(firstPoint.d)}</span>}
                   </div>
                   {p.points.length > 1
                     ? <LevelLine points={p.points} tag={p.inputStage.tag} color={t.accent} ink={t.ink} faint={t.trace || t.faint} />
-                    : <p style={{ ...TYPE.small, color: t.sub }}>{fmtWeekDay(firstPoint.d)} · {tr("one reading so far")}</p>}
+                    : <p style={{ ...TYPE.small, color: t.sub }}>{fmtDayYear(firstPoint.d)} · {tr("one reading so far")}</p>}
                 </div>
               </div>
             )}
             {p.reached.size > 0 && (
               <div style={{ marginBottom: SPACE.block }} data-progress="ladder">
                 <RowHead>{tr("Level")}</RowHead>
-                <div style={{ ...box, padding: "4px 16px" }}>
+                <div style={{ ...box, padding: "4px 18px" }}>
                   {p.named.map((st, i) => {
                     const on = p.reached.has(st.id), now = p.current && p.current.st.id === st.id;
                     return (
@@ -15374,7 +15748,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
                           {on && <Check size={12} color="#FFFFFF" strokeWidth={2.6} />}
                         </span>
                         <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: now ? 600 : 400, color: on ? t.ink : t.faint }}>{st.label}</span>
-                        {now && <span style={{ ...TYPE.small, color: t.sub }}>{tr("since")} {fmtWeekDay(p.current.d)}</span>}
+                        {now && <span style={{ ...TYPE.small, color: t.sub }}>{tr("since")} {fmtDayYear(p.current.d)}</span>}
                       </div>
                     );
                   })}
@@ -15385,7 +15759,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
             {p.areas.length > 0 && (
               <div style={{ marginBottom: SPACE.block }} data-progress="areas">
                 <RowHead>{tr("Worked on")}</RowHead>
-                <div style={{ ...box, padding: "6px 16px" }}>
+                <div style={{ ...boxOf(HUE.blue), padding: "6px 18px" }}>
                   {p.areas.map(([label, count], i) => (
                     <div key={label} style={{ padding: "9px 0", borderBottom: i === p.areas.length - 1 ? "none" : RULE.hair(t.ink) }}>
                       <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
@@ -15403,7 +15777,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
             {/* lessons a month */}
             <div style={{ marginBottom: SPACE.block }} data-progress="months">
               <RowHead>{tr("Lessons a month")}</RowHead>
-              <div style={box}>
+              <div style={boxOf(HUE.gold)}>
                 <MonthBars months={p.months} color={t.accent} ink={t.ink} sub={t.sub} faint={t.trace || t.faint} />
               </div>
             </div>
@@ -15413,11 +15787,11 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
             {attendance.length > 0 && (() => {
               const here = attendance.filter((a) => a.state === "in").length;
               const missed = attendance.filter((a) => a.state === "out");
-              const dayOfMark = (a) => (a.iso ? fmtWeekDay(localDate(a.iso)) : a.key.split(" ").slice(0, 2).join(" "));
+              const dayOfMark = (a) => (a.iso ? fmtDayYear(a.iso) : a.key.split(" ").slice(0, 2).join(" "));
               return (
                 <div style={{ marginBottom: SPACE.block }} data-progress="attendance">
                   <RowHead>{tr("Attendance")}</RowHead>
-                  <div style={box}>
+                  <div style={boxOf(HUE.teal)}>
                     <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
                       <span style={{ ...TYPE.body, color: t.ink }}>{here} {tr("of")} {attendance.length} {attendance.length === 1 ? tr("lesson") : tr("lessons")}</span>
                       <span style={{ ...TYPE.small, color: t.sub }}>{Math.round((here / attendance.length) * 100)}%</span>
@@ -15449,10 +15823,10 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
               return (
                 <div style={{ marginBottom: SPACE.block }} data-progress="practice">
                   <RowHead>{tr("Practice")}</RowHead>
-                  <div style={box}>
+                  <div style={boxOf(HUE.orange)}>
                     <div className="flex items-center justify-between">
                       <span style={{ ...TYPE.body, color: t.ink }}>{sorted.length} {sorted.length === 1 ? tr("session") : tr("sessions")}</span>
-                      {last && last.iso && <span style={{ ...TYPE.small, color: t.sub }}>{tr("last")} {fmtWeekDay(localDate(last.iso))}</span>}
+                      {last && last.iso && <span style={{ ...TYPE.small, color: t.sub }}>{tr("last")} {fmtDayYear(last.iso)}</span>}
                     </div>
                     {top.length > 0 && <p className="mt-1.5" style={{ ...TYPE.small, color: t.sub }}>{top.join(" · ")}</p>}
                   </div>
@@ -15463,7 +15837,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
             {mineDrills.length > 0 && (
               <div style={{ marginBottom: SPACE.block }} data-progress="drills">
                 <RowHead>{tr("Drills")}</RowHead>
-                <div style={box}>
+                <div style={boxOf(HUE.purple)}>
                   <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
                     <span style={{ ...TYPE.body, color: t.ink }}>{done} {tr("of")} {mineDrills.length} {tr("done")}</span>
                     <span style={{ ...TYPE.small, color: t.sub }}>{Math.round((done / mineDrills.length) * 100)}%</span>
@@ -15488,7 +15862,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
   );
 }
 
-function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop, push, say, assignDrills, assignTip, onLog, live, lessons, player, onOpenLesson, onAllLessons, cfg, liveMedia, onNeedMedia, sport, onDownload, note, onNote }) {
+function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop, push, say, assignDrills, assignTip, onLog, live, lessons, player, onOpenLesson, onAllLessons, cfg, liveMedia, onNeedMedia, sport, onDownload, note, onNote, onImport = null, importValue = null }) {
   const t = useT();
   const seeded = !useLive();
   /* `live` is the real roster. With it, everything on this screen is
@@ -15512,7 +15886,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
   /* list or feed, like the player's own home — the default view, each
      row with the lesson's first file as its poster */
   const nav = useContext(NavCtx);
-  const [view, setView] = useKept("view", nav.defaultView || "list");
+  const [view, setView] = useKept("view", importFeedFirst(player && player.id) || nav.defaultView || "list");
   const posterFor = liveMedia
     ? (l) => { const m = liveMedia[l.id]; return m && m.length ? m[0] : null; }
     : (l) => ((l.videos || 0) > 0 ? { type: "sim" } : null);
@@ -15537,11 +15911,15 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
      line in the sub grey with a chevron after it, reaching 44 to a finger
      without moving a pixel (the reach paints nothing). No level, no door. */
   const meta = stage ? (
+    /* since 28 November a chip of the sport's pale on its ledge, the level
+       in the sport's colour: where the player stands, read at a glance */
     <button data-tour="player-level" onClick={() => { haptic(6); soft(); push("progress:" + (r.id || name)); }}
-            className="relative inline-flex items-center gap-1 text-left active:opacity-50" style={{ ...TYPE.lede, color: t.sub }}>
-      <span aria-hidden="true" className="absolute" style={{ top: -12, bottom: -12, left: -8, right: -8 }} />
+            className="relative inline-flex items-center gap-1 text-left n-key"
+            style={{ ...TYPE.small, fontWeight: 700, color: t.accent, padding: "5px 10px 5px 12px", marginTop: 2, borderRadius: 999,
+                     border: `${EDGE_W}px solid ${KEY_RING(t)}`, "--key-lip": TINT_LIP(t) }}>
+      <span aria-hidden="true" className="absolute" style={{ top: -8, bottom: -8, left: -4, right: -4 }} />
       <span>{metaText}</span>
-      <ChevronRight size={13} color={t.trace || t.faint} strokeWidth={2} className="shrink-0" />
+      <ChevronRight size={14} color={t.accent} strokeWidth={2.4} className="shrink-0" />
     </button>
   ) : metaText;
 
@@ -15612,7 +15990,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               lessons is on the home and the roster — it was a button */}
           {past.length > 0 && (
             <div className="nsc-list" style={{ marginBottom: SPACE.block }}>
-              <HomeRow boxed tour="player-all-lessons" label={tr("All lessons")} value={String(live ? f.done : past.length)}
+              <HomeRow boxed tour="player-all-lessons" label={tr("All lessons")} value={String(live ? f.done : past.length)} hue={HUE.gold}
                        onPress={() => { onAllLessons ? onAllLessons() : push("history:" + (r.id || name)); }} />
             </div>
           )}
@@ -15620,7 +15998,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
 
           {/* what is live right now — three lines, no cards */}
           {f.tip && (
-            <div className="nsc-list" style={{ marginBottom: SPACE.block }}>
+            <div className="nsc-list" style={{ marginBottom: SPACE.block, ...cardOf(t, HUE.gold) }}>
               <div className="flex items-center gap-3 py-3" style={{ minHeight: 56 }}>
                 <span style={{ ...TYPE.small, fontWeight: 600, color: t.sub }}>{tr("Tip")}</span>
                 <span className="flex-1 min-w-0" style={{ ...TYPE.body, color: t.ink }}>{f.tip}</span>
@@ -15632,11 +16010,14 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               "More" hid three: one of them, Progress, went to the same
               archive the block at the top of this screen goes to, under
               a second name. */}
-          <div className="nsc-list">
+          {/* the file's doors, sky (28 November) */}
+          <div className="nsc-list" style={cardOf(t, HUE.blue)}>
             {[[tr("Progress"), () => push("progress:" + (r.id || name)), null],
               /* the coach's own note on this player — the first line as the
                  row's value, the whole of it one tap away; theirs alone */
               ...(onNote ? [[tr("Notes"), onNote, note ? String(note).split("\n")[0] : null]] : []),
+              /* the coach's import for this player (docs/import/SPEC.md) — its value every lesson imported so far */
+              ...(onImport ? [[tr("Import"), onImport, importValue || null]] : []),
               [tr("Recurring lessons"), () => onRecurring(name), seriesFor ? `${DAY_NAMES[seriesFor.day].slice(0, 3)} ${seriesFor.time}` : null],
               ...(live ? [] : [[sportTool ? sportTool.label : tr("Sport record"), () => push("tool"), null]])].map(([lbl, act, val]) => {
               /* the word, its value, the chevron — no glyph (23 November) — and
@@ -15646,7 +16027,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
                  preview of words, as the phone's own lists cut one */
               const preview = lbl === tr("Notes");
               return (
-              <button key={lbl} data-row-door="" data-tour={lbl === tr("Progress") ? "player-progress" : lbl === tr("Notes") ? "player-notes" : lbl === tr("Recurring lessons") ? "player-recurring" : undefined} onClick={() => { haptic(6); soft(); act(); }} className="w-full flex items-center gap-3.5 text-left active:opacity-50"
+              <button key={lbl} data-row-door="" data-tour={lbl === tr("Progress") ? "player-progress" : lbl === tr("Notes") ? "player-notes" : lbl === tr("Import") ? "player-import" : lbl === tr("Recurring lessons") ? "player-recurring" : undefined} onClick={() => { haptic(6); soft(); act(); }} className="w-full flex items-center gap-3.5 text-left active:opacity-50"
                       style={{ minHeight: 60 }}>
                 {/* THE VALUE IS NEVER CUT (24 November), as Settings' Row: on the
                     label's line at the right while both fit, whole on the line
@@ -15785,6 +16166,16 @@ function FilterRow({ options, value, onChange, label, last, plain, inset = false
   );
 }
 
+/* A FILTER ON ITS OWN IS A GROUP OF ONE (28 November): the white card of
+   Settings' groups with the filter as its row, the label in ink and the
+   value grey — the archive's filters are the same card with five rows in
+   it. They were rows ruled across the whole page under a list of cards. A
+   filter with one choice draws nothing, and nor does its card. */
+function FilterBox({ tour, ...props }) {
+  if (!props.options || props.options.length <= 1) return null;
+  return <div className="nsc-group" data-group="" data-tour={tour}><div className="nsc-flush"><FilterRow inset plain {...props} /></div></div>;
+}
+
 function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlayerId, onClearPlayer, liveMedia, onNeedMedia, sport, onDownload, title, onOpen, showWho, empty, head, plain, metaText, factsFor, onRemove, foot, startView }) {
   const openRow = onOpen || ((x) => push(`clesson:${x.id}:${x.who}`));
   const showName = showWho ?? !forPlayer;
@@ -15886,21 +16277,36 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
           </button>
         )}
 
+        {/* THE FILTERS ARE A GROUP (28 November; C1, held since the visual
+            audit). They were rows ruled across the whole page — the one flat
+            stretch on a screen of cards. Now they are Settings' own group: one
+            white card on the warm ring and its ledge, Filter its first row, the
+            five unfolding inside it as Settings' value rows do (the label in
+            ink, the value grey, the chevron turning), each on the group's rule.
+            What is set reads on Filter while it is folded, whole — on the line
+            under the word where the row cannot hold both. */}
         {sift && (
-          <div className="mb-2">
-            <button onClick={() => { haptic(6); setFilters((v) => !v); }} className="w-full flex items-center gap-3 px-6 text-left active:opacity-50"
-                    style={{ minHeight: 52, borderTop: RULE.hair(t.ink), borderBottom: filters ? "none" : RULE.hair(t.ink) }}>
-              <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.sub }}>{tr("Filter")}</span>
-              <span className="shrink-0 truncate" style={{ ...TYPE.body, fontWeight: 600, color: t.ink, maxWidth: "60%" }}>{active.length ? active.join(" · ") : tr("All")}</span>
-              <ChevronRight size={15} color={t.trace || t.faint} style={{ transform: filters ? "rotate(90deg)" : "none", transition: "transform 200ms" }} />
-            </button>
-            {filters && (<>
-              <FilterRow label={tr("Year")} options={years} value={year} onChange={setYear} />
-              <FilterRow label={tr("Month")} options={months} value={month} onChange={setMonth} />
-              {!forPlayer && people.length > 2 && <FilterRow label={tr("Player")} options={people} value={who} onChange={setWho} />}
-              <FilterRow label={tr("Worked on")} options={["All", ...cfg.focus.map((f) => f.label)]} value={focus} onChange={setFocus} />
-              <FilterRow last label={tr("Kind")} options={["All", "Private", "Group"]} value={kind} onChange={setKind} />
-            </>)}
+          <div className="px-6 mb-4">
+            <div className="nsc-group" data-group="" data-tour="archive-filter">
+              <button data-row="" onClick={() => { haptic(6); setFilters((v) => !v); }} aria-expanded={filters}
+                      className="w-full flex items-center gap-3.5 text-left active:opacity-50" style={{ minHeight: 56, paddingTop: 6, paddingBottom: 6 }}>
+                <span className="flex-1 min-w-0 flex flex-wrap items-baseline justify-between" style={{ columnGap: 14 }}>
+                  <span data-row-label="" style={{ ...TYPE.body, color: t.ink }}>{tr("Filter")}</span>
+                  <span data-filter-value="" className="min-w-0" style={{ ...TYPE.body, color: active.length ? t.ink : t.sub, fontWeight: active.length ? 600 : 400, maxWidth: "100%", overflowWrap: "anywhere" }}>{active.length ? active.join(" · ") : tr("All")}</span>
+                </span>
+                <ChevronRight size={17} color={t.trace || t.faint} style={{ transform: filters ? "rotate(90deg)" : "none", transition: "transform 200ms" }} />
+              </button>
+              {filters && [
+                [tr("Year"), years, year, setYear],
+                [tr("Month"), months, month, setMonth],
+                !forPlayer && people.length > 2 ? [tr("Player"), people, who, setWho] : null,
+                [tr("Worked on"), ["All", ...cfg.focus.map((f) => f.label)], focus, setFocus],
+                [tr("Kind"), ["All", "Private", "Group"], kind, setKind],
+              ].filter((f) => f && f[1].length > 1).map(([label, options, value, onChange]) => (
+                /* a filter with one choice draws nothing, and nor does its rule */
+                <div key={label} className="nsc-flush"><FilterRow inset plain label={label} options={options} value={value} onChange={onChange} /></div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -15954,7 +16360,7 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
   const preview = seriesOccurrences(day, Math.min(total, 3), freq, undefined, undefined, calendar);
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>
         {existing ? existing.who : `Set up ${(name || "").split(" ")[0]}`}
       </h2>
 
@@ -16129,15 +16535,16 @@ function SportTool({ cfg, sport, rows, onAdd, onRemove, pop, say }) {
    be answered is answered and what cannot is not shown. The head count
    comes from a register — never from who is in the group, which would
    report a full house at every session nobody was marked at. */
-function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers, onMessage = null, members = null,
+function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers, registersByDay = null, onMessage = null, members = null,
                         onLesson = null, onDownload = null, liveMedia = null, onNeedMedia = null, sport, standingFor = null, stageFor = null,
                         onLog = null, onRegister = null, onEdit = null }) {
   const t = useT();
   const real = !!sessions;
   const weeks = real ? sessions.map((l) => {
-    const reg = (registers || {})[`${l.d} ${l.m} ${group.name}`] || null;
+    /* the exact day and the group's name; the day-and-month key only where a lesson has no ISO day */
+    const reg = (l.iso && registersByDay ? registersByDay[`${l.iso}|${group.name}`] : (registers || {})[`${l.d} ${l.m} ${group.name}`]) || null;
     const marks = reg ? Object.values(reg) : [];
-    return { lesson: l, when: l.iso ? fmtIsoDay(l.iso) : `${Number(l.d) || l.d} ${l.m}`, covered: l.focus, subs: l.subs || [],
+    return { lesson: l, when: l.iso ? fmtDayYear(l.iso) : `${Number(l.d) || l.d} ${l.m}`, covered: l.focus, subs: l.subs || [],
              present: reg ? marks.filter((x) => x === "in").length : null,
              absent: reg ? marks.filter((x) => x === "out").length : 0 };
   }) : [
@@ -16239,7 +16646,7 @@ function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers, onMes
           const people = members || group.members.map((n) => ({ id: n, name: n }));
           return people.length > 0 && (<>
             <Eyebrow>{tr("Members")}</Eyebrow>
-            <div className="px-6 pb-2"><div className="nsc-list" data-tour="group-members">{people.map((r, i) => (
+            <div className="px-6 pb-2"><div className="nsc-list" data-tour="group-members" style={cardOf(t, HUE.teal)}>{people.map((r, i) => (
                 /* the roster's own row for the same person: where they
                    stand on the grey line, the level on the right (C6) */
                 (() => {
@@ -16280,7 +16687,7 @@ function JoinRequests({ requests, onAccept, onDecline, pop }) {
                row's text actions — Accept in ink, Decline quiet. Each was a
                card with a filled success-green Accept and an outlined Decline,
                the one person in the app drawn as a card. */
-            <div className="nsc-list">
+            <div className="nsc-list" style={cardOf(t, HUE.blue)}>
               {requests.map((r) => (
                 <PersonRow key={r.id || r.name} tour="request-card" className="pr-1" name={r.name}
                            sub={[r.note, r.sport && SPORTS[r.sport] ? SPORTS[r.sport].label : null, r.junior ? tr("Under 18") : null, askedOn(r)].filter(Boolean).join(" · ")}
@@ -16519,7 +16926,7 @@ function FamilyGuide({ juvenile, name, onDone }) {
         {steps.map((_, k) => (<span key={k} className="flex-1 rounded-full" style={{ height: 2, background: k <= i ? t.accent : t.hair, transition: "background 260ms" }} />))}
       </div>
       <div className="flex-1 flex flex-col justify-center px-8">
-        <h1 style={{ fontFamily: display, fontSize: 34, lineHeight: 1.05, letterSpacing: "-0.033em", color: t.ink }}>{steps[i].h}</h1>
+        <h1 style={{ ...TYPE.screen, color: t.ink }}>{steps[i].h}</h1>
         <p className="mt-5" style={{ fontFamily: ui, fontSize: 16, lineHeight: 1.6, color: t.sub }}>{steps[i].b}</p>
       </div>
       <div className="px-7 pb-8">
@@ -16646,7 +17053,7 @@ function ImportRoster({ close, say, noun, nouns, code }) {
   };
   return (
     <>
-      <h2 className="mb-5" style={{ ...TYPE.title, color: t.ink }}>{tr("Invite")} {nouns}</h2>
+      <h2 className="mb-5" style={{ ...TYPE.head, color: t.ink }}>{tr("Invite")} {nouns}</h2>
 
       <div className="px-5 py-4 mb-5 flex items-center gap-3" style={{ borderRadius: R.surface, background: t.wash }}>
         <span className="flex-1 truncate" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{shown || "—"}</span>
@@ -16702,7 +17109,7 @@ function CreateGroup({ roster, nouns, times: own, onCreate, close, say }) {
 
   return (
     <>
-      <h2 className="mb-5" style={{ ...TYPE.title, color: t.ink }}>{tr("New group")}</h2>
+      <h2 className="mb-5" style={{ ...TYPE.head, color: t.ink }}>{tr("New group")}</h2>
       <div className="mb-5"><VoiceInput value={name} onChange={setName} ph={tr("Group name")} autoFocus /></div>
 
       <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.sub }}>
@@ -16761,11 +17168,16 @@ function CreateGroup({ roster, nouns, times: own, onCreate, close, say }) {
    the group was made with (preferences.groups). Remove is there only when
    nothing is booked ahead — otherwise one line says so and offers no
    removal — and it is the red quiet key, then a plain confirm. */
-function GroupEditBody({ group, roster, nouns, picked: start, ahead = 0, sessions = 0, onSave, onRemove, close, say }) {
+function GroupEditBody({ group, roster, nouns, picked: start, ahead: aheadNow = 0, sessions = 0, run = null, onEnd, onSave, onRemove, close, say }) {
   const t = useT();
   const [members, setMembers] = useState(start || []);
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState(false);
+  /* lessons ahead the diary could not see (a run past its window): the
+     server said so when Remove was pressed, and the sheet says it as the
+     diary's own count is said */
+  const [late, setLate] = useState(0);
+  const ahead = Math.max(aheadNow, late);
   const changed = members.length !== (start || []).length || members.some((id) => !(start || []).includes(id));
   const save = async () => {
     if (busy || !changed || !members.length) return;
@@ -16777,21 +17189,27 @@ function GroupEditBody({ group, roster, nouns, picked: start, ahead = 0, session
   };
   if (confirm) return (
     <>
-      <h2 className={sessions ? "mb-1" : "mb-5"} data-tour="group-remove-confirm" style={{ ...TYPE.title, color: t.ink }}>{`${tr("Remove")} ${group.name}`}</h2>
+      <h2 className={sessions ? "mb-1" : "mb-5"} data-tour="group-remove-confirm" style={{ ...TYPE.head, color: t.ink }}>{`${tr("Remove")} ${group.name}`}</h2>
       {/* what stays, in one line: the sessions logged for it are in All lessons still */}
       {sessions > 0 && (
         <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>
           {`${countOf(sessions, "sessions")} ${sessions === 1 ? tr("stays in All lessons") : tr("stay in All lessons")}`}
         </p>
       )}
-      <Button tone="danger" tour="group-remove-go" disabled={busy} onClick={async () => { setBusy(true); await onRemove(); }}>{tr("Remove")}</Button>
+      <Button tone="danger" tour="group-remove-go" disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                const res = await onRemove();
+                /* refused: the sheet stays, back on the group, saying why */
+                if (res && (res.ahead || res.error)) { setBusy(false); setConfirm(false); if (res.ahead) setLate(res.ahead); }
+              }}>{tr("Remove")}</Button>
       <button onClick={() => { haptic(6); setConfirm(false); }} className="w-full mt-2.5 active:opacity-60"
               style={{ minHeight: 48, ...TYPE.body, color: t.sub }}>{tr("Keep it")}</button>
     </>
   );
   return (
     <>
-      <h2 className="mb-1" data-tour="group-edit" style={{ ...TYPE.title, color: t.ink }}>{group.name}</h2>
+      <h2 className="mb-1" data-tour="group-edit" style={{ ...TYPE.head, color: t.ink }}>{group.name}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>{`${DAY_NAMES[group.day] || ""}s ${group.time || ""}`.trim()}</p>
       <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.sub }}>
         {members.length ? countOf(members.length, nouns) : tr("Members")}
@@ -16802,8 +17220,18 @@ function GroupEditBody({ group, roster, nouns, picked: start, ahead = 0, session
       </div>
       <Button tour="group-edit-save" disabled={busy || !changed || !members.length} onClick={save}>{busy ? tr("Saving…") : tr("Save")}</Button>
       {ahead > 0 ? (
-        /* nothing is taken from under a booked lesson: the run is ended first */
-        <p data-tour="group-edit-ahead" className="mt-4 text-center" style={{ ...TYPE.small, color: t.sub }}>{`${countOf(ahead, "lessons")} ${tr("ahead")} — ${tr("End them first")}`}</p>
+        /* nothing is taken from under a booked lesson: the run is ended first
+           — and where the group has its run, End is here, the run's own End
+           (why, which lessons, the password), which tells the members as
+           every End does; the line alone sent the coach looking for it */
+        <>
+          <p data-tour="group-edit-ahead" className="mt-4 text-center" style={{ ...TYPE.small, color: t.sub }}>{`${countOf(ahead, "lessons")} ${tr("ahead")} — ${tr("End them first")}`}</p>
+          {run && onEnd && (
+            <div className="mt-3">
+              <Button tone="dangerQuiet" tour="group-edit-end" onClick={() => onEnd(run)}>{tr("End")}</Button>
+            </div>
+          )}
+        </>
       ) : (
         <div className="mt-3">
           <Button tone="dangerQuiet" tour="group-edit-remove" onClick={() => setConfirm(true)}>{tr("Remove group")}</Button>
@@ -16925,6 +17353,7 @@ function DrillRow({ x, todayIso, onToggle, tour, delay = 0 }) {
 }
 
 function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder, onLogPractice }) {
+  const t = useT();
   const calendar = useCalendar();
   const todayIso = isoDay(progressToday(calendar));
   /* THE TAB IS WHAT IS TO DO, AND THE LATEST SET. Everything not yet
@@ -16954,7 +17383,8 @@ function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder, onLo
               up, and START / FINISH in tracked caps under one drill. A
               coach sets a drill, not a length; what a player has to do
               is the rows, and the count is the subtitle. */}
-          <div className="px-6 pb-2"><div className="nsc-list">
+          {/* the drills to do are practice's heather, Lares's workouts list (28 November) */}
+          <div className="px-6 pb-2"><div className="nsc-list" style={cardOf(t, HUE.purple)}>
             {ordered.map((x, i) => (
               <div key={x.id}>
                 <DrillRow x={x} todayIso={todayIso} onToggle={tick} tour={i === 0 ? "drill-row" : undefined} delay={Math.min(i, 5) * 22} />
@@ -16970,7 +17400,7 @@ function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder, onLo
               words, under the list */}
           {onAll && (
             <div className="px-6 pt-3"><div className="nsc-list">
-              <HomeRow boxed tour="drills-all" label={tr("All drills")} value={String(items.length)} onPress={onAll} />
+              <HomeRow boxed tour="drills-all" label={tr("All drills")} value={String(items.length)} hue={HUE.gold} onPress={onAll} />
             </div></div>
           )}
         </>
@@ -16999,7 +17429,7 @@ function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder, onLo
         <div className="px-6" style={{ marginTop: SPACE.section }}>
           {/* a row of the list, as Settings' own Reminder is — it was a
               rimmed card, the one green box on a screen of stone and wash */}
-          <div className="nsc-list"><div className="nsc-flush" data-tour="drills-reminder"><FilterRow inset plain label={tr("Reminder")} value={reminder.label} options={reminder.options} onChange={reminder.onPick} /></div></div>
+          <div className="nsc-list" style={cardOf(t, HUE.blue)}><div className="nsc-flush" data-tour="drills-reminder"><FilterRow inset plain label={tr("Reminder")} value={reminder.label} options={reminder.options} onChange={reminder.onPick} /></div></div>
         </div>
       )}
     </Screen>
@@ -17162,7 +17592,7 @@ function DrillLibrary({ cfg, sport, library, addDrill, removeDrill, pop, assign,
         )}
 
         {library.length > 8 && (
-          <FilterRow label={tr("Area")} options={chips} value={filter} onChange={setFilter} />
+          <div className="px-6 mb-4"><FilterBox label={tr("Area")} options={chips} value={filter} onChange={setFilter} /></div>
         )}
 
         <div className="px-6 pb-2">
@@ -17177,7 +17607,7 @@ function DrillLibrary({ cfg, sport, library, addDrill, removeDrill, pop, assign,
                   <div key={d.t + i} style={{ borderBottom: i === shown.length - 1 ? "none" : `1px solid ${t.hair}` }}>
                     <button onClick={() => { haptic(6); setOpen(isOpen ? null : d.t); }} aria-expanded={isOpen} className="w-full flex items-center gap-3.5 text-left active:opacity-50" style={{ minHeight: 60 }}>
                       <span className="flex-1 min-w-0">
-                        <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{d.t}</span>
+                        <span style={{ ...TYPE.body, color: t.ink, ...upTo(2) }}>{d.t}</span>
                         <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{focusLabel}</span>
                       </span>
                     </button>
@@ -17328,7 +17758,7 @@ function AssignBody({ cfg, library, preset, focusHint, onAssign, onSaveDrill, cl
       {/* a title is a noun, never a question; the people are the app's
           one person row in a box, as the pick-a-player sheet's — it was
           "Who's playing" over hairline rows with 38px faces */}
-      <h2 className="mb-5" style={{ ...TYPE.title, color: t.ink }}>{tr("Who")}</h2>
+      <h2 className="mb-5" style={{ ...TYPE.head, color: t.ink }}>{tr("Who")}</h2>
       <div className="nsc-list" data-tour="assign-who">{(livePlayers ?? PLAYERS).map((p) => (
         <PersonRow key={p} name={p} chevron onTap={() => { hapticCommit(); soft(); setWho(p); setStage("drills"); }} />))}</div>
     </>
@@ -17343,7 +17773,7 @@ function AssignBody({ cfg, library, preset, focusHint, onAssign, onSaveDrill, cl
   return (
     <>
       <div className={`flex items-center gap-1 mb-1 ${preset ? "" : "-ml-2"}`}>{!preset && (<button onClick={() => setStage("who")} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>)}
-        <h2 style={{ ...TYPE.title, color: t.ink }}>Drills for {who?.split(" ")[0]}</h2></div>
+        <h2 style={{ ...TYPE.head, color: t.ink }}>Drills for {who?.split(" ")[0]}</h2></div>
 
       {recommended.length > 0 && (<>
         <RowHead>{tr("Recommended")}</RowHead>
@@ -17412,7 +17842,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
     <SwipeBack onBack={pop}>
       <Screen title={tr("Hours")} onBack={pop} meta={total ? `${total} ${tr("slots a week")}` : ""} right={<TextBtn color={t.accent} onClick={() => { setAvail(draft); say("Hours saved"); pop(); }}>{tr("Save")}</TextBtn>}>
         <div className="px-6 mb-5">
-          <button onClick={() => { haptic(6); setEditSlots(!editSlots); }} className="w-full rounded-2xl flex items-center gap-3.5 px-5 n-key" style={{ minHeight: 58, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}>
+          <button onClick={() => { haptic(6); setEditSlots(!editSlots); }} className="w-full flex items-center gap-3.5 px-5 n-key" style={{ minHeight: 58, borderRadius: 18, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}>
             <span className="flex-1 text-left"><span className="block" style={{ fontFamily: ui, fontSize: 14.5, fontWeight: 600, color: t.ink }}>{tr("Slots and lesson length")}</span>
               <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{slots.length} times · {duration} min</span></span>
             <ChevronDown size={16} color={t.trace || t.faint} style={{ transform: editSlots ? "rotate(180deg)" : "none", transition: "transform 200ms" }} />
@@ -17474,7 +17904,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
               </button>
               <Toggle on={on} onChange={(v) => { togDay(day, v); setOpenDay(v ? day : -1); }} />
             </div>
-            {expanded && on && (<div className="px-5 pb-4 pt-3" style={{ background: t.wash }}>
+            {expanded && on && (<div className="px-5 pb-4 pt-3" style={{ background: "rgba(255, 255, 255, 0.55)" }}>
               <TimeGrid times={TIMES} picked={times} onToggle={(time) => togTime(day, time)} />
               {day <= 4 && (<button onClick={() => copyDown(day)} className="mt-3 active:opacity-50" style={{ minHeight: 44, fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.ink }}>{tr("Copy to all weekdays")}</button>)}
             </div>)}
@@ -17500,7 +17930,8 @@ function AwayLine({ role, name, booked = 0, onEdit }) {
        ledge, as the lesson boxes under it (21 November; it was the wash
        at 8px) — the word and its line in the label grey, no plane on a
        tile beside them (23 November: a row of words carries no icon) */
-    <div className="nsc-list mb-4">
+    /* a span away is time ahead: sky (28 November) */
+    <div className="nsc-list mb-4" style={cardOf(t, HUE.blue)}>
       <div data-tour="cal-away" className="flex items-center gap-3.5" style={{ minHeight: 62 }}>
         <span className="flex-1 min-w-0">
           <span className="block" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{tr("Away")}</span>
@@ -17611,7 +18042,7 @@ function DoorRow({ label, value, danger = false, onPress, tour, attrs }) {
   const t = useT();
   return (
     <button data-tour={tour} data-row-door="" {...(attrs || {})} onClick={() => { haptic(8); soft(); onPress && onPress(); }}
-            className="w-full flex items-center gap-3.5 text-left" style={{ minHeight: 60 }}>
+            className="w-full flex items-center gap-3.5 text-left" style={{ minHeight: 60, ...(danger ? cardOf(t, HUE.red) : null) }}>
       <span className="flex-1 min-w-0 flex flex-wrap items-baseline justify-between" style={{ columnGap: 14 }}>
         <span data-row-label="" style={{ ...TYPE.body, color: danger ? DANGER : t.ink, maxWidth: "100%" }}>{label}</span>
         {value && <span data-row-value="" className="min-w-0" style={{ ...TYPE.body, color: t.sub, maxWidth: "100%", overflowWrap: "break-word" }}>{value}</span>}
@@ -17642,7 +18073,7 @@ function DiaryManage({ hours, away, recurring, calendar, onHours, onAway, onRecu
   ].filter(Boolean);
   return (
     <>
-      <h2 className="mb-5" data-tour="manage-sheet" style={{ ...TYPE.title, color: t.ink }}>{tr("Manage")}</h2>
+      <h2 className="mb-5" data-tour="manage-sheet" style={{ ...TYPE.head, color: t.ink }}>{tr("Manage")}</h2>
       <div className="nsc-list">
         {rows.map((r) => <DoorRow key={r.id} tour="manage-row" attrs={{ "data-manage": r.id }} label={r.label} value={r.value || null} danger={!!r.danger} onPress={r.act} />)}
       </div>
@@ -17720,13 +18151,22 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
   })();
 
   return (
-    <Screen title={forName ? `${tr("Book for")} ${forName}` : L_CAL(role, readOnly)} right={right} meta={role === "coach" ? "" : conn ? `with ${conn.coach}` : ""}
+    /* BOOKING FOR A CHILD IS "BOOK", AND THE CHILD IS NAMED UNDER IT (28
+       November). It read "Book for Saoirse" — the carried decision of 24
+       October — and sixteen letters do not fit the 80px a root screen's
+       compact header leaves at 320, so it was cut there whatever the pill
+       did. The verb stays the title ("Book", as the request sheet's), and
+       who it is for is the grey line under it, as the For strip names each
+       face, beside the coach whose hours these are — two facts, never cut */
+    <Screen title={forName ? tr("Book") : L_CAL(role, readOnly)} right={right}
+            meta={role === "coach" ? "" : [forName ? `${tr("For")} ${forName}` : null, conn ? `with ${conn.coach}` : null].filter(Boolean).join(" · ")}
             /* the coach's one door to what runs the Diary: a word beside the
                title, as the family screen's Manage is — never a glyph, never
                the accent, which is a lesson's */
             action={role === "coach" && onManage ? (
-              <button data-tour="diary-manage" onClick={() => { haptic(6); onManage(); }} className="shrink-0 active:opacity-50"
-                      style={{ minHeight: 44, ...TYPE.body, fontWeight: 500, color: t.ink }}>{tr("Manage")}</button>
+              /* a quiet key since 28 November: the lead's pale on its ledge, the
+                 word in the ink, 38 drawn and 44 to a finger */
+              <ManageKey tour="diary-manage" onTap={onManage} />
             ) : null}>
       {/* Who this is for. An adult in a family books for the children as
           well as themselves, so the person is picked first and the hours
@@ -17878,18 +18318,30 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
       ) : (<>
 
       {/* ---- month grid: quiet, availability-led ---- */}
+      {/* THE MONTH IS A CARD OF KEYS (28 November, the design render): the
+          month on the list's white card, its name the bold serif, the arrows
+          small round keys; the chosen day the sport's colour standing on its
+          deep ledge, today the sport's pale, a day with lessons dotted in
+          the sport's colour. It was Apple Calendar's bare grid of figures. */}
       <div className="px-6 mb-8">
-        <div className="flex items-center justify-between mb-5">
-          <span style={{ ...TYPE.heading, color: t.ink }}>{mo.name}</span>
-          <span className="flex items-center gap-1">
-            <button onClick={() => move(-1)} disabled={mi === 0} className="relative p-2 active:opacity-40 disabled:opacity-20" aria-label={tr("Previous month")}><span aria-hidden="true" className="absolute" style={{ top: -5, bottom: -5, left: -8, right: -2 }} /><ChevronLeft size={18} color={t.ink} /></button>
-            <button onClick={() => move(1)} disabled={mi >= months.length - 1} className="relative p-2 active:opacity-40 disabled:opacity-20" aria-label={tr("Next month")}><span aria-hidden="true" className="absolute" style={{ top: -5, bottom: -5, left: -2, right: -8 }} /><ChevronRight size={18} color={t.ink} /></button>
+        <div data-tour="cal-month" className="px-3 pt-3 pb-2" style={{ background: "var(--card)", border: "2px solid var(--card-ring)", borderRadius: 20, boxShadow: "0 4px 0 var(--card-ledge)" }}>
+        <div className="flex items-center justify-between mb-3 pl-2">
+          <span style={{ ...TYPE.head, color: t.ink }}>{mo.name}</span>
+          <span className="flex items-center gap-2.5">
+            {[[-1, mi === 0, tr("Previous month"), ChevronLeft], [1, mi >= months.length - 1, tr("Next month"), ChevronRight]].map(([dir, off, label, Ico]) => (
+              <button key={dir} onClick={() => move(dir)} disabled={off} aria-label={label}
+                      className="relative flex items-center justify-center rounded-full n-key disabled:opacity-30"
+                      style={{ width: 36, height: 36, background: "#FFFFFF", border: `${EDGE_W}px solid var(--card-ring)`, "--key-lip": "var(--card-ledge)" }}>
+                <span aria-hidden="true" className="absolute" style={{ inset: -6 }} />
+                <Ico size={18} color={t.accent} strokeWidth={2.4} />
+              </button>
+            ))}
           </span>
         </div>
-        <div className={`grid mb-2`} style={{ gridTemplateColumns: `repeat(${prefs.weekends ? 7 : 5}, minmax(0, 1fr))` }}>
-          {DOW.map((d, i) => (prefs.weekends || i < 5) && (<div key={i} className="text-center" style={{ ...TYPE.caption, color: t.faint }}>{d}</div>))}
+        <div className={`grid mb-1.5`} style={{ gridTemplateColumns: `repeat(${prefs.weekends ? 7 : 5}, minmax(0, 1fr))` }}>
+          {DOW.map((d, i) => (prefs.weekends || i < 5) && (<div key={i} className="text-center" style={{ ...TYPE.caption, fontWeight: 600, color: t.sub }}>{d}</div>))}
         </div>
-        <div className="gap-y-1.5" style={{ display: "grid", gridTemplateColumns: `repeat(${prefs.weekends ? 7 : 5}, minmax(0, 1fr))` }}>
+        <div className="gap-y-1" style={{ display: "grid", gridTemplateColumns: `repeat(${prefs.weekends ? 7 : 5}, minmax(0, 1fr))` }}>
           {cells.map((d, i) => {
             if (d === null) return <span key={`b${i}`} />;
             if (!prefs.weekends && dowOf(mo.idx, d, cx) > 4) return null;
@@ -17902,13 +18354,17 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
             const available = !gone && (role === "coach" ? (dayBooked > 0 || nOpen > 0) : nOpen > 0);
             return (
               <button key={d} onClick={() => { haptic(6); setSel(d); setPick(null); }} disabled={gone} aria-pressed={on} data-day={d}
-                      className="flex flex-col items-center justify-center disabled:opacity-100" style={{ height: 46 }}>
+                      className="flex flex-col items-center justify-center disabled:opacity-100" style={{ height: 50 }}>
                 <span className="flex items-center justify-center"
-                      style={{ width: 38, height: 38, borderRadius: 999,
-                               /* Apple Calendar: the chosen day a solid disc of the sport's colour, today's figure in it */
-                               background: on ? t.accent : mine ? SEL(t).face : "transparent",
-                               border: "1px solid transparent",
-                               fontFamily: ui, fontSize: 17, fontWeight: on || today ? 600 : available ? 500 : 400,
+                      style={{ width: "min(38px, 100%)", height: 38, borderRadius: 12,
+                               /* the chosen day a key of the sport's colour on its deep ledge,
+                                  today the sport's pale, a lesson of the person's the chosen answer */
+                               /* on the month's pale card, today is the white key */
+                               background: on ? t.accent : mine ? SEL(t).face : today ? "#FFFFFF" : "transparent",
+                               border: `${EDGE_W}px solid ${on ? t.accent : mine ? SEL(t).ring : today ? "var(--card-ring)" : "transparent"}`,
+                               boxShadow: on ? `0 3px 0 ${LIP(t.accent)}` : mine ? `0 2px 0 ${SEL(t).lip}` : today ? "0 2px 0 var(--card-ledge)" : "none",
+                               transition: "background 160ms, box-shadow 160ms",
+                               fontFamily: ui, fontSize: 17, fontWeight: on || today ? 700 : available ? 600 : 400,
                                /* a day away is struck through, the way a diary crosses a day out */
                                textDecoration: !gone && awayOn(mo.idx, d) ? "line-through" : "none",
                                /* a day gone is read, not hidden: the trace grey
@@ -17919,21 +18375,22 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                     ticker mark, an ink dot; a day merely open the faint
                     one — both were the one hairline dot, so the grid could
                     not say which days held lessons */}
-                <span style={{ height: 5, marginTop: 1 }} data-mark={mine ? "mine" : role === "coach" && dayBooked > 0 && !gone && !on ? "booked" : available && !on ? "open" : undefined}>
-                  {mine ? <span className="block rounded-full" style={{ width: 4, height: 4, background: t.accent }} />
-                        : role === "coach" && dayBooked > 0 && !gone && !on ? <span className="block rounded-full" style={{ width: 4, height: 4, background: t.ink }} />
-                        : available && !on ? <span className="block rounded-full" style={{ width: 3, height: 3, background: t.hair }} /> : null}
+                <span style={{ height: 5, marginTop: 4 }} data-mark={mine ? "mine" : role === "coach" && dayBooked > 0 && !gone && !on ? "booked" : available && !on ? "open" : undefined}>
+                  {mine ? <span className="block rounded-full" style={{ width: 5, height: 5, background: t.accent }} />
+                        : role === "coach" && dayBooked > 0 && !gone && !on ? <span className="block rounded-full" style={{ width: 5, height: 5, background: t.accent }} />
+                        : available && !on ? <span className="block rounded-full" style={{ width: 4, height: 4, background: t.trace || t.hair }} /> : null}
                 </span>
               </button>
             );
           })}
+        </div>
         </div>
       </div>
 
       {/* ---- the selected day, as a readable column ---- */}
       <div className="px-6" data-cal-day>
         <div className="flex items-baseline justify-between mb-4">
-          <span style={{ ...TYPE.title, color: t.ink }}>{dayHead}</span>
+          <span style={{ ...TYPE.head, color: t.ink }}>{dayHead}</span>
           <span style={{ ...TYPE.caption, color: t.faint }}>
             {/* a count that is nought is not a fact worth a line: the day
                 reads what it has, and nothing when it has nothing */}
@@ -18095,7 +18552,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                         className="w-full flex items-center gap-3 text-left active:opacity-50"
                         style={{ minHeight: 62 }}>
                   <span className="flex-1 min-w-0">
-                    <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{r.who}</span>
+                    <span data-name="" style={{ ...TYPE.body, color: t.ink, ...upTo(3) }}>{r.who}</span>
                     <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>
                       {DAY_NAMES[r.day]}s {r.time} · {r.every || r.freq}{r.total ? ` · ${r.total - r.used} of ${r.total} left` : ""}
                     </span>
@@ -18220,7 +18677,7 @@ function BroadcastBody({ nouns, say, done, close, onSend, group = null, members 
   const named = firsts.length > 4 ? `${firsts.slice(0, 3).join(" · ")} · +${firsts.length - 3}` : firsts.join(" · ");
   return (
     <>
-      <h2 className="mb-1" data-tour={group ? "group-message" : undefined} style={{ ...TYPE.title, color: t.ink }}>{group ? `${tr("Message")} ${group}` : tr("Message everyone")}</h2>
+      <h2 className="mb-1" data-tour={group ? "group-message" : undefined} style={{ ...TYPE.head, color: t.ink }}>{group ? `${tr("Message")} ${group}` : tr("Message everyone")}</h2>
       {group && named && <p className="mb-5" data-tour="group-message-to" style={{ ...TYPE.small, color: t.sub }}>{named}</p>}
       <div className="mb-6"><VoiceArea value={text} onChange={setText} rows={4} ph={tr("Message")} /></div>
       <Button disabled={!text.trim() || busy} onClick={send}>{busy ? tr("Sending…") : tr("Send")}</Button>
@@ -18245,7 +18702,7 @@ function ClipSendBody({ who, child, areas, file, say, close, onSend }) {
   };
   return (
     <>
-      <h2 className="mb-1" data-tour="clip-send" style={{ ...TYPE.title, color: t.ink }}>{`${tr("Send to")} ${who}`}</h2>
+      <h2 className="mb-1" data-tour="clip-send" style={{ ...TYPE.head, color: t.ink }}>{`${tr("Send to")} ${who}`}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>{[kind, child ? `${tr("for")} ${child}` : null].filter(Boolean).join(" · ")}</p>
       {areas && areas.length > 0 && (
         <div className="mb-5">
@@ -18275,7 +18732,7 @@ function ClipReplyBody({ who, focus, say, close, onSend }) {
   };
   return (
     <>
-      <h2 className="mb-1" data-tour="clip-reply-sheet" style={{ ...TYPE.title, color: t.ink }}>{tr("Reply")}</h2>
+      <h2 className="mb-1" data-tour="clip-reply-sheet" style={{ ...TYPE.head, color: t.ink }}>{tr("Reply")}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>{[`${tr("To")} ${who}`, focus].filter(Boolean).join(" · ")}</p>
       <div className="mb-6"><VoiceArea value={text} onChange={setText} rows={4} ph={tr("Reply")} /></div>
       <Button disabled={busy || !text.trim()} onClick={send} tour="clip-reply-send">{busy ? tr("Sending…") : tr("Send")}</Button>
@@ -18298,7 +18755,7 @@ function PlayerNoteBody({ who, value, say, close, onSave }) {
   };
   return (
     <>
-      <h2 className="mb-1" data-tour="player-note" style={{ ...TYPE.title, color: t.ink }}>{tr("Notes")}</h2>
+      <h2 className="mb-1" data-tour="player-note" style={{ ...TYPE.head, color: t.ink }}>{tr("Notes")}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>{`${who} · ${tr("Private")}`}</p>
       <div className="mb-6"><VoiceArea value={text} onChange={setText} rows={5} ph={tr("Notes")} /></div>
       <Button disabled={busy || (text || "").trim() === (value || "").trim()} onClick={save} tour="player-note-save">{busy ? tr("Saving…") : tr("Save")}</Button>
@@ -18322,7 +18779,7 @@ function PracticeLogBody({ areas, say, close, onSave }) {
   };
   return (
     <>
-      <h2 className="mb-1" data-tour="practice-log" style={{ ...TYPE.title, color: t.ink }}>{tr("Practice")}</h2>
+      <h2 className="mb-1" data-tour="practice-log" style={{ ...TYPE.head, color: t.ink }}>{tr("Practice")}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>{tr("Today")}</p>
       {areas && areas.length > 0 && (
         <div className="mb-5">
@@ -18518,13 +18975,13 @@ function Thread({ role, name, isGroup, pop, say, live, banner }) {
                 <Camera size={24} color={t.faint} strokeWidth={1.8} />
               </button>
             )}
-            <div className="flex-1 min-w-0 rounded-3xl px-4 py-2 flex items-center gap-2" style={{ background: "#FFFFFF", border: "1px solid #D1D1D6" }}>
+            <div className="flex-1 min-w-0 rounded-3xl px-4 py-2 flex items-center gap-2" style={{ background: "#FFFFFF", border: "1px solid #D3CEC4" }}>
               <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") send(); }} placeholder="Message" className="flex-1 min-w-0 outline-none" style={{ fontFamily: ui, fontSize: 17, color: t.ink, background: "transparent" }} />
               {/* the field gives way, never the mic or Send: an input's own
                   width at 17px pushed the mic over Send on a narrow phone */}
               <MicBtn onText={(txt) => setDraft(draft ? draft + " " + txt : txt)} size={28} />
             </div>
-            <button data-tour="thread-send" onClick={send} disabled={!draft.trim() || sending} className="rounded-full flex items-center justify-center shrink-0" style={{ width: 36, height: 36, marginBottom: 2, background: draft.trim() && !sending ? t.accent : "#D1D1D6", transition: "background 160ms" }} aria-label={tr("Send")}><Send size={17} color={t.onAccent} /></button>
+            <button data-tour="thread-send" onClick={send} disabled={!draft.trim() || sending} className="rounded-full flex items-center justify-center shrink-0" style={{ width: 36, height: 36, marginBottom: 2, background: draft.trim() && !sending ? t.accent : "#D3CEC4", transition: "background 160ms" }} aria-label={tr("Send")}><Send size={17} color={t.onAccent} /></button>
           </div>
         </div>
       </div>
@@ -18799,7 +19256,7 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
    its label; `pick` is a setting with a few named values ({ id, value,
    options, onPick }), which SettingRow draws as the second shape. No row
    carries a glyph. */
-function settingsGroups({ role, conn, demo, plan, live, inviteCode, coachOfMine, calendarSub, onCalendar, awaySub = null, downloadsSub, defaultView, onDefaultView, onSync, reminderOn = false, reminderTime, reminderOpts = [], onReminderTime, drillCount = 0, libraryCount = 0, tipCount = 0, onTour, onSetup, onPhoto, onMainSport, multiSport, mainLabel, reduceMotion, setReduceMotion, soundState, setSoundState, hapticsOn, setHapticsOn, startOn, setStartOn, startOptions, prefs, setPrefs, pop, push, go, sheet, restart, familyName, hasCoach, hasDependants = false, L = STRINGS.en }) {
+function settingsGroups({ importRow = null, role, conn, demo, plan, live, inviteCode, coachOfMine, calendarSub, onCalendar, awaySub = null, downloadsSub, defaultView, onDefaultView, onSync, reminderOn = false, reminderTime, reminderOpts = [], onReminderTime, drillCount = 0, libraryCount = 0, tipCount = 0, onTour, onSetup, onPhoto, onMainSport, multiSport, mainLabel, reduceMotion, setReduceMotion, soundState, setSoundState, hapticsOn, setHapticsOn, startOn, setStartOn, startOptions, prefs, setPrefs, pop, push, go, sheet, restart, familyName, hasCoach, hasDependants = false, L = STRINGS.en }) {
   const setPref = (k, v) => setPrefs && setPrefs((p) => ({ ...p, [k]: v }));
   const T = (on, set, extra) => <Toggle on={on} onChange={(v) => { set(v); extra && extra(v); }} />;
   const many = (n, one, more) => (n ? `${n} ${n === 1 ? one : more}` : null);
@@ -18829,6 +19286,8 @@ function settingsGroups({ role, conn, demo, plan, live, inviteCode, coachOfMine,
          could be changed only on Setup's third screen (24 November) */
       live && { label: tr("Tips"), sub: many(tipCount, tr("tip"), tr("tips")), tour: "settings-tips", onTap: () => push("tipLibrary"), keys: ["tip", "prompts", "say", "advice", "lines", "library"] },
       { label: tr("Lesson logs"), tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["export", "pdf", "file", "save"] },
+      /* the import (docs/import/SPEC.md): there only once it can be used */
+      importRow,
       live && { label: tr("Downloads"), sub: downloadsSub || null, tour: "settings-downloads", onTap: () => push("saved:downloads"), keys: ["download", "offline", "saved", "phone", "storage"] },
       live && onCalendar && calendarSub && { label: tr("Add to phone calendar"), sub: calendarSub, tour: "settings-calendar", onTap: () => onCalendar(), keys: ["ical", "ics", "export", "google", "apple", "outlook", "sync", "diary", "events", "bookings", "add", "phone"] },
       !live && { label: tr("Branding"), tour: "settings-branding", onTap: () => push("branding") },
@@ -18850,6 +19309,7 @@ function settingsGroups({ role, conn, demo, plan, live, inviteCode, coachOfMine,
                keys: hasCoach ? ["join", "code", "review", "rating", "rate", "stars", "profile"] : ["join", "code"] }
            : { label: tr("Coaches & profiles"), tour: "settings-family", onTap: () => sheet("family") },
       { label: tr("Lesson logs"), tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["export", "file", "save"] },
+      importRow,
       live && { label: tr("Downloads"), sub: downloadsSub || null, tour: "settings-downloads", onTap: () => push("saved:downloads"), keys: ["download", "offline", "saved", "phone", "storage"] },
       live && onCalendar && calendarSub && { label: tr("Add to phone calendar"), sub: calendarSub, tour: "settings-calendar", onTap: () => onCalendar(), keys: ["ical", "ics", "export", "google", "apple", "outlook", "sync", "diary", "events", "bookings", "add", "phone"] },
       !live && { label: tr("Subscription"), sub: tr("Free — your coach's plan covers you") },
@@ -19030,8 +19490,11 @@ function Settings(props) {
 
         {shown.map((g, gi) => (
           <React.Fragment key={g.title || "end"}>
-            {g.title && <Eyebrow>{g.title}</Eyebrow>}
-            <div className="px-6 mb-6" data-tour={g.tour}><div className="nsc-group" data-group="">
+            {/* a group's name is a heading in the titles' serif (28 November):
+                Coaching, Account, Support read as the page's sections, where
+                they were the small grey label a field carries */}
+            {g.title && <h2 className="px-6 mb-2.5" data-group-head="" style={{ ...TYPE.head, fontSize: 20, color: t.ink }}>{g.title}</h2>}
+            <div className="px-6 mb-7" data-tour={g.tour}><div className="nsc-group" data-group="">
               {g.rows.map((r, i) => (
                 <SettingRow key={r.label} r={r} last={i === g.rows.length - 1} open={openPick} setOpen={setOpenPick} />
               ))}
@@ -19207,26 +19670,23 @@ function Notifications({ role, pop, pushOn, setPushOn, live, notify, setNotify, 
 
    · ONLY THIS DEVICE'S STEPS. The device is read (`platformOf`,
      `browserOf`, `iosMajor`) and that one set is shown. Every other
-     device sits behind one quiet row, "iPhone · iOS 27 — Change"
-     (`install-device`), which unfolds the platform and the version on
+     device sits behind one quiet row under the title, "iPhone · iOS 27 —
+     Change" (`install-device`), which unfolds the platform and the version on
      the app's Segmented (`install-platform`, `install-version`) with
      where to look the version up. Two Segmenteds and a hint over the
      steps was the clutter.
-   · A STEP IS A NUMERAL, A FEW WORDS AND A PICTURE of the thing to tap,
-     drawn here in one line (INS_GLYPHS, the Ins* pieces) — the thing to
-     tap is the white key with the ring round it, what stands beside it
-     is drawn faint. No symbol is ever typed into a sentence. Every tap
-     is a step. STEP ONE NAMES THE CONTROL THAT VERSION OF SAFARI SHOWS
-     BY DEFAULT — the three lines on iOS 27, the three dots on iOS 26,
-     read off Safari's own Version/ — and draws Share beside it, for the
-     Bottom and Top tab layouts, which carry Share on the toolbar; its
-     second line says that Share goes straight to step 3, because the
-     share sheet is already open (a sentence that said "three dots" to
-     an iOS 27 phone showing three lines is the mistake the founder was
-     handed; "Tap one of these" over both, for a round, then told the
-     person who tapped Share to tap Share again). A picture that only
-     repeats its words in a key (Samsung's Home screen and Add, a
-     computer's Install) stands on a slim panel.
+   · A STEP IS A NUMERAL AND A FEW WORDS WITH THE CONTROL DRAWN IN THEM
+     (28 November: the drawings were the app's own keys, with faces and
+     ledges, and people pressed them). The glyph sits in the sentence at
+     the words' height ("Tap [lines], then Share [share]"); step one alone
+     carries a flat sketch of the browser's bar with a gold loop round the
+     spot. Four steps at most; two taps in one sheet are one step. STEP ONE
+     NAMES THE CONTROL THAT VERSION OF SAFARI SHOWS BY DEFAULT — the three
+     lines on iOS 27, the three dots on iOS 26, read off Safari's own
+     Version/ — and its second line, "Or tap [share] if you see it", is
+     for the Bottom and Top tab layouts, which carry Share on the toolbar
+     (a sentence that said "three dots" to an iOS 27 phone showing three
+     lines is the mistake the founder was handed).
    · TRUE, BY VERSION (read on 24 November 2026; Apple's own pages could
      not be opened from the build machine, so each line stands on the
      search engine's reading of them and on two independent how-tos).
@@ -19284,8 +19744,9 @@ function Notifications({ role, pop, pushOn, setPushOn, live, notify, setNotify, 
 
    Where the browser offers to install (Chrome and Edge fire
    `beforeinstallprompt`, caught in lib/install.js) the guide leads with
-   one button, Install Nosca, which opens the browser's own sheet, the
-   steps under it as "Or by hand"; Safari never offers. Reached three
+   one button, Install Nosca, which opens the browser's own sheet, and the
+   steps fold behind "Or by hand" (opening out, never jumping in, when the
+   offer arrives after the page); Safari never offers. Reached three
    ways: /install (pages/Install.jsx); Settings › Add to Home Screen, a
    row that is not there once the app is on a Home Screen; and the
    arrival screen's quiet line after sign-up (`nosca.install.now`). An
@@ -19330,6 +19791,8 @@ export const INSTALL_GOLD = "#8E6E26";
    delay). */
 export const INSTALL_CSS = `
 @keyframes insRise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.ins-in{margin:0 0.02em;white-space:nowrap}
+.ins-sr{display:inline-block;width:1px;height:1px;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .calm .ins, .calm .ins *, .calm.ins, .calm.ins * { animation-delay: 0s !important; }
 @media (prefers-reduced-motion: reduce){ .ins, .ins * { animation-delay: 0s !important; } }
 `;
@@ -19351,236 +19814,205 @@ const INS_GLYPHS = {
   appsPlus: "M5.2 4.5h3.6a.7.7 0 0 1 .7.7v3.6a.7.7 0 0 1-.7.7H5.2a.7.7 0 0 1-.7-.7V5.2a.7.7 0 0 1 .7-.7ZM5.2 14.5h3.6a.7.7 0 0 1 .7.7v3.6a.7.7 0 0 1-.7.7H5.2a.7.7 0 0 1-.7-.7v-3.6a.7.7 0 0 1 .7-.7ZM15.2 14.5h3.6a.7.7 0 0 1 .7.7v3.6a.7.7 0 0 1-.7.7h-3.6a.7.7 0 0 1-.7-.7v-3.6a.7.7 0 0 1 .7-.7ZM17 4v6M14 7h6",
   /* Safari's own: a compass */
   compass: "M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17ZM15.4 8.6l-1.9 4.9-4.9 1.9 1.9-4.9 4.9-1.9Z",
-  plus: "M12 5.5v13M5.5 12h13",
-  cross: "M7 7l10 10M17 7 7 17",
+  home: "M4.5 11 12 4.5l7.5 6.5M6.5 9.5v9.5h11V9.5",
 };
-function InsGlyph({ name, size = 26, color, sw = 1.9 }) {
-  const box = { width: size, height: size, viewBox: "0 0 24 24", "aria-hidden": "true", focusable: "false", "data-glyph": name, style: { display: "block", flexShrink: 0 } };
+function InsGlyph({ name, size = 26, color, sw = 1.9, inline }) {
+  const box = { width: size, height: size, viewBox: "0 0 24 24", "aria-hidden": "true", focusable: "false", "data-glyph": name,
+                style: inline ? { display: "inline-block", verticalAlign: "-0.24em" } : { display: "block", flexShrink: 0 } };
   if (name === "dots" || name === "dotsV") {
     const at = [5.2, 12, 18.8];
     return <svg {...box}>{at.map((p) => <circle key={p} cx={name === "dots" ? p : 12} cy={name === "dots" ? 12 : p} r={1.75} fill={color} />)}</svg>;
   }
   return <svg {...box} fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"><path d={INS_GLYPHS[name]} /></svg>;
 }
-/* THE THING TO TAP: a white key with the ring round it, on a ledge of
-   the ring's own colour made pale — the app's key, so the one thing in
-   the picture that is pressed looks pressable. A glyph alone is 52
-   square (the glyph 28); with a word it is a row of the phone's menu. */
-const INS_PAD = 10;   // the picture's own air, left and right
-const insWord = (t) => ({ fontFamily: ui, fontSize: 15, lineHeight: 1.2, fontWeight: 600, letterSpacing: "-0.01em", color: t.ink });
-function InsTap({ p, glyph, label, trail, round, size = 52, h }) {
-  const { t, hi } = p;
-  const tall = h || (label ? 48 : size);
+/* THE PICTURES ARE PICTURES (28 November). The founder: "people found
+   that very confusing. They thought that they just tapped on the buttons
+   on it, rather than following those instructions … way too much text
+   … really complex." Every step drew its control as the app's own key —
+   a white face, a coloured ring, a ledge — so people pressed the
+   drawing. Now nothing in a step has a face or a ledge: the control is a
+   glyph inside the sentence, at the words' height, the way Apple's own
+   guides set it ("Tap [Share]"); and step one, where a person most needs
+   to see WHERE, carries one flat sketch of the browser's bar with a gold
+   loop drawn round the spot, as a ring is drawn on a screenshot. */
+/* a glyph inside a sentence; `label` is what it says to a screen reader,
+   and in a copy of the words, where no word beside it says it */
+function InsIn({ name, label, tight, lead }) {
+  const t = useT();
+  /* a glyph's own drawing leaves air at its sides; a comma after it is drawn in that air */
   return (
-    /* a word is never cut: a long row takes a second line on a narrow phone before it leaves its picture */
-    <span data-ins-tap="" className={`inline-flex items-center justify-center ${label ? "min-w-0" : "shrink-0"}`}
-          style={{ minWidth: label ? 0 : size, minHeight: tall, maxWidth: "100%", padding: label ? (round ? "6px 18px" : "6px 12px") : 0, gap: 8, borderRadius: round ? 999 : 14,
-                   background: "#FFFFFF", boxShadow: `0 0 0 2px ${hi}, 0 5px 0 ${MIX("#FFFFFF", hi, 0.32)}` }}>
-      {glyph && <InsGlyph name={glyph} size={label ? 20 : Math.round(size * 0.54)} color={t.ink} sw={label ? 2 : 1.8} />}
-      {label && <span style={insWord(t)}>{label}</span>}
-      {trail && <InsGlyph name={trail} size={20} color={t.ink} sw={2} />}
+    <span className="ins-in" data-glyph-in={name} style={{ ...(tight ? { marginRight: "-0.2em" } : null), ...(lead ? { marginLeft: "0.26em" } : null) }}>
+      {name === "app"
+        ? <img src="/icons/apple-touch-icon.png" alt="" width={22} height={22} draggable={false} style={{ display: "inline-block", verticalAlign: "-0.3em", width: 22, height: 22, borderRadius: 5, margin: "0 0.16em" }} />
+        : <InsGlyph name={name} size={21} color={t.ink} sw={2} inline />}
+      {label && <span className="ins-sr">{label}</span>}
     </span>
   );
 }
-/* what stands beside it, faint: a glyph, a word, the address in its bar */
-const InsGhost = ({ p, glyph, size = 24 }) => <InsGlyph name={glyph} size={size} color={p.t.trace} sw={1.8} />;
-const InsFaint = ({ p, children }) => <span style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.2, fontWeight: 500, color: p.t.faint, whiteSpace: "nowrap" }}>{children}</span>;
-const InsOr = ({ p }) => <span style={{ fontFamily: ui, fontSize: 13, lineHeight: 1, color: p.t.sub, padding: "0 2px" }}>{tr("or")}</span>;
-/* the address bar: a white capsule on the app's grey line with the
-   address as a soft bar in it; `lead` and `trail` are what sits at its
-   ends. It takes the room the picture has left, so nothing is cut. */
-function InsBar({ p, lead, trail, max = 150, run }) {
-  /* `run`: the bar runs on past the picture's left edge and only its end
-     is shown — what is tapped stands at, or just past, the end of it */
-  const shape = run
-    ? { marginLeft: -INS_PAD, minWidth: trail ? 96 : 48, borderRadius: "0 999px 999px 0", border: "1.5px solid #E2E2E7", borderLeft: "none" }
-    : { maxWidth: max, minWidth: lead || trail ? 96 : 56, borderRadius: 999, boxShadow: "inset 0 0 0 1.5px #E2E2E7" };
+/* "Tap {lines:the three lines}, then Share {share}": the words, with each {glyph} drawn in its place */
+const insSay = (s) => {
+  const parts = String(s).split(/(\{[a-zA-Z]+(?::[^}]*)?\})/).filter(Boolean);
+  const glyph = (x) => x && x.match(/^\{([a-zA-Z]+)(?::([^}]*))?\}$/);
+  return parts.map((part, i) => {
+    const m = glyph(part);
+    /* a glyph with no words of its own stands beside the word it draws ("Share [share]"): the space before it is
+       its margin, not a character, so the words read whole when copied or spoken — "Tap Share", never "Tap Share ," */
+    if (m) return <InsIn key={i} name={m[1]} label={m[2]} lead={!m[2] && /\s$/.test(parts[i - 1] || "")} tight={/^[,.;:]/.test(parts[i + 1] || "")} />;
+    const next = glyph(parts[i + 1]);
+    return <React.Fragment key={i}>{next && !next[2] ? part.replace(/\s+$/, "") : part}</React.Fragment>;
+  });
+};
+/* a loop drawn round the spot by hand, open where the pen came back, as on a marked-up screenshot */
+const INS_LOOP = "M27 4.6C38.6 4 46.4 11 45.6 20.6 44.8 31 34.6 37 23 36.4 11.8 35.8 3.8 28.8 4.6 19.4 5.4 10.6 13.4 4.4 25.6 5.4";
+function InsSpot({ hi, children, wide }) {
   return (
-    <span data-ins-bar="" className="inline-flex items-center min-w-0" style={{ flex: "1 1 0", height: 52, padding: 4, gap: 8, background: "#FFFFFF", boxSizing: "border-box", ...shape }}>
-      {lead}
-      <span className="flex-1 min-w-0" style={{ height: 6, borderRadius: 3, background: "#D9D9DE", margin: run ? `0 ${trail ? 4 : 14}px 0 ${INS_PAD}px` : lead ? "0 12px 0 2px" : trail ? "0 2px 0 12px" : "0 14px" }} />
-      {trail}
+    <span data-ins-tap="" className="relative inline-flex items-center justify-center shrink-0" style={{ minWidth: wide ? 0 : 36, height: 36, padding: wide ? "0 8px" : 0 }}>
+      {children}
+      <svg aria-hidden="true" focusable="false" viewBox="0 0 50 41" preserveAspectRatio="none" className="absolute pointer-events-none"
+           style={{ left: -9, right: -9, top: -6, bottom: -6, width: "calc(100% + 18px)", height: "calc(100% + 12px)", overflow: "visible" }}>
+        <path d={INS_LOOP} fill="none" stroke={hi} strokeWidth="2.2" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      </svg>
     </span>
   );
 }
-/* a small key inside the bar: the ring, no ledge (the bar is its ground) */
-const InsInBar = ({ p, glyph }) => (
-  <span data-ins-tap="" className="inline-flex items-center justify-center shrink-0" style={{ width: 44, height: 44, borderRadius: 999, background: "#FFFFFF", boxShadow: `0 0 0 2px ${p.hi}` }}>
-    <InsGlyph name={glyph} size={26} color={p.t.ink} sw={1.9} />
-  </span>
-);
-/* a sheet of the phone's, small: white on the grey line */
-const InsSheet = ({ children }) => (
-  <span className="flex flex-col w-full" style={{ maxWidth: 280, padding: "10px 12px 8px", gap: 8, borderRadius: 16, background: "#FFFFFF", boxShadow: "inset 0 0 0 1.5px #E2E2E7" }}>{children}</span>
-);
-/* the app on a Home Screen: the icon as the phone draws it, its name under it */
-function InsAppIcon({ p, size = 60 }) {
+/* step one's picture: the browser's bar as a flat grey sketch on a framed
+   panel — the address a soft bar in an outlined capsule, the controls
+   beside it in the trace grey — and the one control in the ink inside
+   the gold loop. No face, no ledge, no shadow: a picture, not a key. */
+function InsScene({ kind, alt, hi }) {
+  const t = useT();
+  const faint = (g) => <InsGlyph name={g} size={22} color={t.trace} sw={1.8} />;
+  const spot = (g) => <InsSpot hi={hi}><InsGlyph name={g} size={22} color={t.ink} sw={2} /></InsSpot>;
+  const bar = (lead, trail) => (
+    <span data-ins-bar="" className="flex items-center flex-1 min-w-0" style={{ height: 38, gap: 6, padding: "0 8px", borderRadius: 999, boxShadow: `inset 0 0 0 1.5px ${t.hair}`, background: "#FFFFFF" }}>
+      {lead}<span className="flex-1 min-w-0" style={{ height: 5, borderRadius: 3, background: t.hair, margin: "0 6px" }} />{trail}
+    </span>
+  );
+  const word = (w) => <span style={{ fontFamily: ui, fontSize: 14, fontWeight: 500, color: t.trace }}>{w}</span>;
+  const row = {
+    ios27: <>{bar(spot("lines"))}{faint("tabs")}</>,
+    ios26: <>{faint("back")}{bar()}{spot("dots")}</>,
+    ios18: <span className="flex items-center justify-between w-full" style={{ padding: "0 6px" }}>{faint("back")}{faint("fwd")}{spot("share")}{faint("book")}{faint("tabs")}</span>,
+    crios: <>{bar(null, spot("share"))}</>,
+    chrome: <>{bar()}{spot("dotsV")}</>,
+    samsung: <span className="flex items-center justify-between w-full" style={{ padding: "0 6px" }}>{faint("back")}{faint("fwd")}{faint("home")}{faint("tabs")}{spot("lines")}</span>,
+    desktop: <>{bar(null, spot("monitorDown"))}</>,
+    mac: <span className="flex items-center" style={{ gap: 18, padding: "0 6px" }}>{word("Safari")}<InsSpot hi={hi} wide><span style={{ fontFamily: ui, fontSize: 14, fontWeight: 600, color: t.ink }}>File</span></InsSpot>{word("Edit")}{word("View")}</span>,
+  }[kind];
+  if (!row) return null;
+  return (
+    <div role="img" aria-label={alt} data-ins-pic="" data-scene={kind} className="flex items-center"
+         style={{ marginTop: 12, maxWidth: 300, gap: 10, padding: "14px 16px", borderRadius: 14, background: t.wash }}>
+      {row}
+    </div>
+  );
+}
+/* the app on a Home Screen, once it is there: the icon as the phone draws it, its name under it */
+function InsAppIcon({ size = 60 }) {
+  const t = useT();
   return (
     <span className="inline-flex flex-col items-center" style={{ gap: 6 }}>
-      {/* the very picture iOS and Android put on the Home Screen (public/icons, made by scripts/icons.mjs), in the phone's own corner —
-          a mark drawn here stood four fifths the size of the real one, and thinner */}
-      <span data-ins-tap="" className="inline-flex items-center justify-center overflow-hidden" style={{ width: size, height: size, borderRadius: size * 0.225, background: BRAND_COLOUR, boxShadow: `0 0 0 2px #FFFFFF, 0 0 0 4px ${p.hi}` }}>
+      <span className="inline-flex items-center justify-center overflow-hidden" style={{ width: size, height: size, borderRadius: size * 0.225, background: BRAND_COLOUR }}>
         <img src="/icons/apple-touch-icon.png" alt="" width={size} height={size} draggable={false} style={{ display: "block", width: size, height: size }} />
       </span>
-      <span style={{ fontFamily: ui, fontSize: 13, lineHeight: 1.2, fontWeight: 500, color: p.t.ink }}>Nosca</span>
+      <span style={{ fontFamily: ui, fontSize: 13, lineHeight: 1.2, fontWeight: 500, color: t.ink }}>Nosca</span>
     </span>
   );
 }
-/* a round action of the share sheet: a disc with its glyph and its name
-   under it; with no glyph, one of the faint ones that stand before it */
-function InsRound({ p, glyph, label }) {
-  const { t, hi } = p;
-  return (
-    <span className="inline-flex flex-col items-center shrink-0" style={{ gap: 7 }}>
-      <span {...(glyph ? { "data-ins-tap": "" } : { "aria-hidden": "true" })} className="inline-flex items-center justify-center"
-            style={{ width: 46, height: 46, borderRadius: 23, ...(glyph ? { background: "#FFFFFF", boxShadow: `0 0 0 2px ${hi}, 0 4px 0 ${MIX("#FFFFFF", hi, 0.32)}` } : { background: "#E2E2E7" }) }}>
-        {glyph && <InsGlyph name={glyph} size={24} color={t.ink} sw={2} />}
-      </span>
-      {label
-        ? <span style={{ ...insWord(t), fontSize: 12, whiteSpace: "nowrap" }}>{label}</span>
-        : <span aria-hidden="true" style={{ width: 24, height: 5, borderRadius: 3, background: "#D9D9DE", marginTop: 5 }} />}
-    </span>
-  );
-}
-/* a row of a Home Screen: Nosca among the others, which are drawn faint */
-function InsHome({ p }) {
-  const other = { flex: "0 0 48px", width: 48, height: 48, marginTop: 2, borderRadius: "23%", background: "#E2E2E7" };
-  return (
-    <span className="flex items-start justify-center w-full" style={{ gap: 12, padding: "4px 2px 0" }}>
-      <span aria-hidden="true" style={other} />
-      <InsAppIcon p={p} size={52} />
-      <span aria-hidden="true" style={other} />
-    </span>
-  );
-}
-/* THE STEPS. `text` is the few words, `sub` a second line only where a
-   picture cannot say it, `alt` what the picture shows for somebody who
-   cannot see it, `pic` the drawing. Where a phone may show either of
-   two controls the words name neither — "Tap one of these" — and the
-   picture draws both. */
+/* THE STEPS. Four at most a device, each a few words with the control
+   drawn in them (`text`, `sub` — "{glyph}" or "{glyph:what it says}"),
+   step one's `scene` the picture of where, and `alt` what that picture
+   shows. Two taps that follow one another in the same sheet are one
+   step ("Tap the three lines, then Share"). A line goes when the phone
+   already does it: Open as Web App is on from iOS 26, so "leave it on"
+   is gone, and so is "Scroll down the list". */
 const INS_OPEN = (ios, card) => ({
   /* iOS gives a Home Screen app its own storage, so an iPhone signs in once more there; Android's shares the browser's.
      The card's page is read by people with no account yet. */
-  text: ios ? tr("Tap Nosca on the Home Screen") : tr("Tap Nosca on the Home screen"), sub: ios ? (card ? tr("Sign up or sign in there") : tr("Sign in there once")) : null,
-  alt: tr("The Nosca icon, among the others on the Home Screen"),
-  pic: (p) => <InsHome p={p} />,
+  text: ios ? tr("Open {app} Nosca from your Home Screen") : tr("Open {app} Nosca from your Home screen"),
+  sub: ios ? (card ? tr("Sign up or sign in there") : tr("Sign in there once")) : null,
 });
-const INS_SHARE_ROW = { text: tr("Tap Share"), alt: tr("Share, in the menu"), pic: (p) => <InsTap p={p} glyph="share" label="Share" /> };
-/* the share sheet's row of round actions ends on View More, a chevron (one 26.4 report names it More: the alt says so, nothing else is drawn) */
-const INS_VIEW_MORE = {
-  text: tr("Tap View More"), alt: tr("View More, the last of the round buttons: a chevron pointing down. On some iPhones it reads More."),
-  pic: (p) => (
-    <span className="flex items-start justify-center" style={{ gap: 10 }}>
-      <InsRound p={p} /><InsRound p={p} /><InsRound p={p} glyph="chevDown" label="View More" />
-    </span>
-  ),
-};
-const INS_ADD_ROW = { text: tr("Tap Add to Home Screen"), sub: tr("Scroll down the list"), alt: tr("Add to Home Screen, a square with a plus"), pic: (p) => <InsTap p={p} glyph="plusSquare" label="Add to Home Screen" /> };
-const INS_ADD_WEBAPP = {
-  text: tr("Tap Add"), sub: tr("Leave Open as Web App on"),
-  alt: tr("Add, top right. Open as Web App is switched on."),
-  pic: (p) => (
-    <InsSheet>
-      <span className="flex items-center justify-between">
-        <InsGhost p={p} glyph="cross" size={22} />
-        <InsTap p={p} label="Add" round h={40} />
-      </span>
-      <span className="flex items-center justify-between" style={{ minHeight: 36, gap: 10 }}>
-        <span style={{ ...insWord(p.t), fontWeight: 500, fontSize: 14 }}>Open as Web App</span>
-        <span aria-hidden="true" className="relative shrink-0" style={{ width: 42, height: 26, borderRadius: 13, background: p.t.accent }}>
-          <span className="absolute" style={{ right: 2, top: 2, width: 22, height: 22, borderRadius: 11, background: "#FFFFFF" }} />
-        </span>
-      </span>
-    </InsSheet>
-  ),
-};
-/* step one of iOS 26 and 27: the control that version shows by default, named and drawn, and Share beside it for the Bottom and Top layouts */
-const INS_SAFARI_FIRST = (text, alt, pic) => ({ text, sub: tr("Or Share, then go to step 3"), alt, pic });
-/* an app's own browser cannot add to the Home Screen: open the page in Safari, where the steps follow */
-const INS_IN_APP = [{ text: tr("Open this page in Safari"), sub: tr("From this app's menu"), alt: tr("Safari, a compass"), pic: (p) => <InsTap p={p} glyph="compass" label="Safari" /> }];
+const INS_IOS_SHEET = { text: tr("Tap View More {chevDown}, then Add to Home Screen {plusSquare}") };
+const INS_ADD = { text: tr("Tap Add") };
+const INS_IN_APP = [{ text: tr("Open this page in Safari {compass}"), sub: tr("From this app's menu") }];
 function installSteps(sub, { iosBrowser = null, inApp = false, card = false } = {}) {
   if (inApp) return INS_IN_APP;
   if (sub === "iOS 27") return [
-    INS_SAFARI_FIRST(tr("Tap the three lines"), tr("Three lines at the left of the address bar. Or Share, the square with an arrow, where the toolbar shows it."),
-      (p) => <><InsBar p={p} lead={<InsInBar p={p} glyph="lines" />} /><InsOr p={p} /><InsTap p={p} glyph="share" /></>),
-    INS_SHARE_ROW, INS_VIEW_MORE, INS_ADD_ROW, INS_ADD_WEBAPP, INS_OPEN(true, card),
+    { text: tr("Tap {lines:the three lines}, then Share {share}"), sub: tr("Or tap {share:Share} if you see it"), scene: "ios27",
+      alt: tr("The three lines, at the left of the address bar") },
+    INS_IOS_SHEET, INS_ADD, INS_OPEN(true, card),
   ];
   if (sub === "iOS 26") return [
-    INS_SAFARI_FIRST(tr("Tap the three dots"), tr("Three dots at the right of the address bar. Or Share, the square with an arrow, where the toolbar shows it."),
-      (p) => <><InsBar p={p} run /><InsTap p={p} glyph="dots" round /><InsOr p={p} /><InsTap p={p} glyph="share" /></>),
-    INS_SHARE_ROW, INS_VIEW_MORE, INS_ADD_ROW, INS_ADD_WEBAPP, INS_OPEN(true, card),
+    { text: tr("Tap {dots:the three dots}, then Share {share}"), sub: tr("Or tap {share:Share} if you see it"), scene: "ios26",
+      alt: tr("The three dots, at the right of the address bar") },
+    INS_IOS_SHEET, INS_ADD, INS_OPEN(true, card),
   ];
   if (sub === "Earlier") return [
     /* Chrome on an iPhone keeps Share at the right of its address bar; Edge and Firefox in their menus: never Safari's toolbar under their names */
-    iosBrowser === "Chrome"
-      ? { text: tr("Tap Share"), alt: tr("Share, at the right of the address bar"), pic: (p) => <InsBar p={p} run trail={<InsInBar p={p} glyph="share" />} /> }
-      : iosBrowser
-        ? { text: tr("Tap Share"), alt: tr("Share, the square with an arrow"), pic: (p) => <InsTap p={p} glyph="share" /> }
-        : { text: tr("Tap Share"), alt: tr("Share, the square with an arrow, in the middle of Safari's toolbar"),
-            pic: (p) => <span className="flex items-center justify-between w-full" style={{ maxWidth: 280, padding: "0 6px" }}><InsGhost p={p} glyph="back" /><InsGhost p={p} glyph="fwd" /><InsTap p={p} glyph="share" /><InsGhost p={p} glyph="book" /><InsGhost p={p} glyph="tabs" /></span> },
-    { text: tr("Tap Add to Home Screen"), sub: tr("Scroll down the list"), alt: tr("Add to Home Screen, a square with a plus"), pic: (p) => <InsTap p={p} label="Add to Home Screen" trail="plusSquare" /> },
-    { text: tr("Tap Add"), alt: tr("Add, top right"),
-      pic: (p) => <InsSheet><span className="flex items-center justify-between" style={{ paddingLeft: 4 }}><InsFaint p={p}>Cancel</InsFaint><InsTap p={p} label="Add" round h={40} /></span></InsSheet> },
-    INS_OPEN(true, card),
+    iosBrowser === "Chrome" ? { text: tr("Tap Share {share}"), scene: "crios", alt: tr("Share, at the right of the address bar") }
+      : iosBrowser ? { text: tr("Tap Share {share}") }
+        : { text: tr("Tap Share {share}"), scene: "ios18", alt: tr("Share, in the middle of Safari's toolbar") },
+    { text: tr("Tap Add to Home Screen {plusSquare}") }, INS_ADD, INS_OPEN(true, card),
   ];
   if (sub === "Samsung") return [
-    { text: tr("Tap the three lines"), alt: tr("Three lines, bottom right"),
-      pic: (p) => <span className="flex items-center justify-between w-full" style={{ maxWidth: 280, padding: "0 6px" }}><InsGhost p={p} glyph="back" /><InsGhost p={p} glyph="fwd" /><InsGhost p={p} glyph="tabs" /><InsTap p={p} glyph="lines" /></span> },
-    { text: tr("Tap Add page to"), alt: tr("Add page to, with a plus"), pic: (p) => <InsTap p={p} glyph="plus" label="Add page to" /> },
-    { text: tr("Tap Home screen"), alt: tr("Home screen, in the list"), slim: true, pic: (p) => <InsTap p={p} label="Home screen" /> },
-    { text: tr("Tap Add"), alt: tr("Add"), slim: true, pic: (p) => <InsTap p={p} label="Add" round /> },
-    INS_OPEN(false),
+    { text: tr("Tap {lines:the three lines}"), scene: "samsung", alt: tr("The three lines, bottom right") },
+    { text: tr("Tap Add page to, then Home screen") }, INS_ADD, INS_OPEN(false),
   ];
   if (sub === "Chrome") return [
-    { text: tr("Tap the three dots"), alt: tr("Three dots, top right, beside the address bar"),
-      pic: (p) => <><InsBar p={p} run /><InsTap p={p} glyph="dotsV" /></> },
+    { text: tr("Tap {dotsV:the three dots}"), scene: "chrome", alt: tr("The three dots, top right, beside the address bar") },
     /* Chrome 150 (July 2026) renamed the row; a phone not yet updated keeps the old name */
-    { text: tr("Tap one of these"), alt: tr("Install and create shortcut, in the menu. On an older Chrome it reads Add to Home screen."),
-      pic: (p) => <span className="flex flex-col items-center" style={{ gap: 9 }}><InsTap p={p} label="Install and create shortcut" /><InsOr p={p} /><InsTap p={p} label="Add to Home screen" /></span> },
-    { text: tr("Tap Install"), alt: tr("Install, not Create shortcut"),
-      pic: (p) => <span className="flex flex-wrap items-center justify-center" style={{ gap: "14px 14px" }}><InsTap p={p} label="Install" round /><InsFaint p={p}>Create shortcut</InsFaint></span> },
-    INS_OPEN(false),
+    { text: tr("Tap Install and create shortcut"), sub: tr("Or Add to Home screen") },
+    { text: tr("Tap Install") }, INS_OPEN(false),
   ];
   if (sub === "Safari") return [
-    { text: tr("Open the File menu"), alt: tr("File, in the menu bar. Or Share, the square with an arrow, in the toolbar."),
-      pic: (p) => <><span className="flex items-center" style={{ gap: 12 }}><InsTap p={p} label="File" h={40} /><InsFaint p={p}>Edit</InsFaint></span><InsOr p={p} /><InsTap p={p} glyph="share" /></> },
-    { text: tr("Choose Add to Dock"), alt: tr("Add to Dock, in the menu"), slim: true, pic: (p) => <InsTap p={p} label="Add to Dock…" /> },
-    { text: tr("Click Add"), alt: tr("Add"), slim: true, pic: (p) => <InsTap p={p} label="Add" round /> },
+    { text: tr("In the File menu, choose Add to Dock"), scene: "mac", alt: tr("File, in the menu bar") },
+    { text: tr("Click Add") },
   ];
   return [
-    { text: tr("Click the install icon"), alt: tr("At the right of the address bar: a screen with an arrow in Chrome, three squares and a plus in Edge"),
-      pic: (p) => <><InsBar p={p} run trail={<InsInBar p={p} glyph="monitorDown" />} /><InsOr p={p} /><InsTap p={p} glyph="appsPlus" /></> },
-    { text: tr("Click Install"), alt: tr("Install"), slim: true, pic: (p) => <InsTap p={p} label="Install" round /> },
+    { text: tr("Click {monitorDown:the install icon} in the address bar"), sub: tr("In Edge it looks like {appsPlus:three squares and a plus}"), scene: "desktop",
+      alt: tr("The install icon, at the right of the address bar") },
+    { text: tr("Click Install") },
   ];
 }
-/* the steps, drawn: a numeral in a ring, the words, the picture on the
-   wash, and a fine thread from each numeral to the next */
+/* the steps: a numeral in a fine ring, the words with the control drawn in them, a thread from each numeral to the next */
 function InstallSteps({ steps, dress, tour, wait = 0 }) {
   const t = useT();
   const card = dress === "card";
-  const p = { t, hi: card ? STAR : t.accent };
+  const hi = card ? CLUB.gold : t.accent;
   const figure = card ? INSTALL_GOLD : t.ink, ring = card ? CLUB.gold : LINE_STRONG, thread = card ? MIX("#FFFFFF", CLUB.gold, 0.55) : t.hair;
   return (
     <ol data-tour={`${tour}-steps`} style={{ listStyle: "none", margin: 0, padding: 0 }}>
       {steps.map((st, i) => {
         const last = i === steps.length - 1;
         return (
-          <li key={`${st.text}:${i}`} data-ins-step="" className="relative flex" style={{ gap: 14, paddingBottom: last ? 0 : 24, animation: `insRise 520ms ${MOTION.curve} ${wait + i * 70}ms backwards` }}>
-            {!last && <span aria-hidden="true" className="absolute" style={{ left: 13.5, top: 34, bottom: 6, width: 1, background: thread }} />}
+          <li key={`${st.text}:${i}`} data-ins-step="" className="relative flex" style={{ gap: 14, paddingBottom: last ? 0 : 22, animation: `insRise 480ms ${MOTION.curve} ${wait + i * 60}ms backwards` }}>
+            {!last && <span aria-hidden="true" className="absolute" style={{ left: 13.5, top: 34, bottom: 4, width: 1, background: thread }} />}
             <span data-ins-num="" className="flex items-center justify-center shrink-0" style={{ width: 28, height: 28, borderRadius: 14, boxShadow: `inset 0 0 0 1.5px ${ring}`, fontFamily: ui, fontSize: 14, lineHeight: 1, fontWeight: 700, color: figure }}>{i + 1}</span>
-            <div className="flex-1 min-w-0">
-              <p data-ins-text="" className="flex items-center" style={{ ...TYPE.heading, color: t.ink, minHeight: 28 }}>{st.text}</p>
-              {st.sub && <p style={{ ...TYPE.small, color: t.sub, marginTop: 1, textWrap: "balance" }}>{st.sub}</p>}
-              {/* a picture that only repeats its words in a key stands on a slim panel */}
-              <div role="img" aria-label={st.alt} data-ins-pic="" className="flex items-center justify-center"
-                   style={{ marginTop: 10, minHeight: st.slim ? 0 : 86, padding: st.slim ? `10px ${INS_PAD}px 15px` : `14px ${INS_PAD}px 19px`, gap: 10, borderRadius: 16, background: t.wash }}>
-                {st.pic(p)}
-              </div>
+            <div className="flex-1 min-w-0" style={{ paddingTop: 3 }}>
+              <p data-ins-text="" style={{ ...TYPE.heading, color: t.ink }}>{insSay(st.text)}</p>
+              {st.sub && <p data-ins-sub="" style={{ ...TYPE.small, color: t.sub, marginTop: 2 }}>{insSay(st.sub)}</p>}
+              {st.scene && <InsScene kind={st.scene} alt={st.alt} hi={hi} />}
             </div>
           </li>
         );
       })}
     </ol>
+  );
+}
+/* what unfolds and folds without a jump: its rows go from nothing to its
+   height. Folded, it is not there at all — kept only while it closes */
+const INS_FOLD_MS = 340;
+function InsFold({ open, children }) {
+  const [kept, setKept] = useState(open);
+  useEffect(() => {
+    if (open) { setKept(true); return undefined; }
+    const x = setTimeout(() => setKept(false), INS_FOLD_MS);
+    return () => clearTimeout(x);
+  }, [open]);
+  return (
+    <div style={{ display: "grid", gridTemplateRows: open ? "1fr" : "0fr", transition: `grid-template-rows ${INS_FOLD_MS}ms ${MOTION.curve}` }}>
+      <div aria-hidden={open ? undefined : true} style={{ minHeight: 0, overflow: open ? "visible" : "hidden", pointerEvents: open ? undefined : "none" }}>{(open || kept) && children}</div>
+    </div>
   );
 }
 export function InstallGuide({ tour = "install", dress = "app", wait = 0, onDone }) {
@@ -19596,6 +20028,8 @@ export function InstallGuide({ tour = "install", dress = "app", wait = 0, onDone
   const setSub = (x) => { setOwn(false); setSubRaw(x); };
   const [choose, setChoose] = useState(false);
   const [offer, setOffer] = useState(canPromptInstall);
+  /* with the browser's own install there, the steps by hand are one tap away, folded */
+  const [byHand, setByHand] = useState(false);
   const [done, setDone] = useState(isStandalone);
   const [note, setNote] = useState("");
   /* the steps wait for the page's arrival once; a change of device is at once */
@@ -19605,7 +20039,6 @@ export function InstallGuide({ tour = "install", dress = "app", wait = 0, onDone
   /* the page that holds the guide takes its title off once there is nothing left to do */
   useEffect(() => { if (done && onDone) onDone(); }, [done]);
   const install = async () => {
-    haptic(10);
     const r = await promptInstall();
     if (r === "accepted") { hapticSuccess(); setDone(true); }
     else if (r === "dismissed") setNote(tr("Not installed"));
@@ -19618,17 +20051,18 @@ export function InstallGuide({ tour = "install", dress = "app", wait = 0, onDone
     /* the card's page: the icon that landed, and the one line, under the card */
     <div data-tour={tour} className="ins flex flex-col items-center text-center" style={{ gap: 14, paddingTop: 4 }}>
       <style>{INSTALL_CSS}</style>
-      <span aria-hidden="true"><InsAppIcon p={{ t, hi: "transparent" }} size={64} /></span>
+      <span aria-hidden="true"><InsAppIcon size={64} /></span>
       <p data-tour={`${tour}-done`} style={{ ...TYPE.title, color: t.ink, textWrap: "balance" }}>{landed}</p>
     </div>
   ) : (
     <div data-tour={tour} className="ins flex items-center" style={{ gap: 16, marginTop: SPACE.row }}>
       <style>{INSTALL_CSS}</style>
-      <span aria-hidden="true"><InsAppIcon p={{ t, hi: "transparent" }} size={56} /></span>
+      <span aria-hidden="true"><InsAppIcon size={56} /></span>
       <p data-tour={`${tour}-done`} className="flex-1 min-w-0" style={{ ...TYPE.heading, color: t.ink }}>{landed}</p>
     </div>
   );
   const button = offer && tab !== "iPhone";
+  const showSteps = !button || byHand;
   const onIphone = own && tab === "iPhone" && mine === "iPhone";
   const iosBrowser = onIphone ? INSTALL_IOS_BROWSER[browser] || null : null;
   const inApp = onIphone && browser === "other";
@@ -19636,36 +20070,48 @@ export function InstallGuide({ tour = "install", dress = "app", wait = 0, onDone
   /* the row names the device as it is: an iPad is not an iPhone */
   const tabName = tab === "iPhone" && mine === "iPhone" && isIpad() ? "iPad" : tab;
   const subName = inApp ? tr("In an app") : iosBrowser || INSTALL_SUB_NAME[sub] || sub;
+  const gold = card ? INSTALL_GOLD : t.accent;
   return (
     <div data-tour={tour} className="ins">
       <style>{INSTALL_CSS}</style>
-      {/* which device these steps are for, and the one way to another */}
-      <button data-tour={`${tour}-device`} aria-expanded={choose} onClick={() => { haptic(6); setChoose(!choose); }}
-              className="w-full flex items-center justify-between text-left active:opacity-60" style={{ minHeight: 48, gap: 12 }}>
-        {/* each half kept whole: a narrow phone breaks the row at the dot, never inside a name */}
-        <span className="min-w-0" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}><span style={{ whiteSpace: "nowrap" }}>{tabName}</span> <span style={{ whiteSpace: "nowrap" }}>· {subName}</span></span>
-        <span className="shrink-0" style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, color: card ? INSTALL_GOLD : t.accent }}>{choose ? tr("Done") : tr("Change")}</span>
-      </button>
-      {choose && (
-        <div data-tour={`${tour}-choices`} style={{ paddingTop: 4, paddingBottom: SPACE.tight }}>
-          <Segmented tall options={INSTALL_TABS} value={tab} onChange={setTab} tour={`${tour}-platform`} />
-          <div style={{ marginTop: SPACE.tight }}>
-            <Segmented tall options={INSTALL_SUBS[tab]} value={sub} onChange={setSub} tour={`${tour}-version`} />
-          </div>
-          {INSTALL_HINT[tab] && <p data-tour={`${tour}-hint`} style={{ ...TYPE.caption, color: t.sub, marginTop: SPACE.tight }}>{tr(INSTALL_HINT[tab])}</p>}
+      {/* THE ONE KEY, where the browser offers it: its own install sheet in one tap. It opens out when the offer
+          arrives after the page (Chrome fires it once the page has loaded), never jumps in */}
+      <InsFold open={button}>
+        <div style={{ paddingTop: SPACE.row }}>
+          <Button tone="accent" onClick={install} tour={`${tour}-now`}>{tr("Install Nosca")}</Button>
+          <button data-tour={`${tour}-hand`} aria-expanded={byHand} onClick={() => { haptic(6); setByHand(!byHand); }}
+                  className="w-full flex items-center justify-center active:opacity-60" style={{ minHeight: 44, gap: 4, ...TYPE.small, fontWeight: 600, color: t.sub }}>
+            {tr("Or by hand")}
+            <ChevronDown size={16} strokeWidth={2.2} style={{ transform: byHand ? "rotate(180deg)" : "none", transition: `transform ${MOTION.settle}ms` }} />
+          </button>
         </div>
-      )}
+      </InsFold>
       {/* the note outlives the button: a dismissed sheet takes the offer away on the same render that says so */}
-      {(button || note) && (
-        <div style={{ marginTop: SPACE.tight }}>
-          {button && <Button tone="accent" onClick={install} tour={`${tour}-now`}>{tr("Install Nosca")}</Button>}
-          {note && <p className="text-center" role="status" style={{ ...TYPE.caption, color: DANGER, marginTop: SPACE.tight }}>{note}</p>}
-          {button && <p className="text-center" style={{ ...TYPE.caption, color: t.sub, marginTop: SPACE.tight }}>{tr("Or by hand")}</p>}
+      {note && <p className="text-center" role="status" style={{ ...TYPE.caption, color: DANGER, marginTop: SPACE.tight }}>{note}</p>}
+      <InsFold open={showSteps}>
+        <div style={{ paddingTop: button ? 0 : 2 }}>
+          {/* which device these steps are for, and the one way to another: a quiet line under the title — above the
+              steps, so a choice changes only what is under it and never moves the row from under the finger */}
+          <button data-tour={`${tour}-device`} aria-expanded={choose} onClick={() => { haptic(6); setChoose(!choose); }}
+                  className="w-full flex items-center justify-between text-left active:opacity-60" style={{ minHeight: 44, gap: 12 }}>
+            {/* each half kept whole: a narrow phone breaks the row at the dot, never inside a name */}
+            <span className="min-w-0" style={{ ...TYPE.small, color: t.sub }}><span style={{ whiteSpace: "nowrap" }}>{tabName}</span> <span style={{ whiteSpace: "nowrap" }}>· {subName}</span></span>
+            <span className="shrink-0" style={{ ...TYPE.small, fontWeight: 600, color: gold }}>{choose ? tr("Done") : tr("Change")}</span>
+          </button>
+          {choose && (
+            <div data-tour={`${tour}-choices`} style={{ paddingTop: 4, paddingBottom: SPACE.tight }}>
+              <Segmented tall options={INSTALL_TABS} value={tab} onChange={setTab} tour={`${tour}-platform`} />
+              <div style={{ marginTop: SPACE.tight }}>
+                <Segmented tall options={INSTALL_SUBS[tab]} value={sub} onChange={setSub} tour={`${tour}-version`} />
+              </div>
+              {INSTALL_HINT[tab] && <p data-tour={`${tour}-hint`} style={{ ...TYPE.caption, color: t.sub, marginTop: SPACE.tight }}>{tr(INSTALL_HINT[tab])}</p>}
+            </div>
+          )}
+          <div style={{ marginTop: SPACE.tight }}>
+            <InstallSteps steps={steps} dress={dress} tour={tour} wait={arrived ? 0 : wait} />
+          </div>
         </div>
-      )}
-      <div style={{ marginTop: SPACE.row }}>
-        <InstallSteps steps={steps} dress={dress} tour={tour} wait={arrived ? 0 : wait} />
-      </div>
+      </InsFold>
     </div>
   );
 }
@@ -19678,13 +20124,22 @@ function InstallScreen({ pop }) {
     </SwipeBack>
   );
 }
+/* THE IMPORT'S PARAGRAPH (docs/import/SPEC.md), a draft for legal review: Privacy and
+   Messaging gain it, and the EU-servers sentence its exception — only once the region and
+   the confirmed retention are filled in at switch-on, so nothing reads a placeholder */
+const IMPORT_LEGAL = { region: null, retention: null };
+const withImportLegal = (d, key) => {
+  if (!IMPORT_LEGAL.region || !IMPORT_LEGAL.retention || (key !== "privacy" && key !== "messaging")) return d;
+  const para = `If you import a chat, it is read on your phone. To sort it into lessons, only the coach's messages from it are sent, through Nosca's server (Netlify, ${IMPORT_LEGAL.region}), to Anthropic, which processes them in the United States. Before they leave your phone, names Nosca can recognise, phone numbers, email addresses, links and places are taken out, and lines with common health and payment words are held back. No other person's messages and no video, photo or voice note is sent. ${IMPORT_LEGAL.retention} Anthropic does not use them to train its models. Nosca keeps none of the chat, only the lessons you choose to import. A player or parent can import a chat with their coach only if the coach allows it, and every lesson they import is marked as theirs. We do this in our legitimate interest in keeping the coaching record the coach and the family asked for. Anyone an import is about can remove it, which also removes its files from Nosca.`;
+  return { ...d, body: [...d.body.map(([h, p]) => [h, p.replace("on servers in the European Union.", "on servers in the European Union, except as described under Import.")]), ["Import", para]] };
+};
 function Legal({ docKey, pop }) {
-  const t = useT(); const d = LEGAL[docKey] || LEGAL.terms;
+  const t = useT(); const d = withImportLegal(LEGAL[docKey] || LEGAL.terms, docKey);
   return (
     <SwipeBack onBack={pop}>
       <Screen title={d.title} onBack={pop} meta={d.updated}>
         <div className="px-6 pb-4">
-          {d.body.map(([h, p]) => (<div key={h} className="mb-6"><h3 className="mb-2" style={{ fontFamily: display, fontSize: 19, color: t.ink }}>{h}</h3><p style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.65, color: t.sub }}>{p}</p></div>))}
+          {d.body.map(([h, p]) => (<div key={h} className="mb-6"><h3 className="mb-2" style={{ ...TYPE.head, color: t.ink }}>{h}</h3><p style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.65, color: t.sub }}>{p}</p></div>))}
           <p className="pt-2" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{BRAND} · Registered in Ireland</p>
         </div>
       </Screen>
@@ -19734,7 +20189,7 @@ function InviteBody({ code, say }) {
   };
   return (
     <div className="flex flex-col items-center">
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Invite a player")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Invite a player")}</h2>
       <p className="mb-6 text-center" style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>{tr("They enter the code or scan this.")}</p>
       <div className="rounded-3xl p-4 mb-5" style={{ border: `1px solid ${t.hair}`, background: "#fff" }}>
         {url ? <QrImage url={url} size={148} /> : <QrSvg size={148} />}
@@ -19757,7 +20212,7 @@ function ChangePasswordBody({ onSubmit, say, close }) {
   const field = { minHeight: 54, borderRadius: R.surface, background: t.wash, boxShadow: lipOf(SOFT_LIP(t), 2), fontFamily: ui, fontSize: 16, color: t.ink, border: "none" };
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Change password")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Change password")}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{tr("At least 8 characters.")}</p>
       <input type="password" value={pw} onChange={(e) => { setPw(e.target.value); setErr(null); }} placeholder={tr("New password")} autoComplete="new-password"
              aria-label={tr("New password")} className="w-full outline-none px-4 mb-2.5" style={field} />
@@ -19782,7 +20237,7 @@ function DeleteBody({ onCancel, say }) {
   const t = useT();
   return (
     <>
-      <h2 className="mb-3" style={{ ...TYPE.title, color: t.ink }}>{tr("Delete your account")}</h2>
+      <h2 className="mb-3" style={{ ...TYPE.head, color: t.ink }}>{tr("Delete your account")}</h2>
       <p className="mb-6" style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.6, color: t.sub }}>This removes your profile, any linked family profiles, your lessons, drills, tips, messages and every clip stored with them. It cannot be undone, and your subscription must be cancelled separately in the App Store.</p>
       <div className="mb-3"><Button tone="dangerQuiet" onClick={() => say("Account deletion requested")}>{tr("Delete permanently")}</Button></div>
       <Button tone="quiet" onClick={onCancel}>{tr("Keep my account")}</Button>
@@ -19938,7 +20393,7 @@ function SearchScreen({ role, cfg, library, tips, pop, go, push, lessons: given,
                 (a page, a bulb, a list, a bubble — 23 November); a person is
                 their face, in Players and in Messages alike */}
             {/* the day in the app's one form, `Tue 1 Sep` (it read "01 Sep") */}
-            {group(tr("Lessons"), lessons.map((l, i) => (<Row key={l.id} label={l.focus} sub={[l.iso ? fmtWeekDay(localDate(l.iso)) : `${l.d} ${l.m}`, (l.subs || []).join(", ")].filter(Boolean).join(" · ")} chevron last={i === lessons.length - 1} onToggle={() => push(role === "coach" ? `clesson:${l.id}:${l.who}` : `lesson:${l.id}`)} />)))}
+            {group(tr("Lessons"), lessons.map((l, i) => (<Row key={l.id} label={l.focus} sub={[l.iso ? fmtDayYear(l.iso) : `${l.d} ${l.m}`, (l.subs || []).join(", ")].filter(Boolean).join(" · ")} chevron last={i === lessons.length - 1} onToggle={() => push(role === "coach" ? `clesson:${l.id}:${l.who}` : `lesson:${l.id}`)} />)))}
             {group(tr("Tips"), tipHits.map((x, i) => (<Row key={x.id} label={x.title} sub={x.body} chevron last={i === tipHits.length - 1} onToggle={() => push("tips")} />)))}
             {group(tr("Drills"), drills.map((d, i) => (<Row key={d.t} label={d.t} sub={d.d || null} chevron last={i === drills.length - 1} onToggle={() => go("practice")} />)))}
             {/* never a nought: a player with none reads No lessons yet, as the roster does */}
@@ -20079,7 +20534,9 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
   const earlier = shownList.filter((n) => at(n) < startOfYesterday);
 
   const Eyeb = ({ children }) => (
-    <div className="px-1" style={{ ...TYPE.eyebrow, color: t.sub, marginBottom: 7 }}>{children}</div>
+    /* the bell's Requests · Today · Yesterday · Earlier are the page's
+       sections, in the titles' serif as Settings' groups are (28 November) */
+    <h2 className="px-1" data-bell-head="" style={{ ...TYPE.head, fontSize: 20, color: t.ink, marginBottom: 9 }}>{children}</h2>
   );
 
   /* WHOSE IS IT. Almost everything here happened because of a person,
@@ -20151,12 +20608,12 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
             {waiting.length > 0 && (
               <div style={{ marginBottom: SPACE.block }}>
                 <Eyeb>{tr("Requests")}</Eyeb>
-                <div className="nsc-list">{waiting.map((w) => <Ask key={w.id} w={w} />)}</div>
+                <div className="nsc-list" style={cardOf(t, HUE.blue)}>{waiting.map((w) => <Ask key={w.id} w={w} />)}</div>
               </div>
             )}
             {canFilter && (
-              <div className="-mx-6" style={{ marginBottom: SPACE.block }}>
-                <FilterRow label={tr("Show")} value={only} onChange={setOnly} last
+              <div style={{ marginBottom: SPACE.block }}>
+                <FilterBox label={tr("Show")} value={only} onChange={setOnly}
                            options={[tr("Everything"), ...kinds]} />
               </div>
             )}
@@ -20185,6 +20642,732 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
    until every file is in or given up on: a count while they move, a
    line per failure with the reason, and Retry. Nothing about a clip is
    ever lost quietly. */
+/* ============================================================
+   THE IMPORT (docs/import/SPEC.md)
+
+   A coach's WhatsApp history — or, with the coach's leave, a family's —
+   in as dated lessons. Read on the phone (src/lib/chatImport, one lazy
+   chunk), sorted a day at a time by the function, decided by code, and
+   written only once a person has ticked it. One screen, `chatImport`,
+   whose views are Start, Found, Review, A day and Left out; its state is
+   the job store's, so Back, a tab away and a return find it where it was.
+   Small pickers use the app's one Sheet. Nothing here is reached by the
+   harness or the walkthrough: the route is drawn only with data and live.
+   ============================================================ */
+const useImportJob = () => useSyncExternalStore(importJob.subscribe, importJob.get, importJob.get);
+let IMPORT_LIB = null;
+const loadImportLib = () => (IMPORT_LIB ? Promise.resolve(IMPORT_LIB) : import("./lib/chatImport/job.js").then((m) => { IMPORT_LIB = m; return m; }));
+const useImportLib = () => {
+  const [lib, setLib] = useState(IMPORT_LIB);
+  useEffect(() => { if (!lib) loadImportLib().then(setLib).catch(() => {}); }, []);
+  return lib;
+};
+/* the player file opens on Feed once, after an import has landed the coach there */
+let IMPORT_FEED_FOR = null;
+const importFeedFirst = (id) => { if (id && IMPORT_FEED_FOR === id) { IMPORT_FEED_FOR = null; return "feed"; } return null; };
+/* the steps, in each phone's own words (rewritten from the founder's own phones before ship) */
+const IMPORT_STEPS = {
+  iPhone: ["Open the chat in WhatsApp", "Tap the name at the top", "Export Chat", "Attach Media", "Save to Files"],
+  Android: ["Open the chat in WhatsApp", "⋮ › More › Export chat", "Include media", "Save the file"],
+};
+const importMonYear = (iso) => { const [y, m] = String(iso || "").split("-").map(Number); return y && m ? `${WIZ_MONTHS[m - 1]} ${y}` : ""; };
+const importSpanOf = (a, b) => (!a ? "" : importMonYear(a) === importMonYear(b || a) ? importMonYear(a) : `${importMonYear(a)} – ${importMonYear(b)}`);
+const nOf = (n, one, more) => `${n} ${n === 1 ? tr(one) : tr(more)}`;
+const nfmt = (n) => Number(n || 0).toLocaleString("en-IE");
+const andList = (xs) => { const l = xs.filter(Boolean); return l.length <= 1 ? (l[0] || "") : `${l.slice(0, -1).join(", ")} ${tr("and")} ${l[l.length - 1]}`; };
+const firstOfName = (n) => String(n || "").split(" ")[0];
+/* who may remove a batch, by a CURRENT relationship only: its coach; the
+   player, an adult or a junior of sixteen and over; an adult who looks
+   after the player now; the importer of a batch still filling */
+const mayRemoveImport = (b, me) => {
+  if (!b || !me || b.status === "removed") return false;
+  if (b.coachId === me.id) return true;
+  if (b.playerId === me.id) return !me.junior || (me.age != null && me.age >= 16);
+  if ((me.lookAfter || []).includes(b.playerId)) return true;
+  return b.status === "adding" && b.importedBy === me.id;
+};
+
+/* the person removing, as mayRemoveImport reads them */
+const importMeOf = (account, data) => {
+  if (!account || !data) return null;
+  const dob = data.me && data.me.date_of_birth; let age = null;
+  if (dob) { const b = localDate(dob), n = new Date(); age = n.getFullYear() - b.getFullYear() - (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate()) ? 1 : 0); }
+  return { id: account.id, name: account.name, junior: !!account.juvenile || !!(data.me && data.me.account_type === "junior") || (age != null && age < 18), age,
+           lookAfter: (data.dependants || []).map((d) => d.id) };
+};
+/* the Settings row's value: what is running, else the last import */
+const importSummary = (j) => {
+  if (!j) return "";
+  if (j.phase === "sorting" && j.sort) return `${tr("Sorting")} · ${j.sort.done || 0} ${tr("of")} ${nOf(j.sort.total || 0, "day", "days")}`;
+  if (j.phase === "uploading" && j.run) return `${tr("Importing")} · ${j.run.lessonsDone || 0} ${tr("of")} ${nOf(j.run.lessons || 0, "lesson", "lessons")}`;
+  if (j.phase === "paused") return tr("Import paused · choose the file again");
+  return "";
+};
+const useImportSummary = () => useSyncExternalStore(importJob.subscribe, () => importSummary(importJob.get()), () => "");
+
+/* THE BANNER: Today's, the top of a player's List, and a paper pill under the feed's header */
+function ImportBanner({ onOpen, pill = false }) {
+  const t = useT();
+  const job = useImportJob();
+  if (!job || (job.phase !== "uploading" && job.phase !== "paused")) return null;
+  const run = job.run || {};
+  const failed = run.failed || [];
+  const paused = job.phase === "paused";
+  const line = paused ? tr("Import paused · choose the file again")
+    : run.status === "error" ? `${tr("Couldn't import")}${run.error ? ` · ${run.error}` : ""}`
+    : failed.length ? `${nOf(failed.length, "file didn't upload", "files didn't upload")}${failed[0] && failed[0].error ? ` · ${failed[0].error}` : ""}`
+    : run.offline ? tr("Offline")
+    : `${tr("Importing")} · ${run.lessonsDone || 0} ${tr("of")} ${nOf(run.lessons || 0, "lesson", "lessons")}`;
+  const second = !paused && !failed.length && run.status !== "error" && run.files ? `${run.filesDone || 0} ${tr("of")} ${nOf(run.files, "file", "files")}` : null;
+  const act = (fn) => () => { haptic(8); loadImportLib().then((m) => m[fn] && m[fn]()); };
+  /* the row opens Import; its keys do their own thing and nothing more */
+  const keep = (e) => e.stopPropagation();
+  return (
+    <div className={pill ? "" : "px-6 pt-2 pb-1"} data-tour="import-banner">
+      <div role="button" tabIndex={0} onClick={() => { haptic(6); onOpen && onOpen(); }}
+           className="flex items-center gap-3 active:opacity-70"
+           style={{ padding: pill ? "8px 14px" : "12px 16px", borderRadius: pill ? R.pill : R.control,
+                    background: pill ? "rgba(255,255,255,0.96)" : failed.length || run.status === "error" ? `${DANGER}10` : t.wash, cursor: "pointer" }}>
+        {!paused && !failed.length && run.status !== "error"
+          ? <span className="rounded-full shrink-0" style={{ width: 8, height: 8, background: t.accent, animation: "breathe 1.4s ease-in-out infinite" }} />
+          : <X size={14} color={DANGER} strokeWidth={2.2} />}
+        <span className="flex-1 min-w-0" style={{ ...TYPE.small, color: t.ink }}>
+          <span data-import-line="">{line}</span>{second ? <span style={{ color: t.sub }}>{` · ${second}`}</span> : null}
+        </span>
+        {failed.length > 0 && !paused && (
+          <span className="flex items-center gap-1 shrink-0" onClick={keep}>
+            <TextBtn quiet tour="import-retry" color={t.accent} onClick={act("retryFailed")}>{tr("Retry")}</TextBtn>
+            <TextBtn quiet tour="import-leave-out" color={t.sub} onClick={act("leaveOutFailed")}>{tr("Leave out")}</TextBtn>
+          </span>
+        )}
+        {run.status === "error" && !paused && !failed.length && <span className="shrink-0" onClick={keep}><TextBtn quiet tour="import-retry-wave" color={t.accent} onClick={act("retryWave")}>{tr("Retry")}</TextBtn></span>}
+      </div>
+    </div>
+  );
+}
+
+/* the coach's notice, before players may import their chats */
+function ImportAllowBody({ onAllow, close }) {
+  const t = useT(); const [busy, setBusy] = useState(false);
+  return (
+    <>
+      <h2 className="mb-3" data-tour="import-allow" style={{ ...TYPE.title, color: t.ink }}>{tr("Imports from players")}</h2>
+      {[tr("Your players and their parents can import their chats with you"), tr("Your messages in those chats are sent to Anthropic to be sorted"),
+        tr("Every lesson they import is marked as theirs · you can remove any of them")].map((x) => (
+        <p key={x} className="mb-2.5" style={{ ...TYPE.body, color: t.sub }}>{x}</p>
+      ))}
+      <div className="mt-5"><Button tour="import-allow-yes" disabled={busy} onClick={async () => { setBusy(true); const r = await onAllow(); setBusy(false); if (!(r && r.error)) close(); }}>{tr("Allow")}</Button></div>
+      <div className="mt-2.5"><Button tone="quiet" tour="import-allow-no" onClick={close}>{tr("Not now")}</Button></div>
+    </>
+  );
+}
+/* one of Found's Left out rows, as its list */
+function ImportLeftBody({ title, items, count }) {
+  const t = useT();
+  return (
+    <>
+      <h2 className="mb-4" data-tour="import-left-sheet" style={{ ...TYPE.title, color: t.ink }}>{title}</h2>
+      {items && items.length ? (
+        <div className="nsc-list" style={{ maxHeight: 360, overflowY: "auto" }}>
+          {items.map((x, i) => <div key={`${x}-${i}`} className="flex items-center" style={{ minHeight: 48, ...TYPE.small, color: t.ink, overflowWrap: "anywhere" }}>{x}</div>)}
+        </div>
+      ) : <p style={{ ...TYPE.body, color: t.sub }}>{nOf(count || 0, "line", "lines")}</p>}
+    </>
+  );
+}
+/* a label's part: the coach, the player's side, or the same person as another label */
+function ImportRoleBody({ label, labels, roles, forFirst, onPick, close }) {
+  const t = useT();
+  const side = forFirst ? `${forFirst}'s ${tr("side")}` : tr("Player's side");
+  const others = (labels || []).map((x) => x.label).filter((l) => l !== label && !String(roles[l] || "").startsWith("same:"));
+  const opts = [["coach", tr("Coach")], ["player", side], ...others.map((o) => [`same:${o}`, `${tr("Same person as")} ${o}`])];
+  return (
+    <>
+      <h2 className="mb-4" style={{ ...TYPE.title, color: t.ink, overflowWrap: "anywhere" }}>{label}</h2>
+      <div className="nsc-list" data-tour="import-role">
+        {opts.map(([id, lbl]) => (
+          <button key={id} data-import-role={id} onClick={() => { hapticCommit(); onPick(id); close(); }}
+                  className="w-full flex items-center justify-between gap-3 text-left active:opacity-60" style={{ minHeight: 56 }}>
+            <span style={{ ...TYPE.body, color: t.ink, overflowWrap: "anywhere" }}>{lbl}</span>
+            {roles[label] === id && <Check size={16} color={t.accent} strokeWidth={2.4} />}
+          </button>
+        ))}
+      </div>
+    </>
+  );
+}
+/* For: the person the lessons are filed under — the closest name to the chat's label first, never chosen for the coach */
+function ImportWhoBody({ people, label, onPick, close }) {
+  const t = useT(); const [q, setQ] = useState("");
+  const words = wizNorm(label).split(/\s+/).filter(Boolean);
+  const near = (n) => wizNorm(n).split(/\s+/).filter((w) => words.includes(w)).length;
+  const list = (people || []).filter((p) => wizMatch(p.name, q)).sort((a, b) => near(b.name) - near(a.name) || a.name.localeCompare(b.name));
+  return (
+    <>
+      <h2 className="mb-4" style={{ ...TYPE.title, color: t.ink }}>{tr("For")}</h2>
+      {(people || []).length > 8 && <SearchField value={q} onChange={setQ} className="mb-4" tour="import-who-search" />}
+      {list.length === 0 ? <EmptyLine>{tr("Nobody by that name")}</EmptyLine> : (
+        <div className="nsc-list" data-tour="import-who" style={{ maxHeight: 360, overflowY: "auto" }}>
+          {list.map((p) => <PersonRow key={p.id} name={p.name} src={p.src} chevron attrs={{ "data-person": p.id }} onTap={() => { hapticCommit(); onPick(p.id); close(); }} />)}
+        </div>
+      )}
+    </>
+  );
+}
+function ImportSportBody({ ids, picked, onPick, close }) {
+  const t = useT();
+  return (
+    <>
+      <h2 className="mb-4" style={{ ...TYPE.title, color: t.ink }}>{tr("Sport")}</h2>
+      <SportGrid ids={ids} picked={picked} cols={2} tour="import-sport-grid" onPick={(id) => { onPick(id); close(); }} />
+    </>
+  );
+}
+/* the checks before sorting: the chat's label against the person it is filed under, or the coach */
+function ImportCheckBody({ check, onGo, onBack, close }) {
+  const t = useT();
+  const coach = check.kind === "coach";
+  return (
+    <>
+      <h2 className="mb-2" data-tour="import-check" style={{ ...TYPE.title, color: t.ink }}>{coach ? tr("Check the coach") : tr("Check who it's for")}</h2>
+      <p className="mb-2" style={{ ...TYPE.body, color: t.sub, overflowWrap: "anywhere" }}>{tr("The chat is with")} “{check.label}”</p>
+      {coach && <p className="mb-2" style={{ ...TYPE.body, color: t.sub }}>{tr("These lessons will be filed with")} {check.name}</p>}
+      <div className="mt-5"><Button tour="import-check-go" onClick={() => { close(); onGo(); }}>{coach ? `${tr("It's")} ${firstOfName(check.name)}` : `${tr("File under")} ${check.name}`}</Button></div>
+      <div className="mt-2.5"><Button tone="quiet" tour="import-check-back" onClick={() => { close(); onBack(); }}>{coach ? tr("Choose another file") : tr("Choose someone else")}</Button></div>
+    </>
+  );
+}
+/* exactly what is sent for the chat's first day with the coach's words */
+function ImportWhatBody({ text }) {
+  const t = useT();
+  return (
+    <>
+      <h2 className="mb-3" style={{ ...TYPE.title, color: t.ink }}>{tr("What is sent")}</h2>
+      <pre data-tour="import-what" className="whitespace-pre-wrap" style={{ ...TYPE.small, fontFamily: ui, color: t.ink, background: t.wash, borderRadius: R.control, padding: 14, maxHeight: 380, overflowY: "auto", overflowWrap: "anywhere" }}>{text || ""}</pre>
+    </>
+  );
+}
+/* Stop: with nothing in, the empty batches go; with some in, keep them or remove them all */
+function ImportStopBody({ inCount, total, onStop, onKeep, onRemoveAll, close }) {
+  const t = useT(); const [busy, setBusy] = useState(false);
+  const run = (fn) => async () => { if (busy) return; setBusy(true); await fn(); setBusy(false); close(); };
+  return (
+    <>
+      <h2 className="mb-1" data-tour="import-stop-sheet" style={{ ...TYPE.title, color: t.ink }}>{tr("Stop import")}</h2>
+      <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>{inCount ? `${inCount} ${tr("of")} ${nOf(total, "lesson", "lessons")} ${inCount === 1 ? tr("is in") : tr("are in")}` : tr("Nothing has been added")}</p>
+      {inCount ? (
+        <>
+          <Button tour="import-keep" disabled={busy} onClick={run(onKeep)}>{`${tr("Keep")} ${nOf(inCount, "lesson", "lessons")}`}</Button>
+          <div className="mt-2.5"><Button tone="dangerQuiet" tour="import-remove-all" disabled={busy} onClick={run(onRemoveAll)}>{tr("Remove all")}</Button></div>
+        </>
+      ) : <Button tone="danger" tour="import-stop-go" disabled={busy} onClick={run(onStop)}>{tr("Stop")}</Button>}
+      <button onClick={close} className="w-full mt-2.5 active:opacity-60" style={{ minHeight: 48, ...TYPE.body, color: t.sub }}>{tr("Carry on")}</button>
+    </>
+  );
+}
+/* Remove: the importer's own with no password; anyone else's ends on it */
+function ImportRemoveBody({ count, who, own, verify, onRemove, close }) {
+  const t = useT(); const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
+  const label = `${tr("Remove")} ${nOf(count, "lesson", "lessons")}`;
+  const facts = [nOf(count, "lesson", "lessons"), who].filter(Boolean).join(" · ");
+  if (!own) return (
+    <ConfirmPassword title={tr("Remove import")} detail={facts} actionLabel={label} closeLabel={tr("Keep them")} close={close}
+                     onConfirm={async (pw) => { const c = await verify(pw); if (c && c.error) return c; const r = await onRemove(); return r && r.error ? { error: tr("Couldn't remove the import") } : {}; }} />
+  );
+  return (
+    <>
+      <h2 className="mb-1" data-tour="import-remove-sheet" style={{ ...TYPE.title, color: t.ink }}>{tr("Remove import")}</h2>
+      <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>{facts}</p>
+      <Button tone="danger" tour="import-remove-go" disabled={busy} onClick={async () => { setBusy(true); setErr(""); const r = await onRemove(); setBusy(false); if (r && r.error) { setErr(tr("Couldn't remove the import")); return; } close(); }}>{label}</Button>
+      {err && <p className="mt-2.5" style={{ ...TYPE.caption, color: DANGER }}>{err}</p>}
+      <button onClick={close} className="w-full mt-2.5 active:opacity-60" style={{ minHeight: 48, ...TYPE.body, color: t.sub }}>{tr("Keep them")}</button>
+    </>
+  );
+}
+
+/* one of a day's files, opened from the zip, let go when the sheet closes */
+function ImportFileBody({ lib, file }) {
+  const t = useT(); const [url, setUrl] = useState(null);
+  useEffect(() => {
+    let u = null, live = true;
+    lib.fileBlob(file.name, file.mime).then((b) => { if (!b || !live) return; u = URL.createObjectURL(b); setUrl(u); });
+    return () => { live = false; if (u) URL.revokeObjectURL(u); };
+  }, [file.name]);
+  const kind = file.kind === "video" ? tr("Video") : file.kind === "photo" ? tr("Photo") : tr("Voice note");
+  return (
+    <>
+      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{kind}</h2>
+      <p className="mb-4" style={{ ...TYPE.small, color: t.sub }}>{[file.time, firstOfName(file.who)].filter(Boolean).join(" · ")}</p>
+      <div data-tour="import-file-view" className="flex items-center justify-center" style={{ borderRadius: R.control, overflow: "hidden", background: file.kind === "audio" ? t.wash : "#0B0F10", minHeight: file.kind === "audio" ? 72 : 220, padding: file.kind === "audio" ? 12 : 0 }}>
+        {url && file.kind === "video" && <video src={url} controls playsInline className="w-full" style={{ maxHeight: 420 }} />}
+        {url && file.kind === "photo" && <img src={url} alt="" className="w-full" style={{ maxHeight: 420, objectFit: "contain" }} />}
+        {url && file.kind === "audio" && <span className="w-full flex flex-col items-center gap-2"><NoteAudio src={url} /></span>}
+      </div>
+    </>
+  );
+}
+/* a Review row's poster: its first picture, made on the phone the first time the row is on screen */
+function ImportRowPoster({ lib, row, sport }) {
+  const ref = useRef(null);
+  const f = lib.posterFile(row);
+  const url = f ? lib.posterUrl(f.name) : null;
+  useEffect(() => {
+    if (!f || url || !ref.current || typeof IntersectionObserver === "undefined") return undefined;
+    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { io.disconnect(); lib.makePoster(f); } });
+    io.observe(ref.current);
+    return () => io.disconnect();
+  }, [f && f.name, url]);
+  return <span ref={ref} className="shrink-0 flex" data-poster={url ? "1" : "0"}><Poster item={url ? { type: "photo", url } : null} sport={sport} /></span>;
+}
+
+/* a row of value rows inside one box (Found's counts) */
+const ImportValues = ({ rows, tour }) => {
+  const t = useT();
+  return (
+    <div className="nsc-day" data-tour={tour}>
+      {rows.map(([k, v], i) => (
+        <div key={k} className="flex items-center justify-between gap-3 px-4" style={{ minHeight: 48, borderBottom: i < rows.length - 1 ? `1px solid ${t.hair}` : "none" }}>
+          <span style={{ ...TYPE.body, color: t.ink }}>{k}</span><span data-value="" style={{ ...TYPE.body, color: t.sub }}>{v}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+/* a door: the word, a value, a chevron — Settings' own row, in a box */
+const ImportDoor = ({ label, sub, value, valueTone, onTap, tour, attrs }) => {
+  const t = useT();
+  return (
+    <button data-tour={tour} {...(attrs || {})} onClick={() => { haptic(6); onTap(); }} className="w-full flex items-center gap-3 text-left active:opacity-50" style={{ minHeight: 56, paddingTop: sub ? 8 : 0, paddingBottom: sub ? 8 : 0 }}>
+      <span className="flex-1 min-w-0 flex flex-wrap items-center justify-between" style={{ columnGap: 14 }}>
+        <span className="min-w-0" style={{ maxWidth: "100%" }}>
+          <span className="block" data-row-label="" style={{ ...TYPE.body, color: t.ink, overflowWrap: "anywhere" }}>{label}</span>
+          {sub && <span className="block" style={{ ...TYPE.small, color: t.sub }}>{sub}</span>}
+        </span>
+        {value && <span data-row-value="" className="min-w-0" style={{ ...TYPE.body, color: valueTone || t.sub, overflowWrap: "anywhere" }}>{value}</span>}
+      </span>
+      <ChevronRight size={15} color={t.trace || t.faint} />
+    </button>
+  );
+};
+
+function ImportScreen({ data, me, role, cfg, pop, push, say, done, openSheet, closeSheet, onLanded, coachFor }) {
+  const t = useT();
+  const lib = useImportLib();
+  const job = useImportJob();
+  const input = useRef(null);
+  const [platform, setPlatform] = useKept("platform", platformOf() === "android" ? "Android" : "iPhone");
+  const [more, setMore] = useState(false);
+  const targets = data.importTargets || [];
+  const people = useMemo(() => {
+    const ids = targets.map((x) => x.player_id);
+    const all = [...(data.roster || []), ...((data.family && data.family.members) || []), ...(data.dependants || [])];
+    return ids.map((id) => { const p = all.find((x) => x.id === id) || (id === me.id ? { id, name: me.name } : null); return p ? { id, name: p.name, src: p.avatarPath ? avatarUrl(p.avatarPath) : null } : null; }).filter(Boolean);
+  }, [targets, data.roster, data.family, data.dependants]);
+  useEffect(() => { if (lib) lib.lookForInterrupted(); }, [lib]);
+  /* the Feed's object URLs are let go the moment it is left */
+  const feedOn = !!(job && job.listView === "feed" && job.view === "review");
+  useEffect(() => { if (lib && !feedOn) lib.releasePreviews(); return () => { if (lib) lib.releasePreviews(); }; }, [lib, feedOn]);
+  /* a reload, or another person on the phone, leaves nothing of the last job open */
+  const mine = job && job.owner === me.id ? job : null;
+  const viewNow = mine ? mine.view || "start" : "start";
+  const batches = (data.imports || []).filter((b) => b.status === "done");
+  const coachSide = role === "coach";
+
+  /* Back: a day to its list, Left out to Review, Found to Start (nothing has been sent, so the chat is let go
+     and another can be chosen); Review keeps its job, and a return finds it where it was */
+  const back = () => {
+    if (viewNow === "day") return lib.view((mine.rowsByIso && mine.rowsByIso[mine.dayIso] && mine.rowsByIso[mine.dayIso].leftOut) ? "leftout" : "review");
+    if (viewNow === "leftout") return lib.view("review");
+    if (viewNow === "found") return lib.abandon();
+    pop();
+  };
+  const pick = () => { if (input.current) { input.current.value = ""; input.current.click(); } };
+  const onFiles = async (files) => { if (!lib || !files || !files.length) return; haptic(8); await lib.choose(files); };
+
+  /* ---------------------------------------------------------------- START */
+  if (viewNow === "start" || !lib) {
+    const paused = mine && mine.phase === "paused";
+    const running = mine && mine.phase === "uploading";
+    const rs = paused ? mine.resume || {} : null;
+    const who = paused ? ((people.find((p) => p.id === (rs.forId || mine.forId)) || {}).name || "") : "";
+    return (
+      <SwipeBack onBack={pop}>
+        <Screen title={tr("Import")} onBack={pop}>
+          <div className="px-6 pb-8">
+            {coachSide && (
+              <div className="nsc-list" style={{ marginBottom: SPACE.block }}>
+                <div className="flex items-center justify-between gap-3" data-tour="import-players" style={{ minHeight: 56 }}>
+                  <span style={{ ...TYPE.body, color: t.ink }}>{tr("Imports from players")}</span>
+                  <Toggle on={!!(data.prefs && data.prefs.player_imports)} onChange={(v) => {
+                    if (v) openSheet(<ImportAllowBody close={closeSheet} onAllow={async () => { const r = await data.setPlayerImports(true); if (r && r.error) { say(r.error.message || tr("That didn't save")); return r; } done(tr("Allowed")); return {}; }} />);
+                    else data.setPlayerImports(false);
+                  }} />
+                </div>
+              </div>
+            )}
+            {running && (
+              <div className="nsc-day px-4 py-4" data-tour="import-running" style={{ marginBottom: SPACE.block }}>
+                <ImportBanner pill={false} />
+                <p className="mt-2" style={{ ...TYPE.small, color: t.sub }}>{tr("Keep Nosca open until this is done")}</p>
+                <div className="mt-3"><Button tone="dangerQuiet" tour="import-stop" onClick={() => {
+                  const r = mine.run || {};
+                  openSheet(<ImportStopBody inCount={r.lessonsDone || 0} total={r.lessons || 0} close={closeSheet}
+                                            onStop={() => lib.discardInterrupted("Stopped")} onKeep={() => lib.finishInterrupted(true)} onRemoveAll={() => lib.discardInterrupted("Stopped")} />);
+                }}>{tr("Stop")}</Button></div>
+              </div>
+            )}
+            {paused && (
+              <div className="nsc-day px-4 py-4" data-tour="import-resume" style={{ marginBottom: SPACE.block }}>
+                <p style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{who}</p>
+                <p className="mt-0.5" style={{ ...TYPE.small, color: t.sub }}>{`${rs.lessonsIn || 0} ${tr("of")} ${nOf(rs.lessons || 0, "lesson", "lessons")} · ${rs.filesUp || 0} ${tr("of")} ${nOf(rs.files || 0, "file", "files")}`}</p>
+                <div className="mt-3"><Button tour="import-choose-same" onClick={pick}>{mine.reading ? tr("Reading…") : tr("Choose the same file")}</Button></div>
+                <div className="mt-2.5">
+                  {(rs.lessonsIn || 0) > 0
+                    ? <Button tone="quiet" tour="import-finish" onClick={() => lib.finishInterrupted(true)}>{`${tr("Finish with")} ${rs.lessonsIn}`}</Button>
+                    : <Button tone="dangerQuiet" tour="import-discard" onClick={() => lib.discardInterrupted("Stopped")}>{tr("Discard")}</Button>}
+                </div>
+                {mine.error && (
+                  <p className="mt-3" data-tour="import-error" style={{ ...TYPE.small, color: DANGER }}>{mine.error}
+                    {mine.errorAction === "restart" && <> · <TextBtn tour="import-restart" color={DANGER} onClick={() => lib.restartWithPending()}>{tr("Start again with this one")}</TextBtn></>}</p>
+                )}
+              </div>
+            )}
+            {batches.length > 0 && (
+              <div style={{ marginBottom: SPACE.block }}>
+                <RowHead>{tr("Imported")}</RowHead>
+                <div className="nsc-list">
+                  {batches.map((b) => {
+                    const p = people.find((x) => x.id === b.playerId) || { name: (data.roster || []).concat((data.dependants || [])).find((x) => x.id === b.playerId)?.name || (b.playerId === me.id ? me.name : "") };
+                    const line = [nOf(b.lessons, "lesson", "lessons"), importSpanOf(b.firstDay, b.lastDay)].filter(Boolean).join(" · ");
+                    const can = mayRemoveImport(b, me);
+                    const remove = () => openSheet(<ImportRemoveBody count={b.lessons} who={p.name} own={b.importedBy === me.id} verify={data.verifyPassword} close={closeSheet}
+                                                                     onRemove={async () => { const r = await data.undoImport(b.id, null); if (!(r && r.error)) done(tr("Removed"), nOf(b.lessons, "lesson", "lessons")); return r; }} />);
+                    const row = <PersonRow name={p.name} src={p.src} sub={line} chevron={can} onTap={can ? remove : undefined} attrs={{ "data-tour": "import-batch", "data-batch": b.id }} />;
+                    return can ? <div key={b.id} className="nsc-swipe"><SwipeRow onDelete={remove} label={tr("Remove")}>{row}</SwipeRow></div> : <React.Fragment key={b.id}>{row}</React.Fragment>;
+                  })}
+                </div>
+              </div>
+            )}
+            {!running && !paused && (
+              <>
+                <Segmented tour="import-platform" options={["iPhone", "Android"]} value={platform} onChange={setPlatform} />
+                <div className="nsc-list" style={{ marginTop: SPACE.tight, marginBottom: SPACE.block }}>
+                  {IMPORT_STEPS[platform].map((s, i) => (
+                    <div key={s} className="flex items-center gap-3" style={{ minHeight: 52 }}>
+                      <span className="shrink-0 flex items-center justify-center rounded-full" style={{ width: 26, height: 26, background: t.wash, ...TYPE.caption, fontWeight: 600, color: t.sub }}>{i + 1}</span>
+                      <span style={{ ...TYPE.body, color: t.ink }}>{tr(s)}</span>
+                    </div>
+                  ))}
+                </div>
+                <Button tour="import-choose" disabled={!lib || (mine && mine.reading)} onClick={pick}>{mine && mine.reading ? tr("Reading…") : tr("Choose file")}</Button>
+                {mine && mine.error && <p className="mt-3" data-tour="import-error" style={{ ...TYPE.small, color: DANGER }}>{mine.error}</p>}
+              </>
+            )}
+            <input ref={input} type="file" multiple className="hidden" data-tour="import-file" onChange={(e) => onFiles(e.target.files)} />
+          </div>
+        </Screen>
+      </SwipeBack>
+    );
+  }
+
+  /* ---------------------------------------------------------------- FOUND */
+  if (viewNow === "found") {
+    const f = mine.found || { counts: {}, left: {} };
+    const forP = people.find((p) => p.id === mine.forId) || null;
+    const forFirst = forP ? firstOfName(forP.name) : null;
+    const lone = !coachSide && people.length === 1 && people[0].id === me.id;
+    const coachName = coachSide ? me.name : ((mine.forId ? coachFor(mine.forId) : null) || {}).name || data.coachName || "";
+    const left = [["notInFile", tr("Not in the file")], ["over50", tr("Over 50 MB")], ["over200", tr("Over 200 on one day")], ["documents", tr("Documents")], ["stickers", tr("Stickers and GIFs")], ["notRead", tr("Lines not read")]]
+      .map(([k, label]) => [k, label, k === "notRead" ? f.left.notRead || 0 : (f.left[k] || []).length]).filter((x) => x[2] > 0);
+    const roleWord = (label) => { const r = mine.roles[label]; return r === "coach" ? tr("Coach") : r === "player" ? (forFirst ? `${forFirst}'s ${tr("side")}` : tr("Player's side")) : r ? `${tr("Same as")} ${r.slice(5)}` : null; };
+    const ok = lib.ready(mine);
+    const junior = !!(forP && ((data.roster || []).find((x) => x.id === forP.id) || (data.dependants || []).find((x) => x.id === forP.id) || {}).junior);
+    const preview = junior && ok ? lib.blockText(lib.previewBody()) : null;
+    const sortNow = () => {
+      const check = lib.checkNeeded(mine);
+      if (!check) { hapticCommit(); lib.startSorting(); return; }
+      openSheet(<ImportCheckBody check={check} close={closeSheet} onGo={() => lib.startSorting()}
+                                 onBack={() => { if (check.kind === "coach") { lib.abandon(); } else openSheet(<ImportWhoBody people={people} label={lib.mainSide(mine) || ""} close={closeSheet} onPick={(id) => lib.setFor(id)} />); }} />);
+    };
+    return (
+      <SwipeBack onBack={back}>
+        <Screen title={tr("Import")} onBack={back}>
+          <div className="px-6 pb-10" data-tour="import-found">
+            <p data-tour="import-range" style={{ ...TYPE.heading, color: t.ink, marginBottom: SPACE.tight }}>{f.first ? `${lib.dayWithYear(f.first)} – ${lib.dayWithYear(f.last)}` : ""}</p>
+            <ImportValues tour="import-counts" rows={[[tr("Messages"), nfmt(f.counts.messages)], [tr("Videos"), nfmt(f.counts.videos)], [tr("Photos"), nfmt(f.counts.photos)], [tr("Voice notes"), nfmt(f.counts.voice)], [tr("Size"), fmtBytes(f.counts.size || 0)]]} />
+            {!f.media && <p className="mt-2" style={{ ...TYPE.small, color: t.sub }}>{tr("Exported without media")}</p>}
+            {left.length > 0 && (
+              <div style={{ marginTop: SPACE.block }}>
+                <RowHead>{tr("Left out")}</RowHead>
+                <div className="nsc-list">
+                  {left.map(([k, label, n]) => <ImportDoor key={k} label={label} value={nfmt(n)} tour={`import-left-${k}`} onTap={() => openSheet(<ImportLeftBody title={label} items={k === "notRead" ? null : f.left[k]} count={n} />)} />)}
+                </div>
+              </div>
+            )}
+            <div style={{ marginTop: SPACE.block }}>
+              <RowHead>{tr("In the chat")}</RowHead>
+              <div className="nsc-list" data-tour="import-people">
+                {(mine.labels || []).map(({ label, count }) => (
+                  <ImportDoor key={label} label={label} attrs={{ "data-label": label, "data-role": mine.roles[label] || "" }} sub={`${nfmt(count)} ${count === 1 ? tr("message") : tr("messages")}`} value={roleWord(label)}
+                              onTap={() => openSheet(<ImportRoleBody label={label} labels={mine.labels} roles={mine.roles} forFirst={forFirst} close={closeSheet} onPick={(r) => lib.setRole(label, r)} />)} />
+                ))}
+              </div>
+            </div>
+            <div className="nsc-list" style={{ marginTop: SPACE.block }}>
+              {!lone && <ImportDoor label={tr("For")} tour="import-for" value={forP ? <><span style={{ color: t.ink }}>{forP.name}</span>{lib.mainSide(mine) ? <span style={{ color: t.sub }}>{` ${lib.mainSide(mine)}`}</span> : null}</> : null}
+                                    onTap={() => openSheet(<ImportWhoBody people={people} label={lib.mainSide(mine) || ""} close={closeSheet} onPick={(id) => lib.setFor(id)} />)} />}
+              <ImportDoor label={tr("Sport")} tour="import-sport" value={(SPORTS[mine.sport] || {}).label || null}
+                          onTap={() => openSheet(<ImportSportBody ids={Object.keys(SPORTS)} picked={mine.sport} close={closeSheet} onPick={(s) => lib.setSport(s)} />)} />
+            </div>
+            {mine.needOrder && (
+              <div style={{ marginTop: SPACE.block }} data-tour="import-order">
+                <RowHead>{tr("Dates")}</RowHead>
+                <TileGrid cols={2}>{(mine.orderTiles || []).map((o) => <ActTile key={o.order} h={52} label={o.label} on={mine.order === o.order} onTap={() => lib.setOrder(o.order)} />)}</TileGrid>
+              </div>
+            )}
+            <div style={{ marginTop: SPACE.section }}>
+              <Button tour="import-sort" disabled={!ok} onClick={sortNow}>{tr("Sort into lessons")}</Button>
+              <div data-tour="import-consent" className="mt-3">
+                <p style={{ ...TYPE.small, color: t.sub }}>{`${tr("Only")} ${firstOfName(coachName) || tr("the coach")}${tr("'s messages go to Anthropic to be sorted · no photo, video or voice note is sent")}`}</p>
+                <p className="mt-1" style={{ ...TYPE.small, color: t.sub }}>{tr("Names Nosca knows, numbers, links and common health and payment words are taken out")}</p>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-x-5">
+                <TextBtn tour="import-preview" color={t.accent} onClick={() => openSheet(<ImportWhatBody text={ok ? lib.blockText(lib.previewBody()) : ""} />)}>{tr("See what is sent")}</TextBtn>
+                <TextBtn tour="import-privacy" color={t.accent} onClick={() => push("legal:privacy")}>{tr("Privacy")}</TextBtn>
+              </div>
+              {preview && (
+                <pre data-tour="import-inline-preview" className="mt-3 whitespace-pre-wrap" style={{ ...TYPE.small, fontFamily: ui, color: t.sub, background: t.wash, borderRadius: R.control, padding: 12, overflowWrap: "anywhere" }}>
+                  {more ? preview : preview.split("\n").slice(0, 6).join("\n")}
+                  {!more && preview.split("\n").length > 6 && <>{"\n"}<TextBtn color={t.accent} onClick={() => setMore(true)}>{tr("more")}</TextBtn></>}
+                </pre>
+              )}
+            </div>
+          </div>
+        </Screen>
+      </SwipeBack>
+    );
+  }
+
+  /* ---------------------------------------------------------------- A DAY */
+  const rowsByIso = mine.rowsByIso || {};
+  if (viewNow === "day" && rowsByIso[mine.dayIso]) {
+    const r = rowsByIso[mine.dayIso];
+    const day = lib.dayOfIso(r.iso);
+    const forP = people.find((p) => p.id === r.forId) || null;
+    const coachImport = coachSide;
+    const kids = (data.dependants || []).filter((k) => targets.some((x) => x.player_id === k.id));
+    const showFor = coachImport || kids.length > 1;
+    const areas = (SPORTS[mine.sport] || cfg).focus || [];
+    const inNote = new Set([...(r.chosen.note || []), ...(r.chosen.tip || []), ...(r.chosen.drills || [])].map((x) => `${x.mi}|${x.si}`));
+    const fmtTime = (x) => `${(x.h % 12) || 12}:${String(x.min).padStart(2, "0")} ${x.h < 12 ? "am" : "pm"}`;
+    return (
+      <SwipeBack onBack={back}>
+        <Screen title={lib.dayWithYear(r.iso)} onBack={back}>
+          <div className="px-6 pb-10" data-tour="import-day" data-day={r.iso}>
+            <div className="nsc-list">
+              <div className="flex items-center justify-between gap-3" style={{ minHeight: 56 }}>
+                <span style={{ ...TYPE.body, color: t.ink }}>{tr("In the import")}</span>
+                {r.leftOut ? <span style={{ ...TYPE.body, color: t.sub }}>{tr("Left out")}</span>
+                  : <span data-tour="import-day-in"><Toggle on={r.ticked} onChange={(v) => { if (!r.locked) lib.setTicked(r.iso, v); }} /></span>}
+              </div>
+              {showFor && <ImportDoor label={tr("For")} tour="import-day-for" value={forP ? forP.name : null}
+                                      onTap={() => openSheet(<ImportWhoBody people={coachImport ? people : people.filter((p) => kids.some((k) => k.id === p.id))} label={lib.mainSide(mine) || ""} close={closeSheet} onPick={(id) => lib.setDayFor(r.iso, id)} />)} />}
+            </div>
+            <div style={{ marginTop: SPACE.block }}>
+              <RowHead>{tr("Worked on")}</RowHead>
+              <FocusGrid areas={areas} picked={r.focusIds} cols={2} h={46} tour="import-day-focus"
+                         onToggle={(id) => lib.setDayFocus(r.iso, r.focusIds.includes(id) ? r.focusIds.filter((x) => x !== id) : [...r.focusIds, id])} />
+            </div>
+            <div style={{ marginTop: SPACE.block }} data-tour="import-day-note">
+              {coachImport
+                ? <VoiceArea value={r.note || ""} onChange={(v) => lib.setDayNote(r.iso, v)} rows={4} max={4000} ph={r.junior ? `${tr("Notes start empty for")} ${firstOfName(forP && forP.name)} · ${tr("tap a line to add it")}` : tr("Notes")} />
+                : r.note
+                  ? <p className="whitespace-pre-wrap" data-note="" style={{ ...TYPE.body, color: t.ink, background: t.wash, borderRadius: R.control, padding: "12px 14px", overflowWrap: "anywhere" }}>{r.note}</p>
+                  : <p style={{ ...TYPE.small, color: t.sub }}>{r.junior ? `${tr("Notes start empty for")} ${firstOfName(forP && forP.name)} · ${tr("tap a line to add it")}` : tr("Notes")}</p>}
+            </div>
+            {r.files.length > 0 && (
+              <div style={{ marginTop: SPACE.block }}>
+                <RowHead>{tr("Files")}</RowHead>
+                <div className="nsc-list">
+                  {r.files.map((x) => (
+                    /* a tap opens the file from the zip; its tick is its own key */
+                    <div key={x.name} data-tour="import-day-file" data-file={x.name} data-on={x.ticked ? "1" : "0"} className="flex items-center gap-2" style={{ minHeight: 56 }}>
+                      <button onClick={() => { haptic(6); openSheet(<ImportFileBody lib={lib} file={x} />); }} className="flex-1 min-w-0 text-left active:opacity-60" style={{ paddingTop: 6, paddingBottom: 6 }}>
+                        <span className="block" style={{ ...TYPE.body, color: t.ink }}>{x.kind === "video" ? tr("Video") : x.kind === "photo" ? tr("Photo") : tr("Voice note")}</span>
+                        <Facts parts={[x.time, firstOfName(x.who), x.reason]} style={{ ...TYPE.small, color: x.reason ? CAUTION : t.sub }} />
+                      </button>
+                      <button data-tour="import-day-file-tick" aria-label={tr("In the import")} onClick={() => { haptic(6); lib.setDayFile(r.iso, x.name, !x.ticked); }}
+                              className="shrink-0 flex items-center justify-center" style={{ width: 44, height: 44 }}><TickBox on={x.ticked} /></button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div style={{ marginTop: SPACE.block }}>
+              <RowHead>{tr("Messages")}</RowHead>
+              <div className="nsc-list" data-tour="import-day-messages">
+                {(day ? day.msgs : []).map((x, mi) => (
+                  <div key={mi} className="py-2.5">
+                    <span className="block" style={{ ...TYPE.caption, color: t.sub }}>{`${fmtTime(x)} · ${firstOfName(x.who)}`}</span>
+                    {x.side === "C" && x.segs.length ? x.segs.map((sg, si) => {
+                      const on = inNote.has(`${mi}|${si}`);
+                      return (
+                        <button key={si} data-tour="import-day-line" data-in={on ? "1" : "0"} data-held={sg.held ? "1" : "0"} onClick={() => { haptic(6); lib.toggleLine(r.iso, mi, si); }}
+                                className="block w-full text-left active:opacity-60"
+                                style={{ ...TYPE.body, color: t.ink, padding: "2px 0 2px 10px", borderLeft: `3px solid ${on ? t.accent : "transparent"}`, overflowWrap: "anywhere" }}>
+                          {x.body.slice(sg.start, sg.end)}
+                          {sg.held && <span data-held-tag="" style={{ ...TYPE.small, color: CAUTION }}>{` · ${tr("Held back")}`}</span>}
+                        </button>
+                      );
+                    }) : (x.body ? <p style={{ ...TYPE.body, color: t.ink, paddingLeft: 13, overflowWrap: "anywhere", whiteSpace: "pre-wrap" }}>{x.body}</p> : null)}
+                    {x.file && <span className="block" style={{ ...TYPE.small, color: t.sub, paddingLeft: 13 }}>{x.file.kind === "video" ? tr("Video") : x.file.kind === "photo" ? tr("Photo") : x.file.kind === "audio" ? tr("Voice note") : tr("File")}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+            {r.leftOut && <div style={{ marginTop: SPACE.section }}><Button tour="import-make" onClick={() => { hapticCommit(); lib.makeLesson(r.iso); lib.view("review"); }}>{tr("Make a lesson")}</Button></div>}
+          </div>
+        </Screen>
+      </SwipeBack>
+    );
+  }
+
+  /* ---------------------------------------------------------------- LEFT OUT */
+  if (viewNow === "leftout") {
+    const list = mine.leftOut || [];
+    return (
+      <SwipeBack onBack={back}>
+        <Screen title={tr("Left out")} onBack={back}>
+          <div className="px-6 pb-10">
+            {list.length === 0 ? <EmptyLine>{tr("Nothing left out")}</EmptyLine> : (
+              <div className="nsc-list" data-tour="import-leftout-list">
+                {list.map((r) => (
+                  <ImportDoor key={r.iso} label={fmtDayYear(r.iso)} attrs={{ "data-day": r.iso, "data-tour": "import-left-row" }}
+                              value={r.recapInto ? `${tr("Recap · added to")} ${fmtWeekDay(localDate(r.recapInto))}` : r.first || null}
+                              onTap={() => lib.view("day", r.iso)} />
+                ))}
+              </div>
+            )}
+          </div>
+        </Screen>
+      </SwipeBack>
+    );
+  }
+
+  /* ---------------------------------------------------------------- REVIEW */
+  const sort = mine.sort || { total: 0, done: 0, status: "done" };
+  const rows = mine.rows || [];
+  const toCheck = rows.filter((r) => !r.ticked && r.reason && !r.locked);
+  const showFilter = rows.length > 8 && toCheck.length > 0;
+  const shown = showFilter && mine.filter === "check" ? toCheck : rows;
+  const ticked = rows.filter((r) => r.ticked);
+  const sorting = mine.phase === "sorting" && sort.status === "running";
+  const over = lib.overRoom(mine);
+  const forP = people.find((p) => p.id === mine.forId) || { name: "" };
+  const forJunior = !!((data.roster || []).concat(data.dependants || []).find((x) => x.id === mine.forId) || {}).junior;
+  const coachP = coachSide ? { name: me.name } : coachFor(mine.forId) || { name: data.coachName || "" };
+  const guardians = coachSide ? (((data.roster || []).find((x) => x.id === mine.forId) || {}).guardians || [])
+    : (((data.family && data.family.members) || []).filter((m) => !m.junior).map((m) => m.name));
+  const audience = [forP.id === me.id ? null : firstOfName(forP.name), ...(forJunior ? guardians.filter((g) => g !== me.name) : []), coachSide ? null : coachP.name].filter(Boolean);
+  const told = coachSide ? [firstOfName(forP.name), ...(forJunior ? guardians.map(firstOfName) : [])]
+    : [firstOfName(coachP.name), ...(forP.id !== me.id ? [firstOfName(forP.name)] : []), ...(forJunior ? guardians.filter((g) => g !== me.name).map(firstOfName) : [])];
+  const progress = sort.status === "offline" ? tr("Offline")
+    : sort.status === "paused" ? tr("Sorting is paused")
+    : sort.status === "over" ? tr("Today's limit is reached")
+    : sort.status === "signin" ? tr("Sign in again to carry on")
+    : sort.status === "failed" ? `${nOf(sort.failed || 0, "day", "days")} ${tr("not sorted")}`
+    : sort.status === "running" ? `${tr("Sorting")} · ${sort.done || 0} ${tr("of")} ${nOf(sort.total || 0, "day", "days")}` : null;
+  const retry = sort.status === "paused" || sort.status === "failed" || sort.status === "signin";
+  const goImport = () => {
+    if (sorting || !ticked.length || over) return;
+    hapticCommit();
+    const pid = mine.forId; const kid = forJunior && !coachSide && pid !== me.id;
+    lib.importNow().then((r) => { if (r && r.error) say(r.error); });
+    onLanded(pid, kid);
+  };
+  if (mine.listView === "feed" && ticked.length > 0) {
+    /* the drafts as the feed will hold them, their files played from the zip — nothing has been written */
+    const drafts = ticked.map((r) => ({ id: `draft:${r.iso}`, focus: r.focus, note: r.note, iso: r.iso, d: String(localDate(r.iso).getDate()).padStart(2, "0"), m: WIZ_MONTHS[localDate(r.iso).getMonth()],
+      type: r.kind === "practice" ? "Practice" : "Private", media: r.fileCount, videos: r.files.filter((x) => x.ticked && x.kind === "video").length, practice: r.kind === "practice" }));
+    const isoOf = (l) => String(l.id).slice(6);
+    return (
+      <SwipeBack onBack={() => lib.setListView("list")}>
+        <div className="relative h-full" data-tour="import-feed">
+          <LessonFeed lessons={drafts} mediaFor={(l) => (l.media ? lib.previewCached(isoOf(l)) : [])} onNeed={(l) => { lib.previewFor(isoOf(l)); }}
+                      showWho={false} cfg={cfg} view="feed" setView={(v) => lib.setListView(v)} onOpen={(l) => lib.view("day", isoOf(l))}
+                      right={<button onClick={() => { haptic(6); lib.setListView("list"); }} aria-label={tr("Back")} className="flex items-center justify-center active:opacity-50" style={{ width: 36, height: 36 }}><ChevronLeft size={22} color={t.ink} strokeWidth={2.1} /></button>} />
+        </div>
+      </SwipeBack>
+    );
+  }
+  return (
+    <SwipeBack onBack={back}>
+      <Screen title={tr("Import")} onBack={back}>
+        <div className="px-6" style={{ paddingBottom: 160 }} data-tour="import-review">
+          {progress && (
+            <div data-tour="import-progress" data-status={sort.status} style={{ marginBottom: SPACE.tight }}>
+              <div className="flex items-center justify-between gap-3">
+                <span style={{ ...TYPE.small, color: sort.status === "running" ? t.sub : CAUTION }}>{progress}</span>
+                {retry && <TextBtn tour="import-sort-retry" color={t.accent} onClick={() => lib.retrySorting()}>{tr("Retry")}</TextBtn>}
+              </div>
+              {sort.status === "running" && (
+                <div className="mt-1.5 rounded-full overflow-hidden" style={{ height: 4, background: t.wash }}>
+                  <div data-tour="import-track" style={{ height: 4, width: `${sort.total ? Math.round((100 * (sort.done || 0)) / sort.total) : 0}%`, background: t.accent, transition: "width 300ms ease-out" }} />
+                </div>
+              )}
+            </div>
+          )}
+          {audience.length > 0 && <p data-tour="import-audience" style={{ ...TYPE.small, color: t.sub, marginBottom: SPACE.block }}>{`${andList(audience)} ${tr("will see these lessons")}`}</p>}
+          <RowHead>{nOf(ticked.length, "lesson", "lessons")}</RowHead>
+          {rows.length > 0 && <div style={{ marginBottom: SPACE.tight }}><Segmented tour="import-view" options={[tr("List"), tr("Feed")]} value={mine.listView === "feed" ? tr("Feed") : tr("List")} onChange={(o) => lib.setListView(o === tr("Feed") ? "feed" : "list")} /></div>}
+          {showFilter && <div style={{ marginBottom: SPACE.tight }}><Segmented tour="import-filter" options={[tr("All"), `${tr("To check")} ${toCheck.length}`]} value={mine.filter === "check" ? `${tr("To check")} ${toCheck.length}` : tr("All")} onChange={(o) => lib.setFilter(o === tr("All") ? "all" : "check")} /></div>}
+          {shown.length > 0 && (
+            <div className="nsc-list">
+              {shown.map((r, i) => {
+                const two = people.length > 1 && coachSide && r.forId !== mine.forId ? (people.find((p) => p.id === r.forId) || {}).name : null;
+                /* a row to check says why as its second fact; a day already imported says so even ticked, with its new files */
+                const said = r.reason && (!r.ticked || r.add);
+                const second = said ? r.reason : two || (r.fileCount ? nOf(r.fileCount, "file", "files") : null);
+                const tickable = !r.locked && !r.sleep;
+                return (
+                  <div key={r.iso} data-tour="import-row" data-state={r.state} data-day={r.iso} data-on={r.ticked ? "1" : "0"} className="flex items-center gap-2"
+                       style={{ minHeight: 64, animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
+                    <button onClick={() => { haptic(6); lib.openedDay(r.iso); lib.view("day", r.iso); }} className="flex-1 min-w-0 flex items-center gap-3.5 text-left active:opacity-50" style={{ paddingTop: 8, paddingBottom: 8 }}>
+                      <ImportRowPoster lib={lib} row={r} sport={mine.sport} />
+                      <span className="flex-1 min-w-0">
+                        <Facts parts={String(r.focus || "").split(" · ")} attrs={{ "data-focus": "" }} style={{ ...TYPE.body, fontWeight: 600, color: t.ink }} />
+                        <span className="block mt-0.5" style={{ ...TYPE.small, color: t.sub }}>
+                          {fmtDayYear(r.iso)}{second ? <> · <span data-reason={said ? "1" : undefined} style={{ color: said ? CAUTION : t.sub }}>{second}</span></> : null}
+                        </span>
+                      </span>
+                    </button>
+                    <button data-tour="import-tick" aria-label={tr("In the import")} disabled={!tickable} onClick={() => { if (!tickable) return; haptic(6); lib.setTicked(r.iso, !r.ticked); }}
+                            className="shrink-0 flex items-center justify-center" style={{ width: 44, height: 44, opacity: tickable ? 1 : 0.45 }}>
+                      <TickBox on={r.ticked} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {(mine.leftOut || []).length > 0 && (
+            <div className="nsc-list" style={{ marginTop: SPACE.block }}>
+              <ImportDoor label={tr("Left out")} tour="import-leftout" value={nOf(mine.leftOut.length, "day", "days")} onTap={() => lib.view("leftout")} />
+            </div>
+          )}
+        </div>
+        <div className="sticky bottom-0 px-6 pt-3" style={{ background: t.page, paddingBottom: 18 }}>
+          <Button tour="import-go" disabled={sorting || !ticked.length || !!over} onClick={goImport}>{sorting ? tr("Sorting…") : `${tr("Import")} ${nOf(ticked.length, "lesson", "lessons")}`}</Button>
+          <p data-tour="import-told" className="mt-2 text-center" style={{ ...TYPE.small, color: t.sub }}>
+            {over ? `${tr("600 at most for")} ${firstOfName((people.find((p) => p.id === over.pid) || {}).name)} · ${over.n} ${tr("ticked")}`
+              : told.filter(Boolean).length ? `${andList(told.filter(Boolean))} ${told.filter(Boolean).length === 1 ? tr("is told once") : tr("are told once")}` : null}
+          </p>
+        </div>
+      </Screen>
+    </SwipeBack>
+  );
+}
+
 function UploadStatus({ uploads, onRetry, onDismiss }) {
   const t = useT();
   const [busy, setBusy] = useState(false);
@@ -20260,7 +21443,7 @@ function CatchUp({ items, onOpen, onDone }) {
                        animation: "streakUp 520ms cubic-bezier(.22,1,.36,1) 120ms both" }}>
           {tr("While you were away")}
         </span>
-        <h2 className="mt-3" style={{ fontFamily: display, fontSize: 30, letterSpacing: "-0.035em", lineHeight: 1.08, color: "#F4F6F3",
+        <h2 className="mt-3" style={{ ...TYPE.screen, color: "#F4F6F3",
                                        animation: "streakUp 520ms cubic-bezier(.22,1,.36,1) 220ms both" }}>
           {items.length === 1 ? tr("One thing happened") : `${items.length} ${tr("things happened")}`}
         </h2>
@@ -20330,7 +21513,7 @@ function LessonEditBody({ lesson, cfg, onSave, onAddFiles, say, close }) {
 
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Edit lesson")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Edit lesson")}</h2>
       <p className="mb-5" style={{ ...TYPE.caption, color: t.faint }}>{lesson.who} · {lesson.d} {lesson.m}</p>
 
       <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Focus")}</div>
@@ -20379,7 +21562,7 @@ function LessonDeleteBody({ lesson, mediaCount = 0, onConfirm, say, close }) {
     <>
       {/* the sheet's title, as every sheet's is: a red bin on a disc led it,
           beside words that already say Delete (23 November) */}
-      <h2 className="mb-4" style={{ ...TYPE.title, color: t.ink }}>{tr("Delete this lesson")}</h2>
+      <h2 className="mb-4" style={{ ...TYPE.head, color: t.ink }}>{tr("Delete this lesson")}</h2>
       <p className="mb-5" style={{ ...TYPE.body, lineHeight: 1.6, color: t.sub }}>
         {lesson.focus} · {lesson.who} · {lesson.d} {lesson.m}.
         {mediaCount > 0 ? ` ${mediaCount} ${mediaCount === 1 ? tr("file goes with it") : tr("files go with it")}.` : ""}
@@ -20628,6 +21811,32 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const downloads = useDownloads({ owner: account ? account.id : null, loader: data ? data.lessonMedia : null });
   const downloadsRef = useRef(downloads); downloadsRef.current = downloads;
   const dataRef = useRef(data); dataRef.current = data;
+  /* THE IMPORT (docs/import/SPEC.md): the sheet its pickers use; the lesson page's line reads who
+     is looking and who may remove; an import interrupted on this phone shows its banner from the start */
+  const [importSheet, setImportSheet] = useState(null);
+  const importRemoveRef = useRef(null);
+  const importCtx = useMemo(() => ({
+    meId: account ? account.id : null,
+    mayRemove: (l) => { if (!data || !l || !l.importId) return false; const b = (data.imports || []).find((x) => x.id === l.importId); return mayRemoveImport(b, importMeOf(account, data)); },
+    removeOne: data ? (l) => { if (importRemoveRef.current) importRemoveRef.current(l); } : null,
+  }), [account && account.id, data && data.imports, data && data.dependants, data && data.me]);
+  const importLine = useImportSummary();
+  useEffect(() => {
+    if (!account || !data || !data.canImport) return;
+    listImports(account.id).then((rows) => { if ((rows || []).some((r) => r.run && r.run.batches && Object.keys(r.run.batches).length)) loadImportLib().then((m) => m.lookForInterrupted()); }).catch(() => {});
+  }, [account && account.id, data && data.canImport]);
+  useEffect(() => {
+    /* back to the front, or the network back: a file that failed for want of it goes again */
+    const back = () => { if (document.visibilityState === "visible" && IMPORT_LIB) IMPORT_LIB.wakeUp(); };
+    document.addEventListener("visibilitychange", back); window.addEventListener("online", back);
+    return () => { document.removeEventListener("visibilitychange", back); window.removeEventListener("online", back); };
+  }, []);
+  /* an imported lesson removed by anyone leaves this phone on the next load that reached the server */
+  const loadedAt = data ? data.loadedAt : 0;
+  useEffect(() => {
+    if (!loadedAt || !downloads.ready || !dataRef.current) return;
+    downloads.purge((dataRef.current.lessons || []).map((l) => l.id)).catch(() => {});
+  }, [loadedAt, downloads.ready]);
   const mediaFor = React.useCallback((id, n) => {
     if (downloadsRef.current.has(id)) return downloadsRef.current.mediaOf(id);
     /* offline and never downloaded: there is nothing to wait for */
@@ -20926,7 +22135,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      top-level tab, no sheet — reload. Mid-anything, leave it: the next
      quiet return picks it up. At most once a minute. */
   const quietRef = useRef(true);
-  quietRef.current = stack.length <= 1 && !sheet;
+  /* …and never while an import is sorting or writing: a reload loses the file it reads */
+  quietRef.current = stack.length <= 1 && !sheet && !importBusy();
   /* what the server is serving against what this phone runs: "newer",
      "same", or null when it could not be asked */
   const serverBuild = async () => {
@@ -20960,6 +22170,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      the newest build loads, or "Up to date" with the build it already
      has, or why the server could not be asked. */
   const syncBuild = async () => {
+    /* an import running reads a file the reload would lose: it is finished or stopped first */
+    if (importBusy()) { hapticWarn(); say(tr("Importing · wait or stop it first")); return; }
     if (!BUILT_AT) return;
     const r = await serverBuild();
     if (r === "newer") { say(tr("Updating…")); window.location.reload(); return; }
@@ -21926,10 +23138,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const drills = d0 ? (d0.drills || []).filter((d) => d.playerId && d.playerId === l.playerId && near(d)).map((d) => ({ id: d.id, t: d.t, done: !!d.done, createdAt: d.createdAt, playerId: d.playerId })) : [];
     const tipRow = d0 ? ((d0.tips || []).find((x) => x.playerId && x.playerId === l.playerId && near(x)) || null) : null;
     const tip = tipRow ? { title: tipRow.title, body: tipRow.body || null, createdAt: tipRow.createdAt, playerId: tipRow.playerId } : null;
-    const regs = (d0 && d0.registers) || {};
-    const k = Object.keys(regs).find((x) => x.startsWith(`${l.d} ${l.m}`));
-    const attendance = k && l.playerId ? (regs[k][l.playerId] || null) : null;
-    return { who: l.who || null, coach: role === "coach" ? (coachName || null) : (l.coach || coachName || null), tip, drills, attendance };
+    const attendance = d0 ? markFor(l, l.playerId, d0.registersByDay, d0.registers) : null;
+    return { who: l.who || null, coach: role === "coach" ? (coachName || null) : (l.coach || coachName || null), tip, drills, attendance, importedBy: importedByLine(l, true) };
   };
   const startDownload = async (l) => {
     if (!downloads.supported) { say(tr("Downloads aren't available in this browser")); return; }
@@ -22131,6 +23341,50 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (stack.length === 1 && stack[0] === s) { dropMemory(`1:${s}`); window.dispatchEvent(new CustomEvent("nosca:top")); return; }
     setStack([s]);
   };
+  /* THE IMPORT: offered only with all four of the SQL, the function's key, somebody to import for, and an
+     account that is not a junior's; the job's context, refreshed on every render; where Import lands */
+  const importOn = !!(data && account && data.canImport && data.importReady && !juvenile && (data.importTargets || []).length);
+  const importFor = (pid) => importOn && (data.importTargets || []).some((x) => x.player_id === pid);
+  const importCoachFor = (pid) => {
+    if (!data || !account) return null;
+    if (role === "coach") return { id: account.id, name: account.name };
+    if (pid === account.id) return { id: data.coachId, name: data.coachName || "" };
+    const k = (data.dependants || []).find((x) => x.id === pid); return k ? { id: k.coachId, name: k.coachName || "" } : null;
+  };
+  const openImportSheet = (el) => { setImportSheet(el); setSheet("chatImportSheet"); };
+  const closeImportSheet = () => setSheet(null);
+  const importLanded = (pid, kid) => {
+    dropDeeperMemory(1);
+    if (role === "coach") { IMPORT_FEED_FOR = pid; setStack(["roster", `player:${pid}`]); return; }
+    setHomeView("feed"); setStack([kid || parentAccount ? "log" : "home"]);
+  };
+  if (data && account) {
+    const juniorOf = (p) => !!(p && (p.junior || p.account_type === "junior"));
+    importJob.setCtx({
+      meId: account.id, meName: account.name, isCoach: role === "coach", coachName: data.coachName || "", coachFor: importCoachFor,
+      sport: role === "coach" ? (coachSport || sport) : sport, maxMb: MAX_UPLOAD_MB,
+      people: [...(data.roster || []).map((p) => ({ id: p.id, name: p.name, junior: juniorOf(p), sport: p.sport, role: "player" })),
+               ...(((data.family && data.family.members) || []).map((m) => ({ id: m.id, name: m.name, junior: !!m.junior, sport: m.sport, role: m.role }))),
+               ...(data.dependants || []).map((k) => ({ id: k.id, name: k.name, junior: true, sport: k.sport, role: "player" })),
+               { id: account.id, name: account.name, junior: !!juvenile, sport, role }],
+      targets: data.importTargets || [], lessons: data.lessons || [], imports: data.imports || [],
+      forParam: screen.startsWith("chatImport:") ? screen.slice("chatImport:".length) : null,
+      api: { importBegin: data.importBegin, importLessons: data.importLessons, importUpload: data.importUpload, importList: data.importList,
+             importHashes: data.importHashes, undoImport: data.undoImport, importSort: data.importSort },
+      done, say, land: (pid) => importLanded(pid, role !== "coach" && pid !== account.id),
+    });
+  }
+  importRemoveRef.current = (l) => {
+    if (!data || !account) return;
+    const b = (data.imports || []).find((x) => x.id === l.importId); if (!b) return;
+    openImportSheet(<ImportRemoveBody count={1} who={l.who || null} own={b.importedBy === account.id} verify={data.verifyPassword} close={closeImportSheet}
+                                      onRemove={async () => { const r = await data.undoImport(b.id, l.id); if (!(r && r.error)) { done(tr("Removed"), nOf(1, "lesson", "lessons")); pop(); } return r; }} />);
+  };
+  const importLogProps = data ? {
+    emptyAction: importOn && role !== "coach" ? <Button tour="lessons-import" onClick={() => push("chatImport")}>{tr("Import")}</Button> : null,
+    top: <ImportBanner onOpen={() => push("chatImport")} />,
+    feedPill: <ImportBanner pill onOpen={() => push("chatImport")} />,
+  } : {};
   const defaultView = (prefs && prefs.defaultView) || viewPref || (role === "coach" ? "list" : "feed");
   const homeViewNow = homeView || defaultView;
   const setDefaultView = (v) => {
@@ -22195,7 +23449,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     /* With a real account this must end the actual session, not just
        reset the demo's own state — otherwise there is no way back to
        the sign-in screen, because Supabase remembers you. */
-    if (account && onSignOut) { onSignOut(); return; }
+    if (account && onSignOut) {
+      /* an import's manifest goes with the session */
+      clearImports(account.id).catch(() => {}); if (IMPORT_LIB) IMPORT_LIB.abandon(); importJob.set(null);
+      onSignOut(); return;
+    }
     setFlow("role"); setPublished(null); setStack(["today"]); setMini(null); setJuvenile(false);
   };
   /* Publishing is the end of the flow. The burst plays over whatever
@@ -22667,8 +23925,33 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     done(tr("Saved"), [g.name, countOf(chosen.length, cfg.nouns)].filter(Boolean).join(" · "));
     return {};
   };
-  const removeGroup = async (g) => {
+  /* A GROUP'S RUN ENDS WITH IT (28 November). New group writes a standing
+     arrangement under the group's name, and Remove took the group off the
+     coach's groups and left the arrangement running: Recurring lessons still
+     listed it, the Diary's Manage counted it, and anything it went on to
+     book had nobody to tell, the members being found through the group.
+     Remove is offered only with nothing booked ahead, so the run ends with
+     the group taking nothing from anyone — End with nothing ahead, one tap —
+     and the server is asked first, past the diary's window: a run with a
+     lesson still ahead is refused in the sheet with the line, and End is the
+     way to them, which tells the members as every End does. */
+  const groupRuns = (g) => (data ? (data.recurring || []) : []).filter((x) => x.groupName && sameGroupName(x.groupName, g.name) && (!x.coachId || !account || x.coachId === account.id));
+  const groupRunsClear = async (g) => {
+    const runs = groupRuns(g);
+    let ahead = 0;
+    for (const rec of runs) {
+      const r = await data.seriesBookings(rec);
+      if (r && r.error) return { error: { message: tr("Couldn't remove the group.") } };
+      ahead += ((r && r.rows) || []).length;
+    }
+    return { runs, ahead };
+  };
+  const removeGroup = async (g, runs = groupRuns(g)) => {
     if (data) {
+      for (const rec of runs) {
+        const r0 = await data.removeRecurring(rec.id);
+        if (r0 && r0.error) { hapticWarn(); say(tr("Couldn't remove the group.")); return r0; }
+      }
       const cur = (data.prefs && data.prefs.groups) || [];
       const r = await data.saveGroups(cur.filter((x) => !sameGroup(x, g)));
       if (r && r.error) { hapticWarn(); say(tr("Couldn't remove the group.")); return r; }
@@ -22806,6 +24089,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        the player themselves, or an adult reading a junior's thread */
     if (scr === "thread" && d.id && !juvenile) { land(["messages", `thread:${d.id}`]); return; }
     if (scr === "tips") { land([home, "tips"]); return; }
+    /* an import's notices: the coach on the player's file, the importer on Import */
+    if (scr === "player" && d.id && role === "coach") { land(["roster", `player:${d.id}`]); return; }
+    if (scr === "chatImport") { land([home, "chatImport"]); return; }
     /* A BOOKING'S NOTICE OPENS ON ITS DAY. "Lesson confirmed · Thu 24
        Sep" opened the Diary wherever it had last been — today, or the
        month last looked at — and the lesson it named was a hunt away.
@@ -22935,7 +24221,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           .filter((b) => b.playerId === r.id && b.status === "confirmed" && b.date >= today)
           .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (parseTime(a.time) || 0) - (parseTime(b.time) || 0)))[0];
         if (next) out[r.id] = { text: `${fmtWeekDay(localDate(next.date))} · ${next.time}`, tone: "ink" };
-        else if (r.lastLesson) out[r.id] = { text: `${risk.has(r.id) ? tr("Drifting") : tr("Last lesson")} · ${fmtWeekDay(localDate(r.lastLesson))}`, tone: risk.has(r.id) ? "caution" : "faint" };
+        else if (r.lastLesson) out[r.id] = { text: `${risk.has(r.id) ? tr("Drifting") : tr("Last lesson")} · ${fmtDayYear(r.lastLesson)}`, tone: risk.has(r.id) ? "caution" : "faint" };
         else out[r.id] = { text: tr("No lessons yet"), tone: risk.has(r.id) ? "caution" : "faint" };
       }
       return out;
@@ -22971,6 +24257,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     startOn, setStartOn, prefs: role === "coach" ? prefs : null, setPrefs,
     startOptions: [{ id: "auto", label: tr("Automatic") }, ...tabs.filter((tb) => tb.id !== "quick").map((tb) => ({ id: tb.id, label: tb.label }))],
     pop, push, go, sheet: setSheet, say, restart,
+    importRow: importOn ? { label: tr("Import"), tour: "settings-import", onTap: () => push("chatImport"), keys: ["whatsapp", "chat", "history", "export", "old lessons", "messages", "upload", "import", "players"],
+      sub: importLine || (() => { const b = (data.imports || []).filter((x) => x.status === "done").sort((a, c) => String(c.doneAt || c.createdAt).localeCompare(String(a.doneAt || a.createdAt)))[0];
+        if (!b) return null; const p = [...(data.roster || []), ...(data.dependants || [])].find((x) => x.id === b.playerId); return `${nOf(b.lessons, "lesson", "lessons")}${p ? ` · ${p.name}` : b.playerId === account.id ? ` · ${account.name}` : ""}`; })() } : null,
   });
   if (needsCoach) {
     /* a join link opened by this person arrives with the code filled in */
@@ -23104,6 +24393,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const isGroupThread = Object.values(groups).flat().some((g) => g.name === threadName);
     body = <Thread role={role} name={threadName} isGroup={isGroupThread} pop={pop} say={say} />;
   } else if (screen === "install") { body = <InstallScreen pop={pop} />;
+  } else if ((screen === "chatImport" || screen.startsWith("chatImport:")) && data && account) {
+    /* the Import screen: a real account's only, never the harness's or the walkthrough's */
+    body = importOn || (importJob.get() && importJob.get().owner === account.id)
+      ? <ImportScreen data={data} me={{ ...importMeOf(account, data), name: account.name }} role={role} cfg={cfg} pop={pop} push={push} say={say} done={done}
+                      openSheet={openImportSheet} closeSheet={closeImportSheet} onLanded={importLanded} coachFor={importCoachFor} />
+      : <SwipeBack onBack={pop}><Screen title={tr("Import")} onBack={pop}><EmptyLine className="px-6">{tr("Import isn't available")}</EmptyLine></Screen></SwipeBack>;
   } else if (screen.startsWith("legal:")) { body = <Legal docKey={screen.split(":")[1]} pop={pop} />;
   } else if (screen.startsWith("player:")) {
     const pkey = screen.slice("player:".length);
@@ -23111,6 +24406,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const pname = pl ? pl.name : pkey;
     body = <RosterPlayer onDownload={downloadLesson} name={pname} live={data ? data.roster : null} sportTool={TOOLS[sport]} lessons={data ? taught(data.lessons) : null}
                         note={pl ? playerNotes[pl.id] || null : null} onNote={data && pl ? () => { setNoteFor(pl); setSheet("playerNote"); } : null}
+                        onImport={pl && importFor(pl.id) ? () => push(`chatImport:${pl.id}`) : null}
+                        importValue={pl && data ? (() => { const n = (data.imports || []).filter((b) => b.playerId === pl.id && b.status === "done").reduce((a, b) => a + (b.lessons || 0), 0); return n ? nOf(n, "lesson", "lessons") : null; })() : null}
                         player={pl} tip={pl ? (((data.tips || []).find((tp) => tp.playerId === pl.id) || {}).title || null) : null}
                         stage={pl && lastFor && lastFor[pl.id] ? lastFor[pl.id].stage : null}
                         onOpenLesson={(l) => push(`clesson:${l.id}:${pname}`)} onAllLessons={() => push("archive:" + (pl ? pl.id : pname))} seriesFor={data ? (mySeries.find((x) => pl && x.playerId === pl.id) || mySeries.find((x) => x.who === pname)) : series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurId(null); setRecurFor(personOf(n)); setSheet("recurring"); }}
@@ -23378,7 +24675,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       ? ((data.lessons || []).find((x) => String(x.id) === lid) || savedLessonOf(lid) || null)
       : (cfg.lessons.find((x) => String(x.id) === lid) || cfg.lessons[0]);
     /* a clip the player sent leaves To review once the coach has opened it */
-    if (data && les && les.sentBy && les.unread && !seenClips.current.has(les.id)) { seenClips.current.add(les.id); data.markLessonSeen(les.id); }
+    if (data && les && sentByPlayer(les) && les.unread && !seenClips.current.has(les.id)) { seenClips.current.add(les.id); data.markLessonSeen(les.id); }
     /* opened from the thread's card or the bell the route carries no name:
        the lesson knows whose it is, so the page still says Sent by Cian */
     body = les
@@ -23386,7 +24683,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                          live={!!data} mediaFor={data ? mediaFor : null} drills={data ? data.drills : null} tips={data ? data.tips : null}
                          compareLessons={data ? taught(data.lessons) : null} knownMedia={data ? liveMedia : null}
                          replies={clipReplies(les.id)} onReply={data ? (l) => { setReplyFor(l); setSheet("clipReply"); } : null}
-                         attendance={(() => { const k = Object.keys(registers || {}).find((x) => x.startsWith(`${les.d} ${les.m}`)); if (!k) return null; return (data ? registers[k][les.playerId] : registers[k][seedId(cname)]) || null; })()}
+                         attendance={data ? markFor(les, les.playerId, data.registersByDay, registers) : (() => { const k = Object.keys(registers || {}).find((x) => x.startsWith(`${les.d} ${les.m}`)); if (!k) return null; return registers[k][seedId(cname)] || null; })()}
                          onDuplicate={(l) => { setPrefill({ who: l.who, playerId: l.playerId || null, kind: l.type === "Group" ? "Group" : "Private" }); go("log"); }}
                          onEdit={data ? (l) => { setEditLesson(l); setSheet("lessonEdit"); } : null}
                          onDelete={data ? (l) => { setEditLesson(l); setSheet("lessonDelete"); } : null}
@@ -23510,7 +24807,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const isParent = !!(account && account.accountType === "parent");
     const facts = (l) => {
       const it = downloads.state(l.id);
-      const who = (role === "coach" || isParent) && l.who ? l.who : (l.iso ? fmtWeekDay(localDate(l.iso)) : l.date);
+      const who = (role === "coach" || isParent) && l.who ? l.who : (l.iso ? fmtDayYear(l.iso) : l.date);
       const st = !it ? "" : it.status === "saved" ? fmtBytes(it.bytes) : it.status === "saving" ? `${tr("Saving")} · ${Math.round((it.progress || 0) * 100)}%` : (it.error || tr("Download failed"));
       return [who, st];
     };
@@ -23557,7 +24854,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                              onRegister={(() => { const l = groupToday(g); return l ? () => { setAttendFor(l); setSheet("attend"); } : null; })()}
                              onEdit={() => { setEditGroup(g); setSheet("groupEdit"); }}
                              sessions={data ? (data.lessons || []).filter((l) => l.type === "Group" && l.who === gname) : null}
-                             registers={registers} sport={coachSport} onDownload={downloadLesson}
+                             registers={registers} registersByDay={data ? data.registersByDay : null} sport={coachSport} onDownload={downloadLesson}
                              liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null}
                              onLesson={data ? (l) => push(`clesson:${l.id}:${gname}`) : null} /> : <div />;
   } else if (screen.startsWith("annotate:")) {
@@ -23569,7 +24866,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "layout") {
     body = <LayoutEditor layout={layout} onSave={saveLayout} pop={pop} say={say} />;
   } else if (screen === "clips") {
-    body = <ClipsToReview lessons={data ? taught(data.lessons).filter((l) => l.sentBy && l.unread && !l.practice) : []} pop={pop} sport={coachSport}
+    body = <ClipsToReview lessons={data ? taught(data.lessons).filter((l) => isSentClip(l) && l.unread) : []} pop={pop} sport={coachSport}
                           liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null}
                           onOpen={(l) => push(`clesson:${l.id}:${l.who || ""}`)} />;
   } else if (screen === "unlogged") {
@@ -23667,7 +24964,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        map entry and the fallback — byte for byte, so every change had
        to be made in both or the two homes drifted apart. */
     const coachToday = (
-      <CoachToday right={slimRight} sport={sport} banner={data && data.uploads ? <UploadStatus uploads={data.uploads} onRetry={data.retryUploads} onDismiss={data.dismissUploads} /> : null}
+      <CoachToday right={slimRight} sport={sport} banner={data ? <><ImportBanner onOpen={() => push("chatImport")} />{data.uploads ? <UploadStatus uploads={data.uploads} onRetry={data.retryUploads} onDismiss={data.dismissUploads} /> : null}</> : null}
                   dateLine={`${DAY_NAMES[dowToday]} ${todayMD.d} ${monthName(todayMD.m)}`}
                   nouns={cfg.nouns}
                   today={data ? (todayList || []) : freshAccount ? [] : TODAY_SCHEDULE}
@@ -23679,7 +24976,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                   upcoming={upcomingForCoach} unread={unread}
                   toWriteUp={openUnlogged}
                   onWriteUp={() => push("unlogged")}
-                  toReview={data ? taught(data.lessons).filter((l) => l.sentBy && l.unread && !l.practice) : []}
+                  toReview={data ? taught(data.lessons).filter((l) => isSentClip(l) && l.unread) : []}
                   onReview={() => push("clips")}
                   onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }}
                   onNoShow={(b) => { setPeek(b); setSheet("cancelLesson"); }}
@@ -23726,8 +25023,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        a real account reaches it through the gate above. */
     if (sc && screen === "nocoach") { body = <NoCoach juvenile={juvenile} onJoin={async () => ({})} />; bare = true; }
     else body = {
-      home:   <PlayerLog view={homeViewNow} setView={setHomeView} onDownload={downloadLesson} cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
-      log:    <PlayerLog view={homeViewNow} setView={setHomeView} onDownload={downloadLesson} cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
+      home:   <PlayerLog view={homeViewNow} setView={setHomeView} onDownload={downloadLesson} cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} {...importLogProps} />,
+      log:    <PlayerLog view={homeViewNow} setView={setHomeView} onDownload={downloadLesson} cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} {...importLogProps} />,
       lesson: <PlayerLesson {...shared} pop={pop} push={push} toggleSave={toggleSave} minimise={(clip, lid) => { setMini({ label: clip, id: lid }); go("log"); say("Playing in the corner"); }}
                             lessonId={screen.startsWith("lesson:") ? screen.slice(7) : null}
                             mediaFor={data ? mediaFor : null} compareLessons={data ? playerLessons : null} knownMedia={data ? liveMedia : null}
@@ -23735,22 +25032,22 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                             drills={data ? data.drills : null} tips={data ? data.tips : null}
                             /* what the coach marked that day, for the person the lesson belongs to */
                             attendanceFor={(l) => { const who = data ? (l.playerId || null) : seedId(activeProfile?.name);
-                              if (!who) return null; const k = Object.keys(registers || {}).find((x) => x.startsWith(`${l.d} ${l.m}`)); return k ? (registers[k][who] || null) : null; }}
+                              if (!who) return null; if (data) return markFor(l, who, data.registersByDay, registers); const k = Object.keys(registers || {}).find((x) => x.startsWith(`${l.d} ${l.m}`)); return k ? (registers[k][who] || null) : null; }}
                             onMessage={data ? ((l) => (l.playerId && (l.playerId === account.id || (data.dependants || []).some((k) => k.id === l.playerId)) ? push("thread:" + l.playerId) : push("thread:" + account.id))) : () => push("thread:" + (conn?.coach || ""))}
                             onBook={data ? ((l) => { const kid = (data.dependants || []).find((k) => k.id === l.playerId); if (kid) { setBookFor(kid); go("calendar"); } else if (!parentAccount) go("calendar"); }) : () => go("calendar")}
                             onDownload={(l) => downloadLesson(l)}
                             onRate={data && !data.myReview ? () => push("coachProfile") : null} />,
-    }[screen.startsWith("lesson:") ? "lesson" : screen] || <PlayerLog view={homeViewNow} setView={setHomeView} onDownload={downloadLesson} cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />;
+    }[screen.startsWith("lesson:") ? "lesson" : screen] || <PlayerLog view={homeViewNow} setView={setHomeView} onDownload={downloadLesson} cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} {...importLogProps} />;
   }
 
   return (
-    <FaceCtx.Provider value={faces}><StarCtx.Provider value={starCtx}><DownloadCtx.Provider value={downloadCtx}><NavCtx.Provider value={navCtx}><LiveCtx.Provider value={live}><BleedCtx.Provider value={setFeedUp}><NoticeCtx.Provider value={say}><CalendarCtx.Provider value={calendar}><ThemeCtx.Provider value={theme}><LangCtx.Provider value={L}>
+    <FaceCtx.Provider value={faces}><StarCtx.Provider value={starCtx}><DownloadCtx.Provider value={downloadCtx}><NavCtx.Provider value={navCtx}><LiveCtx.Provider value={live}><BleedCtx.Provider value={setFeedUp}><NoticeCtx.Provider value={say}><CalendarCtx.Provider value={calendar}><ThemeCtx.Provider value={theme}><LangCtx.Provider value={L}><ImportCtx.Provider value={importCtx}>
       <ShimmerCSS />
       {/* In demo mode the app sits on a dark stage under a wordmark, as
           it has throughout design. In the product it simply fills the
           screen. */}
       <div className={demo ? "min-h-screen w-full flex flex-col items-center py-6 px-3" : "w-full"}
-           style={{ "--rule-hair": HAIR(theme.ink, 0.14), "--rule-section": HAIR(theme.ink, 0.24), "--surface": theme.surface, "--wash": theme.wash, "--edge": EDGE(theme), "--lip": SOFT_LIP(theme), "--group-rule": MIX(theme.wash, theme.mark || theme.accent || theme.ink, 0.12), "--faint": theme.faint, "--tint": TINT(theme), "--tint-lip": TINT_LIP(theme),
+           style={{ "--rule-hair": HAIR(theme.ink, 0.14), "--rule-section": HAIR(theme.ink, 0.24), "--surface": theme.surface, "--wash": theme.wash, "--edge": EDGE(theme), "--lip": SOFT_LIP(theme), "--group-rule": MIX(theme.wash, theme.mark || theme.accent || theme.ink, 0.12), "--faint": theme.faint, "--tint": TINT(theme), "--tint-lip": TINT_LIP(theme), ...cardOf(theme, HUE.green), "--white-ring": CARD_WHITE["--card-ring"], "--white-ledge": CARD_WHITE["--card-ledge"],
                     ...(demo ? { background: "#0B0F0C" } : sc ? { background: theme.page, width: 390, height: 780, overflow: "hidden" } : { background: theme.page }) }}>
         {demo && (
         <div className="flex flex-col items-center mb-4">
@@ -24124,7 +25421,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                     {/* the player's request sheet's head: the day as the title,
                         the time under it — one head for one moment on both
                         sides (it was the day and the time on one title line) */}
-                    <h2 className="mb-1" style={{ ...TYPE.title, color: theme.ink }}>
+                    <h2 className="mb-1" style={{ ...TYPE.head, color: theme.ink }}>
                       {DAY_NAMES[dowOf(bookSlot.day.m, bookSlot.day.d, calendar)].slice(0, 3)} {bookSlot.day.d} {monthName(bookSlot.day.m).slice(0, 3)}
                     </h2>
                     <p data-tour="book-who-time" className="mb-5" style={{ ...TYPE.small, color: theme.sub }}>{span(bookSlot.time, duration)}</p>
@@ -24156,7 +25453,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                 )
               : sheet === "bookSelf" && bookSlot ? (
                   <>
-                    <h2 className="mb-1" style={{ ...TYPE.title, color: theme.ink }}>
+                    <h2 className="mb-1" style={{ ...TYPE.head, color: theme.ink }}>
                       {DAY_NAMES[dowOf(bookSlot.day.m, bookSlot.day.d, calendar)].slice(0, 3)} {bookSlot.day.d} {monthName(bookSlot.day.m).slice(0, 3)}
                     </h2>
                     <p className="mb-6" style={{ ...TYPE.small, color: theme.sub }}>
@@ -24177,7 +25474,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                 )
               : sheet === "rebookAfter" ? (
                   <>
-                    <h2 className="mb-1" style={{ ...TYPE.title, color: theme.ink }}>{tr("Book the next one")}</h2>
+                    <h2 className="mb-1" style={{ ...TYPE.head, color: theme.ink }}>{tr("Book the next one")}</h2>
                     <p className="mb-6" style={{ fontFamily: ui, fontSize: 13.5, color: theme.faint }}>{(conn || {}).coach}</p>
                     <Button onClick={() => { setSheet(null); if (data) { go("calendar"); return; } done(tr("Booked"), tr("Same time next week")); }}>{tr("Book it")}</Button>
                     <button onClick={() => { setSheet(null); go("calendar"); }} className="w-full mt-3 py-3 active:opacity-50"
@@ -24248,6 +25545,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               const check = await data.verifyPassword(pw);
                                               if (check.error) return check;
                                               try { await downloads.removeAll(); } catch (e) { /* the account goes either way */ }
+                                              /* and an import's manifest on this phone (docs/import/SPEC.md) */
+                                              try { await clearImports(account.id); } catch (e) { /* the account goes either way */ }
                                               const res = await data.deleteAccount();
                                               if (res.error) return { error: res.error.message };
                                               /* The account is gone and the session with
@@ -24304,8 +25603,24 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             ahead={groupAhead(editGroup)}
                                             sessions={data ? (data.lessons || []).filter((l) => l.type === "Group" && sameGroupName(l.who, editGroup.name)).length : 0}
                                             onSave={(ids) => saveGroupMembers(editGroup, ids)}
-                                            /* the page goes with the group: back on the roster, then the write */
-                                            onRemove={() => { const g = editGroup; setSheet(null); setEditGroup(null); pop(); return removeGroup(g); }}
+                                            /* the group's run, when lessons are ahead: End is the way
+                                               to them, the End every arrangement has, so its members
+                                               are told as End tells them */
+                                            run={groupRuns(editGroup)[0] || null}
+                                            onEnd={(rec) => openEndSeries(rec)}
+                                            /* the server is asked first — a run with a lesson ahead past
+                                               the diary's window keeps the sheet, saying so; then the
+                                               page goes with the group: back on the roster, then the write */
+                                            onRemove={async () => {
+                                              const g = editGroup;
+                                              if (data) {
+                                                const chk = await groupRunsClear(g);
+                                                if (chk.error) { hapticWarn(); say(chk.error.message); return chk; }
+                                                if (chk.ahead) { hapticWarn(); return { ahead: chk.ahead }; }
+                                                setSheet(null); setEditGroup(null); pop(); return removeGroup(g, chk.runs);
+                                              }
+                                              setSheet(null); setEditGroup(null); pop(); return removeGroup(g);
+                                            }}
                                             close={() => { setSheet(null); setEditGroup(null); }} />
               : sheet === "newThread" ? <NewThread role={role} roster={roster} conns={conns.filter((c) => c.profileId === activeProfileId)}
                                             people={data && role !== "coach" ? (liveThreads || []).map((c) => ({ id: c.playerId, name: c.who, sub: c.sub })) : null}
@@ -24318,7 +25633,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             close={() => setSheet(null)} />
               : sheet === "decline" && declining ? (
                   <>
-                    <h2 className="mb-1" style={{ ...TYPE.title, color: theme.ink }}>{tr("Decline request")}</h2>
+                    <h2 className="mb-1" style={{ ...TYPE.head, color: theme.ink }}>{tr("Decline request")}</h2>
                     <p className="mb-5" style={{ ...TYPE.small, color: theme.faint }}>{declining.who}</p>
                     {/* what the player asked for, in their words */}
                     {declining.note && <p className="mb-5" data-tour="decline-note" style={{ ...TYPE.body, color: theme.ink }}>{declining.note}</p>}
@@ -24374,7 +25689,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                 )
               : sheet === "pickRecurWho" ? (
                   <>
-                    <h2 className="mb-1" style={{ ...TYPE.title, color: theme.ink }}>{tr("Who")}</h2>
+                    <h2 className="mb-1" style={{ ...TYPE.head, color: theme.ink }}>{tr("Who")}</h2>
                     {/* a named being in a list is a row: one boxed list of PersonRows, as every other picker */}
                     <div className="nsc-list" data-tour="recur-who">
                       {roster.map((r) => {
@@ -24442,6 +25757,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                                    done(tr("Sent"), replyFor.who);
                                                                    return res;
                                                                  }} />
+              : sheet === "chatImportSheet" && importSheet ? importSheet
               : null}
           </Sheet>
           {sheet === "clipCapture" && (
@@ -24484,7 +25800,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           <Toast msg={toast} />
         </div>
       </div>
-    </LangCtx.Provider></ThemeCtx.Provider></CalendarCtx.Provider></NoticeCtx.Provider></BleedCtx.Provider></LiveCtx.Provider></NavCtx.Provider></DownloadCtx.Provider></StarCtx.Provider></FaceCtx.Provider>
+    </ImportCtx.Provider></LangCtx.Provider></ThemeCtx.Provider></CalendarCtx.Provider></NoticeCtx.Provider></BleedCtx.Provider></LiveCtx.Provider></NavCtx.Provider></DownloadCtx.Provider></StarCtx.Provider></FaceCtx.Provider>
   );
 }
 

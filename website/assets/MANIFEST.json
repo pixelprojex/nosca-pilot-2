@@ -378,24 +378,6 @@
   "kb": 26.2
  },
  {
-  "file": "motion-plus-golf.mp4",
-  "what": "LOOP, 4.1 s at 30 fps (H.264, yuv420p, +faststart, no audio; seamless, its last frame is its first): the coach's golf home at rest, the raised plus tapped, the sheet rising on the app's own curve (340 ms, cubic-bezier(.32,.72,0,1)) with its eight tiles arriving in a stagger and the home dimming, a hold on the open sheet, then the sheet dismissed and the home back. Shot from the real app: its CSS animations were slowed tenfold through DevTools, sampled by a burst of screenshots and resampled to 30 fps, so the timing is the app's. Play muted, looped, playsinline.",
-  "role": "coach",
-  "sport": "golf",
-  "w": 780,
-  "h": 1688,
-  "kb": 219.8
- },
- {
-  "file": "motion-plus-golf-poster.webp",
-  "what": "Poster for motion-plus-golf.mp4: its first frame, the coach's golf home at rest (the same moment as coach-today-golf, shot at 2x directly).",
-  "role": "coach",
-  "sport": "golf",
-  "w": 780,
-  "h": 1688,
-  "kb": 42.7
- },
- {
   "file": "mark.svg",
   "what": "The woven two-ring mark in the brand's bottle green #123C30, as the app draws it (no knock-outs, so it works on any ground). Geometry (src/lib/brandmark.jsx): viewBox 0 0 40 25; two circles r 8.6, centres (14, 12.5) and (26, 12.5), 12 apart; stroke 2.75, round caps; they cross at (20, 6.339) and (20, 18.661), 45.759° off the horizontal from each centre. Each ring is one arc drawn the long way (large-arc 1, sweep 1) with a gap of 23° (11.5° each side) centred on a crossing: the left ring (#ring-left, M18.651 19.734 A 8.6 8.6 0 1 1 21.108 17.341) breaks at the bottom crossing, where the right ring passes over it; the right ring (#ring-right, M21.349 5.266 A 8.6 8.6 0 1 1 18.892 7.659) breaks at the top crossing, where the left passes over. Each path is 50.583 units long: animate stroke-dasharray 50.583 and stroke-dashoffset from 50.583 to 0 to draw a ring in, left then right, then slide the centres from apart to 12 units to weave them.",
   "role": "brand",

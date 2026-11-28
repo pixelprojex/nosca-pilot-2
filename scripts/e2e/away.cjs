@@ -60,15 +60,29 @@ const { check, results, summary } = M.checker("away");
     await tap(page, '[data-tour="profile-pill"], [aria-label="Your profile"]', 800);
     if (await page.locator('[data-tour="sheet-settings"]').count()) await tap(page, '[data-tour="sheet-settings"]', 900);
   };
+  /* THE SPAN MAY CROSS A MONTH (28 November): from the 28th it runs from the 30th to the 3rd, and the grid shows one
+     month at a time, the one the Diary was left on — so a day is read and picked in its own month's grid, the arrows
+     walked to it from the month the grid says it is showing, never a day of the same number in another month (the
+     3rd of November is gone, not away) */
+  const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const toMonth = async (page, iso) => {
+    for (let i = 0; i < 12; i++) {
+      const name = await page.evaluate(() => { const s = document.querySelector('[data-tour="cal-month"] span'); return s ? s.textContent.trim() : ""; });
+      const m = MONTHS.findIndex((x) => name.startsWith(x)) + 1;
+      if (!m || m === monthOf(iso)) return;
+      await tap(page, (monthOf(iso) - m + 12) % 12 < 6 ? '[aria-label="Next month"]' : '[aria-label="Previous month"]', 600);
+    }
+  };
   /* the diary on its Calendar half, the month of `iso` showing, that day picked */
   const openDay = async (page, iso) => {
     await tap(page, '[aria-label="Diary"]', 1000);
     if ((await page.locator('[data-tour="cal-view"] button[aria-pressed="true"]').getAttribute("aria-label")) !== "Calendar") await tap(page, '[data-tour="cal-view"] [aria-label="Calendar"]', 600);
-    if (monthOf(iso) !== monthOf(todayIso)) await tap(page, '[aria-label="Next month"]', 600);
+    await toMonth(page, iso);
     await tap(page, `[data-day="${dayOf(iso)}"]`, 700);
   };
   const dayCell = (page, iso) => page.locator(`[data-day="${dayOf(iso)}"] span`).first();
   const struck = async (page, iso) => (await dayCell(page, iso).evaluate((el) => getComputedStyle(el).textDecorationLine)).includes("line-through");
+  const struckIn = async (page, iso) => { await toMonth(page, iso); return struck(page, iso); };
 
   try {
     /* ---------- (a) the coach: the Settings row, found by "holiday" ---------- */
@@ -101,20 +115,27 @@ const { check, results, summary } = M.checker("away");
       await openDay(page, FROM);
       await shot("03-coach-diary-away");
       const t2 = await text();
-      check("(c) the month grid strikes the away days through, and not the day before", (await struck(page, FROM)) && (await struck(page, TO)) && !(await struck(page, OUTSIDE)));
       check("(c) the day picked reads Away with nothing offered and Edit, and no Free times", (await page.locator('[data-tour="cal-away"]').count()) === 1 && /Nothing offered/.test(t2) && !/^Free$/m.test(t2) && /Edit/.test(t2), t2.slice(0, 200));
       /* 18 November (B4): the Away row is the column's own box — the wash at 8px, 14 in — and its line in the label grey (t.faint on the wash read 4.4:1) */
       const aw = await page.locator('[data-tour="cal-away"]').first().evaluate((el) => { const cs = getComputedStyle(el); const line = el.querySelector("span span:last-child"); return { r: cs.borderRadius, pl: cs.paddingLeft, c: line ? getComputedStyle(line).color : null }; }).catch(() => null);
-      /* the list's white card since 21 November (it was the wash at 8px, 14 in), its line in the sub grey, #5F5F65 */
-      check("(c) the Away row is the column's white card (14px, 16 in) with its line in t.sub", !!aw && aw.r === "14px" && aw.pl === "16px" && aw.c === "rgb(95, 95, 101)", JSON.stringify(aw));
+      /* the list's white card since 21 November (it was the wash at 8px, 14 in), its line in the sub grey, #5D5950 */
+      /* a Lares card since 28 November: sky, what is ahead — 18px corners, 15 inside the 2px ring */
+      check("(c) the Away row is the column's sky card (18px, 15 in) with its line in t.sub", !!aw && aw.r === "18px" && aw.pl === "15px" && aw.c === "rgb(93, 89, 80)", JSON.stringify(aw));
       /* 23 November: a row of words carries no icon — the plane on its blue tile is gone, and the word Away starts on the
          box's own inset with nothing before it; Edit stays, the row's one action */
       const lead = await page.locator('[data-tour="cal-away"]').first().evaluate((el) => { const w = [...el.querySelectorAll("span")].find((s) => s.children.length === 0 && s.textContent.trim() === "Away"), r = el.getBoundingClientRect(), cs = getComputedStyle(el);
         return { svgs: el.querySelectorAll("svg").length, lead: w ? Math.round(w.getBoundingClientRect().left - r.left - parseFloat(cs.borderLeftWidth) - parseFloat(cs.paddingLeft)) : null, h: Math.round(r.height), edit: !!el.querySelector("button") }; }).catch(() => null);
       check("(c) …and it leads with its word: no plane, no glyph at all, Away on the box's inset, Edit on the right", !!lead && lead.svgs === 0 && lead.lead === 0 && lead.edit && lead.h >= 62, JSON.stringify(lead));
+      /* each day in its own month's grid: the first and the last of the span struck, the day before it not */
+      const sFrom = await struckIn(page, FROM), sTo = await struckIn(page, TO), sOut = await struckIn(page, OUTSIDE);
+      check("(c) the month grid strikes the away days through, and not the day before", sFrom && sTo && !sOut, JSON.stringify({ FROM, TO, OUTSIDE, sFrom, sTo, sOut }));
+      /* the booked day inside the span, picked in its own month */
+      await toMonth(page, dayPlus(db, 3));
       await tap(page, `[data-day="${dayOf(dayPlus(db, 3))}"]`, 700);
       const t3 = await text();
       check("(c) a booked day inside the span reads Away · 1 lesson still booked, the lesson under it, Call off under that", /1 lesson still booked/.test(t3) && /Cian Murphy/.test(t3) && (await page.locator('[data-tour="cal-weather"]').count()) === 1, t3.slice(0, 220));
+      /* the List runs from the month the grid is on: back to this month, so it starts today */
+      await toMonth(page, todayIso);
       await tap(page, '[data-tour="cal-view"] [aria-label="List"]', 700);
       const boxes = page.locator('.nsc-day[data-away="1"]');
       check("(c) the List view carries one box per away day leading with Away, the booked days keeping their lessons", (await boxes.count()) === 4 && /Away/.test(await boxes.first().innerText()) && /Cian Murphy/.test(await boxes.nth(1).innerText()) && !/4:00 pm/.test(await boxes.first().innerText()), String(await boxes.count()));
@@ -126,6 +147,7 @@ const { check, results, summary } = M.checker("away");
       await openDay(page, FROM);
       const t4 = await text(); await shot("04-player-diary-away");
       check("(d) the player's month grid strikes the days through and the day picked reads Niamh is away, with no times", (await struck(page, FROM)) && /Niamh is away/.test(t4) && !/10:00/.test(t4.split("Niamh is away")[1] || ""), t4.slice(0, 200));
+      await toMonth(page, OUTSIDE);
       await tap(page, `[data-day="${dayOf(OUTSIDE)}"]`, 700);
       check("(d) the day before the span still offers the week's times", /9:00/.test(await text()) && !/is away/.test(await text()), (await text()).slice(0, 160));
       await tap(page, '[data-tour="cal-view"] [aria-label="List"]', 700);

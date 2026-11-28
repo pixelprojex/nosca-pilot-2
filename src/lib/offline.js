@@ -13,12 +13,16 @@
  *                     drills, attendance, files: [{ key, id, type, name, size }] }
  *   files      key ("<lessonId>/<mediaId>") → { key, lessonId, blob, type, name, size }
  *   snapshots  owner → { owner, at, data }
+ *   imports    "<owner>|<chatHash>" → an import's manifest (docs/import/SPEC.md):
+ *              the choices, the sorted verdicts, the batches, what is up
+ *              and what is written, so a reload or a closed app picks up
+ *              where it stopped once the same file is chosen again
  *
  * Rows carry the account they belong to, and are listed per account:
  * a phone two people sign into never shows one the other's downloads.
  */
 const DB_NAME = "nosca-offline";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 let opening = null;
 
 export const offlineSupported = () => typeof indexedDB !== "undefined" && indexedDB !== null;
@@ -34,6 +38,7 @@ function open() {
       if (!db.objectStoreNames.contains("lessons")) db.createObjectStore("lessons", { keyPath: "id" }).createIndex("owner", "owner");
       if (!db.objectStoreNames.contains("files")) db.createObjectStore("files", { keyPath: "key" }).createIndex("lessonId", "lessonId");
       if (!db.objectStoreNames.contains("snapshots")) db.createObjectStore("snapshots", { keyPath: "owner" });
+      if (!db.objectStoreNames.contains("imports")) db.createObjectStore("imports", { keyPath: "key" }).createIndex("owner", "owner");
     };
     req.onsuccess = () => {
       const db = req.result;
@@ -82,11 +87,19 @@ export const putSnapshot = (owner, data) => run("snapshots", "readwrite", (s) =>
 export const getSnapshot = (owner) => run("snapshots", "readonly", (s) => s.get(owner)).then((r) => r || null);
 export const clearSnapshot = (owner) => run("snapshots", "readwrite", (s) => s.delete(owner));
 
+/* ---------- an import's manifest ---------- */
+export const putImport = (rec) => run("imports", "readwrite", (s) => s.put(rec));
+export const getImport = (key) => run("imports", "readonly", (s) => s.get(key)).then((r) => r || null);
+export const removeImport = (key) => run("imports", "readwrite", (s) => s.delete(key));
+export const listImports = (owner) => run("imports", "readonly", (s) => s.getAll()).then((rows) => (rows || []).filter((r) => !owner || r.owner === owner));
+export const clearImports = async (owner) => { for (const r of await listImports(owner)) await removeImport(r.key); };
+
 /* everything of one account's, for a deleted account */
 export const clearOwner = async (owner) => {
   const rows = await listSaved(owner);
   for (const r of rows) await removeSaved(r.id);
   try { await clearSnapshot(owner); } catch (e) { /* fine */ }
+  try { await clearImports(owner); } catch (e) { /* fine */ }
 };
 
 /* Ask the browser to keep this origin's storage rather than evict it

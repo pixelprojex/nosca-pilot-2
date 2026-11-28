@@ -43,6 +43,35 @@ function wedge(cls, flip) {
     `<g${flip ? ` transform="rotate(180 ${W / 2} ${H / 2})"` : ''}><path class="pins__edge" pathLength="1" d="M0 0L${W} ${H}"/>${out}</g></svg>`;
 }
 
+/* THE DEEP GREEN CARD'S STRIPES, as the first print file drew them (src/pages/Install.jsx, BAND): the lines
+   x + y = c, 3.6 mm apart (c steps 3.6 * sqrt 2 from 0.909), across the top 15 mm and the foot 15 mm of the 84 x 55
+   card, a clear band through the middle where the mark and NOSCA stand, and no gold edge. */
+const CARD_W = 84, CARD_H = 55, PITCH = 3.6 * Math.SQRT2, PHASE = 0.909, BAND_TOP = 15, BAND_FOOT = 40;
+const f2 = (n) => +n.toFixed(2);
+function cardBand() {
+  const top = [], foot = [];
+  for (let c = PHASE; c < CARD_W + CARD_H; c += PITCH) {
+    const ts = Math.min(BAND_TOP, c), te = Math.max(0, c - CARD_W);
+    if (ts > te) top.push(`M${f2(c - ts)} ${f2(ts)}L${f2(c - te)} ${f2(te)}`);
+    const fs = Math.max(BAND_FOOT, c - CARD_W), fe = Math.min(CARD_H, c);
+    if (fe > fs) foot.push(`M${f2(c - fs)} ${f2(fs)}L${f2(c - fe)} ${f2(fe)}`);
+  }
+  return [...top, ...foot];
+}
+/* the same stripes as a band along a section's edge: a strip 15 units tall and 400 wide, sliced to the strip's
+   height so the stripes keep the card's angle and spacing at any width; each stripe drawn outward from the band */
+function edgeBand(where) {
+  const W = 400, H = 15, out = [];
+  for (let c = PHASE; c < W + H; c += PITCH) {
+    const a = Math.min(H, c), b = Math.max(0, c - W);
+    if (a <= b) continue;
+    /* top: from the band's inner edge (y = 15) up; foot: from its inner edge (y = 0) down */
+    out.push(where === 'top' ? `M${f2(c - a)} ${f2(a)}L${f2(c - b)} ${f2(b)}` : `M${f2(c - a)} ${f2(H - a)}L${f2(c - b)} ${f2(H - b)}`);
+  }
+  return `<svg class="band__${where}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">` +
+    out.map((d) => `<path pathLength="1" d="${d}"/>`).join('') + '</svg>';
+}
+
 /* an image sequence's manifest (assets/seq/<name>/manifest.json, written by the capture tools) */
 const frameName = (m, i) => m.pattern.replace(/%0(\d)d/, (_, n) => String(i).padStart(+n, '0'));
 function seqOf(name) {
@@ -83,8 +112,12 @@ const GEN = {
     const focus = a.focus || e.focus || e.position;
     const credit = a.credit && (e.credit || e.by || e.author) ? `<p class="photo__credit">${esc(typeof (e.credit || e.by || e.author) === 'string' ? (e.credit || e.by || e.author) : '')}</p>` : '';
     const tone = /^#[0-9a-f]{3,8}$/i.test(e.dominant || e.tone || '') ? (e.dominant || e.tone) : '';
-    const fig = `<figure class="photo${a.class ? ' ' + a.class : ''}" style="${w && h ? `--ar:${w}/${h};` : ''}${focus ? `--focus:${esc(focus)};` : ''}${tone ? `--tone:${tone};` : ''}"${a.attrs ? ' ' + a.attrs : ''}>` +
-      `<img src="${src}"${srcset}${w ? ` width="${w}"` : ''}${h ? ` height="${h}"` : ''} alt="${esc(alt)}" decoding="async"${a.eager ? ' fetchpriority="high"' : ' loading="lazy"'}></figure>`;
+    const lqip = /^data:image\/webp;base64,[A-Za-z0-9+/=]+$/.test(e.lqip || '') ? e.lqip : '';
+    const avif = vars.filter((v) => v.avif);
+    const img = `<img src="${src}"${srcset}${w ? ` width="${w}"` : ''}${h ? ` height="${h}"` : ''} alt="${esc(alt)}" decoding="async"${a.eager ? ' fetchpriority="high"' : ' loading="lazy"'}>`;
+    const pic = avif.length ? `<picture><source type="image/avif" srcset="${avif.map((v) => `${file(v.avif)} ${v.w || v.width}w`).join(', ')}" sizes="${esc(a.sizes || '100vw')}">${img}</picture>` : img;
+    const fig = `<figure class="photo${a.class ? ' ' + a.class : ''}" style="${w && h ? `--ar:${w}/${h};` : ''}${focus ? `--focus:${esc(focus)};` : ''}${tone ? `--tone:${tone};` : ''}${lqip ? `--lqip:url(${lqip});` : ''}"${a.attrs ? ' ' + a.attrs : ''}>` +
+      pic + `</figure>`;
     return credit ? `<div class="photo-wrap">${fig}${credit}</div>` : fig;
   },
   /* <!-- @include loop name="loop-golf-green-1" class="…" attrs="…" alt="…" scrub="1" credit="1" -->
@@ -96,8 +129,10 @@ const GEN = {
     const dir = 'assets/photo/', w = e.width, h = e.height, alt = a.alt !== undefined ? a.alt : (e.alt || '');
     const tone = /^#[0-9a-f]{3,8}$/i.test(e.dominant || '') ? e.dominant : '';
     const credit = a.credit && typeof e.credit === 'string' ? `<p class="photo__credit">${esc(e.credit)}</p>` : '';
-    const fig = `<figure class="vid${a.class ? ' ' + a.class : ''}" style="--ar:${w}/${h};${e.focus ? `--focus:${esc(e.focus)};` : ''}${tone ? `--tone:${tone};` : ''}"${a.attrs ? ' ' + a.attrs : ''}>` +
-      `<video ${a.scrub ? 'data-scrub-video' : 'data-video'} muted playsinline${a.scrub ? '' : ' loop'} preload="none" width="${w}" height="${h}" poster="${dir}${e.poster.file}" src="${dir}${e.file}"${alt ? ` aria-label="${esc(alt)}"` : ' aria-hidden="true"'}></video></figure>`;
+    const focus = a.focus || e.focus;
+    const lqip = /^data:image\/webp;base64,[A-Za-z0-9+/=]+$/.test(e.lqip || '') ? e.lqip : '';
+    const fig = `<figure class="vid${a.class ? ' ' + a.class : ''}" style="--ar:${w}/${h};${focus ? `--focus:${esc(focus)};` : ''}${tone ? `--tone:${tone};` : ''}${lqip ? `--lqip:url(${lqip});` : ''}"${a.attrs ? ' ' + a.attrs : ''}>` +
+      `<video ${a.scrub ? 'data-scrub-video' : 'data-video'}${a.bg ? ' data-bg' : ''} muted playsinline${a.scrub ? '' : ' loop'} preload="${a.first ? 'auto' : 'metadata'}" width="${w}" height="${h}" poster="${dir}${e.poster.file}" src="${dir}${e.file}"${alt ? ` aria-label="${esc(alt)}"` : ' aria-hidden="true"'}></video></figure>`;
     return credit ? `<div class="photo-wrap">${fig}${credit}</div>` : fig;
   },
   /* <!-- @include mark class="…" --> the woven mark, two paths that can be drawn */
@@ -113,6 +148,29 @@ const GEN = {
       `<g class="weave__l" transform="translate(14 12.5)"><path${st} d="${CIRC}" stroke-dasharray="50.583 3.452" stroke-dashoffset="45.441"/></g>` +
       `<g class="weave__r" transform="translate(26 12.5)"><path${st} d="${CIRC}" stroke-dasharray="50.583 3.452" stroke-dashoffset="18.423"/></g></svg>`;
   },
+  /* <!-- @include band edge="both|top|foot" class="…" --> the deep green card's stripes along a section's top and foot */
+  band: (a) => {
+    const e = a.edge || 'both';
+    return `<div class="band band--${e}${a.class ? ' ' + a.class : ''}" aria-hidden="true" data-stripes${a.attrs ? ' ' + a.attrs : ''}>` +
+      (e !== 'foot' ? edgeBand('top') : '') + (e !== 'top' ? edgeBand('foot') : '') + '</div>';
+  },
+  /* <!-- @include bcard world="green|olive" class="…" attrs="…" --> the business card as an object, both faces.
+     The deep green's front is the first print file's (the band); the olive's is the two corner wedges. */
+  bcard: (a) => {
+    const world = a.world === 'olive' ? 'olive' : 'green';
+    const ring = `<path d="${RING_L}"/><path d="${RING_R}"/>`;
+    const front = world === 'green'
+      ? `<div class="bcard__face bcard__front bcard__front--band" role="img" aria-label="The front of the deep green Nosca card: gold pinstripes across its top and foot, the two woven rings and NOSCA in gold">` +
+        `<svg class="bcard__art" viewBox="0 0 ${CARD_W} ${CARD_H}" aria-hidden="true" focusable="false"><rect width="${CARD_W}" height="${CARD_H}" class="bcard__ground"/>` +
+        `<g class="bcard__band">${cardBand().map((d) => `<path pathLength="1" d="${d}"/>`).join('')}</g>` +
+        `<g class="bcard__rings" transform="translate(31 17.5) scale(0.55)">${ring}</g>` +
+        `<text class="bcard__nosca" x="${f2(CARD_W / 2 + 0.42 * 3.53 / 2)}" y="36.72" text-anchor="middle">NOSCA</text></svg><i class="sheen" aria-hidden="true"></i></div>`
+      : `<div class="bcard__face bcard__front" role="img" aria-label="The front of the olive Nosca card: gold pinstripes in two corners, the two woven rings and NOSCA in gold">` +
+        `<div class="pins" aria-hidden="true">${wedge('pins__tr')}${wedge('pins__bl', true)}</div>` +
+        `<div class="bcard__lock" aria-hidden="true">${GEN.mark({ class: 'bcard__mark', foil: 'd' })}<span class="wordmark bcard__word">NOSCA</span></div><i class="sheen" aria-hidden="true"></i></div>`;
+    const back = render(read(path.join(SRC, 'partials', 'cardback.html')), {});
+    return `<div class="bcard${a.class ? ' ' + a.class : ''}" data-world="${world}"${a.attrs ? ' ' + a.attrs : ''}><div class="bcard__flip">${front}${back}</div></div>`;
+  },
   /* <!-- @include pins class="…" --> the two opposing wedges of gold pinstripes */
   pins: (a) => `<div class="pins${a.class ? ' ' + a.class : ''}" aria-hidden="true"${a.attrs ? ' ' + a.attrs : ''}>${wedge('pins__tr')}${wedge('pins__bl', true)}</div>`,
   /* <!-- @include phone screens="coach-today-golf,coach-plus-golf" alts="…|…" mode="fade" class="…" eager="1" --> */
@@ -122,6 +180,11 @@ const GEN = {
     const seq = a.seq ? seqOf(a.seq) : null;
     const lead = seq ? `<div class="screen seq is-on" data-sequence="assets/seq/${seq.name}/" data-frames="${seq.frames}" data-pattern="${seq.pattern}" data-w="${seq.w}" data-h="${seq.h}"${a.seqattrs ? ' ' + a.seqattrs : ''}>` +
       `<img src="assets/seq/${seq.name}/${frameName(seq, a.poster === 'last' ? seq.frames - 1 : +a.poster || 0)}" width="${seq.w}" height="${seq.h}" alt="${esc(a.seqalt || alts[0] || '')}" decoding="async"${a.eager ? ' fetchpriority="high"' : ' loading="lazy"'}></div>` : '';
+    const film = a.film && exists(path.join(ROOT, 'assets', a.film + '.mp4')) ?
+      `<video class="screen is-on" data-video muted playsinline loop preload="metadata" width="600" height="1298" poster="assets/${a.film}-poster.webp" src="assets/${a.film}.mp4"${a.alt ? ` aria-label="${esc(a.alt)}"` : ' aria-hidden="true"'}></video>` : '';
+    if (film) return `<div class="phone${a.class ? ' ' + a.class : ''}"${a.attrs ? ' ' + a.attrs : ''} data-phone>` +
+      `<div class="phone__body"><div class="phone__screen" style="background:#0B0F10 url(assets/${a.film}-poster.webp) center/cover">${film}</div>` +
+      `<i class="phone__island" aria-hidden="true"></i></div><i class="phone__floor" aria-hidden="true"></i></div>`;
     const imgs = lead + names.map((n, i) => `<img class="screen${i === 0 && !seq ? ' is-on' : ''}" src="assets/${n}.webp" width="780" height="1688" alt="${esc(seq ? '' : alts[i] || '')}"${(i > 0 || seq) && !(alts[i] && !seq) ? ' aria-hidden="true"' : ''} decoding="async"${a.eager && i === 0 ? ' fetchpriority="high"' : ' loading="lazy"'}>`).join('');
     return `<div class="phone${a.class ? ' ' + a.class : ''}"${a.attrs ? ' ' + a.attrs : ''}${a.settle ? ` data-phone="${esc(a.settle)}"` : ' data-phone'}>` +
       `<div class="phone__body"><div class="phone__screen"${names.length + (seq ? 1 : 0) > 1 || a.mode ? ` data-screens="${esc(a.mode || 'fade')}"` : ''}${a.autoplay ? ` data-autoplay="${esc(a.autoplay)}"` : ''}>${imgs}</div>` +
@@ -215,17 +278,18 @@ function build() {
       header: 'paper',
       ...meta,
       page, world,
-      theme: meta.theme || (/^(dark|world|green)$/.test(meta.header || '') ? WORLD[world] : meta.header === 'rest' ? '#F6F4EE' : '#FFFFFF'),
+      theme: meta.theme || (/^(dark|world|green)$/.test(meta.header || '') ? WORLD[world] : meta.header === 'rest' ? '#F2ECE0' : '#FAF7F0'),
       worldColor: WORLD[world],
       pageCss: exists(path.join(SRC, 'css', page + '.css')) ? `<link rel="stylesheet" href="css/${page}.css">` : '',
       pageJs: exists(path.join(SRC, 'js', page + '.js')) ? `<script defer src="js/${page}.js"></script>` : '',
+      preloadImage: meta.preloadImage && exists(path.join(ROOT, meta.preloadImage)) ? `<link rel="preload" as="image" href="${esc(meta.preloadImage)}" fetchpriority="high">` : '',
       /* preload: InstrumentSerif-Italic, … — a font the page's first screen sets large, fetched with the two the shell always preloads */
       preload: (meta.preload || '').split(',').map((n) => n.trim()).filter((n) => /^[\w-]+$/.test(n) && exists(path.join(ROOT, 'fonts', n + '.woff2')))
         .map((n) => `<link rel="preload" href="fonts/${n}.woff2" as="font" type="font/woff2" crossorigin>`).join('\n')
     };
     vars.title = esc(vars.title); vars.description = esc(vars.description);
-    let html = render(shell, { ...vars, content: '%%CONTENT%%' });
-    html = html.replace('%%CONTENT%%', () => render(body, vars));
+    let html = meta.raw ? render(body.trim() + '\n', vars) : render(shell, { ...vars, content: '%%CONTENT%%' });
+    if (!meta.raw) html = html.replace('%%CONTENT%%', () => render(body, vars));
     html = html.replace(/\n[ \t]*\n[ \t]*\n+/g, '\n\n');
     /* guard rails: nothing absolute, nothing third-party but the app's own links */
     const bad = [...html.matchAll(/(?:src|href)="(\/[^"]*|https?:\/\/[^"]*)"/g)].map((m) => m[1])

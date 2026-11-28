@@ -1,27 +1,15 @@
 <footer class="foot g-green" data-header="green">
-  <div class="foot__card">
-    <!-- @include pins attrs="data-stripes" -->
-    <div class="foot__lock">
-      <!-- @include mark class="foot__mark" foil="d" attrs="data-stripes" -->
-      <p class="wordmark foot__word">NOSCA</p>
-    </div>
-  </div>
-  <div class="foot__base wrap">
-    <hr class="rule-gold" data-rule>
-    <div class="foot__cols">
-      <div class="foot__say">
-        <p class="foot__tag">Coaching, linked.</p>
-        <p class="foot__name">From the Irish <i lang="ga">nascadh</i>, linking.</p>
-        <p class="sports foot__sports"><span>Golf</span> <span>Tennis</span> <span>Rowing</span> <span>Squash</span> <span>Padel</span> <span>Equestrian</span></p>
-      </div>
-      <nav class="foot__nav" aria-label="Footer">
-        <a href="product.html"{{cur:product}}>Product</a>
-        <a href="{{appUrl}}" rel="noopener">Open Nosca</a>
-        <a href="story.html"{{cur:story}}>Story</a>
-        <a href="{{installUrl}}" rel="noopener">Add to Home Screen</a>
-        <a href="partners.html"{{cur:partners}}>Partners</a>
-      </nav>
-    </div>
+  <div class="foot__in wrap">
+    <a class="foot__lock" href="#top" aria-label="Nosca, to the top"><span class="seal foot__seal"><!-- @include mark --></span><span class="wordmark foot__word" aria-hidden="true">Nosca</span></a>
+    <p class="foot__tag">Coaching, linked.</p>
+    <p class="foot__name">From the Irish <i lang="ga">nascadh</i>, linking.</p>
+    <hr class="rule-gold foot__rule">
+    <nav class="foot__nav" aria-label="Footer">
+      <a href="{{appUrl}}" rel="noopener">Open Nosca</a>
+      <a href="{{installUrl}}" rel="noopener">Add to Home Screen</a>
+      <a href="#story">Story</a>
+    </nav>
+    <p class="foot__sports"><span>Golf · Tennis · Rowing</span> <span>Squash · Padel · Equestrian</span></p>
     <div class="foot__small">
       <p>© {{year}} Nosca · Made in Ireland</p>
       <p>Screens show the app with its demo data. The names are fictional.</p>

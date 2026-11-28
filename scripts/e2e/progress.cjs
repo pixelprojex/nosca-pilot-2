@@ -117,14 +117,14 @@ const { check, results, summary } = M.checker("progress");
       check("(f4) …and carries the level then and now, the lessons, the areas, the drills, the tip and every lesson", /HI 16\.4/.test(html) && /from HI 20\.1/.test(html) && /8 lessons/.test(html) && /Short game — 4/.test(html) && /2 of 3 done/.test(html) && /3 of 4 lessons · missed Sat 12 Sep/.test(html) && html.includes("Gate drill") && html.includes("Trust the shallow") && html.includes("Every lesson") && html.includes("Driving notes."), html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 300));
       await tap(page, '[aria-label="Back"]', 900);
       check("(g) Back lands on the player file", /Cian Murphy/.test(await text()) && (await page.locator('[data-tour="player-progress"]').count()) === 1);
-      /* (g2) 24 November: the level under the name is the door to Progress as well —
-         the line in the sub grey with a chevron after it, 44 to a finger */
+      /* (g2) 24 November: the level under the name is the door to Progress as well, 44 to a finger —
+         since 28 November the level's chip: the lead's pale, the level and its chevron in the lead (golf's fairway) */
       const level = page.locator('[data-tour="player-level"]');
       const lv = (await level.count()) ? await level.first().evaluate((b) => ({ text: b.textContent.trim(), color: getComputedStyle(b).color, glyphs: [...b.querySelectorAll("svg")].map((s) => String(s.getAttribute("class") || "")),
         under: (() => { const h = document.querySelector('[data-scroll="screen"] h1'); return !!h && b.getBoundingClientRect().top >= h.getBoundingClientRect().bottom; })() })) : null;
       const fit = await M.fingerFit(page, '[data-tour="player-level"]');
       await shot("01c-coach-file-level");
-      check("(g2) the level under the name — HI 16.4 — is a door: the level in the sub grey, a chevron after it, under the name", !!lv && lv.text === "HI 16.4" && lv.color === "rgb(95, 95, 101)" && lv.glyphs.length === 1 && /chevron-right/.test(lv.glyphs[0]) && lv.under, JSON.stringify(lv));
+      check("(g2) the level under the name — HI 16.4 — is a door: the level's chip in the lead, a chevron after it, under the name", !!lv && lv.text === "HI 16.4" && lv.color === "rgb(40, 89, 55)" && lv.glyphs.length === 1 && /chevron-right/.test(lv.glyphs[0]) && lv.under, JSON.stringify(lv));
       check("(g3) …answering a finger 44 tall", !!fit && fit.missed.length === 0, JSON.stringify(fit));
       await level.first().click(); await page.waitForTimeout(1000);
       const t1b = await text();
@@ -195,7 +195,7 @@ const { check, results, summary } = M.checker("progress");
       check("(m) a named stage is the ladder: the steps reached ticked, the current one with its date, no line", (await page.locator('[data-progress="level"]').count()) === 0 && (await page.locator('[data-progress="ladder"]').count()) === 1 && ticks === 2 && /Orange ball · U9\s*since Sun 9 Aug/.test(t5) && /Green ball/.test(t5), `${ticks} ticks · ${t5.slice(0, 200)}`);
       /* a step not yet reached is an empty ring, so its ring is all that says where it is: LINE_STRONG, 3.3:1 (on the hairline it was 1.2:1) */
       const rings = await page.locator('[data-progress="ladder"] span').evaluateAll((els) => els.filter((el) => el.getBoundingClientRect().width === 20 && !el.querySelector("svg")).map((el) => `${el.style.borderTopWidth} ${getComputedStyle(el).borderTopColor}`));   /* the written width: at a device pixel ratio of 1 the computed 1.5 snaps to 1 */
-      check("(m3) the ladder's steps not yet reached are rings of the strong line, 1.5px", rings.length >= 1 && rings.every((x) => x === "1.5px rgb(142, 142, 147)"), JSON.stringify(rings));
+      check("(m3) the ladder's steps not yet reached are rings of the strong line, 1.5px", rings.length >= 1 && rings.every((x) => x === "1.5px rgb(139, 134, 123)"), JSON.stringify(rings));
       await shot("04-tennis-ladder");
       await ctx.close();
     }

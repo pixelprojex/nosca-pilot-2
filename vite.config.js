@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { resolve, join, relative } from "node:path";
 import { FIRST_SITE, settingsFromSite, forwardScript, cleanUrl, usable, secretNamed } from "./scripts/public-settings.mjs";
 
 /* THE BUILD KNOWS WHEN IT WAS MADE. The time is stamped into the bundle
@@ -50,6 +51,29 @@ const buildStamp = (env) => ({
   },
 });
 
+/* THE IMPORT'S MODEL KEY NEVER SHIPS (docs/import/SPEC.md). The key lives in the Functions'
+   environment alone and the SDK is imported only under netlify/functions; a bundle is handed to every
+   visitor, so a build whose output names either — the variable, the package, a key's own prefix —
+   stops, and the last good deploy is still served. Every file written is read, the copied public ones
+   too. */
+const NEVER_SHIPPED = ["ANTHROPIC", "@anthropic-ai", "sk-ant-"];
+const keyNeverShipped = () => {
+  let outDir = null;
+  const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((d) => (d.isDirectory() ? walk(join(dir, d.name)) : [join(dir, d.name)]));
+  return {
+    name: "nosca-key-never-shipped",
+    apply: "build",
+    configResolved(c) { outDir = resolve(c.root, c.build.outDir); },
+    closeBundle() {
+      for (const file of walk(outDir)) {
+        const text = readFileSync(file).toString("latin1");
+        const hit = NEVER_SHIPPED.find((w) => text.includes(w));
+        if (hit) throw new Error(`nosca: ${relative(outDir, file)} carries "${hit}". The import's model key and its SDK belong to the Functions alone, so this build stops; the last good deploy is still served.`);
+      }
+    },
+  };
+};
+
 export default defineConfig(async ({ mode, command }) => {
   const files = loadEnv(mode, process.cwd(), "VITE_");
   /* The address as it is usually pasted is put right first (cleanUrl), wherever it was named. */
@@ -74,7 +98,7 @@ export default defineConfig(async ({ mode, command }) => {
   if (secret) throw new Error(`nosca: ${secret}. A bundle is handed to every visitor, so this build stops; the last good deploy is still served.`);
   const configured = usable(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY);
   return {
-    plugins: [react(), buildStamp(env), forwardUnlessConfigured(configured)],
+    plugins: [react(), buildStamp(env), forwardUnlessConfigured(configured), keyNeverShipped()],
     define: { "import.meta.env.VITE_BUILD_TIME": JSON.stringify(BUILT) },
   };
 });

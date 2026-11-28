@@ -38,8 +38,9 @@
        nothing changed (24 November);
    (t) a name on a booked or a requested tile never breaks inside a word
        (24 November): at 390 "Maximiliano Ó Súilleabháin" stands whole on
-       two lines; at 320, where it would not, the tile carries the first
-       name and the surname's initial, "Maximiliano Ó S."; a name that fits
+       two lines, three across; at 320, where even "Maximiliano" ran past a
+       tile three across and ended on an ellipsis, the day's tiles go two
+       across (28 November) and the whole name stands on two lines; a name that fits
        (Cian Murphy) is never shortened; every rendered line, read off the
        characters' own boxes, starts and ends on a whole word; and a word
        wider than the tile ends on an ellipsis, never broken.
@@ -115,7 +116,14 @@ const { check, summary } = M.checker("edit-day");
   const sheet = (page) => page.locator("[data-sheet]");
   const sheetText = async (page) => M.norm(await sheet(page).innerText());
   const dayBox = (page, name) => page.locator("div.mb-6").filter({ has: page.locator("span", { hasText: new RegExp(`^${name}$`) }) }).first();
-  const boxText = async (page, name) => { const b = dayBox(page, name); return (await b.count()) ? M.norm(await b.innerText()) : ""; };
+  /* a coach's free hours fold into one chip, Free · 4, on every day but the first one bookable (28 November, the
+     class plan's S3): the day's hours are read laid out, the chip tapped first */
+  const boxText = async (page, name) => {
+    const b = dayBox(page, name); if (!(await b.count())) return "";
+    const fold = b.locator('[data-tour="agenda-free"]');
+    if (await fold.count()) { await fold.first().click(); await page.waitForTimeout(400); }
+    return M.norm(await b.innerText());
+  };
   const openList = async (page) => {
     await tap(page, '[aria-label="Diary"]', 1000);
     const list = page.locator('[data-tour="cal-view"] [aria-label="List"]');
@@ -337,9 +345,9 @@ const { check, summary } = M.checker("edit-day");
       await page.locator("[data-sheet] button", { hasText: /^Weather$/ }).first().dispatchEvent("click"); await page.waitForTimeout(300);
       await page.locator("[data-sheet] button", { hasText: /^Next$/ }).first().dispatchEvent("click"); await page.waitForTimeout(700);
       const callTxt = await sheetText(page);
-      /* a chosen tile is filled with the sport's cloth tone since 23 November (golf's #94BD9E), every other tile the
+      /* a chosen tile is filled with the sport's cloth tone since 23 November (golf's #A4C9AC), every other tile the
          quiet key in the sport's pale — read the fill */
-      const picked = await page.locator("[data-sheet] button[aria-label]").evaluateAll((els) => els.filter((e) => getComputedStyle(e).backgroundColor === "rgb(148, 189, 158)").map((e) => e.getAttribute("aria-label")));
+      const picked = await page.locator("[data-sheet] button[aria-label]").evaluateAll((els) => els.filter((e) => getComputedStyle(e).backgroundColor === "rgb(164, 201, 172)").map((e) => e.getAttribute("aria-label")));
       check("(g5) Call off on a booked day opens the call-off, and its days start on that day",
             /Why/.test(whyTxt) && callTxt.includes(label(NEXT)) && picked.length === 1 && picked[0].startsWith(label(NEXT)), JSON.stringify({ picked, txt: callTxt.slice(0, 160) }));
       await closeSheet(page);
@@ -476,7 +484,6 @@ const { check, summary } = M.checker("edit-day");
       /* every line is whole words of what is shown, in order, and no word is split between lines */
       const whole = (t) => !!t && !t.missing && t.lines.length >= 1 && t.lines.length <= 2 && t.lines.every((l) => l.split(" ").every((w) => t.words.includes(w)))
         && t.lines.join(" ").split(" ").join(" ") === t.words.join(" ") && t.clipped.every((c) => c.wider && c.ellipsis);
-      const firstAndInitial = (shown) => shown === "Maximiliano Ó S.";
       for (const width of [390, 320]) {
         const tt = await boot("coach", dbT, width); page = tt.page;
         await openList(page);
@@ -486,10 +493,15 @@ const { check, summary } = M.checker("edit-day");
         const long9 = T.find((x) => x.time === "9:00 am"), long10 = T.find((x) => x.time === "10:00 am"), cian = T.find((x) => x.time === "11:00 am");
         const said = JSON.stringify(T.map((x) => ({ t: x.time, shown: x.shown, lines: x.lines, clipped: x.clipped, inside: x.inside })));
         check(`(t1 ${width}) every held tile's lines start and end on whole words — no word broken — and a word cut is one wider than the tile, on its ellipsis`, T.length === 3 && T.every(whole), said);
+        const cols = await page.locator('[data-tour="editday-times"]').getAttribute("data-cols");
         if (width === 390) {
-          check("(t2 390) at 390 the long name stands whole on two lines, on the booked tile and the requested one", !!long9 && !!long10 && long9.shown === LONG && long10.shown === LONG && long9.lines.length === 2 && long10.lines.length === 2, said);
+          check("(t2 390) at 390 the long name stands whole on two lines, on the booked tile and the requested one, three across", !!long9 && !!long10 && long9.shown === LONG && long10.shown === LONG && long9.lines.length === 2 && long10.lines.length === 2 && cols === "3", `${said} · cols ${cols}`);
         } else {
-          check("(t2 320) at 320, where the whole name would run past two lines, both tiles carry the first name and the surname's initial: Maximiliano Ó S.", !!long9 && !!long10 && firstAndInitial(long9.shown) && firstAndInitial(long10.shown), said);
+          /* 28 November: three across at 320 a tile has 71 inside, and even the short form's "Maximiliano" ended on an
+             ellipsis ("Maximilia…" — a name cut inside a word, the sweep's loose end). The tile says so and the day's
+             tiles go two across, where the whole name stands on two lines; nothing is shortened and nothing is cut */
+          check("(t2 320) at 320, where a word of the name would not fit a tile three across, the day's tiles go two across and the long name stands whole on two lines, on the booked tile and the requested one",
+            !!long9 && !!long10 && long9.shown === LONG && long10.shown === LONG && long9.lines.length === 2 && long10.lines.length === 2 && long9.clipped.length === 0 && long10.clipped.length === 0 && cols === "2", `${said} · cols ${cols}`);
         }
         check(`(t3 ${width}) a name that fits is never shortened: Cian Murphy whole`, !!cian && cian.shown === "Cian Murphy" && cian.clipped.length === 0, said);
         check(`(t4 ${width}) the requested tile still says Requested under the name, and the time leads both`, !!long10 && long10.requested && /^10:00 am .* Requested$/.test(long10.tileText) && !!long9 && /^9:00 am /.test(long9.tileText), JSON.stringify([long9 && long9.tileText, long10 && long10.tileText]));

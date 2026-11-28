@@ -33,6 +33,9 @@ function freshDb() {
   /* one lesson of the adult's own on the next weekday, so the Diary's
      List view carries their row and the crawl taps it */
   for (let n = 1; n <= 7; n++) { const d = new Date(db.now() + n * 86400000); if ((d.getDay() + 6) % 7 <= 4) { M.addBooking(db, { coachId: IDS.coach, playerId: IDS.adult, date: M.ymd(d), time: "10:00 am", duration: 60 }); break; } }
+  /* IMPORT=1: the import switched on (docs/import/SPEC.md) — its function ready and the coach's switch on —
+     so its new controls are tapped too; without it the import is absent, as on a project not yet switched on */
+  if (process.env.IMPORT) { db.importReady = true; M.setPrefs(db, IDS.coach, { player_imports: true }); }
   return db;
 }
 

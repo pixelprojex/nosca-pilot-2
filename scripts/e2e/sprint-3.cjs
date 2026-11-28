@@ -248,9 +248,11 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-log"]', 900);
       await page.locator('button[aria-label]').filter({ hasText: /Maximiliano/ }).first().click(); await page.waitForTimeout(900);
-      const hero = await page.evaluate(() => { const el = [...document.querySelectorAll("span")].find((x) => /^Maximiliano Ó Súilleabháin$/.test(x.textContent.trim()) && getComputedStyle(x).fontSize === "30px"); return el ? { trunc: el.classList.contains("truncate"), h: el.getBoundingClientRect().height, over: el.scrollWidth - el.clientWidth } : null; });
-      /* TYPE.screen is 30 since 21 November (24 before): two lines of it are 66 */
-      check("(g) the log's title takes a second line for a long name rather than cutting it", !!hero && !hero.trunc && hero.over <= 1 && hero.h > 34 && hero.h <= 70, JSON.stringify(hero));
+      const hero = await page.evaluate(() => { const el = [...document.querySelectorAll("span")].find((x) => /^Maximiliano Ó Súilleabháin$/.test(x.textContent.trim()) && getComputedStyle(x).fontSize === "32px"); return el ? { trunc: el.classList.contains("truncate"), h: el.getBoundingClientRect().height, over: el.scrollWidth - el.clientWidth } : null; });
+      /* TYPE.screen is the bold serif at 32/1.1 since 28 November (30 from 21 November, 24 before): two lines are 70,
+         and under the last the room the clamp keeps for the serif's descent (serifRoom: 0.141em, 4.5 at 32), or the
+         tails of its g's and y's were clipped — two lines are 75, three would be 110 */
+      check("(g) the log's title takes a second line for a long name rather than cutting it", !!hero && !hero.trunc && hero.over <= 1 && hero.h > 34 && hero.h <= 76, JSON.stringify(hero));
       await shot("g-log-hero-320");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       const drift = page.locator("button", { hasText: /Drifting/ }).first();
@@ -283,7 +285,8 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       const on = page.locator('[data-tour="cal-view"] button[aria-pressed="true"]');
       if ((await on.count()) && (await on.getAttribute("aria-label")) !== "List") await tap(page, '[data-tour="cal-view"] [aria-label="List"]', 700);
       const foot = await page.locator('[data-tour="cal-recurring"]').first().evaluate((el) => { const r = el.getBoundingClientRect(); const day = document.querySelector(".nsc-day"); const d = day ? day.getBoundingClientRect() : null; return { bg: getComputedStyle(el).backgroundColor, l: Math.round(r.left), w: Math.round(r.width), dl: d ? Math.round(d.left) : null, dw: d ? Math.round(d.width) : null, rule: getComputedStyle(el).borderTopWidth }; });
-      check("(h) the Diary's Recurring lessons is a white card lined up with the day boxes above it", foot.bg === "rgb(255, 255, 255)" && foot.dl != null && Math.abs(foot.l - foot.dl) <= 1 && Math.abs(foot.w - foot.dw) <= 1, JSON.stringify(foot));
+      /* a Lares card since 28 November, filled in the sport's family as the day cards above it are */
+      check("(h) the Diary's Recurring lessons is a card lined up with the day boxes above it", foot.bg !== "rgba(0, 0, 0, 0)" && foot.bg !== "rgb(255, 255, 255)" && foot.dl != null && Math.abs(foot.l - foot.dl) <= 1 && Math.abs(foot.w - foot.dw) <= 1, JSON.stringify(foot));
       await shot("h-diary-foot");
       /* the Calendar view on a day with hours and nothing booked: a line, no Set hours */
       await tap(page, '[data-tour="cal-view"] [aria-label="Calendar"]', 700);
@@ -325,10 +328,11 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       const other = await page.evaluate((td) => { const b = [...document.querySelectorAll("[data-day]")].map((x) => Number(x.getAttribute("data-day"))); return b.find((d) => d > td) || null; }, today);
       if (other) await tap(page, `[data-day="${other}"]`, 600);
       const mark = await page.locator(`[data-day="${today}"] [data-mark]`).evaluate((el) => ({ m: el.getAttribute("data-mark"), bg: el.firstElementChild ? getComputedStyle(el.firstElementChild).backgroundColor : null, w: el.firstElementChild ? el.firstElementChild.getBoundingClientRect().width : 0 })).catch(() => null);
-      check("(i) the month grid marks a coach's day with lessons with the ink dot, 4px, as the List view's ticker", !!other && !!mark && mark.m === "booked" && mark.w === 4 && mark.bg !== "rgb(235, 235, 240)", JSON.stringify({ other, mark }));
+      /* 28 November, the design render: the dot is the lead's, 5px, as the List view's week marks a day with lessons */
+      check("(i) the month grid marks a coach's day with lessons with the lead's dot, 5px, as the List view's week", !!other && !!mark && mark.m === "booked" && mark.w === 5 && mark.bg === "rgb(40, 89, 55)", JSON.stringify({ other, mark }));
       if (today > 1) {
         const pastColor = await styleOf(page.locator('[data-day="1"] span').first(), "color");
-        check("(i) a day gone is the trace grey, not the 1.2:1 hairline", pastColor !== "rgb(235, 235, 240)", pastColor);
+        check("(i) a day gone is the trace grey, not the 1.2:1 hairline", pastColor !== "rgb(236, 233, 226)", pastColor);
       }
       await shot("i-month");
       /* the group page: each session is a lesson row that opens the write-up */
@@ -523,12 +527,13 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       const note = await page.evaluate(() => { const p = [...document.querySelectorAll("p")].find((x) => x.textContent === "Splash, not dig."); return p ? getComputedStyle(p).fontSize : null; });
       await shot("l-lesson-note");
       check("(l) C20: the lesson page's note is on the ladder, 20 regular since 21 November (TYPE.section's size; it was the title's 19)", note === "20px", String(note));
-      /* C22: the library's Area row sits on its rule */
+      /* C22: the library's Area row sits as the archive's Filter row does — on its rule until 28 November, when the
+         archive's filters became one white group card (C1) and a filter on its own a group of one (FilterBox) */
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await openSettings(page); await tap(page, '[data-tour="settings-library"]', 1000);
-      const area = await page.evaluate(() => { const s = [...document.querySelectorAll("button span")].find((x) => x.textContent === "Area"); const b = s && s.closest("button"); return b ? b.style.borderTop : null; });
+      const area = await page.evaluate(() => { const s = [...document.querySelectorAll("button span")].find((x) => x.textContent === "Area"); const b = s && s.closest("button"); const g = b && b.closest(".nsc-group"); return b ? { group: !!g, ring: g ? getComputedStyle(g).borderTopColor : null } : null; });
       await shot("l-library");
-      check("(l) C22: the drill library's Area row carries its top rule, as the archive's Filter row does", !!area && area !== "none" && /solid/.test(area), String(area));
+      check("(l) C22: the drill library's Area row sits as the archive's Filter row does: a row of one white group card on the warm ring", !!area && area.group && area.ring === "rgb(230, 226, 217)", JSON.stringify(area));
       /* C23: every wordless tile on the log is one height */
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-log"]', 1000);
@@ -611,6 +616,37 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
           JSON.stringify(saved));
         await ctx.close();
       }
+    }
+    /* ---------- (n3) 28 November: a starred row's star is on the poster's corner, and the words have the width ---------- */
+    /* A starred row drew its star in a column of its own beside the words, and at 320 that left a riding coach's
+       areas 95 — under the 106 "Showjumping" needs, so the word broke inside itself ("Showjumpin" over "g"). The star
+       is the poster's badge now, in the gap before the words: every starred row whole at 320, the star on the poster's
+       top-right corner, covering none of the words */
+    {
+      const RIDER = "00000000-0000-4000-8000-0000000a1d3a", TADHG = "00000000-0000-4000-8000-0000000a7a16";
+      const J1 = "1e000000-0000-4000-8000-0000000a0f31", J2 = "1e000000-0000-4000-8000-0000000a0f32";
+      const mod = (db) => {
+        M.addUser(db, { id: RIDER, email: "rider@t.ie" }); M.addProfile(db, { id: RIDER, role: "coach", name: "Róisín Daly", sport: "equestrian", inviteCode: "RD4K9P" });
+        M.addUser(db, { id: TADHG, email: "tadhg@t.ie" }); M.addProfile(db, { id: TADHG, role: "player", name: "Tadhg Ryan", type: "adult", sport: "equestrian", coachId: RIDER, dob: "1988-08-08" });
+        const day = (n) => M.ymd(new Date(Date.now() - n * 864e5));
+        M.addLesson(db, { id: J1, coachId: RIDER, playerId: TADHG, date: day(2), focus: "Showjumping", unread: false });
+        M.addLesson(db, { id: J2, coachId: RIDER, playerId: TADHG, date: day(1), focus: "Showjumping · Flatwork", unread: false });
+        M.setPrefs(db, RIDER, { starred: [J1, J2] });
+      };
+      const { ctx, page, shot } = await boot({ width: 320, mod, as: RIDER });
+      await tap(page, '[data-tour="saved"]', 1000);
+      const saved = await M.factsFit(page, '[data-scroll="screen"]');
+      const badges = await page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] [data-star-badge]')].map((b) => {
+        const row = b.closest("button"), poster = b.parentElement.firstElementChild, words = row.querySelector("[data-facts]");
+        /* the words' column: the Facts line hangs its dot's strip to the left of it, clipped */
+        const br = b.getBoundingClientRect(), pr = poster.getBoundingClientRect(), col = words.getBoundingClientRect().left - (parseFloat(getComputedStyle(words).marginLeft) || 0);
+        return { onCorner: br.left < pr.right && br.right > pr.right && br.top < pr.top + 4 && br.bottom > pr.top, clearOfWords: br.right <= col + 0.5, label: b.getAttribute("aria-label") };
+      }));
+      await shot("n3-saved-showjumping-320");
+      check("(n3) at 320 a riding coach's starred rows are whole — Showjumping never broken inside itself — each carrying its star on the poster's top-right corner, clear of the words",
+        M.factsWhole(saved) && saved.some((f) => f.text === "Showjumping") && saved.some((f) => f.text === "Showjumping · Flatwork") && badges.length === 2 && badges.every((b) => b.onCorner && b.clearOfWords && b.label === "Starred"),
+        JSON.stringify({ saved: (saved || []).map((f) => ({ t: f.text, w: f.width, broken: f.wordBroken })), badges }));
+      await ctx.close();
     }
 
     check("no page errors", errors.length === 0, errors.join(" | ").slice(0, 300));

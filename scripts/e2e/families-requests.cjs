@@ -274,7 +274,7 @@ const leaks = [];
          it steps back to the white key, as Copy — it was the sport's colour beside Save's */
       await page.locator('[data-scroll="screen"]').getByText("Name", { exact: true }).first().click(); await page.waitForTimeout(600);
       const shareR = await faceOf(page, '[data-tour="family-share"]'), saveR = await keyFace(page, "Save"); await shot("16b-cian-renaming");
-      check("(d) renaming, Save is the one accent and Share the quiet key with the ink word", !!shareR && !!saveR && saveR.bg === ACCENT && shareR.bg === WHITE && shareR.ring === RING && shareR.fg === "rgb(28, 28, 30)", JSON.stringify({ share: shareR, save: saveR }));
+      check("(d) renaming, Save is the one accent and Share the quiet key with the ink word", !!shareR && !!saveR && saveR.bg === ACCENT && shareR.bg === WHITE && shareR.ring === RING && shareR.fg === "rgb(29, 27, 23)", JSON.stringify({ share: shareR, save: saveR }));
       await ctx.close();
     }
 
@@ -349,7 +349,9 @@ const leaks = [];
       check("(f) Book a lesson is live because her coach has hours", await page.getByRole("button", { name: "Book a lesson", exact: true }).isEnabled(), kidScreen.slice(0, 160));
       await page.getByRole("button", { name: "Book a lesson", exact: true }).click(); await page.waitForTimeout(900);
       const t1 = await leak("parent book for"); await shot("22-parent-book-for");
-      check("(f) the diary opens as Book for <first name>", t1.startsWith("Book for Saoirse") || t1.includes("Book for Saoirse"), t1.slice(0, 200));
+      /* "Book for Saoirse" until 28 November, when it was cut at 320: the title is Book, the child on the grey line under it */
+      const h1 = M.norm(await page.locator('[data-scroll="screen"] h1').first().innerText().catch(() => ""));
+      check("(f) the diary opens as Book, for <first name> — the title Book, the child named under it", h1 === "Book" && /\bBook For Saoirse\b/.test(t1), `${h1} · ${t1.slice(0, 200)}`);
       check("(f) the open slots are the child's coach's hours", (await page.locator('[data-tour="agenda-book"]').count()) > 0 && rpc("coach_availability").some((x) => x.args && x.args.p_player === IDS.junior), t1.slice(0, 200));
       await tap(page, '[data-tour="agenda-book"]');
       const sheetText = await text();

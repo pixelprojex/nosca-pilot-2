@@ -95,8 +95,9 @@ const toLesson = (r, attendeeIds = []) => {
     subs: r.subs || [],
     d: String(dt.getDate()).padStart(2, "0"),
     m: MONTHS[dt.getMonth()],
-    /* a clip the player sent reads Practice wherever a kind is shown */
-    type: r.sent_by ? "Practice" : r.kind === "group" ? "Group" : "Private",
+    /* a clip the player sent reads Practice wherever a kind is shown; an
+       imported lesson carries its importer in sent_by and is a lesson */
+    type: (r.sent_by && !r.import_id) || r.kind === "practice" ? "Practice" : r.kind === "group" ? "Group" : "Private",
     videos: r.videos || 0,
     /* everything attached, not just clips — a lesson with one photo
        or one voice note still has media to open */
@@ -117,6 +118,11 @@ const toLesson = (r, attendeeIds = []) => {
     /* a practice the player logged for themselves: kind practice, no coach's lesson behind it */
     practice: r.kind === "practice",
     createdAt: r.created_at,
+    /* IMPORTED from a chat (docs/import/SPEC.md): the batch and the server's
+       key for the player's day. A project without the columns has neither. */
+    imported: !!r.import_id,
+    importId: r.import_id || null,
+    importKey: r.import_key || null,
   };
 };
 
@@ -170,11 +176,26 @@ export function useNoscaData(profile) {
   const seriesProbed = useRef(false);
   const [canRsvp, setCanRsvp] = useState(false); // does group_absences exist on this project?
   const [canMove, setCanMove] = useState(false); // does move_booking() exist on this project?
+  /* THE IMPORT (docs/import/SPEC.md). Offered only once the project's SQL
+     carries it: one probe a session — import_lessons(null, null, null)
+     answers null and raises nothing, and a project without it says
+     PGRST202 — then the people this person may import for, the batches
+     they may see, and one GET to the sorting function, which answers
+     { ready: true } only once its key is set. Before all four, nothing is
+     drawn anywhere and nothing is asked. */
+  const [canImport, setCanImport] = useState(false);
+  const canImportRef = useRef(false);
+  const importProbed = useRef(false);
+  const [importTargets, setImportTargets] = useState([]);
+  const [imports, setImports] = useState([]);
+  const [importReady, setImportReady] = useState(false);
+  const readyAsked = useRef(false);
   const rsvpProbed = useRef(false);
   const moveProbed = useRef(false);
   const [tips, setTips] = useState([]);
   const [registers, setRegisters] = useState({});
   const [registerDays, setRegisterDays] = useState({});   // register key -> the session's day, for Attendance on Progress
+  const [registersByDay, setRegistersByDay] = useState({}); // "YYYY-MM-DD|label" -> { playerId: state }
   const [bookings, setBookings] = useState([]);
   const [competitions, setCompetitions] = useState([]);
   const [recurring, setRecurring] = useState([]);
@@ -257,6 +278,23 @@ export function useNoscaData(profile) {
 
   const isCoach = profile?.role === "coach";
 
+  /* EVERY LESSON, A THOUSAND AT A TIME. PostgREST hands back a thousand
+     rows at most, and an imported chat alone can be six hundred lessons a
+     player; read on a total order (day, then written, then id) so a page
+     boundary never drops or repeats a row, and merged by id. The first
+     page's failure is the load's; a later one keeps what came. */
+  const lessonPages = async () => {
+    const out = [], seen = new Set();
+    for (let from = 0; ; from += 1000) {
+      const r = await supabase.from("lessons_view").select("*")
+        .order("lesson_date", { ascending: false }).order("created_at", { ascending: false }).order("id", { ascending: false })
+        .range(from, from + 999);
+      if (r.error) return from === 0 ? r : { data: out, error: null };
+      for (const x of r.data || []) if (!seen.has(x.id)) { seen.add(x.id); out.push(x); }
+      if (!r.data || r.data.length < 1000) return { data: out, error: null };
+    }
+  };
+
   const load = useCallback(async () => {
     if (!profile) return;
     const seq = ++loadSeq.current; const stale = () => seq !== loadSeq.current;
@@ -304,9 +342,9 @@ export function useNoscaData(profile) {
     try {
       /* Everything in parallel — these are independent queries and the
          database applies the same security to each regardless of order. */
-      const [pRes, lRes, dRes, tRes, sRes, bRes, cRes, rRes, prRes, mRes, rvRes, fRes, qRes, nRes, aRes, gmRes, gaRes] = await Promise.all([
+      const [pRes, lRes, dRes, tRes, sRes, bRes, cRes, rRes, prRes, mRes, rvRes, fRes, qRes, nRes, aRes, gmRes, gaRes, ipRes, itRes, ibRes0] = await Promise.all([
         supabase.from("profiles").select("id, name, role, sport, invite_code, family_id, coach_id, account_type, date_of_birth, avatar_path, bio, club, created_at"),
-        supabase.from("lessons_view").select("*").order("lesson_date", { ascending: false }),
+        lessonPages(),
         supabase.from("drills").select("*").order("created_at", { ascending: false }),
         supabase.from("tips").select("*").order("created_at", { ascending: false }),
         supabase.from("attendance_sessions").select("id, label, session_date"),
@@ -332,6 +370,10 @@ export function useNoscaData(profile) {
            own lessons, a member's own, an adult's junior's. A project
            without the table answers with an error and nobody is out. */
         supabase.from("group_absences").select("booking_id, player_id").then((r) => r, () => ({ data: null, error: true })),
+        /* the import: probed once, then read on every load */
+        !importProbed.current ? supabase.rpc("import_lessons", { p_id: null, p_lessons: null, p_done: null }).then((r) => r, () => ({ data: null, error: { code: "PGRST202" } })) : null,
+        canImportRef.current ? supabase.rpc("import_targets").then((r) => r, () => ({ data: null, error: true })) : null,
+        canImportRef.current ? supabase.from("lesson_imports").select("*").then((r) => r, () => ({ data: null, error: true })) : null,
       ]);
 
       if (stale()) return;
@@ -348,6 +390,34 @@ export function useNoscaData(profile) {
 
       const people = pRes.data || [];
       const personOf = (id) => people.find((x) => x.id === id) || null;
+
+      /* the import's probe, the first time: anything but PGRST202 is yes, and the two reads follow at once */
+      let ibRes = ibRes0;
+      if (ipRes) {
+        importProbed.current = true;
+        const yes = !(ipRes.error && ipRes.error.code === "PGRST202");
+        canImportRef.current = yes; setCanImport(yes);
+        if (yes) {
+          const [t2, b2] = await Promise.all([supabase.rpc("import_targets").then((r) => r, () => ({ data: null, error: true })),
+                                              supabase.from("lesson_imports").select("*").then((r) => r, () => ({ data: null, error: true }))]);
+          if (stale()) return;
+          if (!t2.error) setImportTargets(t2.data || []);
+          ibRes = b2;
+        }
+      } else if (itRes && !itRes.error) setImportTargets(itRes.data || []);
+      const batchRows = ibRes && !ibRes.error ? (ibRes.data || []) : null;
+      if (batchRows) setImports(batchRows.map((b) => ({ id: b.id, coachId: b.coach_id, playerId: b.player_id, importedBy: b.imported_by, removedBy: b.removed_by || null,
+        status: b.status, lessons: b.lessons || 0, files: b.files || 0, firstDay: b.first_day || null, lastDay: b.last_day || null, sport: b.sport || null,
+        createdAt: b.created_at, doneAt: b.done_at || null })));
+      const batchOf = new Map((batchRows || []).map((b) => [b.id, b]));
+      /* who imported a lesson, where it was not the coach: its batch's importer; a
+         batch this person cannot read leaves the lesson day's sent_by (a practice
+         day carries the player there, so it says nothing) */
+      const importerOf = (r) => {
+        const b = r.import_id ? batchOf.get(r.import_id) : null;
+        if (b) return b.imported_by && b.imported_by !== r.coach_id ? b.imported_by : null;
+        return r.kind === "practice" ? null : (r.sent_by || null);
+      };
 
       /* A group lesson carries a name, not a player, so who was there is
          a table of its own. A project whose nosca.sql predates it simply
@@ -468,7 +538,18 @@ export function useNoscaData(profile) {
         since: (() => { const d = new Date(p.created_at); return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`; })(),
       })));
 
-      setLessons((lRes.data || []).map((r) => toLesson(r, attendeesBy[r.id] || [])));
+      setLessons((lRes.data || []).map((r) => {
+        const l = toLesson(r, attendeesBy[r.id] || []);
+        /* who imported it, where it was not the coach: the provenance line
+           ("Imported by Orla") every surface prints for a player's or a
+           parent's import. sent_by is the importer on a lesson day; a
+           practice day carries the player, and its batch says who. */
+        if (l.imported) {
+          const by = importerOf(r);
+          l.importedBy = by; l.importedByName = by ? ((personOf(by) || {}).name || null) : null;
+        }
+        return l;
+      }));
       setDrills((dRes.data || []).map((d) => ({ id: d.id, t: d.title, done: d.done, playerId: d.player_id, createdAt: d.created_at, due: d.due || null })));
       /* does this project's drills table carry a day yet? One probe a
          session; a project whose SQL has not been re-run answers 42703
@@ -537,7 +618,7 @@ export function useNoscaData(profile) {
           .select("session_id, player_id, state");
         if (stale()) return;
         const byId = Object.fromEntries(sessions.map((s) => [s.id, s]));
-        const out = {}, days = {};
+        const out = {}, days = {}, byDay = {};
         (marks || []).forEach((mk) => {
           const s = byId[mk.session_id];
           if (!s) return;
@@ -547,10 +628,14 @@ export function useNoscaData(profile) {
              the same thing wrote into one entry and the second one had
              no record at all. */
           out[key][mk.player_id] = mk.state;
+          /* the same marks keyed by the whole day — "2026-06-14|Summer clinic" —
+             so a lesson of 14 June 2024 never takes this June's register */
+          const dk = `${s.session_date}|${s.label}`;
+          (byDay[dk] = byDay[dk] || {})[mk.player_id] = mk.state;
         });
-        setRegisters(out); setRegisterDays(days);
+        setRegisters(out); setRegisterDays(days); setRegistersByDay(byDay);
       } else {
-        setRegisters({});
+        setRegisters({}); setRegistersByDay({});
       }
 
       /* ---- diary, competitions, recurring, preferences ---- */
@@ -983,7 +1068,8 @@ export function useNoscaData(profile) {
   const deleteLesson = async (id) => {
     if (!id) return { error: { message: "No lesson to remove." } };
     const { data: media } = await supabase.from("lesson_media").select("storage_path").eq("lesson_id", id);
-    const paths = (media || []).map((m) => m.storage_path).filter(Boolean);
+    /* an imported file is the sweep's (no client deletes under import/) */
+    const paths = (media || []).map((m) => m.storage_path).filter((x) => x && !String(x).startsWith("import/"));
     const { data: rows, error } = await supabase.from("lessons").delete().eq("id", id).select("id");
     if (error) return { error: { message: rpcMessage(error, "Couldn't remove that lesson.") } };
     if (!rows || !rows.length) return { error: { message: "Couldn't remove that lesson." } };
@@ -999,7 +1085,9 @@ export function useNoscaData(profile) {
     const { data: rows, error } = await supabase.from("lesson_media").delete().eq("id", mediaId).select("id");
     if (error) return { error: { message: error.message } };
     if (!rows || !rows.length) return { error: { message: "Couldn't remove that file." } };
-    if (row && row.storage_path) { try { await supabase.storage.from("media").remove([row.storage_path]); } catch (e) { /* already gone */ } }
+    /* an imported file is the sweep's to delete (no client deletes under
+       import/): its row gone is the whole of it here, a refusal is success */
+    if (row && row.storage_path && !String(row.storage_path).startsWith("import/")) { try { await supabase.storage.from("media").remove([row.storage_path]); } catch (e) { /* already gone */ } }
     mediaCache.current.delete(lessonId);
     await load();
     return {};
@@ -1843,6 +1931,31 @@ export function useNoscaData(profile) {
     } catch (e) { channel = null; }
     return () => { if (channel) { try { supabase.removeChannel(channel); } catch (e) { /* already gone */ } } };
   }, [profile?.id, canRsvp, load]);
+  /* an import's batches on a channel of their own, opened once the probe has found the table — the table is
+     in the publication only once the founder re-runs the SQL, and a channel naming it before then is refused whole */
+  useEffect(() => {
+    if (!profile?.id || !canImport || typeof supabase.channel !== "function") return;
+    let channel;
+    try {
+      channel = supabase.channel(`imports:${profile.id}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "lesson_imports" }, () => {
+          if (reloadTimer.current) clearTimeout(reloadTimer.current);
+          reloadTimer.current = setTimeout(() => { reloadTimer.current = null; load(); }, 800);
+        })
+        .subscribe();
+    } catch (e) { channel = null; }
+    return () => { if (channel) { try { supabase.removeChannel(channel); } catch (e) { /* already gone */ } } };
+  }, [profile?.id, canImport, load]);
+  /* the sorting function, asked once a session and only once somebody is a
+     target: anything but JSON { ready: true } is not ready, and says nothing */
+  useEffect(() => {
+    if (!canImport || !importTargets.length || readyAsked.current) return;
+    readyAsked.current = true;
+    fetch("/.netlify/functions/lesson-import", { headers: { accept: "application/json" } })
+      .then((r) => (r.ok && /json/i.test(r.headers.get("content-type") || "") ? r.json() : null))
+      .then((j) => setImportReady(!!(j && j.ready === true)))
+      .catch(() => setImportReady(false));
+  }, [canImport, importTargets.length]);
 
   /* a member, or an adult for a junior, out of one group lesson or back in */
   const setGroupAbsence = async (bookingId, playerId, out) => {
@@ -1902,6 +2015,89 @@ export function useNoscaData(profile) {
      with it. Supabase has no "check password" call, and doing it this
      way means a wrong password is rejected by the server rather than
      by anything the app could be tricked into skipping. */
+  /* ---------------- THE IMPORT (docs/import/SPEC.md) ----------------
+     The job (src/lib/chatImport/job.js) calls these and nothing else: never
+     logLesson, never uploadFiles. Every write is a function the database
+     checks; every refusal comes back in the database's own words. */
+  const importBegin = async (id, playerId, sport) => {
+    const { data: d, error } = await supabase.rpc("import_begin", { p_id: id, p_player: playerId, p_sport: sport, p_source: "whatsapp" });
+    if (error) return { error: { message: rpcMessage(error, "Couldn't import") } };
+    return { data: d };
+  };
+  /* a wave of whole lessons, or the last call (done); the importer's screens fill from the top */
+  const importLessons = async (id, list, done) => {
+    const { data: d, error } = await supabase.rpc("import_lessons", { p_id: id, p_lessons: list || [], p_done: !!done });
+    if (error) return { error: { message: rpcMessage(error, "Couldn't import") } };
+    ((d && d.lessons) || []).forEach((x) => { if (x && x.id) mediaCache.current.delete(x.id); });
+    await load();
+    return { data: d };
+  };
+  /* one file into the batch's folder, never over another: "already exists" is
+     said as such (the job compares sizes), anything else in the hook's words */
+  const importUpload = async (path, blob, type) => {
+    let res;
+    try { res = await supabase.storage.from("media").upload(path, blob, { contentType: type || undefined, cacheControl: "3600", upsert: false }); }
+    catch (e) { res = { error: e }; }
+    if (!res.error) return {};
+    const m = String(res.error.message || res.error.error || res.error.statusCode || "");
+    if (/already exists|duplicate|409/i.test(m)) return { exists: true };
+    const network = /network|fetch|load failed/i.test(m);
+    const why = /quota|insufficient|storage is full|space/i.test(m) ? "Storage is full"
+      : /exceeded|too large|413|maximum/i.test(m) ? `Too big for the storage limit (${MAX_UPLOAD_MB} MB).`
+      : network ? "The connection dropped."
+      : /not allowed|policy|row-level|403/i.test(m) ? "Storage refused it — run supabase/nosca.sql again."
+      : m || "The upload failed.";
+    return { error: why, network };
+  };
+  /* the batch's folder as Storage lists it, a thousand at a time: what is already up */
+  const importList = async (batchId, search) => {
+    const out = [];
+    for (let offset = 0; ; offset += 1000) {
+      const { data: rows, error } = await supabase.storage.from("media").list(`import/${batchId}`, { limit: 1000, offset, ...(search ? { search } : {}) });
+      if (error) return out.length ? { data: out } : { error: { message: error.message } };
+      for (const x of rows || []) if (x && x.name && x.id !== null) out.push({ name: x.name, size: x.metadata ? Number(x.metadata.size) : null });
+      if (!rows || rows.length < 1000) return { data: out };
+    }
+  };
+  /* the files a lesson already carries, by their hashes: an import's second chat adds only what is new */
+  const importHashes = async (lessonIds) => {
+    const ids = [...new Set((lessonIds || []).filter(Boolean))];
+    const out = new Map(); if (!ids.length) return { data: out };
+    const { data: rows, error } = await supabase.from("lesson_media").select("lesson_id, import_hash").in("lesson_id", ids);
+    if (error) return { error: { message: error.message }, data: out };
+    (rows || []).forEach((r) => { if (!r.import_hash) return; if (!out.has(r.lesson_id)) out.set(r.lesson_id, new Set()); out.get(r.lesson_id).add(r.import_hash); });
+    return { data: out };
+  };
+  /* an import removed whole, or one of its lessons; the files go with the sweep within the hour */
+  const undoImport = async (id, lessonId) => {
+    const { data: d, error } = await supabase.rpc("undo_import", { p_id: id, p_lesson: lessonId || null });
+    if (error) return { error: { message: rpcMessage(error, "Couldn't remove the import") } };
+    await load();
+    return { data: d };
+  };
+  /* the coach's switch: players and parents may import their chats with them */
+  const setPlayerImports = async (on) => savePrefs({ player_imports: !!on });
+  /* ONE DAY SENT TO BE SORTED: the relative path on whichever site served
+     the app, the person's own token, and nothing but JSON taken as an
+     answer — Netlify's own 502 on an overrun is busy, like any 5xx */
+  const importSort = async (body) => {
+    let token = null;
+    try { token = (await supabase.auth.getSession()).data.session?.access_token || null; } catch (e) { token = null; }
+    if (!token) return { status: "signin" };
+    let res;
+    try {
+      res = await fetch("/.netlify/functions/lesson-import", { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify(body) });
+    } catch (e) {
+      return typeof navigator !== "undefined" && navigator.onLine === false ? { status: "offline" } : { status: "busy", retryAfter: 2 };
+    }
+    let j = null; try { j = await res.json(); } catch (e) { j = null; }
+    if (res.status === 401) return { status: "signin" };
+    if (res.status === 403) return { status: "refused" };
+    if (res.status === 400) return { status: "failed" };
+    if (res.status >= 500 || !j || typeof j !== "object") return { status: "busy", retryAfter: 2 };
+    return j;
+  };
+
   const verifyPassword = async (password) => {
     const email = profile?.email || (await supabase.auth.getUser()).data?.user?.email;
     if (!email) return { error: "Couldn't confirm your account." };
@@ -1987,7 +2183,9 @@ export function useNoscaData(profile) {
     markNotificationsRead, clearNotification, clearNotifications,
     me, avatarUrl: avatarUrl(me?.avatar_path || null), uploadAvatar, removeAvatar,
     uploads, retryUploads, dismissUploads,
-    roster, lessons, drills, tips, registers, registerDays,
+    roster, lessons, drills, tips, registers, registerDays, registersByDay,
+    /* when the last load reached the server — never the kept copy */
+    loadedAt: offline ? 0 : goodAt,
     bookings, competitions, recurring, prefs, threads,
     reviewSummary, myReview, reviews, coachAvailability, busySlots, busyByPlayer,
     reload: load,
@@ -2000,6 +2198,9 @@ export function useNoscaData(profile) {
     joinCoach, respondToRequest, cancelRequest, leaveCoach,
     createFamily, joinFamily, renameFamily, leaveFamily,
     verifyPassword, deleteAccount, lookupCode,
+    /* the import: whether the project carries it, for whom, whether the function is ready, the batches, and the calls */
+    canImport, importTargets, importReady, imports,
+    importBegin, importLessons, importUpload, importList, importHashes, undoImport, setPlayerImports, importSort,
     hasFamily: links ? !!links.family : !!profile?.family_id,
     hasCoach: links ? !!links.coach : !!profile?.coach_id,
     /* the ids behind those, so a join link can tell "already with them" apart */

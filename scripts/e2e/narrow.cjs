@@ -143,12 +143,13 @@ const { check, results, summary } = M.checker("narrow");
       const o = await compactTitle(page);
       const pill = await pillOf(page);
       await shot(`01-${role}-diary-compact`);
-      /* the parent's Diary is titled "Book for Saoirse" — the carried
-         decision (24 Oct) — and sixteen letters do not fit the 80px a
-         root screen's row leaves at 320 whatever the pill does; the
-         title is measured where the title is the tab's name */
+      /* the parent's Diary, booking for Saoirse, was titled "Book for
+         Saoirse" (the carried decision of 24 October), and sixteen letters
+         did not fit the 80px a root screen's row leaves at 320 whatever the
+         pill did. Since 28 November it is "Book", the child named on the
+         grey line under it, and it is measured like every other title */
       if (role !== "parent") check(`(a) ${role}'s Diary at 320: the compact header's title reads whole once the screen has scrolled — never "D…"`, !!o && o.text === "Diary" && !o.cut && o.w >= 60, said(o));
-      else console.log(`      note  the parent's Diary at 320: ${said(o)} — the title is the carried "Book for" decision`);
+      else check("(a) the parent's Diary at 320, booking for Saoirse: the compact header's title reads Book, whole once the screen has scrolled", !!o && o.text === "Book" && !o.cut && o.w >= 40, said(o));
       check(`(a1) ${role}'s pill at 320 is the face and the chevron — no first name, under 70px`, !!pill && pill.narrow && pill.w <= 70 && pill.name === null, JSON.stringify(pill));
       await ctx.close();
     }
@@ -176,6 +177,13 @@ const { check, results, summary } = M.checker("narrow");
       } else {
         check("(b2) at 375 Present · Absent stay beside the name", !!o && !o.nameCut && o.marks.length === 2 && o.marks.every((m) => m.top < o.nameBottom - 8), JSON.stringify(o));
       }
+      /* (b3) 28 November: the register's own list of the day's lessons — Today, under the register's way back — drew
+         the name on one truncated line, "Maximiliano Ó Súil…"; it takes a second line, as every person row does */
+      await page.locator('[data-sheet] [data-tour="register-back"]').first().click(); await page.waitForTimeout(900);
+      const pick = await page.evaluate((FIT) => { const nm = [...document.querySelectorAll("[data-sheet] .nsc-list [data-name]")].find((x) => /Maximiliano/.test(x.textContent)); return nm ? eval(FIT)(nm) : null; }, FIT);
+      await shot("02b-register-day-list");
+      check(`(b3 ${width}) the register's list of the day's lessons carries the long name whole — on a second line before any ellipsis, no word broken`,
+        !!pick && pick.name === LONG && !pick.nameCut && !pick.broken && pick.lines >= 1 && pick.lines <= 3, JSON.stringify(pick));
       await ctx.close();
     }
 
@@ -223,7 +231,8 @@ const { check, results, summary } = M.checker("narrow");
         check(width === 320
           ? "(c7) at 320 the time leads the day's other rows at 17/600 in its 74 column and the long name reads whole beside it — no word broken, nothing cut, Log beside it — the face giving way to the name"
           : "(c8) at 360 the same row keeps its face, the time leading at 17/600, the long name whole on three lines at most, no word broken",
-          lead && r.name === LONG && !r.nameCut && !r.broken && r.log && r.logBeside && (width === 320 ? (!r.face && r.lines <= 2) : (r.face && r.lines <= 3)), JSON.stringify(r));
+          /* the card's 18 inside (28 November, the Lares card) gives the long name its third line at 320, whole */
+          lead && r.name === LONG && !r.nameCut && !r.broken && r.log && r.logBeside && (width === 320 ? (!r.face && r.lines <= 3) : (r.face && r.lines <= 3)), JSON.stringify(r));
       }
       await ctx.close();
     }
@@ -238,7 +247,8 @@ const { check, results, summary } = M.checker("narrow");
         return { text: nm.textContent.trim(), w: Math.round(r.width), lines: Math.round(r.height / lh), cut: nm.scrollWidth > nm.clientWidth + 1 || nm.scrollHeight > nm.clientHeight + 1, rowH: Math.round(row.getBoundingClientRect().height) };
       }, LONG);
       await shot("04-diary-row");
-      check('(d) the Diary\'s List row at 320 reads the whole name on a second line — it read "Maximiliano Ó Súil…" beside the time', !!o && o.text === LONG && !o.cut && o.lines <= 2, JSON.stringify(o));
+      /* since 28 November the row is a chip inside the day's card, and at 320 the long name takes a third line, whole */
+      check('(d) the Diary\'s List row at 320 reads the whole name on a second line, and a third — it read "Maximiliano Ó Súil…" beside the time', !!o && o.text === LONG && !o.cut && o.lines <= 3, JSON.stringify(o));
       await ctx.close();
     }
 

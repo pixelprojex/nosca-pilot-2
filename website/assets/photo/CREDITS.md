@@ -1,6 +1,6 @@
 # Credits — website/assets/photo
 
-Every photograph and every clip in this folder is from Pexels, under the Pexels Licence (https://www.pexels.com/license/): free to use, commercial use allowed, attribution not required, modification allowed. Nothing here is from Unsplash.
+Every photograph and every clip in this folder is from Pexels, under the Pexels Licence (https://www.pexels.com/license/): free to use, commercial use allowed, attribution not required, modification allowed. Nothing here is from Unsplash. Each photograph is here as WebP and AVIF at three widths.
 
 The licence does not allow showing identifiable people in a bad light or implying that they endorse a product. No picture here shows a face to the camera, and nobody shown is a Nosca coach, player or customer: the site must never say or imply that they are.
 
@@ -13,7 +13,6 @@ Every file was cropped where noted, resized, and brought to one grade (see MANIF
 | `golf-fairway-1-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/aerial-view-of-trees-on-a-golf-course-11890225/ | Aerial View of Trees on a Golf Course | Aadil Bhat | Pexels Licence | 2026-11-23 | the whole frame; graded |
 | `golf-mist-2-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/misty-golf-course-with-lush-greenery-31508581/ | Misty Golf Course with Lush Greenery | Carlos Ramón Bonilla Miranda | Pexels Licence | 2026-11-23 | cropped (0–100% across, 16–61% down); graded |
 | `golf-flag-3-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/scenic-golf-course-overlooking-the-ocean-35918456/ | Scenic Golf Course Overlooking the Ocean | Anthony | Pexels Licence | 2026-11-23 | cropped (0–100% across, 10–86% down); graded |
-| `golf-grip-4-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/person-in-white-gloves-holding-a-golf-club-9207651/ | Person in White Gloves holding a Golf Club | Mikhail Nilov | Pexels Licence | 2026-11-23 | the whole frame; graded |
 | `tennis-grass-1-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/two-person-playing-tennis-1619860/ | Two Person Playing Tennis | Mudassir Ali | Pexels Licence | 2026-11-23 | the whole frame; graded |
 | `tennis-serve-2-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/tennis-player-serves-on-clay-court-in-buenos-aires-38503139/ | Tennis Player Serves on Clay Court in Buenos Aires | Gera Cejas | Pexels Licence | 2026-11-23 | the whole frame; graded |
 | `tennis-clay-3-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/aerial-photography-of-a-tennis-court-6931243/ | Aerial Photography of a Tennis Court | Alari Tammsalu | Pexels Licence | 2026-11-23 | cropped (0–100% across, 6–95% down); graded |
@@ -35,14 +34,17 @@ Every file was cropped where noted, resized, and brought to one grade (see MANIF
 | `coaching-lesson-2-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/woman-during-horseback-riding-lesson-7883415/ | Woman during Horseback Riding Lesson | Barbara Olsen | Pexels Licence | 2026-11-23 | cropped (0–100% across, 6–100% down); graded |
 | `coaching-notes-3-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/coach-taking-notes-during-game-19859800/ | Coach Taking Notes During Game | Victor Chijioke | Pexels Licence | 2026-11-23 | cropped (16–98% across, 0–60% down); graded; the three letters on the dial of the watch painted out |
 | `coaching-notebook-4-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/brown-pen-on-white-notebook-303532/ | Brown Pen on White Notebook | Lum3n | Pexels Licence | 2026-11-23 | the whole frame; graded |
-| `coaching-phone-5-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/person-holding-phone-3327577/ | Person Holding Phone | Jan Kopřiva | Pexels Licence | 2026-11-23 | cropped (20–100% across, 30–100% down); graded |
 | `coaching-megaphone-6-2400.webp`, `-1400.webp`, `-800.webp` | https://www.pexels.com/photo/megaphone-and-oars-on-ground-17886382/ | Megaphone and Oars on Ground | Boris Hamer | Pexels Licence | 2026-11-24 | the whole frame; graded; the maker's name and badge painted off the megaphone's collar |
 
 ## Loops
 
 | Files | Source page | Title on Pexels | Author | Licence | Fetched | What was done |
 |---|---|---|---|---|---|---|
-| `loop-golf-green-1.mp4`, `loop-golf-green-1-poster.webp` | https://www.pexels.com/video/a-top-view-of-a-golf-field-from-a-drone-4198770/ | A Top View of a Golf Field from a Drone | K (@kelly) | Pexels Licence | 2026-11-23 | 8 s from 3 s of the clip, 1280 wide, sound removed, graded, the end dissolved into the start |
-| `loop-tennis-courts-1.mp4`, `loop-tennis-courts-1-poster.webp` | https://www.pexels.com/video/drone-footage-of-tennis-courts-5015666/ | Drone Footage Of Tennis Courts | Ibrahim Bennett | Pexels Licence | 2026-11-23 | 8 s from 1 s of the clip, 1280 wide, sound removed, graded, the end dissolved into the start |
-| `loop-tennis-hands-2.mp4`, `loop-tennis-hands-2-poster.webp` | https://www.pexels.com/video/a-person-playing-tennis-5730331/ | A Person Playing Tennis | cottonbro studio | Pexels Licence | 2026-11-23 | 7 s from 0.5 s of the clip, 1280 wide, sound removed, graded, the end dissolved into the start |
-| `loop-rowing-lake-1.mp4`, `loop-rowing-lake-1-poster.webp` | https://www.pexels.com/video/people-rowing-a-boat-on-a-calm-lake-5378537/ | People Rowing a Boat on a Calm Lake | Danilo Riba | Pexels Licence | 2026-11-23 | 8 s from 20.5 s of the clip, 1280 wide, sound removed, graded, the end dissolved into the start |
+| `loop-lake-mist-2.mp4`, `loop-lake-mist-2-poster.webp` | https://www.pexels.com/video/serene-sunrise-over-misty-lake-landscape-29057836/ | Serene Sunrise over Misty Lake Landscape | Ahto Palmre | Pexels Licence | 2026-11-28 | 8 s from 4 s of the clip, 1280 wide, 30 fps, sound removed, graded to the site's one grade, the last second dissolved into the first; a small green lens flare on the water retouched out |
+| `loop-trees-fog-1.mp4`, `loop-trees-fog-1-poster.webp` | https://www.pexels.com/video/a-footage-of-a-foggy-morning-6057656/ | A Footage of a Foggy Morning | Matthias Groeneveld | Pexels Licence | 2026-11-28 | 8 s from 2 s of the clip, 1280 wide, 30 fps, sound removed, graded to the site's one grade, the last second dissolved into the first |
+| `loop-fields-mist-1.mp4`, `loop-fields-mist-1-poster.webp` | https://www.pexels.com/video/the-sun-rises-over-a-field-with-a-farm-in-the-distance-27645701/ | The sun rises over a field with a farm in the distance | Tom Fisk | Pexels Licence | 2026-11-28 | 8 s from 27 s of the clip, 1280 wide, 30 fps, sound removed, graded to the site's one grade, the last second dissolved into the first |
+| `loop-lake-steam-3.mp4`, `loop-lake-steam-3-poster.webp` | https://www.pexels.com/video/serene-sunrise-over-misty-lake-28760855/ | Serene Sunrise Over Misty Lake | Silvia Cárcamo | Pexels Licence | 2026-11-28 | 8 s from 0.8 s of the clip, 1280 wide, 30 fps, sound removed, graded to the site's one grade, the last second dissolved into the first |
+
+Removed on 28 November, at the founder's word: `golf-grip-4` (a white-gloved hand on a grip), and three clips tried for a day and found not classy enough (a golfer in a pink vest, a young man serving, white trainers in a stirrup). The site now leads with the rowing lake, the misty fairway, the tennis hands and the horse in its stable.
+
+Removed on 28 November (the third pass): the drone loops of a green and of courts, the crew on the dusk lake, the tennis hands, the horse in its stable, and the photograph of a phone filming, for four foggy-morning loops in one grade.

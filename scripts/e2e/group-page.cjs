@@ -21,7 +21,13 @@
        Remove group, the red quiet key, then a plain confirm (Keep it the
        way back), and Remove takes it off the coach's groups, says Removed
        and lands on the roster without it;
-   (g) at 320 the keys' words, the Edit row and the sheet are whole.
+   (g) at 320 the keys' words, the Edit row and the sheet are whole;
+   (h) 28 November: a group's standing arrangement goes with it — Remove
+       ends the run New group wrote (nothing is ahead, so nothing is taken
+       from anyone); with lessons ahead the sheet's line has the run's own
+       End under it, the End sheet that tells the members; and a lesson
+       ahead past the diary's window (asked of the server when Remove is
+       pressed) keeps the group and the run, the sheet saying so.
    Usage: node group-page.cjs <distDir> <port> <outDir> */
 const path = require("path"), fs = require("fs");
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
@@ -193,6 +199,10 @@ const { check, results, summary } = M.checker("group-page");
     /* ---------- (f) remove: nothing ahead, the red quiet key, a plain confirm ---------- */
     {
       const db = freshDb();
+      /* the squad's standing arrangement, as New group writes one, its past session linked to it */
+      const RUN = "7e000000-0000-4000-8000-0000000000f5";
+      M.addRecurring(db, { id: RUN, coachId: IDS.coach, groupName: "Junior squad", weekday: new Date(`${dayPlus(db, -7)}T12:00:00`).getDay(), time: "5:00 pm" });
+      db.bookings.filter((b) => b.group_name === "Junior squad").forEach((b) => { b.recurring_id = RUN; });
       const { ctx, page, text, shot } = await boot(db, "coach");
       await openGroup(page, "Junior squad");
       await page.locator('[data-tour="group-page-edit"]').first().click(); await page.waitForTimeout(900);
@@ -214,6 +224,53 @@ const { check, results, summary } = M.checker("group-page");
       check("(f5) Remove takes it off the coach's groups — the others kept — says Removed, and lands on the roster without it",
         !groupOf(db, "g2") && !!groupOf(db, "g1") && !!groupOf(db, "g3") && /Removed\s*Junior squad/.test(toast) && (await page.locator('[data-tour="roster-group"]').count()) === 2 && !/Junior squad/.test(t3.replace(toast, "")),
         JSON.stringify({ groups: ((db.prefs[IDS.coach] || {}).groups || []).map((g) => g.name), toast, t3: t3.slice(0, 160) }));
+      /* (h1) 28 November: the run goes with the group — Recurring lessons listed it for ever after */
+      check("(h1) …and the squad's standing arrangement ends with it: the run is gone, its past session kept and let go of",
+        !db.recurring.some((r) => r.id === RUN) && db.bookings.filter((b) => b.group_name === "Junior squad").length === 2 && db.bookings.filter((b) => b.group_name === "Junior squad").every((b) => b.recurring_id == null),
+        JSON.stringify({ runs: db.recurring.map((r) => r.group_name || r.player_id), squad: db.bookings.filter((b) => b.group_name === "Junior squad").map((b) => b.recurring_id) }));
+      await ctx.close();
+    }
+
+    /* ---------- (h) the run: End from the sheet; a lesson past the diary's window ---------- */
+    {
+      const db = freshDb();
+      const CLINIC = "7e000000-0000-4000-8000-0000000000c1";
+      M.addRecurring(db, { id: CLINIC, coachId: IDS.coach, groupName: "Saturday clinic", weekday: new Date(`${dayPlus(db, 0)}T12:00:00`).getDay(), time: "4:00 pm" });
+      db.bookings.filter((b) => b.group_name === "Saturday clinic").forEach((b) => { b.recurring_id = CLINIC; });
+      const { ctx, page, shot } = await boot(db, "coach");
+      await openGroup(page, "Saturday clinic");
+      await page.locator('[data-tour="group-page-edit"]').first().click(); await page.waitForTimeout(900);
+      const end = page.locator('[data-sheet] [data-tour="group-edit-end"]');
+      const endKey = (await end.count()) ? await end.evaluate((b) => ({ word: b.textContent.trim(), fg: getComputedStyle(b).color })) : null;
+      await shot("10-clinic-edit-end");
+      check("(h2) with the clinic's run booked ahead, the line has the run's own End under it — the red quiet key — and still no removal",
+        !!endKey && endKey.word === "End" && endKey.fg === "rgb(154, 50, 42)" && (await page.locator('[data-sheet] [data-tour="group-edit-ahead"]').count()) === 1 && (await page.locator('[data-sheet] [data-tour="group-edit-remove"]').count()) === 0, JSON.stringify(endKey));
+      await end.click(); await page.waitForTimeout(1200);
+      const e1 = await sheetText(page);
+      await shot("11-clinic-end-sheet");
+      check("(h3) End opens the run's End sheet — Why first, the clinic named — the End that tells every member",
+        (await page.locator('[data-sheet] [data-tour="end-series"]').count()) === 1 && /^End/.test(e1) && /Saturday clinic/.test(e1) && (await page.locator('[data-sheet] [data-tour="end-why"]').count()) > 0, e1.slice(0, 160));
+      await ctx.close();
+    }
+    {
+      const db = freshDb();
+      const SQUAD = "7e000000-0000-4000-8000-0000000000f7";
+      const FAR = dayPlus(db, 231);
+      M.addRecurring(db, { id: SQUAD, coachId: IDS.coach, groupName: "Junior squad", weekday: new Date(`${FAR}T12:00:00`).getDay(), time: "5:00 pm" });
+      /* one session the run booked thirty-three weeks out: past the diary's two hundred days */
+      M.addBooking(db, { coachId: IDS.coach, groupName: "Junior squad", date: FAR, time: "5:00 pm", duration: 60, recurringId: SQUAD });
+      const { ctx, page, shot } = await boot(db, "coach");
+      await openGroup(page, "Junior squad");
+      await page.locator('[data-tour="group-page-edit"]').first().click(); await page.waitForTimeout(900);
+      const offered = (await page.locator('[data-sheet] [data-tour="group-edit-remove"]').count()) === 1;
+      await page.locator('[data-sheet] [data-tour="group-edit-remove"]').click(); await page.waitForTimeout(600);
+      await page.locator('[data-tour="group-remove-go"]').click(); await page.waitForTimeout(1500);
+      const ahead = page.locator('[data-sheet] [data-tour="group-edit-ahead"]');
+      const line = (await ahead.count()) ? M.norm(await ahead.innerText()) : null;
+      await shot("12-squad-late-lesson");
+      check("(h4) a lesson the run booked past the diary's window is asked of the server when Remove is pressed: the group and its run are kept, the sheet stays and says 1 lesson ahead — End them first, with End under it",
+        offered && line === "1 lesson ahead — End them first" && !!groupOf(db, "g2") && db.recurring.some((r) => r.id === SQUAD) && (await page.locator('[data-sheet] [data-tour="group-edit-end"]').count()) === 1 && (await page.locator('[data-tour="group-remove-go"]').count()) === 0,
+        JSON.stringify({ offered, line, group: !!groupOf(db, "g2"), run: db.recurring.some((r) => r.id === SQUAD) }));
       await ctx.close();
     }
 
