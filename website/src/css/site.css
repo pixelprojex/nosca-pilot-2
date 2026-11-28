@@ -315,14 +315,14 @@ html.motion [data-rule]:not(.is-set),html.glide [data-rule]:not(.is-set){transfo
    A colophon on the deep green, set as the back page of a printed programme and centred on one axis: the mark as a
    seal and NOSCA under it, the two lines that say what it is, a pointed gold rule, the way in in small capitals, the
    six sports, and the small print. */
-.foot{position:relative;z-index:1;padding:clamp(72px,9vw,128px) 0 max(30px,env(safe-area-inset-bottom));text-align:center}
+.foot{position:relative;z-index:1;padding:clamp(64px,9vw,128px) 0 max(30px,env(safe-area-inset-bottom));text-align:center}
 .foot__in{display:flex;flex-direction:column;align-items:center}
 .foot__lock{display:inline-flex;flex-direction:column;align-items:center;gap:14px;padding:6px;color:var(--gold-pin);text-decoration:none;-webkit-tap-highlight-color:transparent}
 .foot__seal{--seal:64px;--seal-c:var(--gold-pin)}
 .foot__word{font-size:12px;letter-spacing:.42em;color:var(--gold-text-on-green)}
 .foot__tag{margin-top:clamp(28px,3.4vw,40px);font:700 clamp(36px,4vw,56px)/1 var(--title);letter-spacing:0;font-synthesis:none;color:var(--on-green)}
 .foot__name{margin-top:12px;font-size:16.5px;line-height:1.45;color:var(--on-green-2)}
-.foot__rule{width:min(240px,60%);margin:clamp(30px,3.6vw,44px) 0 clamp(14px,1.6vw,20px)}
+.foot__rule{width:min(240px,60%);margin:clamp(24px,3.6vw,44px) 0 clamp(10px,1.6vw,20px)}
 .foot__nav{display:flex;flex-wrap:wrap;justify-content:center;gap:0 clamp(6px,2vw,26px)}
 .foot__nav a{position:relative;display:inline-flex;align-items:center;min-height:44px;padding:0 10px;font:600 12.5px/1 var(--display);letter-spacing:.16em;text-transform:uppercase;text-decoration:none;color:var(--on-green);white-space:nowrap}
 .foot__nav a::after{content:"";position:absolute;left:10px;right:calc(10px + .16em);bottom:10px;height:1px;background:var(--gold-pin);transform:scaleX(0);transform-origin:0 50%;transition:transform .5s var(--ease)}
@@ -330,7 +330,7 @@ html.motion [data-rule]:not(.is-set),html.glide [data-rule]:not(.is-set){transfo
 .foot__sports{margin-top:clamp(18px,2vw,26px);font:600 12px/1.9 var(--display);letter-spacing:.2em;text-transform:uppercase;color:var(--on-green-2)}
 .foot__sports>span{display:block;white-space:nowrap}
 @media (min-width:720px){.foot__sports>span{display:inline}.foot__sports>span+span::before{content:"·";padding:0 .9em 0 .7em}}
-.foot__small{display:grid;gap:4px;width:100%;margin-top:clamp(40px,5vw,64px);padding-top:22px;border-top:1px solid var(--line);font-size:13px;line-height:1.5;color:var(--on-green-2)}
+.foot__small{display:grid;gap:4px;width:100%;margin-top:clamp(32px,5vw,64px);padding-top:20px;border-top:1px solid var(--line);font-size:13px;line-height:1.5;color:var(--on-green-2)}
 @media (min-width:900px){.foot__small{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 32px}}
 
 /* ───────────── 10. the film reel: what the scroll-driven pieces stand on ─────────────
