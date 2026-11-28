@@ -248,9 +248,9 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-log"]', 900);
       await page.locator('button[aria-label]').filter({ hasText: /Maximiliano/ }).first().click(); await page.waitForTimeout(900);
-      const hero = await page.evaluate(() => { const el = [...document.querySelectorAll("span")].find((x) => /^Maximiliano Ó Súilleabháin$/.test(x.textContent.trim()) && getComputedStyle(x).fontSize === "30px"); return el ? { trunc: el.classList.contains("truncate"), h: el.getBoundingClientRect().height, over: el.scrollWidth - el.clientWidth } : null; });
-      /* TYPE.screen is 30 since 21 November (24 before): two lines of it are 66 */
-      check("(g) the log's title takes a second line for a long name rather than cutting it", !!hero && !hero.trunc && hero.over <= 1 && hero.h > 34 && hero.h <= 70, JSON.stringify(hero));
+      const hero = await page.evaluate(() => { const el = [...document.querySelectorAll("span")].find((x) => /^Maximiliano Ó Súilleabháin$/.test(x.textContent.trim()) && getComputedStyle(x).fontSize === "32px"); return el ? { trunc: el.classList.contains("truncate"), h: el.getBoundingClientRect().height, over: el.scrollWidth - el.clientWidth } : null; });
+      /* TYPE.screen is the bold serif at 32/1.1 since 28 November (30 from 21 November, 24 before): two lines are 70 */
+      check("(g) the log's title takes a second line for a long name rather than cutting it", !!hero && !hero.trunc && hero.over <= 1 && hero.h > 34 && hero.h <= 72, JSON.stringify(hero));
       await shot("g-log-hero-320");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       const drift = page.locator("button", { hasText: /Drifting/ }).first();
@@ -283,7 +283,8 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       const on = page.locator('[data-tour="cal-view"] button[aria-pressed="true"]');
       if ((await on.count()) && (await on.getAttribute("aria-label")) !== "List") await tap(page, '[data-tour="cal-view"] [aria-label="List"]', 700);
       const foot = await page.locator('[data-tour="cal-recurring"]').first().evaluate((el) => { const r = el.getBoundingClientRect(); const day = document.querySelector(".nsc-day"); const d = day ? day.getBoundingClientRect() : null; return { bg: getComputedStyle(el).backgroundColor, l: Math.round(r.left), w: Math.round(r.width), dl: d ? Math.round(d.left) : null, dw: d ? Math.round(d.width) : null, rule: getComputedStyle(el).borderTopWidth }; });
-      check("(h) the Diary's Recurring lessons is a white card lined up with the day boxes above it", foot.bg === "rgb(255, 255, 255)" && foot.dl != null && Math.abs(foot.l - foot.dl) <= 1 && Math.abs(foot.w - foot.dw) <= 1, JSON.stringify(foot));
+      /* a Lares card since 28 November, filled in the sport's family as the day cards above it are */
+      check("(h) the Diary's Recurring lessons is a card lined up with the day boxes above it", foot.bg !== "rgba(0, 0, 0, 0)" && foot.bg !== "rgb(255, 255, 255)" && foot.dl != null && Math.abs(foot.l - foot.dl) <= 1 && Math.abs(foot.w - foot.dw) <= 1, JSON.stringify(foot));
       await shot("h-diary-foot");
       /* the Calendar view on a day with hours and nothing booked: a line, no Set hours */
       await tap(page, '[data-tour="cal-view"] [aria-label="Calendar"]', 700);
@@ -325,10 +326,11 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       const other = await page.evaluate((td) => { const b = [...document.querySelectorAll("[data-day]")].map((x) => Number(x.getAttribute("data-day"))); return b.find((d) => d > td) || null; }, today);
       if (other) await tap(page, `[data-day="${other}"]`, 600);
       const mark = await page.locator(`[data-day="${today}"] [data-mark]`).evaluate((el) => ({ m: el.getAttribute("data-mark"), bg: el.firstElementChild ? getComputedStyle(el.firstElementChild).backgroundColor : null, w: el.firstElementChild ? el.firstElementChild.getBoundingClientRect().width : 0 })).catch(() => null);
-      check("(i) the month grid marks a coach's day with lessons with the ink dot, 4px, as the List view's ticker", !!other && !!mark && mark.m === "booked" && mark.w === 4 && mark.bg !== "rgb(235, 235, 240)", JSON.stringify({ other, mark }));
+      /* 28 November, the design render: the dot is the lead's, 5px, as the List view's week marks a day with lessons */
+      check("(i) the month grid marks a coach's day with lessons with the lead's dot, 5px, as the List view's week", !!other && !!mark && mark.m === "booked" && mark.w === 5 && mark.bg === "rgb(40, 89, 55)", JSON.stringify({ other, mark }));
       if (today > 1) {
         const pastColor = await styleOf(page.locator('[data-day="1"] span').first(), "color");
-        check("(i) a day gone is the trace grey, not the 1.2:1 hairline", pastColor !== "rgb(235, 235, 240)", pastColor);
+        check("(i) a day gone is the trace grey, not the 1.2:1 hairline", pastColor !== "rgb(236, 233, 226)", pastColor);
       }
       await shot("i-month");
       /* the group page: each session is a lesson row that opens the write-up */

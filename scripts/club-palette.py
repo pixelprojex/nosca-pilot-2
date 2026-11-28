@@ -10,10 +10,11 @@ deep ones do:
          with no picture, what is chosen
   ledge  lightness 0.865 — what the pale stands on
   cloth  lightness 0.76 — what the colour is on a dark page, and the
-         face of a function key; the blues, the violets and the reds
-         (hue 200° and round to 30°) at 0.78 with their chroma capped,
-         because at the family's full cloth chroma they read as baby
-         blue, lilac and pink on a key (the class study, 23 November)
+         face of a function key; since 28 November every cloth at 0.80
+         with its chroma held to 0.03–0.046 (a sport's lead a step fuller,
+         the blues, the violets and the reds capped at 0.034), so a sport's
+         keys are one paint chart — at the family's full cloth chroma they
+         read as baby blue, lilac and pink, and the warm ones shouted
 
 Run it after changing a colour:  python3 scripts/club-palette.py
 It prints the CLUB_PALE table to paste into src/Nosca.jsx and writes the
@@ -109,7 +110,14 @@ def mix(a, b, k):
 
 ON_CLOTH = 0.45    # the word and the glyph on a cloth-filled key: the deep colour this far toward black
 CLOTH_LEDGE = 0.5  # the ledge under a cloth-filled key: the cloth this far toward its ink (the deep colour; the gold's deeper gold)
-CLOTH_QUIET = (0.78, 0.036, 0.055)  # a blue's, a violet's and a red's cloth: its lightness, its chroma's ceiling, the brick's (Call off) ceiling
+CLOTH_QUIET = (0.80, 0.034, 0.056)  # a blue's, a violet's and a red's cloth: its lightness, its chroma's ceiling, the brick's (Call off) ceiling
+CLOTH_WARM = (0.80, 0.03, 0.046)    # every other cloth (28 November): one lightness with the cool ones, its chroma 0.03 to 0.046 —
+#                                    the greens, the golds and the browns ran to 0.07 beside the capped blues at 0.036, so a sport's
+#                                    eight keys were a pastel rainbow whose warm keys shouted; at one tone and near one chroma they
+#                                    read as one paint chart
+LEADS = ("fairway", "court", "river", "sienna", "aubergine", "claret")  # a sport's own colour: its cloth a step fuller than the
+LEAD_CLOTH = (0.056, 0.042)                                            # rest of its chart (warm ceiling, cool ceiling), so Register
+#                                                                        reads as the sport and stands apart from New group's bottle
 # the roles each sport gives its colours (green is the lead), as CLUB_SETS in src/Nosca.jsx has them — change the two
 # together. With the cloth capped, two blues (or two reds) of one sport can come to the same key: the check below
 # measures the plus sheet's eight keys of every sport and stops the script if two are closer than SEPARATE.
@@ -117,10 +125,10 @@ ROLES = ("green", "teal", "blue", "orange", "purple", "wine", "brand")
 SETS = {
     "brand": ("bottle", "olive", "navy", "saddle", "plum", "claret", "bottle"),
     "golf": ("fairway", "olive", "navy", "saddle", "plum", "claret", "bottle"),
-    "tennis": ("court", "lawn", "navy", "rust", "aubergine", "claret", "bottle"),
-    "rowing": ("river", "court", "indigo", "saddle", "plum", "claret", "bottle"),
-    "squash": ("sienna", "petrol", "navy", "saddle", "plum", "claret", "bottle"),
-    "padel": ("aubergine", "petrol", "navy", "rust", "plum", "claret", "bottle"),
+    "tennis": ("court", "lawn", "navy", "saddle", "aubergine", "claret", "bottle"),
+    "rowing": ("river", "olive", "indigo", "saddle", "plum", "claret", "bottle"),
+    "squash": ("sienna", "petrol", "navy", "olive", "plum", "claret", "bottle"),
+    "padel": ("aubergine", "petrol", "navy", "saddle", "plum", "claret", "bottle"),
     "equestrian": ("claret", "fairway", "navy", "saddle", "aubergine", "chestnut", "bottle"),
 }
 PLUS = ("green", "blue", "gold", "purple", "teal", "brand", "red", "orange")  # Register, Capture, Tip, Drills, Add player, New group, Call off, Competition
@@ -133,10 +141,12 @@ def lighter(name, deep):
     pale = fit(0.93, clamp(0.36 * C, 0.008, 0.024 if warm else 0.032), h)
     ledge = fit(0.865, clamp(0.5 * C, 0.012, 0.036 if warm else 0.045), h)
     cool_or_red = h >= 200 or h < 30
-    if cool_or_red:
+    if name in LEADS:
+        cloth = fit(CLOTH_WARM[0], min(clamp(0.8 * C, 0.03, LEAD_CLOTH[0]), LEAD_CLOTH[1] if cool_or_red else 1), h)
+    elif cool_or_red:
         cloth = fit(CLOTH_QUIET[0], min(clamp(0.8 * C, 0.03, 0.07), CLOTH_QUIET[2] if name == "brick" else CLOTH_QUIET[1]), h)
     else:
-        cloth = fit(0.76, clamp(0.8 * C, 0.03, 0.07), h)
+        cloth = fit(CLOTH_WARM[0], clamp(0.6 * C, CLOTH_WARM[1], CLOTH_WARM[2]), h)
     ink = fit(GOLD_INK[0], GOLD_INK[1], h) if name == "gold" else deep
     return pale, ledge, cloth, ink
 

@@ -113,20 +113,22 @@ const ty = (transform) => { const m = String(transform || "").match(/matrix\(([^
     const regTile = await page.locator('[data-tour="quick-attend"]').first().evaluate((el) => el.hasAttribute("data-tile") && !el.hasAttribute("data-round")).catch(() => false);
     await shot("a-plus");
     /* THE WHITE KEY (21 November, the afternoon; stone that morning): Duolingo's quiet key — a white face, a light
-       grey ring (#E2E2E7), a three-point grey ledge (#D9D9DE) — never the sport's colour, never the wash */
+       grey ring (#E4E0D7), a three-point grey ledge (#D9D4C9) — never the sport's colour, never the wash */
     /* FILLED KEYS (23 November): a function's tile is filled with its function's light colour — Register the lead's
-       cloth tone, #94BD9E — with no ring, the word in the hue's ink, on a three-point ledge of the same hue */
-    check("(a) Register on the plus is a filled tile: the lead's light colour on the face, no ring, a three-point ledge of the same hue, the word in its ink — never a white key", regTile && !!reg && reg.bg === "rgb(148, 189, 158)" && reg.border === "rgba(0, 0, 0, 0)" && lipOf(reg.shadow) === 3 && /rgb\(94, 139, 107\)/.test(reg.shadow) && reg.fg === "rgb(22, 49, 30)" && reg.w > reg.h, JSON.stringify(reg));
-    /* Call off is filled like its neighbours, in the brick's light colour with the brick's ink — #D9ABA4 since the
+       cloth tone, #A4C9AC — with no ring, the word in the hue's ink, on a three-point ledge of the same hue */
+    check("(a) Register on the plus is a filled tile: the lead's light colour on the face, no ring, a three-point ledge of the same hue, the word in its ink — never a white key", regTile && !!reg && reg.bg === "rgb(164, 201, 172)" && reg.border === "rgba(0, 0, 0, 0)" && lipOf(reg.shadow) === 3 && /rgb\(102, 145, 114\)/.test(reg.shadow) && reg.fg === "rgb(22, 49, 30)" && reg.w > reg.h, JSON.stringify(reg));
+    /* Call off is filled like its neighbours, in the brick's light colour with the brick's ink — #E0B1AA since the
        cloth of the reds and the blues was capped (24 November; #DAA198 before, a salmon) */
-    check("(a) …Call off filled with the brick's light colour, its word in the brick's ink, on the same ledge", !!off && off.bg === "rgb(217, 171, 164)" && off.fg === "rgb(85, 28, 23)" && lipOf(off.shadow) === 3, JSON.stringify(off));
+    check("(a) …Call off filled with the brick's light colour, its word in the brick's ink, on the same ledge", !!off && off.bg === "rgb(224, 177, 170)" && off.fg === "rgb(85, 28, 23)" && lipOf(off.shadow) === 3, JSON.stringify(off));
     check("(a) …and Log a lesson the accent across the top, the glyph beside the word", !!logBlock && logBlock.bg === ACCENT && lipOf(logBlock.shadow) === 3 && logBlock.h >= 60 && logBlock.h < 70, JSON.stringify(logBlock));
     await page.keyboard.press("Escape"); await page.mouse.click(20, 120); await page.waitForTimeout(700);
 
     /* (c) content stands on a foot: a row of a list on three points of the wash made deeper, and one that is a
        button sinks onto it under the finger — Lares's tiles, so a list is the same family as its keys */
     const row = await page.evaluate(() => { const b = [...document.querySelectorAll(".nsc-list > *")].find((x) => /Cian Murphy/.test(x.innerText)); return b ? getComputedStyle(b).boxShadow : null; });
-    check("(c) a row of the day stands on a two-point ledge of the light grey line, not the sport's colour", lipOf(row) === 2 && /rgb\(226, 226, 231\)/.test(String(row)) && !/40, 89, 55/.test(String(row)), String(row));
+    /* 28 November, the Lares card: a row of the day stands on a four-point ledge a step deeper in its own family
+       (golf's fairway pale's ledge toward its cloth, #ABCDB3) — never the deep colour itself */
+    check("(c) a row of the day stands on a four-point ledge of its own family's pale, not the sport's deep colour", lipOf(row) === 4 && /rgb\(171, 205, 179\)/.test(String(row)) && !/40, 89, 55/.test(String(row)), String(row));
     const arch = page.locator('[data-tour="today-archive"]').first();
     let sink = null;
     if (await arch.count()) {
@@ -136,16 +138,16 @@ const ty = (transform) => { const m = String(transform || "").match(/matrix\(([^
       await page.mouse.move(5, 5); await page.mouse.up(); await page.waitForTimeout(400);
     }
     /* since 21 November a row sinks the whole of its ledge, as Duolingo's card does — it took half of it before */
-    check("(c) …and a row that is one button sinks right onto it under the finger", !!sink && ty(sink.transform) === 2 && lipOf(sink.shadow) === 0, JSON.stringify(sink));
+    check("(c) …and a row that is one button sinks onto it under the finger", !!sink && ty(sink.transform) === 3 && lipOf(sink.shadow) === 1, JSON.stringify(sink));
     /* (c0) THE NEXT LESSON IS THE ONE COLOURED CARD (22 November, art direction): the one action's own colour — read
        off the plus's Log a lesson, never a constant of the palette — its words 4.5:1 and over on it, 16px corners,
        a box of the day's list on a four-point ledge of its colour made deeper; exactly one on the screen, and the
        whole card sinks onto its ledge under a finger */
     {
       const card = await cardOf(page), ledge = rgbIn(card.shadow);
-      check("(c0) the next lesson is the day's one coloured card: the one action's colour, its words 4.5:1 and over, 16px corners, a four-point ledge of the colour made deeper",
+      check("(c0) the next lesson is the day's one coloured card: the one action's colour, its words 4.5:1 and over, 18px corners, a four-point ledge of the colour made deeper",
         card.n === 1 && card.kind === "next" && card.name === "Aoife Doyle" && card.inList && !!logBlock && card.bg === logBlock.bg && contrast(card.fg, card.bg) >= 4.5
-        && card.radius === "16px" && lipOf(card.shadow) === 4 && !!ledge && ledge !== card.bg && lum(ledge) < lum(card.bg), JSON.stringify(card));
+        && card.radius === "18px" && lipOf(card.shadow) === 4 && !!ledge && ledge !== card.bg && lum(ledge) < lum(card.bg), JSON.stringify(card));
       const cb = await page.locator("[data-next-card]").first().boundingBox();
       await page.mouse.move(cb.x + 40, cb.y + 22); await page.mouse.down(); await page.waitForTimeout(60);
       const down = await cardOf(page);

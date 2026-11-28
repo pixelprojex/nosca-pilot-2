@@ -76,6 +76,162 @@ seeded data and no account.
 
 ## Rules — each of these cost a deploy to learn
 
+- **Lares cards: every list a card filled in its function's family (28
+  November, the design render's second pass).** The orchestrator, of the
+  first pass: the serif is right, "the rest is too subtle; the founder will
+  say again 'it still basically looks the exact same'"; the founder, of
+  Lares, his own app: "absolutely stunning", and of Nosca: "the epitome of
+  luxury … nothing … AI-built, cheap". So the white box on the grey line
+  is gone:
+  - **The card.** A row of `.nsc-list`, a `.nsc-day`, `Card`, `Tile` (the
+    Calendar view's blocks) and Progress's blocks are FILLED with the pale
+    of a colour family (`--card`), on a 2px ring of the pale's ledge
+    (`--card-ring`) and a 4px ledge a step deeper in the same hue
+    (`--card-ledge`: the ledge mixed three quarters to the cloth), 18px
+    corners (20 on a `.nsc-day`), 15px inside the 2px ring (the width the old 1.5px line and 16 gave at one pixel a point: 18 cut long names at 375, 15.5 at 320); a row that is one button
+    sinks 3px onto it. `cardOf(t, hue)` gives the three on a list or on one
+    row; the sport's own family (`HUE.green`) is every list's default, set
+    on the app's root. **Settings keeps white groups** (`.nsc-group`) on
+    the warm ring `#E6E2D9` and a 4px ledge `#DAD5C9` (`CARD_WHITE`), as
+    Lares's settings are plain. A rule inside a card is the card's ring.
+  - **A hue a function, one calm chart a screen** (the page stays white):
+    lessons the sport's family; what is ahead and every request sky
+    (`HUE.blue`: the home's folded next day, Today's and the bell's
+    requests, Join requests, the Calendar view's request block, a
+    request's chip); To log sand (`HUE.orange`); To review heather
+    (`HUE.purple`, and the drills to do, the lesson page's drills); a
+    player drifting and every row that calls off blush (`HUE.red`: the
+    Calendar view's Call off, the Manage sheet's); the record pale gold
+    (`HUE.gold`: every All lessons, All drills, Competitions, a tip — the
+    player file's and the lesson page's, a card of its own); people the
+    teal role (the roster's players and groups, a group's members); the
+    player file's doors (Progress · Notes · Recurring lessons) and the
+    Drills tab's Reminder sky; Progress's blocks each their subject's
+    (the level the sport's, what was worked on sky, the months gold,
+    attendance teal, practice sand, drills heather). A count of what waits
+    is a white chip in its card's own ink (`CountPill`).
+  - **The Diary's day is a card of chips** (`.nsc-day.nsc-chips`, 8 in, 8
+    apart, each 56 tall on a 3px ledge, 14px corners): a lesson the
+    sport's cloth with the person's face ringed white and the chevron in
+    the cloth's ink; a request sky; a free hour the white key with its
+    `PlusKey`; the person's next lesson the deep colour; a blocked hour and
+    Away words on the card. **A coach's free hours fold** (the class plan's
+    S3): on every day but the one holding the first bookable hour, two or
+    more are one chip, "Free · 4" (`agenda-free`, `data-free`), the plus on
+    it, a tap laying them out in their places — the walkthrough's ring and
+    `agenda-book` stay on the open day. The Calendar view's month is the
+    pale card (today the white key, its arrows white keys) and its free
+    times the same white chips (`TimeList`). A lesson with nothing filmed
+    is a white tile on its card, the glyph in the lead.
+  - **The peek's last lessons and All lessons are one card** (the class
+    plan's S5; `peek-lessons` is a `.nsc-day.nsc-rows`, the rows on the
+    card's ring). This supersedes, for the peek, "the bell, Chat, the
+    roster and the day's rows keep a box per item".
+  This supersedes the white card wherever it is named below: "A box is
+  Duolingo's card … white, a 1.5px `#E2E2E7` line … 14px corners (16 on a
+  day's box and a group)", "A list is a column of boxes, and every edge is
+  one line, 1.5px", "WHITE CARDS", the Diary's day box "with its times as
+  rows inside" on hairlines, the Calendar view's blocks "the same box at
+  8px", the reasons "boxes of one list" as white cards (they are cards of
+  the sheet's family now, the chosen one `SEL`), and Progress's "cards
+  under `RowHead` headings" in white. Not changed: the page, the one deep
+  card, the keys, the tab bar and the plus, Chat's plain list, Settings'
+  shape. `boxes.cjs`, `calendar-day.cjs`, `ease.cjs`, `lists.cjs`,
+  `diary.cjs`, `edit-day.cjs`, `narrow.cjs`, `sprint-3.cjs`, `keys.cjs`
+  read it.
+- **The design render: bold serif titles, Lares's round keys, words on
+  the plus, one paint chart a sport, warm neutrals, the Diary as keys
+  (24–28 November).** The founder, 24 November, of the serif titles he
+  approved: "make it more bold"; of round keys, Lares's way; 28 November:
+  "I'm not seeing that Duolingo style throughout … it still basically
+  looks the exact same … completely elevating visuals. Color families …
+  cohesive … classy … professional". So:
+  - **Titles in a bold narrow serif.** `TYPE.screen` (32/700) and
+    `TYPE.head` (22/700) are "Nosca Serif": Noto Serif Display at its
+    narrowest width (62.5) and 700, one static woff2 per subset in
+    `src/fonts/` (OFL beside it, Settings › Licences), preloaded in
+    index.html, hashed into the offline precache, `font-display: block`
+    with a Times Bold fallback at its measure. Instrument Serif was the
+    approved shape and has no bold; this is that shape, bold. The serif
+    is every H1, `RowHead`, every sheet's title, Settings' group names
+    and the bell's sections (20), `EmptyHero`'s line (24), the compact
+    header (20), the Diary's day names and month, the feed's title — and
+    nothing else: rows, keys, notes and figures stay the system face.
+    "Wednesday 30 September" is 336 at 32: one line at 390, two at 320.
+  - **A round key is Lares's** (`roundOf`): the hue's pale face, a 1.5px
+    ring of its cloth, the glyph and the word in the deep colour, a
+    ledge a step under the ring; Log stays the deep lead; Call off and
+    Cancel the brick's pale with `DANGER`. Supersedes, for round keys,
+    "a function key … is filled with its function's CLOTH tone".
+  - **The plus sheet's eight are words** (`ActTile wordOnly`): the word
+    centred, 16/600, on the function's cloth, 60 tall, no glyph; Call
+    off still the brick's. Supersedes "a key keeps its glyph: the plus
+    sheet's eight" (23 November) and the plus's 88-tall stacked tiles.
+  - **One paint chart a sport** (`scripts/club-palette.py`): every cloth
+    at lightness 0.80 with its chroma held to 0.03–0.046 — a sport's
+    lead a step fuller (0.056, a cool lead 0.042), the blues, violets
+    and reds capped at 0.034, the brick 0.056 — where the warm cloths
+    ran to 0.07 beside capped blues and the eight keys were a pastel
+    rainbow whose warm keys shouted. Tennis and padel take saddle for
+    orange, rowing olive for teal, squash olive for orange, so every two
+    keys stay `SEPARATE` apart. Supersedes the cloth "at 0.76" and "0.78
+    … 0.036 … 0.055" above and those sets' old colours.
+  - **Warm neutrals**, the card's not Apple's, the same in every sport
+    and the page still `#FFFFFF`: ink `#1D1B17`, sub `#5D5950` (7.0:1),
+    faint `#6C685E` (5.6:1), trace `#B2ADA3`, hair `#ECE9E2`, wash
+    `#F4F2ED`, the card's line `EDGE` and `SOFT_LIP` `#E4E0D7`, its grey
+    ledge `#D9D4C9`, `LINE_STRONG` `#8B867B` (3.6:1), the composer's
+    line `#D3CEC4`. Supersedes Apple's greys wherever they are named
+    below (`#1C1C1E`, `#5F5F65`, `#6E6E73`, `#AEAEB2`, `#EBEBF0`,
+    `#F2F2F7`, `#E2E2E7`, `#D9D9DE`, `#8E8E93`, `#D1D1D6`).
+  - **A Segmented's chosen side is the chosen answer** (`SEL`: the
+    lead's cloth on its ledge, its ring, the word in its ink at 700),
+    38 tall, on the wash; it was a white thumb.
+  - **The Diary as keys.** The List view's week is a calm line of days
+    (50 by 68: the weekday, the date at 19/700, a dot for a day with
+    lessons) in which only two are keys — the isolated day the lead on
+    its deep ledge, today the lead's pale on its ledge — and every other
+    day its figures on the paper;
+    a day's name is the serif heading and its pencil (`agenda-edit`) a
+    34 round pale key reaching 44; a booked hour carries the person's
+    face (34; given to the name at 350 and under, as `DayRow` does); a
+    free hour's plus is `PlusKey`, a 30 round pale key on its ledge (the
+    Calendar view's free times too, `SEL` with a tick once picked). The
+    Calendar view's month is a white card (`cal-month`): its name the
+    serif, the arrows 36 round pale keys, each day a 38 key of 12px
+    corners — the chosen day the lead on a 3px deep ledge, today the
+    lead's pale, a lesson of the person's `SEL` — and a day with lessons
+    (the coach's booked or the person's own) dotted 5px in the lead, an
+    open one 4px in the trace. The coach's Manage (`diary-manage`) is a
+    quiet key (the lead's pale on its ledge, the word in the ink, 38
+    drawn and 44 to a finger), where it was a bare word. Supersedes "the
+    chosen day a solid disc", the coach's booked day's ink dot and
+    Manage's "a word beside the title" above.
+  - **A count of what waits is a chip** (`CountPill`, `HomeRow pill`):
+    the home's Actions — To review, To log, Join requests, Drifting,
+    Competitions — carry their figure on the level's chip (the lead's
+    pale, its ring, the figure in the lead at 700) and their label at
+    600; a total (All lessons, the next day's lessons) stays the plain
+    grey figure. One tone for every count: five hues down the home
+    read as a colouring book, and the founder, 28 November: "the epitome
+    of luxury … nothing … AI-built, cheap". **The home's Actions carry no
+    Messages row**: the Chat
+    tab's badge says it (the class plan's simpler home). Supersedes
+    Messages among the home's Actions below.
+  - **The level is a chip**: the player file's level (`player-level`,
+    still the door to Progress) and the lesson page's `StagePill` are
+    the lead's pale with its ring and the level in the lead at 700. The
+    roster's level stays the plain value on the right: as a chip it took
+    the room the name and the grey line need at 320 (`person-row.cjs`
+    (e), (f), (i), (m) cut them). A lesson
+    with nothing filmed (`Poster`) is the lead's pale with the sport's
+    glyph in the lead, never the grey square. `EmptyHero`'s disc is 96,
+    the lead's pale on its ledge, and its line the serif at 24/700 —
+    superseding the art direction's "88px disc of the wash" and its line
+    "in `TYPE.section`".
+  `scripts/e2e/keys.cjs`, `boxes.cjs`, `ease.cjs`, `narrow.cjs`,
+  `type-floor.cjs`, `person-row.cjs`, `calendar-day.cjs`, `diary.cjs`,
+  `edit-day.cjs`, `lists.cjs`, `sprint-3.cjs` and `shortcuts.cjs` read it.
 - **RLS: no policy on table X may query table X.** It recurses and
   every read fails with 42P17. Lookups go in `security definer`
   functions (`my_coach_id()`, `my_family_id()`, `my_family_ids()`).
@@ -152,6 +308,25 @@ seeded data and no account.
   the lesson is logged the clip exists nowhere else and a swipe on the
   log takes it off for good. The app never depends on that copy being
   there and says nothing about it that it cannot see.
+- **The front door is one shell, and a choice goes on by itself (28
+  November).** Sign-up and sign-in are `AuthShell` in Auth.jsx: Back, the
+  brand's mark in the middle of the bar in its bottle green, the title,
+  a body that scrolls, the one key at the foot — one column of 480 at
+  most, centred on a computer, never a form stretched across the screen. Join as (it was "Who are
+  you?" — a title is never a question) and Main sport answer and go on
+  with the tap (`useAnswer`: the chosen tile shows for 240 ms, then the
+  next screen), so neither carries Continue; Join as carries Sign in top
+  right. The fields are the app's own text box (`AuthField`: the wash on
+  its soft foot, 54 tall, 16px, the brand's ring while typing, a red ring
+  and one plain line for a problem; the name with dictation; the mobile
+  still asked, optional, since the trigger stores it). The server's words
+  become one short line (`friendly`). A Home Screen app on an iPhone keeps its
+  own storage, so it opens on Sign in with "Signed up in Safari? Sign in
+  once here." (until anyone has signed in inside it, `nosca.here`) and
+  Create account under the key. Arrival (`pages/Arrival.jsx`) stands in the same
+  shell: the code large on the wash (its size follows a narrow phone),
+  Copy and Share as the app's quiet keys, and Show me around the one key,
+  the Home Screen line above it and Skip under it.
 - **Sign-up is a database trigger** (`on_auth_user_created` →
   `handle_new_user()`). The browser sends everything as metadata in one
   `signUp` call and never touches `profiles` during sign-up. Nothing on
@@ -2910,6 +3085,33 @@ seeded data and no account.
   MOO foils both sides or neither. The README there is the order, and
   `public/card/` serves the files at `/card/` for a phone (copy them
   there after a re-run). `scripts/e2e/install.cjs`.
+  **Tidied (28 November).** The founder: people "thought that they just
+  tapped on the buttons on it, rather than following those instructions
+  … way too much text … really complex." So no step draws a key: the
+  control is a glyph inside the sentence at the words' height ("Tap
+  [three lines], then Share [share]", `insSay`, `InsIn`, its name for a
+  screen reader beside it), and step one alone carries a flat sketch of
+  the browser's bar with a gold loop drawn round the spot (`InsScene`) —
+  no face, no ledge, no shadow. Four steps at most: two taps in one sheet
+  are one step, and "Leave Open as Web App on" and "Scroll down the list"
+  are gone (the phone does both); the device row (`install-device`) is a
+  quiet line under the title, above the steps, so a choice never moves it
+  from under the finger. The page has ONE key: Install Nosca where the
+  browser offers it, with the steps folded behind "Or by hand"
+  (`install-hand`; `InsFold` opens it out rather than jumping when the
+  offer comes late, and a folded part is not in the page at all), else
+  Continue in the browser, filled in the olive. The two cards are small
+  and quiet — 168 wide on a phone, 188 on a computer, enough to say which
+  card was scanned (the founder: "taking the focus away from the business
+  cards") — and lie still, no turn, no foil drawn in, one soft rise; the
+  page is one column on a computer too (it was two, the cards standing
+  large beside the steps). **The hand-over is in place**: Continue and the X
+  push "/" and the gate swaps the page for sign-up opened on its first
+  question, Join as (the app for a member), under a view-transition
+  cross-fade where the browser has one (`leaveInstall`, `crossFade` in
+  App.jsx) — no reload, no white page; Back returns to the guide. Opened
+  from a Home Screen at /install (iOS can keep the address an app was
+  added from) the app goes straight to "/" (`installAtStart`).
 - **Two Netlify sites, one repository; the first address is a signpost
   (23 November).** The business cards are printed, and the code on them
   opens `nosca-pilot-2.netlify.app/install` for good — so that site is

@@ -115,7 +115,14 @@ const { check, summary } = M.checker("edit-day");
   const sheet = (page) => page.locator("[data-sheet]");
   const sheetText = async (page) => M.norm(await sheet(page).innerText());
   const dayBox = (page, name) => page.locator("div.mb-6").filter({ has: page.locator("span", { hasText: new RegExp(`^${name}$`) }) }).first();
-  const boxText = async (page, name) => { const b = dayBox(page, name); return (await b.count()) ? M.norm(await b.innerText()) : ""; };
+  /* a coach's free hours fold into one chip, Free · 4, on every day but the first one bookable (28 November, the
+     class plan's S3): the day's hours are read laid out, the chip tapped first */
+  const boxText = async (page, name) => {
+    const b = dayBox(page, name); if (!(await b.count())) return "";
+    const fold = b.locator('[data-tour="agenda-free"]');
+    if (await fold.count()) { await fold.first().click(); await page.waitForTimeout(400); }
+    return M.norm(await b.innerText());
+  };
   const openList = async (page) => {
     await tap(page, '[aria-label="Diary"]', 1000);
     const list = page.locator('[data-tour="cal-view"] [aria-label="List"]');
@@ -337,9 +344,9 @@ const { check, summary } = M.checker("edit-day");
       await page.locator("[data-sheet] button", { hasText: /^Weather$/ }).first().dispatchEvent("click"); await page.waitForTimeout(300);
       await page.locator("[data-sheet] button", { hasText: /^Next$/ }).first().dispatchEvent("click"); await page.waitForTimeout(700);
       const callTxt = await sheetText(page);
-      /* a chosen tile is filled with the sport's cloth tone since 23 November (golf's #94BD9E), every other tile the
+      /* a chosen tile is filled with the sport's cloth tone since 23 November (golf's #A4C9AC), every other tile the
          quiet key in the sport's pale — read the fill */
-      const picked = await page.locator("[data-sheet] button[aria-label]").evaluateAll((els) => els.filter((e) => getComputedStyle(e).backgroundColor === "rgb(148, 189, 158)").map((e) => e.getAttribute("aria-label")));
+      const picked = await page.locator("[data-sheet] button[aria-label]").evaluateAll((els) => els.filter((e) => getComputedStyle(e).backgroundColor === "rgb(164, 201, 172)").map((e) => e.getAttribute("aria-label")));
       check("(g5) Call off on a booked day opens the call-off, and its days start on that day",
             /Why/.test(whyTxt) && callTxt.includes(label(NEXT)) && picked.length === 1 && picked[0].startsWith(label(NEXT)), JSON.stringify({ picked, txt: callTxt.slice(0, 160) }));
       await closeSheet(page);

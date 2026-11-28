@@ -14,29 +14,38 @@ import { Mark, BrandLoader, RING_L, RING_R, RING_LEN, BRAND as BRAND_COLOUR, BRA
    style block below at the place the rules have always held, so the
    cascade inside the app is unchanged; the comments that explain them
    are there. */
-export const LIST_CSS = `    .nsc-list { border: none !important; padding-bottom: 2px; }
-    /* WHITE CARDS (21 November): a row is Duolingo's card — white, a light
-       grey line round it and a ledge of the same under it — never a slab of
-       the sport's tint; the founder: "White background throughout" */
-    .nsc-list > * { background: var(--surface, #fff); border: 1.5px solid var(--edge, #E2E2E7) !important; border-radius: 14px;
-                    box-shadow: 0 2px 0 var(--edge, #E2E2E7);
+export const LIST_CSS = `    .nsc-list { border: none !important; padding-bottom: 4px; }
+    /* THE LARES CARD (28 November, the design render's second pass): a row
+       is a card FILLED with the pale of its function's hue (--card), a 2px
+       ring of the pale's ledge (--card-ring) and a 4px ledge a step deeper
+       in the same hue (--card-ledge), 18px corners — Lares's cards,
+       Duolingo's 3D on calm colours. A list says its hue once on the
+       container (cardOf); a row may say its own. It was white on a grey
+       line (21 November), which the founder read as "the exact same". */
+    .nsc-list > * { background: var(--card, var(--surface, #fff)); border: 2px solid var(--card-ring, var(--edge, #E4E0D7)) !important; border-radius: 18px;
+                    box-shadow: 0 4px 0 var(--card-ledge, var(--edge, #E4E0D7));
                     transition: transform .15s cubic-bezier(.2,.7,.3,1), box-shadow .15s cubic-bezier(.2,.7,.3,1), background-color .15s;
-                    margin-bottom: 10px; padding-left: 16px !important; padding-right: 16px !important; }
+                    margin-bottom: 12px; padding-left: 15px !important; padding-right: 15px !important; }
+    /* 15 inside the 2px ring: the row's words keep the width they had inside the 1.5px line and 16, which a
+       phone at one pixel a point draws as 1 and 16 (a long name took a fourth line and was cut at 320 with a
+       point less) */
     /* a row that is one button sinks onto its ledge under the finger (the one press, data-down) */
-    .nsc-list > button[data-down]:not(:disabled) { transform: translateY(2px); box-shadow: 0 0 0 var(--edge, #E2E2E7); transition: none; opacity: 1; }
+    .nsc-list > button[data-down]:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--card-ledge, var(--edge, #E4E0D7)); transition: none; opacity: 1; }
     .nsc-list > *:last-child { margin-bottom: 0; }
     /* SETTINGS IN GROUPS (21 November): a group of rows is one soft box on
        its foot, the rows inside on a fine rule — iOS's grouped list, and
        Lares's own More sheet — where it was twenty slabs down the page */
-    .nsc-group { background: var(--surface, #fff); border: 1.5px solid var(--edge, #E2E2E7); border-radius: 16px; box-shadow: 0 2px 0 var(--edge, #E2E2E7); overflow: hidden; }
+    /* Settings keeps white groups, as Lares's settings are plain, on the warm
+       ring and ledge of the white card (28 November) */
+    .nsc-group { background: var(--surface, #fff); border: 2px solid var(--white-ring, #E6E2D9); border-radius: 18px; box-shadow: 0 4px 0 var(--white-ledge, #DAD5C9); overflow: hidden; }
     .nsc-group > * { background: transparent; padding-left: 16px !important; padding-right: 16px !important;
-                     border-bottom: 1.5px solid var(--edge, #E2E2E7) !important; border-radius: 0; }
+                     border-bottom: 1.5px solid var(--white-ring, #E6E2D9) !important; border-radius: 0; }
     .nsc-group > *:last-child { border-bottom: 0 !important; }
     .nsc-group > .nsc-flush { padding: 0 !important; }
     /* THE MESSENGER'S LIST (21 November): Apple Messages and WhatsApp — no
        card round a row, a fine separator that starts where the words do */
     .nsc-plain > * { position: relative; }
-    .nsc-plain > *::after { content: ""; position: absolute; left: var(--sep-in, 70px); right: 0; bottom: 0; height: 1px; background: #ECECF0; }
+    .nsc-plain > *::after { content: ""; position: absolute; left: var(--sep-in, 70px); right: 0; bottom: 0; height: 1px; background: #ECE9E2; }
     .nsc-plain > *:last-child::after { display: none; }
     /* a swipeable row pads its sliding surface, not the box, so the
        red action behind it never peeks out at the edges */
@@ -45,7 +54,7 @@ export const LIST_CSS = `    .nsc-list { border: none !important; padding-bottom
        options so the open list's wash runs to the box's edge and the
        head's label lines up with every other row */
     .nsc-list > .nsc-flush { padding: 0 !important; overflow: hidden; }
-    .nsc-list > .nsc-swipe > div:last-child { background: var(--surface, #fff) !important; padding-left: 16px; padding-right: 16px; }
+    .nsc-list > .nsc-swipe > div:last-child { background: var(--card, var(--surface, #fff)) !important; padding-left: 15px; padding-right: 15px; }
 `;
 
 import {
@@ -454,9 +463,17 @@ export const HAIR = (ink, a = 0.09) => `${ink}${Math.round(a * 255).toString(16)
    tints throughout this site. But what I want is fixed colors, and also a
    white background … White background throughout". The sport's colour is
    the tab bar's, the one action's and a chosen key's. */
-export const EDGE = (t) => (darkPage(t) ? HAIR(t.mark || t.accent || t.ink, 0.72) : "#E2E2E7");
+/* WARM NEUTRALS (28 November, the design render): the greys are the
+   card's, not Apple's — the ink, the sub and faint greys, the wash, the
+   card's line, its ledge and the hairline all lean to the gold's hue, as
+   Lares's neutrals do, so the club colours sit on stone rather than on a
+   cool violet-grey that fought every warm key. The page stays #FFFFFF.
+   ink #1D1B17, sub #5D5950 (7.0:1), faint #6C685E (5.6:1), trace #B2ADA3,
+   hair #ECE9E2, wash #F4F2ED, edge #E4E0D7, its ledge #D9D4C9, a tick
+   box's ring #8B867B (3.6:1). */
+export const EDGE = (t) => (darkPage(t) ? HAIR(t.mark || t.accent || t.ink, 0.72) : "#E4E0D7");
 /* a control whose outline is all it has (a tick box) keeps a line that reads 3:1 */
-export const LINE_STRONG = "#8E8E93";
+export const LINE_STRONG = "#8B867B";
 /* THE CLUB COLOURS (22 November, the colour study). The founder, three
    times in a day: of ten bright hues, "way too colourful. Not cohesive
    or classy"; of everything in the sport's one green, "I do want
@@ -494,16 +511,16 @@ export const CLUB = { fairway: "#285937", olive: "#4F5B29", bottle: "#123C30", l
    bubble, a badge; what labels is pale with the deep as its ink — a
    glyph tile, a face with no picture, what is chosen. */
 const CLUB_PALE = {
-  fairway: ["#DBEEDF", "#C1DAC6", "#94BD9E"], olive: ["#E5EBD7", "#CFD7BC", "#ABB78D"],
-  bottle: ["#DCECE6", "#C3D8D0", "#98BAAE"], lawn: ["#E0ECDC", "#C8D8C2", "#A0BA98"],
-  court: ["#D7EDEC", "#BBDAD8", "#8ABCBA"], petrol: ["#D9ECF1", "#BED8DF", "#9EBEC7"],
-  river: ["#DBEAFA", "#C1D5EC", "#A7BACE"], navy: ["#DFE9F7", "#C7D4E7", "#A9B9CF"],
-  steel: ["#DFE9F2", "#C6D5E0", "#A4BBCD"], aubergine: ["#EDE3F9", "#D9CCEA", "#BDB2CA"],
-  indigo: ["#E4E6FA", "#CDD0EC", "#B2B5CF"], plum: ["#F3E2ED", "#E2CBDA", "#C8AFBF"],
-  claret: ["#F7E2E4", "#E9C9CC", "#CDAEB1"], sienna: ["#F6E4DA", "#E7CCBE", "#D6A589"],
-  rust: ["#F7E3DC", "#E8CCC1", "#D8A38E"], saddle: ["#F3E5D9", "#E2CFBE", "#C8AB91"],
-  chestnut: ["#F4E4DC", "#E3CEC2", "#CAA998"], gold: ["#F0E7D0", "#DED2B2", "#C3AF7E"],
-  slate: ["#E3E9EC", "#CBD4D9", "#A5BBC7"], brick: ["#F8E2DF", "#EACAC6", "#D9ABA4"],
+  fairway: ["#DBEEDF", "#C1DAC6", "#A4C9AC"], olive: ["#E5EBD7", "#CFD7BC", "#B9C3A3"],
+  bottle: ["#DCECE6", "#C3D8D0", "#ABC5BB"], lawn: ["#E0ECDC", "#C8D8C2", "#B1C5AB"],
+  court: ["#D7EDEC", "#BBDAD8", "#97C9C6"], petrol: ["#D9ECF1", "#BED8DF", "#A6C4CC"],
+  river: ["#DBEAFA", "#C1D5EC", "#ABC0D9"], navy: ["#DFE9F7", "#C7D4E7", "#B0BFD4"],
+  steel: ["#DFE9F2", "#C6D5E0", "#ABC1D2"], aubergine: ["#EDE3F9", "#D9CCEA", "#C4B7D4"],
+  indigo: ["#E4E6FA", "#CDD0EC", "#B9BCD4"], plum: ["#F3E2ED", "#E2CBDA", "#CDB6C5"],
+  claret: ["#F7E2E4", "#E9C9CC", "#D7B3B7"], sienna: ["#F6E4DA", "#E7CCBE", "#DCB49E"],
+  rust: ["#F7E3DC", "#E8CCC1", "#D9B5A7"], saddle: ["#F3E5D9", "#E2CFBE", "#CFB9A5"],
+  chestnut: ["#F4E4DC", "#E3CEC2", "#D1B8AB"], gold: ["#F0E7D0", "#DED2B2", "#CABD9D"],
+  slate: ["#E3E9EC", "#CBD4D9", "#ABC2CE"], brick: ["#F8E2DF", "#EACAC6", "#E0B1AA"],
 };
 const PALE_BY_HEX = Object.fromEntries(Object.keys(CLUB).map((k) => [CLUB[k].toUpperCase(), CLUB_PALE[k]]));
 /* A FUNCTION HAS A HUE, AND A SPORT SAYS WHICH COLOUR THAT IS. `HUE`
@@ -523,10 +540,10 @@ const clubSet = (lead, teal, blue, orange, purple, wine, brand) => ({ green: CLU
 export const CLUB_SETS = {
   brand:      clubSet("bottle",    "olive",   "navy",  "saddle", "plum",      "claret",   "bottle"),
   golf:       clubSet("fairway",   "olive",   "navy",  "saddle", "plum",      "claret",   "bottle"),
-  tennis:     clubSet("court",     "lawn",    "navy",  "rust",   "aubergine", "claret",   "bottle"),
-  rowing:     clubSet("river",     "court",   "indigo", "saddle", "plum",      "claret",   "bottle"),
-  squash:     clubSet("sienna",    "petrol",  "navy",  "saddle", "plum",      "claret",   "bottle"),
-  padel:      clubSet("aubergine", "petrol",  "navy",  "rust",   "plum",      "claret",   "bottle"),
+  tennis:     clubSet("court",     "lawn",    "navy",  "saddle", "aubergine", "claret",   "bottle"),
+  rowing:     clubSet("river",     "olive",   "indigo", "saddle", "plum",      "claret",   "bottle"),
+  squash:     clubSet("sienna",    "petrol",  "navy",  "olive",  "plum",      "claret",   "bottle"),
+  padel:      clubSet("aubergine", "petrol",  "navy",  "saddle", "plum",      "claret",   "bottle"),
   equestrian: clubSet("claret",    "fairway", "navy",  "saddle", "aubergine", "chestnut", "bottle"),
 };
 /* NO TWO KEYS OF A SPORT THE SAME COLOUR (24 November). The cool and red
@@ -603,6 +620,21 @@ export const fillOf = (t, hue) => {
   const c = hueOf(t, hue);
   return { face: clothOf(c), fg: onCloth(c), lip: clothLip(c) };
 };
+/* A ROUND KEY, LARES'S WAY (24 November, the founder's call): the round
+   keys — a player's file, a lesson's peek, a group's page, the log's
+   Video · Photo · Voice — are their hue's PALE face in a fine ring of its
+   CLOTH tone, the glyph in the deep colour itself (5.4:1 and over on its
+   pale; the gold a deeper gold), on the cloth's own ledge: Lares's
+   practice node. They were filled with the cloth tone, the glyph its
+   near-black ink, and the founder chose the lighter key beside it. On a
+   dark page the deep colour is the face and its cloth tone the glyph, as
+   a face with no picture is there. { face, ring, fg, lip } */
+export const roundOf = (t, hue) => {
+  const c = hueOf(t, hue);
+  if (darkPage(t)) return { face: c, ring: LIP(c), fg: clothOf(c), lip: LIP(c) };
+  const [pale, , cloth] = lightsOf(c);
+  return { face: pale, ring: cloth, fg: inkOf(c), lip: MIX(cloth, inkOf(c), 0.22) };
+};
 /* EVERY KEY FILLED: a quiet key (an option, a second button) is the
    sport's own pale on its ledge and a chosen one its cloth tone, where
    both were the white key. One switch, so the two can be compared. */
@@ -637,7 +669,7 @@ const darkPage = (t) => { const [r, g, b] = rgbOf(t.page || "#FEFEFE"); return (
 /* under a strong face (the accent, the ink, red): the face a third deeper */
 export const LIP = (c) => MIX(c, "#000000", 0.3);
 /* under a soft face (the wash): the wash with a fifth of the sport's mark */
-export const SOFT_LIP = (t) => (darkPage(t) ? MIX(t.wash, "#000000", 0.5) : "#E2E2E7");
+export const SOFT_LIP = (t) => (darkPage(t) ? MIX(t.wash, "#000000", 0.5) : "#E4E0D7");
 /* THE TINT: a saturated fill of the sport's own colour for every key that
    is not the one action (the founder, 18 November: "the saturated colors
    for the buttons … a lot of the buttons on the Nosca app are like white
@@ -670,9 +702,9 @@ export const TINT = (t) => (darkPage(t) ? MIX(t.surface, t.accent, 0.12) : KEYS_
    with no fill, whose outline is the only thing that says where it is.
    It was the sport's edge for three days — a white key with a green rule
    round it, the very thing the founder asked to have filled. */
-export const TINT_LIP = (t) => (darkPage(t) ? MIX(t.surface, "#000000", 0.45) : KEYS_TINTED ? MIX(lightsOf(t.accent)[1], t.accent, 0.12) : "#D9D9DE");
+export const TINT_LIP = (t) => (darkPage(t) ? MIX(t.surface, "#000000", 0.45) : KEYS_TINTED ? MIX(lightsOf(t.accent)[1], t.accent, 0.12) : "#D9D4C9");
 /* the stone key's fine ring, Lares's inset line of its ledge at 60% */
-export const KEY_RING = (t) => (darkPage(t) ? "transparent" : KEYS_TINTED ? lightsOf(t.accent)[1] : "#E2E2E7");
+export const KEY_RING = (t) => (darkPage(t) ? "transparent" : KEYS_TINTED ? lightsOf(t.accent)[1] : "#E4E0D7");
 /* CHOSEN (21 November): Duolingo's chosen answer — the sport's colour faint
    on the face, its ring and its ledge, the word in the sport's colour —
    where a chosen key was the ink, black among white keys */
@@ -699,7 +731,24 @@ export const redKey = (t) => { const k = RED_KEY(t); return { background: k.face
    Decline): the list's white card at rest, Duolingo's chosen answer once
    picked — the sport's colour faint on the face, its ring and ledge (the
    card's --edge), the word in the sport's colour, a tick */
-export const pickRow = (t, on) => (on ? { background: SEL(t).face, "--edge": SEL(t).ring } : null);
+export const pickRow = (t, on) => (on ? { background: SEL(t).face, "--edge": SEL(t).ring, "--card-ring": SEL(t).ring, "--card-ledge": SEL(t).lip } : null);
+/* THE LARES CARD'S COLOURS (28 November): a function's hue as a card — the
+   pale as the fill, the pale's ledge as the 2px ring, a 4px ledge a step
+   deeper in the same hue. Given as the CSS custom properties the card
+   rules read (--card, --card-ring, --card-ledge), on a list's container
+   or on one row; no hue is the white card on the warm ring. The lessons
+   are the sport's own family (HUE.green), requests and what is ahead sky
+   (HUE.blue), what waits to be logged sand (HUE.orange), a clip to review
+   heather (HUE.purple), a player drifting blush (HUE.red), the record
+   pale gold (HUE.gold), people the teal role — a calm paint chart, the
+   page itself white. */
+export const CARD_WHITE = { "--card": "#FFFFFF", "--card-ring": "#E6E2D9", "--card-ledge": "#DAD5C9" };
+export const cardOf = (t, hue) => {
+  if (darkPage(t)) return { "--card": t.surface, "--card-ring": EDGE(t), "--card-ledge": EDGE(t) };
+  if (!hue) return CARD_WHITE;
+  const [pale, ledge, cloth] = lightsOf(hueOf(t, hue));
+  return { "--card": pale, "--card-ring": ledge, "--card-ledge": MIX(ledge, cloth, 0.75) };
+};
 /* a small key chosen from a set (a day of the week): Duolingo's white
    key on its grey ledge at rest (an n-key), the chosen answer once picked */
 export const keyPick = (t, on) => ({ background: on ? SEL(t).face : TINT(t), border: `${EDGE_W}px solid ${on ? SEL(t).ring : KEY_RING(t)}`,
@@ -785,9 +834,9 @@ const BAND_TO_PLAN = { "Just starting out": "solo", "Under 20": "solo", "20 to 6
    its mark are the brand colour — the one anchor Nosca has before a
    sport tints anything — and its text stays ink. */
 export const NEUTRAL = {
-  ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2",
-  hair: "#EBEBF0", page: "#FFFFFF", surface: "#FFFFFF",
-  wash: "#F2F2F7", mark: BRAND_COLOUR, accent: BRAND_COLOUR, onAccent: BRAND_PAPER,
+  ink: "#1D1B17", sub: "#5D5950", faint: "#6C685E", trace: "#B2ADA3",
+  hair: "#ECE9E2", page: "#FFFFFF", surface: "#FFFFFF",
+  wash: "#F4F2ED", mark: BRAND_COLOUR, accent: BRAND_COLOUR, onAccent: BRAND_PAPER,
   club: CLUB_SETS.brand,
 };
 /* Three states, learned once, applied everywhere — the WHOOP model.
@@ -822,8 +871,8 @@ export const SPORTS = {
   golf: {
     noun: "player", nouns: "players",
     label: "Golf", tagline: "Full swing, short game, on course",
-    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#285937", accent: "#285937", onAccent: "#FFFFFF", club: CLUB_SETS.golf },
+    theme: { ink: "#1D1B17", sub: "#5D5950", faint: "#6C685E", trace: "#B2ADA3", hair: "#ECE9E2",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F4F2ED", mark: "#285937", accent: "#285937", onAccent: "#FFFFFF", club: CLUB_SETS.golf },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -911,8 +960,8 @@ export const SPORTS = {
   tennis: {
     noun: "player", nouns: "players",
     label: "Tennis", tagline: "Serve, return, rally, net",
-    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#125856", accent: "#125856", onAccent: "#FFFFFF", club: CLUB_SETS.tennis },
+    theme: { ink: "#1D1B17", sub: "#5D5950", faint: "#6C685E", trace: "#B2ADA3", hair: "#ECE9E2",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F4F2ED", mark: "#125856", accent: "#125856", onAccent: "#FFFFFF", club: CLUB_SETS.tennis },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -1003,8 +1052,8 @@ export const SPORTS = {
   rowing: {
     noun: "rower", nouns: "rowers",
     label: "Rowing", tagline: "Technique, rhythm, racing, erg",
-    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#264A70", accent: "#264A70", onAccent: "#FFFFFF", club: CLUB_SETS.rowing },
+    theme: { ink: "#1D1B17", sub: "#5D5950", faint: "#6C685E", trace: "#B2ADA3", hair: "#ECE9E2",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F4F2ED", mark: "#264A70", accent: "#264A70", onAccent: "#FFFFFF", club: CLUB_SETS.rowing },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -1098,8 +1147,8 @@ export const SPORTS = {
   squash: {
     noun: "player", nouns: "players",
     label: "Squash", tagline: "Drives, volleys, front court, movement",
-    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#844925", accent: "#844925", onAccent: "#FFFFFF", club: CLUB_SETS.squash },
+    theme: { ink: "#1D1B17", sub: "#5D5950", faint: "#6C685E", trace: "#B2ADA3", hair: "#ECE9E2",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F4F2ED", mark: "#844925", accent: "#844925", onAccent: "#FFFFFF", club: CLUB_SETS.squash },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -1184,8 +1233,8 @@ export const SPORTS = {
   padel: {
     noun: "player", nouns: "players",
     label: "Padel", tagline: "Net game, overheads, walls",
-    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#4D3566", accent: "#4D3566", onAccent: "#FFFFFF", club: CLUB_SETS.padel },
+    theme: { ink: "#1D1B17", sub: "#5D5950", faint: "#6C685E", trace: "#B2ADA3", hair: "#ECE9E2",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F4F2ED", mark: "#4D3566", accent: "#4D3566", onAccent: "#FFFFFF", club: CLUB_SETS.padel },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -1270,8 +1319,8 @@ export const SPORTS = {
   equestrian: {
     noun: "rider", nouns: "riders",
     label: "Equestrian", tagline: "Flatwork, poles, jumping, cross-country",
-    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#6B2935", accent: "#6B2935", onAccent: "#FFFFFF", club: CLUB_SETS.equestrian },
+    theme: { ink: "#1D1B17", sub: "#5D5950", faint: "#6C685E", trace: "#B2ADA3", hair: "#ECE9E2",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F4F2ED", mark: "#6B2935", accent: "#6B2935", onAccent: "#FFFFFF", club: CLUB_SETS.equestrian },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -1519,6 +1568,18 @@ export const useT = () => useContext(ThemeCtx);
    San Francisco is what every app the founder admires is set in. */
 export const display = "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
 export const ui = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
+/* THE TITLES' BOLD SERIF (24 November, the founder's calls). The titles
+   are a narrow display serif at 700: a screen's H1 (TYPE.screen) and a
+   heading inside a page or a sheet (TYPE.head). The founder approved
+   Instrument Serif, the business card's face, and then asked for it bold;
+   it has one weight, so the face is Noto Serif Display at its narrowest
+   width, bold — the same tall, narrow, high-contrast letter. Nothing else
+   is the serif — a row, a key, a note, a figure stays the phone's face
+   above. It is the one web font the app loads (src/index.css; preloaded
+   in index.html and kept offline with the shell); the fallback is Times
+   Bold at the serif's own measure, so a face that could not load moves
+   and cuts nothing. */
+export const serif = "'Nosca Serif', 'Nosca Serif Fallback', Georgia, 'Times New Roman', serif";
 
 /* ------------------------------------------------------------------
    TYPE SCALE
@@ -1539,11 +1600,27 @@ export const ui = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
    asked kept as it was; iOS's own are 10pt) and the sign-up wordmark, a
    logotype drawn, not read. scripts/e2e/type-floor.cjs reads the
    computed size of every word on every screen as every role and fails
-   on anything under 12 outside those two. */
+   on anything under 12 outside those two.
+   THE TITLES IN A BOLD SERIF (24 November, the founder's calls): the one
+   place a web font is loaded. A screen's H1 is the serif at 32/700
+   (`screen`), a section's heading and a sheet's title at 22/700 (`head`);
+   the rest of the ladder is the system face as it was, and `title` and
+   `section` stay it for what borrows their size. */
 export const TYPE = {
   hero:     { fontFamily: display, fontSize: 34, lineHeight: 1.08, letterSpacing: "-0.022em", fontWeight: 700 },
-  /* every screen's H1, and the app's only one — see PageHead. */
-  screen:   { fontFamily: display, fontSize: 30, lineHeight: 1.1, letterSpacing: "-0.02em",  fontWeight: 700 },
+  /* every screen's H1, and the app's only one — see PageHead — and the
+     title of a moment that stands for a screen (Logged, a walkthrough's
+     step, the log's who). The bold serif since 24 November, at 32: the
+     narrow bold sets "Wednesday 30 September" in 336, on one line at 390
+     and on two at 320, never cut (it was the system face at 30/700) */
+  screen:   { fontFamily: serif,   fontSize: 32, lineHeight: 1.1, letterSpacing: "-0.004em", fontWeight: 700 },
+  /* A HEADING INSIDE A PAGE OR A SHEET (24 November): a section of a
+     screen (RowHead — Today, Actions, Coming up) and every sheet's title,
+     in the bold serif at 22. It was TYPE.section's 20 and TYPE.title's
+     22 in the system face at 700; those two stay what they were for what
+     borrows their size and is no heading — the lesson's note and the
+     coach's reply at 20, the tip's title, a name in a row, a figure */
+  head:     { fontFamily: serif,   fontSize: 22, lineHeight: 1.2, letterSpacing: "0em", fontWeight: 700 },
   title:    { fontFamily: display, fontSize: 22, lineHeight: 1.2, letterSpacing: "-0.015em", fontWeight: 700 },
   section:  { fontFamily: display, fontSize: 20, lineHeight: 1.25, letterSpacing: "-0.012em", fontWeight: 700 },
   /* heading sits 1px above body deliberately: the contrast is family
@@ -2272,6 +2349,8 @@ const LEGAL = {
   ]},
   licences: { title: "Licences", updated: "Open-source software used in this app", body: [
     ["Third-party components", "This build includes open-source libraries released under permissive licences. Full attribution text ships with the app."],
+    /* the titles' face ships inside the app, so its notice does too (src/fonts/OFL-NotoSerifDisplay.txt) */
+    ["Noto Serif Display", "The titles are set in Noto Serif Display, Copyright 2016 Google Inc., used under the SIL Open Font License, Version 1.1 (openfontlicense.org)."],
   ]},
 };
 
@@ -2337,10 +2416,11 @@ function EmptyHero({ Icon, sport, children, tour, action, className = "" }) {
   return (
     <div data-tour={tour} data-empty-hero="" className={`flex flex-col items-center text-center ${className}`.trim()} style={{ paddingTop: SPACE.block, paddingBottom: SPACE.row }}>
       <span aria-hidden="true" data-hero-disc="" className="flex items-center justify-center rounded-full"
-            style={{ width: 88, height: 88, background: t.wash, marginBottom: SPACE.row + 4, animation: `setIn ${MOTION.move}ms ${MOTION.curve} backwards` }}>
-        {Icon ? <Icon size={38} color={t.mark} strokeWidth={1.8} /> : <SportGlyph sport={sport} size={44} color={t.mark} />}
+            style={{ width: 96, height: 96, background: TINT(t), border: `2px solid ${KEY_RING(t)}`, boxShadow: `0 4px 0 ${TINT_LIP(t)}`, marginBottom: SPACE.row + 8, animation: `setIn ${MOTION.move}ms ${MOTION.curve} backwards` }}>
+        {Icon ? <Icon size={40} color={t.mark} strokeWidth={2} /> : <SportGlyph sport={sport} size={46} color={t.mark} />}
       </span>
-      <p data-hero-line="" style={{ ...TYPE.section, color: t.ink }}>{children}</p>
+      {/* the line in the titles' serif, as a heading: the empty tab says one thing, and says it as the app's own voice */}
+      <p data-hero-line="" style={{ ...TYPE.head, fontSize: 24, color: t.ink }}>{children}</p>
       {action && <div className="w-full" style={{ marginTop: SPACE.block }}>{action}</div>}
     </div>
   );
@@ -2362,7 +2442,11 @@ const ShimmerCSS = () => (
        the one action, cards and the sheet; a row of content sits on the
        wash, so a screen reads as paper with a few objects on it). The
        transparent border keeps the old width, so nothing moves. */
-${LIST_CSS}    .nsc-day { background: var(--surface); border: 1.5px solid var(--edge); border-radius: 16px; overflow: hidden; box-shadow: 0 2px 0 var(--edge); }
+${LIST_CSS}    .nsc-day { background: var(--card, var(--surface)); border: 2px solid var(--card-ring, var(--edge)); border-radius: 20px; overflow: hidden; box-shadow: 0 4px 0 var(--card-ledge, var(--edge)); }
+    /* a row's rule inside a card is the card's own ring, never a grey line on the colour */
+    .nsc-day:not(.nsc-chips) > * { border-bottom-color: var(--card-ring, var(--edge)) !important; }
+    .nsc-day.nsc-rows > * { padding-left: 16px; padding-right: 16px; }
+    [data-card] > * { border-bottom-color: var(--card-ring, var(--edge)) !important; }
     /* A KEY: an outlined control standing on a lip of its own edge, three
        points deep, that sinks two under the finger — Lares's secondary
        button, for every control that draws its own outline. --key-lip
@@ -2705,7 +2789,7 @@ function VideoCompare({ cfg, lessons, onClose }) {
 
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Side by side")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Side by side")}</h2>
       
 
       <div className="flex gap-3 mb-4">
@@ -2779,6 +2863,21 @@ function DrillTimer({ seconds, onDone }) {
    at a size that makes them the subject, and the months as a plain
 
 
+/* A FREE TIME'S PLUS IS A KEY (28 November, the design render): a 30px
+   round key of the sport's pale on its ledge, the plus in the sport's
+   colour — the Diary's one offer drawn as something to press. It sits
+   inside a row that is itself the button, so it draws and takes nothing. */
+const PlusKey = ({ on = false }) => {
+  const t = useT();
+  return (
+    <span aria-hidden="true" data-plus-key="" className="shrink-0 flex items-center justify-center rounded-full"
+          style={{ width: 30, height: 30, background: on ? SEL(t).face : TINT(t), border: `${EDGE_W}px solid ${on ? SEL(t).ring : KEY_RING(t)}`,
+                   boxShadow: `0 2px 0 ${on ? SEL(t).lip : TINT_LIP(t)}` }}>
+      {on ? <Check size={15} color={SEL(t).fg} strokeWidth={2.6} /> : <Plus size={15} color={t.accent} strokeWidth={2.4} />}
+    </span>
+  );
+};
+
 /* The whole diary as one scroll. A coach thinks in days, not in a
    grid — so every day gets its own block with the lessons and the gaps
    between them, running as far forward as they want to look. */
@@ -2791,6 +2890,21 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
   const calendar = useCalendar();
   const cx = now ? { ...calendar, today: now } : calendar;
   const T = cx.today;
+  const narrow = useNarrow();
+  /* THE DAY'S CHIPS (28 November): a free hour the white key on the card's
+     ring and ledge; a lesson the sport's cloth, a ring and a ledge of the
+     same hue a step deeper; a request sky; the person's next lesson the
+     deep colour on its own ledge */
+  const CHIP = useMemo(() => {
+    const cloth = clothOf(t.accent), sky = cardOf(t, HUE.blue);
+    const r = 14;
+    return {
+      free: { background: "#FFFFFF", border: "2px solid var(--card-ring)", boxShadow: "0 3px 0 var(--card-ledge)", borderRadius: r },
+      booked: { background: cloth, border: `2px solid ${MIX(cloth, t.accent, 0.14)}`, boxShadow: `0 3px 0 ${MIX(cloth, t.accent, 0.42)}`, borderRadius: r },
+      ask: { background: sky["--card"], border: `2px solid ${sky["--card-ring"]}`, boxShadow: `0 3px 0 ${sky["--card-ledge"]}`, borderRadius: r },
+      lit: { border: `2px solid ${t.accent}`, boxShadow: `0 3px 0 ${LIP(t.accent)}`, borderRadius: r },
+    };
+  }, [t]);
   /* Names are stripped for anyone who is not the coach. A player has no
      business knowing who else is on the sheet, and filtering at render
      is not good enough — the data must not reach them. */
@@ -2835,6 +2949,7 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
   });
 
   const [focus, setFocus] = useState(null);   // day jumped to from the ticker
+  const [openDays, setOpenDays] = useState([]);   // the days whose free hours a tap laid out
   const shown = focus ? days.filter((x) => x.m === focus.m && x.d === focus.d) : days;
   /* The walkthrough rings a bookable hour; with the free hours back in
      the day's own column there is no grid to hang it off, so the first
@@ -2875,23 +2990,30 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
           behind the one that is isolated, a wash disc under today, and
           for a coach one mark under a day that has anything booked.
           Tap a day to isolate it; tap it again to release. */}
-      <div className="flex overflow-x-auto px-6 pb-4" style={{ scrollbarWidth: "none", gap: 2 }}>
+      {/* THE WEEK AS KEYS (28 November, the design render): each day a key
+          standing on its ledge — the weekday over the date, a dot for a day
+          with lessons — the isolated day the sport's colour on its own deep
+          ledge, today the sport's pale. It was plain figures over a disc,
+          Apple Calendar's week, and the Diary read as it always had. */}
+      <div className="flex overflow-x-auto px-6 pt-1 pb-6" style={{ scrollbarWidth: "none", gap: 4 }}>
         {days.slice(0, 10).map((day) => {
           const on = focus && focus.m === day.m && focus.d === day.d;
           const isToday = day.m === T.m && day.d === T.d;
           const any = isCoach ? day.booked.length > 0 : day.mine.length > 0;
+          /* only the isolated day and today are keys; every other day is its
+             figures on the paper, so the strip reads as one calm line with the
+             day that matters standing out of it */
+          const keyed = on || isToday;
+          const face = on ? t.accent : isToday ? TINT(t) : "transparent";
           return (
-            <button key={key(day.m, day.d)} aria-pressed={!!on}
+            <button key={key(day.m, day.d)} aria-pressed={!!on} data-today={isToday ? "1" : undefined}
                     onClick={() => { haptic(7); soft(); setFocus(on ? null : { m: day.m, d: day.d }); }}
-                    className="shrink-0 flex flex-col items-center active:opacity-70" style={{ width: 44, paddingTop: 2 }}>
-              <span style={{ ...TYPE.caption, color: t.faint }}>{DAY_NAMES[dowOf(day.m, day.d, cx)].slice(0, 3)}</span>
-              {/* Apple Calendar's week: the chosen day a solid disc of the sport's
-                  colour, today's figure in the colour, a day with lessons its dot */}
-              <span className="flex items-center justify-center rounded-full mt-1"
-                    style={{ width: 34, height: 34, background: on ? t.accent : "transparent", transition: "background 200ms" }}>
-                <span style={{ ...TYPE.figureSm, fontSize: 17, fontWeight: on || isToday ? 600 : 500, color: on ? "#fff" : isToday ? t.accent : t.ink }}>{day.d}</span>
-              </span>
-              <span className="rounded-full mt-1" style={{ width: 5, height: 5, background: any ? t.accent : "transparent" }} />
+                    className={`shrink-0 flex flex-col items-center justify-center ${keyed ? "n-key" : "active:opacity-60"}`}
+                    style={{ width: 50, height: 68, borderRadius: 16, background: face, ...(keyed ? { "--key-lip": on ? LIP(t.accent) : TINT_LIP(t) } : null),
+                             border: `${EDGE_W}px solid ${on ? t.accent : isToday ? KEY_RING(t) : "transparent"}` }}>
+              <span style={{ ...TYPE.caption, fontWeight: 600, color: on ? t.onAccent : t.sub }}>{DAY_NAMES[dowOf(day.m, day.d, cx)].slice(0, 3)}</span>
+              <span style={{ ...TYPE.figureSm, fontSize: 19, fontWeight: 700, lineHeight: 1.15, color: on ? t.onAccent : isToday ? t.accent : t.ink }}>{day.d}</span>
+              <span className="rounded-full" style={{ width: 5, height: 5, marginTop: 3, background: any ? (on ? t.onAccent : t.accent) : "transparent" }} />
             </button>
           );
         })}
@@ -2917,21 +3039,37 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
         const coachDay = [...new Set([...day.hours, ...bookedTimes])].sort((a, b) => (parseTime(a) ?? 0) - (parseTime(b) ?? 0));
         const rows = day.away ? (isCoach ? coachDay.filter((h) => bookedTimes.includes(h)) : mineTimes) : isCoach ? coachDay : ownDay;
         if (!rows.length && !day.away) return null;
+        /* a day that is only the person's next lesson is the coloured card whole */
+        const whole = rows.length === 1 && !day.away && litKey === `${day.m}-${day.d}-${rows[0]}`;
+        /* A COACH'S FREE HOURS FOLD (28 November, the class plan's S3): on
+           every day but the one holding the first bookable hour, two free
+           hours or more are one chip, "Free · 4", the plus on it — a tap
+           lays them out in their places. The day the walkthrough rings
+           stays open, so "Tap a free slot" always has its slot. A player's
+           day keeps every hour: they are here to find one. */
+        const freeHere = isCoach && !day.away ? rows.filter((h) => !day.booked.find((b) => b.time === h) && !day.blockedHere.includes(h)) : [];
+        const dk = key(day.m, day.d);
+        const folded = freeHere.length > 1 && !openDays.includes(dk) && !(firstFree && firstFree.startsWith(`${day.m}-${day.d}-`));
+        const dayRows = folded ? rows.filter((h) => !freeHere.includes(h)) : rows;
 
         return (
           <div key={`${day.m}-${day.d}`} className="mb-6">
 
             {/* one quiet line, not a header competing with the rows */}
-            <div className="flex items-center gap-2.5 mb-2.5 px-1">
-              <span style={{ ...TYPE.heading, color: t.ink }}>
+            {/* the day's name is a heading, the app's bold serif as every
+                section's; the pencil a small round key on its ledge, 44 to a
+                finger (it was a 14px grey glyph) */}
+            <div className="flex items-center gap-2.5 mb-3 px-1" style={{ minHeight: 34 }}>
+              <span style={{ ...TYPE.head, color: t.ink }}>
                 {isToday ? tr("Today") : (day.m === tomorrow.m && day.d === tomorrow.d) ? tr("Tomorrow") : `${DAY_NAMES[dowOf(day.m, day.d, cx)].slice(0, 3)} ${day.d} ${day.mo.name.split(" ")[0].slice(0, 3)}`}
               </span>
               <span className="flex-1" />
               {role === "coach" && (
-                <button data-tour="agenda-edit" onClick={() => { haptic(9); soft(); onEditDay(day); }} className="relative p-1.5 active:opacity-50"
-                        aria-label={tr("Edit this day")}>
-                  <span aria-hidden="true" className="absolute" style={{ inset: -9 }} />
-                  <Edit3 size={14} color={t.faint} strokeWidth={2} />
+                <button data-tour="agenda-edit" onClick={() => { haptic(9); soft(); onEditDay(day); }} className="relative flex items-center justify-center rounded-full n-key"
+                        aria-label={tr("Edit this day")} style={{ width: 34, height: 34, border: `${EDGE_W}px solid ${KEY_RING(t)}`, "--key-lip": TINT_LIP(t) }}>
+                  {/* the reach is measured from inside the ring: 31 and 7 either side make 45 */}
+                  <span aria-hidden="true" className="absolute" style={{ inset: -7 }} />
+                  <Edit3 size={15} color={t.accent} strokeWidth={2.2} />
                 </button>
               )}
             </div>
@@ -2939,19 +3077,26 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
             {/* one box a day, its times as rows inside */}
             {/* a day that is only the person's next lesson is the coloured card
                 whole, on its own ledge, as the coach's next is on the home */}
-            <div className="nsc-day" data-away={day.away ? "1" : undefined}
-                 style={rows.length === 1 && !day.away && litKey === `${day.m}-${day.d}-${rows[0]}` ? { "--edge": t.accent, boxShadow: `0 ${LIP_H}px 0 ${LIP(t.accent)}` } : undefined}>
+            {/* THE DAY IS A LARES CARD OF CHIPS (28 November): the sport's pale
+                card, and in it each hour a chip on its own ledge — a lesson the
+                sport's cloth with the person's face, a request sky, a free hour
+                the white key with its plus, the person's next lesson the deep
+                colour; a blocked hour and Away are words on the card. It was a
+                white box of rows on hairlines. */}
+            <div className={whole ? "nsc-day" : "nsc-day nsc-chips"} data-away={day.away ? "1" : undefined}
+                 style={whole ? { "--edge": t.accent, "--card-ring": t.accent, boxShadow: `0 ${LIP_H}px 0 ${LIP(t.accent)}` } : { padding: 8, display: "flex", flexDirection: "column", gap: 8 }}>
               {day.away && (
-                <div className="flex items-center gap-3 px-4" style={{ minHeight: 48, borderBottom: rows.length ? `1px solid ${t.hair}` : "none" }}>
+                <div className="flex items-center gap-3 px-4" style={{ minHeight: 48 }}>
                   <span className="flex-1" style={{ ...TYPE.small, color: t.faint }}>{isCoach || rows.length ? tr("Away") : `${tr("Away")} · ${tr("no lessons")}`}</span>
                 </div>
               )}
-              {rows.map((h, ri) => {
+              {dayRows.map((h, ri) => {
                 const bk = day.booked.find((b) => b.time === h);
                 const isBlocked = day.blockedHere.includes(h);
                 const isGroup = bk && bk.kind && bk.kind.startsWith("Group");
-                const last = ri === rows.length - 1;
-                const line = { borderBottom: last ? "none" : `1px solid ${t.hair}` };
+                const last = ri === dayRows.length - 1 && !folded;
+                /* the chip each kind of hour stands as (none when the day is the card whole) */
+                const line = whole ? {} : CHIP.free;
 
                 /* the player's own lesson: the time, the coach's name, Requested
                    while it waits; a tap lands on the Calendar view's Your lesson
@@ -2976,14 +3121,14 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                     </span>
                     {mn.status === "requested" && <span className="shrink-0" style={{ ...TYPE.small, color: t.faint }}>{tr("Requested")}</span>}
                   </>);
-                  const litStyle = lit ? { background: t.accent, borderBottom: last ? "none" : `1px solid ${LIP(t.accent)}` } : null;
+                  const litStyle = lit ? { background: t.accent, ...(whole ? null : CHIP.lit) } : whole ? null : mn.status === "requested" ? CHIP.ask : CHIP.booked;
                   const mineRow = (juvenile || !onMine) ? (
-                    <div key={h} data-tour="agenda-mine" data-lit={lit ? "1" : undefined} className="w-full flex items-center gap-3 px-4" style={{ minHeight: 56, ...line, ...litStyle }}>{inner}</div>
+                    <div key={h} data-tour="agenda-mine" data-lit={lit ? "1" : undefined} className="w-full flex items-center gap-3 px-4" style={{ minHeight: 56, ...litStyle }}>{inner}</div>
                   ) : (
                     <button key={h} data-tour="agenda-mine" data-lit={lit ? "1" : undefined} onClick={() => { haptic(7); soft(); onMine(day); }}
-                            className="w-full flex items-center gap-3 px-4 text-left active:opacity-50" style={{ minHeight: 56, ...line, ...litStyle }}>
+                            className="w-full flex items-center gap-3 px-4 text-left active:opacity-50" style={{ minHeight: 56, ...litStyle }}>
                       {inner}
-                      <ChevronRight size={lit ? 16 : 14} color={lit ? foilOn(t.accent, t.onAccent) : t.trace || t.faint} strokeWidth={lit ? 2.2 : 2} />
+                      <ChevronRight size={lit ? 16 : 14} color={lit ? foilOn(t.accent, t.onAccent) : onCloth(t.accent)} strokeWidth={lit ? 2.2 : 2} />
                     </button>
                   );
                   return mineRow;
@@ -2999,7 +3144,7 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                    where it cannot, as Accept · Decline do on every person row */
                 if (bk && isCoach && bk.status === "requested") return (
                   <div key={h} data-tour="agenda-ask" data-ask={bk.id || ""} className="w-full flex flex-wrap items-center gap-x-3 px-4"
-                       style={{ minHeight: 56, paddingTop: 6, paddingBottom: 6, ...line }}>
+                       style={{ minHeight: 56, paddingTop: 6, paddingBottom: 6, ...CHIP.ask }}>
                     <Rail tone={t.ink} style={TIME_LEAD}>{h}</Rail>
                     <span className="min-w-0 py-1.5" style={{ flex: "1 1 120px" }}>
                       <span data-name="" className="block" style={{ ...TYPE.body, fontWeight: 600, color: t.ink, lineHeight: 1.2, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{bk.who}</span>
@@ -3017,7 +3162,7 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                 if (bk && isCoach) return (
                   <button key={h} data-tour="agenda-row" onClick={() => { haptic(7); soft(); onOpen(day, bk); }}
                           className="w-full flex items-center gap-3 px-4 text-left active:opacity-50"
-                          style={{ minHeight: 56, ...line }}>
+                          style={{ minHeight: 56, ...CHIP.booked }}>
                     <Rail tone={t.ink} style={TIME_LEAD}>{h}</Rail>
                     {/* THE ACCENT APPEARS ONCE A SCREEN. This bar spent it
                         on every booked row in the diary, and said nothing
@@ -3026,6 +3171,10 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                         stays only for a group, where the colour is the one
                         thing that tells a squad from a single lesson. */}
                     {isGroup && <span className="rounded-full shrink-0" style={{ width: 3, height: 26, background: GROUP }} />}
+                    {/* the person's face, as the home's day row carries it — a
+                        booked hour reads as somebody, a free one as a time; at 350
+                        and under the face gives its room to the name */}
+                    {!isGroup && !narrow && <span className="shrink-0 rounded-full" style={{ boxShadow: "0 0 0 2px #FFFFFF" }}><Avatar name={bk.who} size={34} /></span>}
                     {/* who said they will not be at the group's lesson, counted
                         under its name where the coach reads the day (beside it,
                         the name went to "Satur…" at 320); the peek names them */}
@@ -3037,12 +3186,12 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                       <span data-name="" className="block" style={{ ...TYPE.body, fontWeight: 600, color: t.ink, lineHeight: 1.2, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{bk.who}</span>
                       {isGroup && bk.outIds && bk.outIds.length > 0 && <span data-tour="agenda-out-count" className="block" style={{ ...TYPE.small, color: t.sub }}>{bk.outIds.length} {tr("not going")}</span>}
                     </span>
-                    <ChevronRight size={14} color={t.trace || t.faint} />
+                    <ChevronRight size={14} color={onCloth(t.accent)} />
                   </button>
                 );
 
                 if (isBlocked) return (
-                  <div key={h} className="flex items-center gap-3 px-4" style={{ minHeight: 56, ...line }}>
+                  <div key={h} className="flex items-center gap-3 px-4" style={{ minHeight: 56 }}>
                     <Rail style={{ width: TIME_LEAD.width }}>{h}</Rail>
                     <span className="flex-1" style={{ ...TYPE.small, color: t.faint }}>{tr("Blocked")}</span>
                   </div>
@@ -3069,13 +3218,21 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                           className="w-full flex items-center gap-3 px-4 text-left active:opacity-50"
                           style={{ minHeight: 56, ...line }}>
                     <Rail style={{ width: TIME_LEAD.width }}>{h}</Rail>
-                    {/* an empty row is empty; its plus, the hour on offer, in the
-                        sport's colour (it was the trace grey, 2.2:1 on white) */}
+                    {/* an empty row is empty; its plus, the hour on offer, on a
+                        small round key of the sport's pale (it was a bare 15px
+                        plus); the whole row is still the button */}
                     <span className="flex-1" />
-                    <Plus size={15} color={t.accent} strokeWidth={2.2} />
+                    <PlusKey />
                   </button>
                 );
               })}
+              {folded && (
+                <button data-tour="agenda-free" data-free={freeHere.length} onClick={() => { haptic(7); soft(); setOpenDays((o) => [...o, dk]); }}
+                        className="w-full flex items-center gap-3 px-4 text-left active:opacity-50" style={{ minHeight: 56, ...CHIP.free }}>
+                  <span className="flex-1 min-w-0" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{tr("Free")} <span style={{ color: t.sub, fontWeight: 500 }}>· {freeHere.length}</span></span>
+                  <PlusKey />
+                </button>
+              )}
             </div>
           </div>
         );
@@ -3131,7 +3288,7 @@ function MoveLessonBody({ ask, who, when, days, openFor, foot, onMove, close }) 
   };
   return (
     <div data-tour="move-sheet">
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{ask ? tr("Ask to move") : tr("Move")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{ask ? tr("Ask to move") : tr("Move")}</h2>
       {/* who, then when — "Cian Murphy · Fri 13 Nov · 10:30 am" was three facts on one grey line */}
       <p style={{ ...TYPE.small, color: t.sub }}>{who}</p>
       <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{when}</p>
@@ -3187,7 +3344,7 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, re
     <>
       {/* the title stands clear of the times, as a sheet's title does over
           its first content (it sat 4px over the tiles) */}
-      <h2 className="mb-5" style={{ ...TYPE.title, color: t.ink }}>{tr("Offer another time")}</h2>
+      <h2 className="mb-5" style={{ ...TYPE.head, color: t.ink }}>{tr("Offer another time")}</h2>
       <div className="mb-6">
         <TimeGrid cols={3} times={slots} picked={offer} onToggle={(sl) => setOffer(offer === sl ? null : sl)} />
       </div>
@@ -3203,7 +3360,7 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, re
 
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{request ? tr("Withdraw request") : tr("Cancel lesson")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{request ? tr("Withdraw request") : tr("Cancel lesson")}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{lesson}</p>
 
       <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Why")}</div>
@@ -3268,7 +3425,7 @@ function RecordTransfer({ name, fromCoach, toCoach, onDone, close }) {
 
   if (stage === "confirm") return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Share with")} {toCoach}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Share with")} {toCoach}</h2>
       <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, lineHeight: 1.55, color: t.faint }}>
         {parts.length} {tr("of")} {RECORD_PARTS.length} {tr("parts of your record")}
       </p>
@@ -3294,7 +3451,7 @@ function RecordTransfer({ name, fromCoach, toCoach, onDone, close }) {
 
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Your record")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Your record")}</h2>
       <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, lineHeight: 1.55, color: t.faint }}>
         {tr("Choose what")} {toCoach} {tr("can see. You can change this later.")}
       </p>
@@ -3968,7 +4125,7 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
         <span className="flex-1 min-w-0">
           {/* the whole name, a second line before an ellipsis — "Maximiliano
               Ó Súilleab…" at 320 */}
-          <span data-tour="peek-title" className="block" style={{ ...TYPE.title, color: t.ink, display: "-webkit-box", WebkitLineClamp: 2,
+          <span data-tour="peek-title" className="block" style={{ ...TYPE.head, color: t.ink, display: "-webkit-box", WebkitLineClamp: 2,
                        WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{booking.who}</span>
           <span className="block mt-0.5" style={{ ...TYPE.small, color: t.faint }}>
             {/* the booking's own length — a clinic is an hour here as on its block */}
@@ -4002,12 +4159,16 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
           chevron: it was "All 2 lessons" in the accent under the boxes, a
           second accent on a sheet whose one action is Log, and the rows
           above it opened the archive with nothing to say so */}
+      {/* ONE BOX (28 November, the class plan's S5): the last lessons and the
+          way to them all are the rows of one card of the sport's family, on
+          the card's own rules — three boxes stacked under the name read as
+          three things */}
       {(count > 0 || lessons.length > 0) && (
-      <div className="nsc-list mb-5" data-tour="peek-lessons">
+      <div className="nsc-day nsc-rows mb-5" data-tour="peek-lessons">
         {lessons.map((l, i) => (
           <button key={i} onClick={() => { haptic(7); onHistory && onHistory(); }}
                   className="w-full flex items-center gap-4 py-3 text-left active:opacity-50"
-                  style={{ minHeight: 60, animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
+                  style={{ minHeight: 60, borderBottom: i === lessons.length - 1 && !(count > 0) ? "none" : "1.5px solid", animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
             {/* the harness writes "14 Jun" into d; a real lesson keeps
                 the day and the month apart */}
             <span className="shrink-0" style={{ width: 76, ...TYPE.caption, color: t.faint }}>{l.iso ? fmtWeekDay(localDate(l.iso)) : l.m ? `${l.d} ${l.m}` : l.d}</span>
@@ -4195,7 +4356,7 @@ function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onE
 
   return (
     <>
-      <h2 style={{ ...TYPE.title, color: t.ink }}>{fmtIsoDay(iso)}</h2>
+      <h2 style={{ ...TYPE.head, color: t.ink }}>{fmtIsoDay(iso)}</h2>
       {(away || offered.length > 0) && (
         <p data-tour={away ? "editday-away" : undefined} className="mt-1.5" style={{ ...TYPE.small, color: t.faint }}>{away ? tr("Away") : times(offered.length)}</p>
       )}
@@ -4969,7 +5130,7 @@ function PhotoSheet({ name, current, onSet, onClear, close, say }) {
   const tints = ["#8C6D28", "#0F7A69", "#6E5A93", "#B4472F", "#4F7A52", "#2F5D8C"];
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Photo")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Photo")}</h2>
       <p className="mb-6" style={{ ...TYPE.small, color: t.faint }}>{name}</p>
 
       <div className="flex justify-center mb-7">
@@ -5017,7 +5178,7 @@ function DefaultSport({ name, mine, current, onPick, close }) {
   const t = useT();
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Main sport")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Main sport")}</h2>
       <p className="mb-6" style={{ ...TYPE.small, color: t.faint }}>{name}</p>
       <div className="flex flex-col gap-2.5">
         {mine.map((c, i) => {
@@ -5197,14 +5358,14 @@ function QuickMenu({ liveLesson, onLog, onRun, order, onEdit }) {
       {/* the log first and full width; then the eight, two to a row,
           in the order the coach keeps — Call off among them, in red */}
       <ActTile tour="quick-log" tone="accent" block h={60} Icon={Plus} label={tr("Log a lesson")} onTap={() => { hapticCommit(); onLog(); }} />
-      {/* the eight as round keys, two to a row — the founder's own choice for
-          this sheet, kept when the tiles became round */}
+      {/* the eight, two to a row — the founder's own choice for this sheet —
+          as words on their function's cloth since 24 November */}
       <div style={{ marginTop: SPACE.block + 4 }}>
         <TileGrid cols={2}>
           {ids.map((id, i) => {
             const A = COACH_ACTIONS[id];
             return (
-              <ActTile key={id} tour={`quick-${id}`} h={88} wrap Icon={A.Ico} label={tr(A.label)} delay={Math.min(i, 5) * 22}
+              <ActTile key={id} tour={`quick-${id}`} h={60} wrap wordOnly Icon={A.Ico} label={tr(A.label)} delay={Math.min(i, 5) * 22}
                        tone={id === "weather" ? "dangerQuiet" : "quiet"} hue={A.hue}
                        dot={id === "attend" && !!liveLesson}
                        aria={id === "attend" && liveLesson ? `${tr(A.label)} · ${liveLesson.who}` : tr(A.label)}
@@ -5239,7 +5400,7 @@ function PickPerson({ roster, title, sub, onPick, close }) {
 
   return (
     <>
-      <h2 style={{ ...TYPE.title, color: t.ink }}>{title}</h2>
+      <h2 style={{ ...TYPE.head, color: t.ink }}>{title}</h2>
       {sub && <p className="mt-1 mb-5" style={{ ...TYPE.small, color: t.faint }}>{sub}</p>}
 
       <SearchField value={q} onChange={setQ} className="mb-4" />
@@ -5302,7 +5463,7 @@ function Announcement({ kind, title, body, action, actionLabel, onDismiss }) {
         {tr(cfg.eyebrow)}
       </span>
 
-      <h2 className="text-center" style={{ ...TYPE.hero, fontSize: 29, color: t.ink,
+      <h2 className="text-center" style={{ ...TYPE.screen, color: t.ink,
                     animation: "fadeUp 500ms cubic-bezier(.22,1,.36,1) 240ms both" }}>{title}</h2>
 
       {body && (
@@ -5475,7 +5636,7 @@ function Attendance({ lessons, roster, groups = [], taken, chosen, onSubmit, clo
           <ChevronLeft size={15} color={t.sub} strokeWidth={2.2} /> {tr("Today")}
         </button>
 
-        <h2 style={{ ...TYPE.title, color: t.ink }}>{picked.who}</h2>
+        <h2 style={{ ...TYPE.head, color: t.ink }}>{picked.who}</h2>
         {/* a register of one is the time alone: "1 person" under that person's name said nothing,
             and a roll with nobody on it is never "0 people" — a subtitle carries a value or is not there */}
         <p className="mt-1 mb-4" style={{ ...TYPE.small, color: t.faint }}>
@@ -5584,7 +5745,7 @@ function Attendance({ lessons, roster, groups = [], taken, chosen, onSubmit, clo
   /* ---------- pick a lesson ---------- */
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Register")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Register")}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{tr("Today")}</p>
 
       {(lessons || []).length === 0 && (
@@ -6014,9 +6175,12 @@ function Poster({ item, size = 56, radius = 8, sport }) {
     /* no clip: the same box, the sport's glyph in it, so every row lines up —
        Apple's grey with no ring, where a ring of the sport's tint drew a box
        inside the row's box */
-    <span className="flex items-center justify-center shrink-0" aria-hidden="true"
-          style={{ width: size, height: size, borderRadius: radius, background: t.wash }}>
-      <SportGlyph sport={sport} size={Math.round(size * 0.42)} />
+    /* since 28 November the sport's own pale with its glyph in the sport's
+       colour, ringed in its cloth: a lesson with nothing filmed is still
+       the sport, never a grey square (the design render) */
+    <span className="flex items-center justify-center shrink-0" aria-hidden="true" data-poster-blank=""
+          style={{ width: size, height: size, borderRadius: Math.max(radius, 12), background: "#FFFFFF", boxShadow: `inset 0 0 0 ${EDGE_W}px var(--card-ring, ${KEY_RING(t)})` }}>
+      <SportGlyph sport={sport} size={Math.round(size * 0.42)} color={t.accent} />
     </span>
   );
   const flat = item.type === "sim" || item.type === "audio";
@@ -6127,7 +6291,7 @@ function DownloadSheetBody({ lesson, onOpen, onUpdate, onShare, onRemove, onCanc
   const quiet = { minHeight: 48, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink };
   return (
     <div data-tour="download-sheet" data-download-sheet={status || "none"}>
-      <h2 style={{ ...TYPE.title, color: t.ink }}>{lesson.focus}</h2>
+      <h2 style={{ ...TYPE.head, color: t.ink }}>{lesson.focus}</h2>
       <p className="mt-1" style={{ ...TYPE.small, color: t.sub }}>{line}</p>
       {st && st.error && <p className="mt-1" style={{ ...TYPE.small, color: DANGER }}>{st.error}</p>}
       {status === "saving" && (
@@ -6664,7 +6828,10 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
           {/* the focus on a line of its own, the whole width of the panel */}
           <button onClick={open} className="w-full min-w-0 text-left active:opacity-80">
               <span data-tour="feed-focus" style={{ display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 2, overflow: "hidden", textWrap: "balance", whiteSpace: "normal",
-                                                     fontFamily: display, fontSize: titleSize, lineHeight: 1.08, letterSpacing: "-0.03em", color: "#fff" }}>
+                                                     /* the titles' bold serif (28 November): the lesson is
+                                                        titled as every screen is; the narrow face only ever
+                                                        sets the measure the sizing allowed for, never more */
+                                                     fontFamily: serif, fontWeight: 700, fontSize: titleSize + 2, lineHeight: 1.08, letterSpacing: "0em", color: "#fff" }}>
                 {/* the dot rides inside the next area's nowrap span, so a line
                     breaks only in the space before it and never ends on a dot;
                     that space is the one place a line may break */}
@@ -7218,7 +7385,7 @@ function InviteOffer({ invite, lookup, currentCoach, currentCoachName, currentGu
   };
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("You've been invited")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("You've been invited")}</h2>
       <p className="mb-1" style={{ ...TYPE.body, color: t.sub, lineHeight: 1.55 }}>{line}</p>
       <p className="mb-5" style={{ ...TYPE.caption, color: t.faint, letterSpacing: "0.12em" }}>{invite.code}</p>
       {err && <p className="mb-3" style={{ ...TYPE.small, color: DANGER }}>{err}</p>}
@@ -7264,7 +7431,7 @@ function ConfirmPassword({ title, detail, actionLabel, onConfirm, close, closeLa
       {/* Same as LiveCapture: a body inside the app's Sheet, not a Sheet
           of its own — which is why Delete account and the weather
           call-off confirmation opened onto an empty panel. */}
-      <h2 className="mb-2" style={{ ...TYPE.title, color: t.ink }}>{title}</h2>
+      <h2 className="mb-2" style={{ ...TYPE.head, color: t.ink }}>{title}</h2>
       <div className="pb-2">
         <p style={{ ...TYPE.body, color: t.sub, lineHeight: 1.55 }}>{detail}</p>
 
@@ -7326,7 +7493,7 @@ function JoinedCoach({ coachName, sport, onDone }) {
                 border: `3px solid ${t.ink}`, animation: "joinRight 1100ms cubic-bezier(.22,1,.36,1) 120ms both" }} />
       </div>
 
-      <h1 className="mt-9" style={{ ...TYPE.hero, fontSize: 30, color: t.ink,
+      <h1 className="mt-9" style={{ ...TYPE.screen, color: t.ink,
                      animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 900ms both" }}>
         {tr("You're in")}
       </h1>
@@ -7813,9 +7980,10 @@ function Tile({ children, onPress, accent, className = "", style = {}, delay = 0
              one idea per box reads calmer and more expensive. */
           /* No outline unless it is carrying meaning. Whitespace and a
              hairline do the grouping; a border is reserved for emphasis. */
-          style={{ background: accent ? `${accent}0E` : t.surface, borderRadius: R.surface,
+          /* the Lares card (28 November): the card's tokens where nothing is accented */
+          style={{ background: accent ? `${accent}0E` : "var(--card, #fff)", borderRadius: 18,
                    position: "relative", overflow: "hidden", zIndex: 1,
-                   border: accent ? `${EDGE_W}px solid ${accent}2E` : `${EDGE_W}px solid ${EDGE(t)}`, boxShadow: p.rest,
+                   border: accent ? `${EDGE_W}px solid ${accent}2E` : "2px solid var(--card-ring, #E6E2D9)", boxShadow: accent ? p.rest : "0 4px 0 var(--card-ledge, #DAD5C9)",
                    transition: "transform 140ms ease-out, box-shadow 140ms ease-out",
                    /* backwards, never both: a held end frame beats the press's own transform */
                    animation: `liftIn 420ms cubic-bezier(.22,1,.36,1) ${delay}ms backwards`, ...style }}>
@@ -7901,7 +8069,7 @@ function Celebration({ label, sub, onDone, tone = "accent" }) {
       </svg>
 
       <div className="mt-7 px-10 text-center" style={{ animation: "labelUp 620ms cubic-bezier(.34,1.56,.64,1) 880ms both" }}>
-        <div style={{ fontFamily: display, fontSize: 25, letterSpacing: "-0.028em", color: t.ink }}>{label}</div>
+        <div style={{ ...TYPE.screen, color: t.ink }}>{label}</div>
         {sub && <div className="mt-2" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{sub}</div>}
       </div>
     </div>
@@ -7919,7 +8087,7 @@ function RateLesson({ focus, coach, onDone, close }) {
   const [picked, setPicked] = useState([]);
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Rate it")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Rate it")}</h2>
       <p className="mb-6" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{focus} · {coach}</p>
 
       <div className="flex justify-center gap-2.5 mb-7">
@@ -7989,7 +8157,7 @@ function NewThread({ role, roster, conns, people: given, groups = [], nouns = "p
   const shown = people.filter((p) => !term || p.name.toLowerCase().includes(term));
   return (
     <>
-      <h2 className="mb-4" style={{ ...TYPE.title, color: t.ink }}>{tr("New message")}</h2>
+      <h2 className="mb-4" style={{ ...TYPE.head, color: t.ink }}>{tr("New message")}</h2>
       <SearchField value={q} onChange={setQ} className="mb-4" />
       {shown.length === 0 ? (
         <EmptyLine>{people.length === 0 ? tr("Nobody to message yet") : `${tr("No one called")} “${q}”`}</EmptyLine>
@@ -8015,7 +8183,7 @@ function SuggestFocus({ cfg, sport, onSend, close }) {
   const [note, setNote] = useState("");
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Next time")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Next time")}</h2>
       
       <div className="mb-5">
         <FocusGrid areas={cfg.focus} picked={[pick]} onToggle={setPick} />
@@ -8059,7 +8227,7 @@ function EndSeries({ rec, rows, duration, group, reasonTravels = true, verify, o
             style={{ minHeight: 48, ...TYPE.body, color: t.sub }}>{tr("Back")}</button>
   );
   const head = (title, line) => (<>
-    <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{title}</h2>
+    <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{title}</h2>
     <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{line}</p>
   </>);
 
@@ -8180,7 +8348,7 @@ function CallOff({ days, startKeys = [], duration, onConfirm, close, verify }) {
 
   if (stage === "which") return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Which lessons")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Which lessons")}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{tr("Untick any that still go ahead")}</p>
       <div className="flex flex-col gap-3 mb-6">
         {chosenDays.map((d) => (
@@ -8217,7 +8385,7 @@ function CallOff({ days, startKeys = [], duration, onConfirm, close, verify }) {
 
   if (stage === "days") return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Which days")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Which days")}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{tr(reason || "")}</p>
       {days.length === 0
         ? <p className="mb-6" style={{ ...TYPE.body, color: t.faint }}>{tr("Nothing booked in the next month")}</p>
@@ -8240,7 +8408,7 @@ function CallOff({ days, startKeys = [], duration, onConfirm, close, verify }) {
 
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Call off")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Call off")}</h2>
       {/* one head across Call off · Cancel · End · Decline · Move: the facts
           in TYPE.small under the title (the day this was opened from), then
           Why as the eyebrow over the reasons — it was the grey subtitle
@@ -8272,7 +8440,7 @@ function RescheduleOffer({ lesson, slots, duration, onPick, close }) {
   const [sel, setSel] = useState(null);
   return (
     <>
-      <h2 className="mb-4" style={{ fontFamily: display, fontSize: 22, letterSpacing: "-0.025em", color: t.ink }}>{tr("Called off for weather")}</h2>
+      <h2 className="mb-4" style={{ ...TYPE.head, color: t.ink }}>{tr("Called off for weather")}</h2>
       <p className="mb-6" style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.6, color: t.sub }}>
         {lesson} {tr("won't go ahead. Pick a new time that suits you.")}
       </p>
@@ -8309,7 +8477,8 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
      and before that a pale accent card at 16px) — with a group marked as
      the List view marks it, the 3px bar */
   return (
-    <Tile tour="cal-block" delay={delay} className="mb-3" style={{ overflow: "hidden", borderRadius: 14, boxShadow: `0 2px 0 ${EDGE(t)}` }}>
+    /* a Lares card of the sport's own family, a group's too (its bar says which) */
+    <Tile tour="cal-block" delay={delay} className="mb-4" style={{ overflow: "hidden", ...cardOf(t, HUE.green) }}>
       <button onClick={() => { haptic(7); soft(); setOpen(!open); }} className="w-full text-left px-5 py-4">
         <div className="flex items-center gap-3.5">
           {isGroup && <span className="rounded-full shrink-0" style={{ width: 3, height: 26, background: GROUP }} />}
@@ -8414,7 +8583,8 @@ function AskBlock({ item, duration, delay = 0, onAccept, onDecline }) {
   const len = item.duration || duration;
   const key = { minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, fontFamily: ui, fontSize: 15, fontWeight: 600 };
   return (
-    <Tile tour="cal-ask" delay={delay} className="mb-3" style={{ overflow: "hidden", borderRadius: 14, boxShadow: `0 2px 0 ${EDGE(t)}` }}>
+    /* a request is sky, as every request is (28 November) */
+    <Tile tour="cal-ask" delay={delay} className="mb-4" style={{ overflow: "hidden", ...cardOf(t, HUE.blue) }}>
       <div data-ask={item.id || ""} className="px-5 py-4">
         <div className="flex items-center gap-3.5">
           <Avatar name={item.who} size={42} />
@@ -8832,7 +9002,7 @@ function Screen({ title, meta, onBack, right, action, children, large = true, ba
               name (`useNarrow`) rather than the title its letters; `truncate`
               stays only as the backstop narrow.cjs proves is never reached */}
           <span data-tour="screen-title" className="flex-1 min-w-0 text-center truncate px-1.5"
-                style={{ fontFamily: ui, fontSize: 16, fontWeight: 600, color: t.ink,
+                style={{ ...TYPE.head, fontSize: 20, lineHeight: 1.1, color: t.ink,
                          opacity: shrunk ? 1 : 0, transition: "opacity 180ms" }}>{title}</span>
           <span className="flex items-center justify-end gap-2.5 pr-3" style={{ minWidth: 41 }}>{right}</span>
         </div>
@@ -8952,19 +9122,24 @@ function Segmented({ options, value, onChange, tour, tall = false }) {
     /* Lares's control: the wash for a track with a fine ring of its own
        lip, and the chosen option a paper face standing on a two-point
        lip that glides to it */
-    <div data-tour={tour} className="relative flex rounded-xl p-0.5" style={{ background: t.wash, boxShadow: `inset 0 0 0 1px ${SOFT_LIP(t)}` }}>
+    /* THE CHOSEN SIDE IS THE CHOSEN ANSWER (28 November, the design render):
+       the thumb is the sport's cloth on its ledge with the word in its ink,
+       Duolingo's picked answer, where it was a white face on the grey — the
+       one switch on every list (List · Feed, List · Calendar) now says which
+       side is on at a glance */
+    <div data-tour={tour} className="relative flex p-1" style={{ borderRadius: 14, background: t.wash, boxShadow: `inset 0 0 0 1px ${SOFT_LIP(t)}` }}>
       {/* one thumb that glides to the chosen option, rather than a
           surface that jumps from one to the next */}
-      <span aria-hidden="true" className="absolute rounded-lg" data-lip=""
-            style={{ top: 2, bottom: 4, left: 2, width: `calc((100% - 4px) / ${n})`, transform: `translateX(${idx * 100}%)`,
-                     background: t.surface, boxShadow: `${lipOf(SOFT_LIP(t), 2)}, 0 0 0 1px ${SOFT_LIP(t)}`, transition: `transform ${MOTION.move}ms ${MOTION.curve}` }} />
+      <span aria-hidden="true" className="absolute" data-lip="" data-thumb=""
+            style={{ top: 4, bottom: 6, left: 4, width: `calc((100% - 8px) / ${n})`, transform: `translateX(${idx * 100}%)`, borderRadius: 10,
+                     background: SEL(t).face, boxShadow: `${lipOf(SEL(t).lip, 2)}, 0 0 0 ${EDGE_W}px ${SEL(t).ring}`, transition: `transform ${MOTION.move}ms ${MOTION.curve}` }} />
       {options.map((o) => {
         const on = value === o;
         return (
           <button key={o} aria-pressed={on} aria-label={o} onClick={() => { haptic(6); onChange(o); }} className="relative flex-1 rounded-lg"
                   /* `tall`: 44 to a finger, where the control is the only way to another answer (the install guide's Change) */
-                  style={{ minHeight: tall ? 44 : 34, paddingBottom: 2, background: "transparent", transition: `color ${MOTION.move}ms`,
-                           fontFamily: ui, fontSize: tall ? 14 : 13.5, fontWeight: 600, color: on ? t.ink : t.sub }}>{o}</button>
+                  style={{ minHeight: tall ? 44 : 38, paddingBottom: 2, background: "transparent", transition: `color ${MOTION.move}ms`,
+                           fontFamily: ui, fontSize: tall ? 14.5 : 14.5, fontWeight: on ? 700 : 600, color: on ? SEL(t).fg : t.sub }}>{o}</button>
         );
       })}
     </div>
@@ -8974,7 +9149,7 @@ function Toggle({ on, onChange }) {
   const t = useT();
   return (
     <button onClick={() => { haptic(6); onChange(!on); }} aria-pressed={on} className="rounded-full shrink-0 relative"
-            style={{ width: 50, height: 30, background: on ? t.accent : "#D6DAD3", transition: "background 280ms cubic-bezier(.22,1,.36,1)" }}>
+            style={{ width: 50, height: 30, background: on ? t.accent : "#DCD8CF", transition: "background 280ms cubic-bezier(.22,1,.36,1)" }}>
       <span className="absolute rounded-full" style={{ width: 26, height: 26, top: 2, left: on ? 22 : 2, background: "#fff",
                      boxShadow: "0 1px 3px rgba(0,0,0,0.2)", transition: "left 200ms cubic-bezier(.32,.72,0,1)" }} />
     </button>
@@ -9072,7 +9247,7 @@ function SearchField({ value, onChange, placeholder, tour, onEnter, className = 
     </div>
   );
 }
-function MicBtn({ onText, size = 34, tint, onNotice }) {
+export function MicBtn({ onText, size = 34, tint, onNotice }) {
   const t = useT();
   const notice = useContext(NoticeCtx);
   const { state, start, supported } = useDictation(onText, onNotice || notice);
@@ -9216,8 +9391,9 @@ const TIME_LEAD = { fontSize: 17, fontWeight: 600, letterSpacing: "-0.015em", wi
 
 const Card = ({ children, className = "", style = {}, delay = 0, tour }) => {
   const t = useT();
-  return (<div data-tour={tour} className={className} style={{ background: t.surface, borderRadius: R.surface, border: `${EDGE_W}px solid ${EDGE(t)}`,
-                  boxShadow: lipOf(EDGE(t), 2),
+  /* a Lares card on the list's own tokens: the sport's pale by default, the white card where a list says so */
+  return (<div data-tour={tour} data-card="" className={className} style={{ background: "var(--card, #fff)", borderRadius: 18, border: "2px solid var(--card-ring, #E6E2D9)",
+                  boxShadow: "0 4px 0 var(--card-ledge, #DAD5C9)",
                   animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`, ...style }}>{children}</div>);
 };
 /* A label over a list of rows. Eyebrow below carries the page's own
@@ -9225,10 +9401,11 @@ const Card = ({ children, className = "", style = {}, delay = 0, tour }) => {
 /* A SECTION IS A HEADING (21 November): the screen's subjects — Today,
    Actions, Coming up, Children — in the display face in ink, as Lares
    heads "Later" and "Countdowns", where they were the small grey label a
-   form field carries. The label stays the Eyebrow's, for a field. */
+   form field carries. The label stays the Eyebrow's, for a field. In the
+   bold serif since 24 November (TYPE.head, 22), as a sheet's title is. */
 const RowHead = ({ children }) => {
   const t = useT();
-  return <h2 className="px-1" style={{ ...TYPE.section, color: t.ink, marginBottom: SPACE.tight }}>{children}</h2>;
+  return <h2 className="px-1" style={{ ...TYPE.head, color: t.ink, marginBottom: SPACE.tight }}>{children}</h2>;
 };
 const Eyebrow = ({ children }) => {
   const t = useT();
@@ -9334,7 +9511,7 @@ export const sink = (t, restShadow) => {
    Drills · Tip). `tick`: a chosen answer carries the sport's tick in a disc
    on its top-right corner — the log's areas only; a key with a count or a
    dot keeps that on its corner and never a tick beside it. */
-function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, aria, h = 76, delay = 0, wrap = false, iconOnly = false, block = false, face: faceSize, round, hue, tick = false, big = false }) {
+function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, aria, h = 76, delay = 0, wrap = false, iconOnly = false, block = false, face: faceSize, round, hue, tick = false, big = false, wordOnly = false }) {
   const t = useT();
   const cols = useContext(GridColsCtx);
   /* dangerQuiet: the white key with the red in the glyph and the word
@@ -9389,6 +9566,26 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
      Duolingo's cards) — a circle in a cell twice its width read as a
      small button in the middle of a big page. Under 72 tall the glyph
      and the word share one line. */
+  /* THE PLUS SHEET'S EIGHT ARE WORDS (24 November, the founder's call):
+     its function keys carry the word alone, centred on the cloth fill at
+     60 — a glyph over a word, eight times, two to a row, was the busiest
+     thing in the sheet. The fill and its ledge are the function's, as
+     before, and Call off is still the brick's */
+  if (Icon && !block && round !== true && cols === 2 && wordOnly) {
+    const p = press3d(lipC, 3, 2, ring);
+    return (
+      <button data-tour={tour} data-lip="" data-tile="" data-word="" aria-label={aria || label} onClick={() => { haptic(9); soft(); onTap(); }}
+              {...p.handlers}
+              className="relative w-full flex items-center justify-center text-center"
+              data-fill={fill ? "" : undefined}
+              style={{ minHeight: h, padding: "8px 12px", borderRadius: R.surface, background: bg,
+                       boxShadow: p.rest, border: `${EDGE_W}px solid ${fill ? "transparent" : quietTile ? quietRing : "transparent"}`, animation: enter,
+                       transition: `background ${MOTION.settle}ms, box-shadow 140ms ease-out, transform 140ms ease-out` }}>
+        <span className="min-w-0" style={{ fontFamily: ui, fontSize: 16, fontWeight: 600, letterSpacing: "-0.01em", lineHeight: 1.2, color: fg }}>{label}</span>
+        {badge}
+      </button>
+    );
+  }
   if (Icon && !block && round !== true && cols === 2) {
     const p = press3d(lipC, 3, 2, ring);
     const stacked = h >= 72;
@@ -9417,17 +9614,24 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
     /* the face sinks the whole lip onto the paper, as Lares's node does —
        sized to its row: three across 64, four 56, more 46 */
     const f = faceSize || (cols >= 5 ? 46 : cols === 4 ? 56 : 64), lip = 3;
-    const rest = `${lipOf(lipC, lip)}${ring ? `, ${ring}` : ""}`, down = `${lipOf(lipC, 0)}${ring ? `, ${ring}` : ""}`;
+    /* LARES'S ROUND KEY (24 November, the founder's call): a function's
+       round key is its hue's pale in a ring of its cloth tone, the glyph
+       and the word in the deep colour, on a ledge a step under the ring;
+       what calls off is the brick's pale with the brick's word. The one
+       action (Log) stays the deep lead */
+    const rk = fill ? roundOf(t, redWord ? HUE.red : hue) : null;
+    const lipR = rk ? rk.lip : lipC;
+    const rest = `${lipOf(lipR, lip)}${ring ? `, ${ring}` : ""}`, down = `${lipOf(lipR, 0)}${ring ? `, ${ring}` : ""}`;
     return (
       <button data-tour={tour} data-round="" data-press="" aria-label={aria || label} onClick={() => { haptic(9); soft(); onTap(); }}
               className="relative w-full flex flex-col items-center"
               style={{ gap: 7, paddingTop: 2, animation: enter, WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}>
         <span data-face="" data-lip="" data-fill={fill ? "" : undefined} data-rest={rest} data-dn={down} data-by={lip} className="relative flex items-center justify-center rounded-full"
-              style={{ width: `min(${f}px, 100%)`, aspectRatio: "1 / 1", background: bg, boxShadow: rest,
-                       border: `${EDGE_W}px solid ${fill ? "transparent" : quietTile ? quietRing : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`,
+              style={{ width: `min(${f}px, 100%)`, aspectRatio: "1 / 1", background: rk ? rk.face : bg, boxShadow: rest,
+                       border: `${EDGE_W}px solid ${rk ? rk.ring : quietTile ? quietRing : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`,
                        transition: `background ${MOTION.settle}ms` }}>
-          {/* a function's key carries its glyph in the hue's own ink on its filled face */}
-          <Icon size={Math.round(f * 0.4)} color={fg} strokeWidth={fill ? 2.1 : quietTile || calm ? 1.8 : 2} />
+          {/* a function's key carries its glyph in the hue's deep colour on its pale */}
+          <Icon size={Math.round(f * 0.4)} color={rk ? rk.fg : fg} strokeWidth={fill ? 2.1 : quietTile || calm ? 1.8 : 2} />
           {badge}
         </span>
         {/* THE WORD IS WHOLE AT 320 (24 November): four across, a column is
@@ -9439,7 +9643,7 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
           <span className={wrap ? "px-0.5 text-center" : "truncate"}
                 style={{ marginTop: lip, fontFamily: ui, fontSize: 13, fontWeight: 600, lineHeight: 1.2, letterSpacing: "-0.005em",
                          ...(wrap ? null : { maxWidth: cols ? `calc(100% + ${TILE_GAP}px)` : "100%" }),
-                         color: tone === "danger" || redWord ? DANGER : tone === "accent" ? t.ink : t.sub }}>{label}</span>
+                         color: tone === "danger" || redWord ? DANGER : rk ? rk.fg : tone === "accent" ? t.ink : t.sub }}>{label}</span>
         )}
       </button>
     );
@@ -9515,14 +9719,35 @@ const TileGrid = ({ children, cols = 3, stagger = 22 }) => (
    value in the sub grey, the chevron. `danger` is the one row told apart
    by colour (the Diary's call-off): the red is in its word, where it was
    in its tile. */
-const HomeRow = ({ label, value, tone, onPress, tour, boxed = false, danger = false }) => {
+/* A COUNT IS A CHIP (28 November, the design render): where a row of the
+   home's Actions carries how many things wait on the coach (To log, To
+   review, Join requests, Drifting, Competitions) the figure stands on a
+   small chip of the sport's
+   pale with its ring, the figure in the sport's colour at 700 — the level's
+   chip, the same one shape — where it was a grey figure. A total (All
+   lessons, the next day's lessons) stays the plain grey figure: a chip
+   says something waits. One tone for every count: a column of five
+   colours read as a colouring book, and the founder asked for calm,
+   confident, nothing gimmicky. */
+/* on a card of its own colour since 28 November the chip is white, ringed in
+   the card's ring, the figure in the card's deep colour (Lares's "Legs 2") */
+const CountPill = ({ n, hue }) => {
   const t = useT();
   return (
-    <button data-tour={tour} data-row-door="" onClick={() => { haptic(8); soft(); onPress && onPress(); }}
+    <span data-count-pill="" className="shrink-0 inline-flex items-center justify-center"
+          style={{ minWidth: 30, height: 26, padding: "0 9px", borderRadius: 13, background: "#FFFFFF", border: `${EDGE_W}px solid var(--card-ring, ${KEY_RING(t)})`,
+                   fontFamily: ui, fontSize: 14, fontWeight: 700, color: inkOf(hueOf(t, hue || HUE.green)), fontVariantNumeric: "tabular-nums" }}>{n}</span>
+  );
+};
+const HomeRow = ({ label, value, tone, onPress, tour, boxed = false, danger = false, pill = false, hue }) => {
+  const t = useT();
+  return (
+    <button data-tour={tour} data-row-door="" data-hue={hue ? hue.slice(2) : undefined} onClick={() => { haptic(8); soft(); onPress && onPress(); }}
             className={`w-full flex items-center gap-3.5 text-left ${boxed ? "" : "active:opacity-50"}`}
-            style={{ minHeight: 60, borderBottom: boxed ? undefined : RULE.hair(t.ink) }}>
-      <span data-row-label="" className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: danger ? DANGER : t.ink }}>{label}</span>
-      <span className="shrink-0 truncate" style={{ ...TYPE.body, color: tone || t.sub, maxWidth: "55%" }}>{value}</span>
+            style={{ minHeight: 60, borderBottom: boxed ? undefined : RULE.hair(t.ink), ...(hue ? cardOf(t, hue) : danger && boxed ? cardOf(t, HUE.red) : null) }}>
+      <span data-row-label="" className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: pill ? 600 : 400, color: danger ? DANGER : t.ink }}>{label}</span>
+      {pill && value != null && value !== "" ? <CountPill n={value} hue={hue} />
+        : <span className="shrink-0 truncate" style={{ ...TYPE.body, color: tone || t.sub, maxWidth: "55%" }}>{value}</span>}
       <ChevronRight size={15} color={t.trace || t.faint} />
     </button>
   );
@@ -9652,19 +9877,21 @@ const TimeList = ({ times, picked, onPick, tour, muted = false }) => {
      its corners). */
   if (!times.length) return null;
   return (
-    <div data-tour={tour} className="nsc-day">
+    /* the free times are the Diary's own chips (28 November): white keys on
+       the pale card, a picked one the chosen answer */
+    <div data-tour={tour} className="nsc-day nsc-chips" style={{ padding: 8, display: "flex", flexDirection: "column", gap: 8 }}>
       {times.map((x) => {
         const on = picked === x;
         return (
           <button key={x} onClick={() => { haptic(8); soft(); onPick(x); }}
                   className="w-full flex items-center gap-3 px-3.5 text-left active:opacity-50"
-                  style={{ minHeight: 50, borderBottom: `1px solid ${t.hair}`, background: on ? SEL(t).face : undefined, transition: "background 180ms" }}>
+                  style={{ minHeight: 50, borderRadius: 14, background: on ? SEL(t).face : "#FFFFFF", border: `2px solid ${on ? SEL(t).ring : "var(--card-ring)"}`,
+                           boxShadow: `0 3px 0 ${on ? SEL(t).lip : "var(--card-ledge)"}`, transition: "background 180ms" }}>
             <span className="flex-1 truncate" style={{ ...TYPE.body, color: on ? SEL(t).fg : t.sub,
                            fontWeight: on ? 600 : 400, fontVariantNumeric: "tabular-nums lining" }}>{x}</span>
             {/* a read-only row (a junior's diary) offers nothing, so it carries no plus —
                 the row stays, a plain line, as the List view draws it */}
-            {on ? <Check size={16} color={t.accent} strokeWidth={2.4} />
-                : muted ? null : <Plus size={15} color={t.accent} strokeWidth={2.2} />}
+            {muted ? null : <PlusKey on={on} />}
           </button>
         );
       })}
@@ -9673,7 +9900,7 @@ const TimeList = ({ times, picked, onPick, tour, muted = false }) => {
 };
 
 /* the sports, each as its own colour — a sport has no glyph, it has a mark */
-const SportGrid = ({ ids, picked, onPick, cols = 3, tour, add, mainId }) => {
+export const SportGrid = ({ ids, picked, onPick, cols = 3, tour, add, mainId }) => {
   const t = useT();
   return (
     <div data-tour={tour}>
@@ -10166,8 +10393,9 @@ export function Frame({ step, steps, onBack, children, footer }) {
   );
 }
 
-/* every sign-up title is the app's screen title, 30/700, as every H1 is —
-   one sign-up drew it three ways (34 bold, a thin 32, a thin 28) */
+/* every sign-up title is the app's screen title, as every H1 is — one
+   sign-up drew it three ways (34 bold, a thin 32, a thin 28); the bold
+   serif since 24 November, the front door's titles with the app's */
 export const Headline = ({ children }) => { const t = useT(); return <h1 style={{ ...TYPE.screen, color: t.ink, animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) both" }}>{children}</h1>; };
 export const Sub = ({ children }) => { const t = useT(); return <p className="mt-2.5" style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.5, color: t.faint, animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) 60ms both" }}>{children}</p>; };
 
@@ -10863,7 +11091,7 @@ function SportListPick({ t, onPick, title, onBack }) {
   return (
     <>
       <div className="flex items-center gap-1 mb-4 -ml-2"><button onClick={onBack} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>
-        <h2 style={{ fontFamily: display, fontSize: 23, color: t.ink }}>{title}</h2></div>
+        <h2 style={{ ...TYPE.head, color: t.ink }}>{title}</h2></div>
       <Card>{Object.entries(SPORTS).map(([id, sp], i, arr) => (
         <Row key={id} label={sp.label} chevron last={i === arr.length - 1}
              icon={<span className="rounded-full shrink-0" style={{ width: 10, height: 10, background: sp.theme.mark }} />}
@@ -10876,7 +11104,7 @@ function CoachCodeStep({ t, newSport, code, setCode, found, who, onBack, onJoin 
   return (
     <>
       <div className="flex items-center gap-1 mb-1 -ml-2"><button onClick={onBack} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>
-        <h2 style={{ fontFamily: display, fontSize: 22, color: t.ink }}>{SPORTS[newSport]?.label} coach code</h2></div>
+        <h2 style={{ ...TYPE.head, color: t.ink }}>{SPORTS[newSport]?.label} coach code</h2></div>
       <p className="mb-3 px-1" style={{ fontFamily: ui, fontSize: 13, color: t.sub }}>{who}</p>
       <div className="mb-2"><CodePad value={code} onChange={setCode} compact /></div>
       <div className="mb-4" style={{ minHeight: 44 }}>
@@ -10929,7 +11157,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
   const SportList = ({ onPick, title, onBack }) => (
     <>
       <div className="flex items-center gap-1 mb-4 -ml-2"><button onClick={onBack} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>
-        <h2 style={{ fontFamily: display, fontSize: 23, color: t.ink }}>{title}</h2></div>
+        <h2 style={{ ...TYPE.head, color: t.ink }}>{title}</h2></div>
       <Card>{Object.entries(SPORTS).map(([id, sp], i, arr) => (
         <Row key={id} label={sp.label} chevron last={i === arr.length - 1}
              icon={<span className="rounded-full shrink-0" style={{ width: 10, height: 10, background: sp.theme.mark }} />}
@@ -10941,7 +11169,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
   const CodeStep = ({ onBack, onJoin, who }) => (
     <>
       <div className="flex items-center gap-1 mb-1 -ml-2"><button onClick={onBack} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>
-        <h2 style={{ fontFamily: display, fontSize: 22, color: t.ink }}>{SPORTS[newSport]?.label} coach code</h2></div>
+        <h2 style={{ ...TYPE.head, color: t.ink }}>{SPORTS[newSport]?.label} coach code</h2></div>
       <p className="mb-3 px-1" style={{ fontFamily: ui, fontSize: 13, color: t.sub }}>{who}</p>
       <div className="mb-2"><CodePad value={code} onChange={setCode} compact /></div>
       <div className="mb-4" style={{ minHeight: 44 }}>
@@ -10959,7 +11187,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
   if (stage === "child") return (
     <>
       <div className="flex items-center gap-1 mb-5 -ml-2"><button onClick={() => setStage("root")} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>
-        <h2 style={{ fontFamily: display, fontSize: 23, color: t.ink }}>Add someone under 18</h2></div>
+        <h2 style={{ ...TYPE.head, color: t.ink }}>Add someone under 18</h2></div>
       <div className="mb-5"><VoiceInput value={childName} onChange={setChildName} ph={tr("Their name")} autoFocus /></div>
 
       <div className="mb-2.5" style={{ fontFamily: ui, fontSize: 12.5, color: t.sub }}>{tr("Date of birth")}</div>
@@ -11009,7 +11237,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
   if (stage === "code" && live) return (
     <>
       <div className="flex items-center gap-1 mb-1 -ml-2"><button onClick={() => setStage("root")} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>
-        <h2 style={{ fontFamily: display, fontSize: 22, color: t.ink }}>{tr("Coach code")}</h2></div>
+        <h2 style={{ ...TYPE.head, color: t.ink }}>{tr("Coach code")}</h2></div>
       <p className="mb-3 px-1" style={{ fontFamily: ui, fontSize: 13, color: t.sub }}>{tr("Six characters from the coach")}</p>
       {/* typed, not tapped: a real code is six letters and digits */}
       <input value={code} onChange={(e) => { setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6)); setJoinErr(null); }}
@@ -11041,7 +11269,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
 
   return (
     <>
-      <h2 className="mb-5" style={{ ...TYPE.title, color: t.ink }}>
+      <h2 className="mb-5" style={{ ...TYPE.head, color: t.ink }}>
         {kids.length ? "Profiles" : "Your account"}
       </h2>
       {kids.length > 0 && (
@@ -11157,7 +11385,7 @@ function TipBody({ prompts, onSet, close }) {
     <>
       {/* the word is TIP: the same word here, on the player's home, on
           the notification and on the lesson */}
-      <h2 className="mb-4" style={{ ...TYPE.title, color: t.ink }}>{tr("Tip")}</h2>
+      <h2 className="mb-4" style={{ ...TYPE.head, color: t.ink }}>{tr("Tip")}</h2>
       {prompts && prompts.length > 0 && !title && (
         <div className="mb-4 nsc-day">
           {prompts.map((pr) => (
@@ -11907,15 +12135,18 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
           {tipHere && (
             <div className="py-5" data-tour="lesson-tip">
               <Label>{tr("Tip")}</Label>
-              <p style={{ ...TYPE.title, color: t.ink }}>{tipHere.title}</p>
-              {tipHere.body && <p className="mt-1.5" style={{ ...TYPE.small, lineHeight: 1.55, color: t.sub }}>{tipHere.body}</p>}
+              {/* the tip is a card of the gold's family (28 November), as Lares's Verse is */}
+              <div data-card="" style={{ background: "var(--card)", border: "2px solid var(--card-ring)", borderRadius: 18, boxShadow: "0 4px 0 var(--card-ledge)", padding: "16px 18px", ...cardOf(t, HUE.gold) }}>
+                <p style={{ ...TYPE.title, color: t.ink }}>{tipHere.title}</p>
+                {tipHere.body && <p className="mt-1.5" style={{ ...TYPE.small, lineHeight: 1.55, color: t.sub }}>{tipHere.body}</p>}
+              </div>
             </div>
           )}
 
           {drillsHere.length > 0 && (
             <div className="py-5" data-tour="lesson-drills">
               <Label>{tr("Drills")}</Label>
-              <div className="nsc-list">
+              <div className="nsc-list" style={cardOf(t, HUE.purple)}>
               {drillsHere.map((d) => {
                 const Tag = onGoDrills ? "button" : "div";
                 return (
@@ -13635,7 +13866,7 @@ function OnAccent({ children }) {
    off than under any other list */
 const accentCard = (t, last = false) => {
   const p = press3d(LIP(t.accent), LIP_H, LIP_PRESS);
-  return { style: { background: t.accent, "--edge": t.accent, borderRadius: 16, boxShadow: p.rest, marginBottom: last ? LIP_H - 2 : 10 + LIP_H }, handlers: p.handlers };
+  return { style: { background: t.accent, "--edge": t.accent, "--card-ring": t.accent, borderRadius: 18, boxShadow: p.rest, marginBottom: last ? LIP_H - 4 : 12 + LIP_H }, handlers: p.handlers };
 };
 /* THE CARD'S CORNER: the business card's pinstripe wedge, in the top-right
    corner of the day's one coloured card — the stripes at the card's 45°,
@@ -14103,7 +14334,8 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
 
         {/* ---- THE NEXT DAY, FOLDED ---- */}
         {nextRows.length > 0 && (
-          <Ruled style={{ marginBottom: SPACE.section }}>
+          /* what is ahead is sky, as Lares's Later is (28 November) */
+          <Ruled style={{ marginBottom: SPACE.section, ...cardOf(t, HUE.blue) }}>
             <button onClick={() => { haptic(6); soft(); setNextOpen(!nextOpen); }} aria-expanded={nextOpen} data-tour="today-nextday"
                     className="w-full flex items-center gap-3 text-left active:opacity-60" style={{ minHeight: 60 }}>
               <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{nextDay}</span>
@@ -14129,15 +14361,17 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
         {(() => {
           const jobs = [
             /* a clip a player sent and the coach has not looked at yet */
-            toReview.length > 0 && { key: "review", tour: "today-review", label: tr("To review"), n: toReview.length,
+            toReview.length > 0 && { key: "review", hue: HUE.purple, tour: "today-review", label: tr("To review"), n: toReview.length,
               go: () => onReview && onReview() },
-            toLog.length > 0 && { key: "write", tour: "today-writeup", label: tr("To log"), n: toLog.length,
+            toLog.length > 0 && { key: "write", hue: HUE.orange, tour: "today-writeup", label: tr("To log"), n: toLog.length,
               go: () => (onWriteUp ? onWriteUp() : push("unlogged")) },
-            (requests || []).length > 0 && { key: "join", tour: "today-requests", label: tr("Join requests"), n: requests.length,
+            (requests || []).length > 0 && { key: "join", hue: HUE.blue, tour: "today-requests", label: tr("Join requests"), n: requests.length,
               go: () => push("requests") },
-            unread > 0 && { key: "msg", label: tr("Messages"), n: unread, go: () => go("messages") },
-            drifting > 0 && { key: "drift", label: tr("Drifting"), n: drifting, go: () => push("atrisk") },
-            events.length > 0 && { key: "event", label: tr("Competitions"), n: events.length, go: () => push("events") },
+            /* no Messages row (28 November): the Chat tab's badge carries the
+               unread count, and a row saying it again was the home repeating
+               the bar under it (the class plan's simpler home) */
+            drifting > 0 && { key: "drift", hue: HUE.red, label: tr("Drifting"), n: drifting, go: () => push("atrisk") },
+            events.length > 0 && { key: "event", hue: HUE.gold, label: tr("Competitions"), n: events.length, go: () => push("events") },
           ].filter(Boolean);
           if (!asks.length && !jobs.length) return null;
           /* the kinds of thing here */
@@ -14167,7 +14401,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
             )}
             <Ruled style={{ marginBottom: SPACE.block }}>
               {showAsks && asks.slice(0, 3).map((r, i) => (
-                <PersonRow key={r.id} tour={i === 0 ? "today-asks" : undefined} className="pr-1" style={{ borderBottom: RULE.hair(t.ink) }}
+                <PersonRow key={r.id} tour={i === 0 ? "today-asks" : undefined} className="pr-1" style={{ borderBottom: RULE.hair(t.ink), ...cardOf(t, HUE.blue) }}
                            name={r.who} src={avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath)}
                            /* the player's words need the row's width: Accept · Decline drop under the name, the row's own way */
                            textMin={r.note ? 180 : undefined} subLines={r.note ? 0 : undefined}
@@ -14179,7 +14413,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
               ))}
               {/* the kind and its count, no glyph: the word says which (23 November) */}
               {shownJobs.map((j) => (
-                <HomeRow boxed key={j.key} tour={j.tour} label={j.label} value={String(j.n)} onPress={j.go} />
+                <HomeRow boxed key={j.key} tour={j.tour} label={j.label} value={String(j.n)} pill hue={j.hue} onPress={j.go} />
               ))}
             </Ruled>
           </>);
@@ -14189,7 +14423,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
             its own row, on its own */}
         {lessonCount > 0 && (
           <Ruled style={{ marginBottom: SPACE.section }}>
-            <HomeRow boxed tour="today-archive" label={tr("All lessons")} value={String(lessonCount)} onPress={() => push("archive")} />
+            <HomeRow boxed tour="today-archive" label={tr("All lessons")} value={String(lessonCount)} hue={HUE.gold} onPress={() => push("archive")} />
           </Ruled>
         )}
 
@@ -14248,8 +14482,10 @@ function areaSubsOf(cfg, lesson) {
 function StagePill({ label, small }) {
   const t = useT();
   if (!label) return null;
-  /* the line's own size, on the ladder: the 500 is what makes the level lead */
-  return <span style={{ ...TYPE.small, fontSize: small ? 13 : 14, fontWeight: 500, color: t.sub, whiteSpace: "nowrap" }}>{label}</span>;
+  /* a pill since 28 November, the player file's level chip at rest: the
+     sport's pale, its ring, the level in the sport's colour */
+  return <span data-stage-pill="" style={{ ...TYPE.small, fontSize: small ? 13 : 14, fontWeight: 700, color: t.accent, whiteSpace: "nowrap",
+                       display: "inline-block", padding: "3px 11px", borderRadius: 999, background: TINT(t), border: `${EDGE_W}px solid ${KEY_RING(t)}` }}>{label}</span>;
 }
 function LessonTags({ lesson, cfg, className = "" }) {
   const t = useT();
@@ -14257,7 +14493,7 @@ function LessonTags({ lesson, cfg, className = "" }) {
   if (!stage && !extras.length && !mount && !areas.length) return null;
   const rest = [...extras, ...areas, mount ? `${tr("on")} ${mount}` : null].filter(Boolean);
   return (
-    <div className={`flex flex-wrap items-baseline gap-x-1.5 ${className}`}>
+    <div className={`flex flex-wrap items-center gap-x-1.5 gap-y-1 ${className}`}>
       {stage && <StagePill label={stage} />}
       {stage && rest.length > 0 && <span style={{ ...TYPE.small, color: t.faint }}>·</span>}
       {rest.length > 0 && <span style={{ ...TYPE.small, color: t.sub }}>{rest.join(" · ")}</span>}
@@ -15144,7 +15380,7 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
           {searchable && (
             <SearchField value={q} onChange={setQ} className="mb-4" />
           )}
-          <div className="nsc-list">
+          <div className="nsc-list" style={cardOf(t, HUE.teal)}>
             {list.length === 0 ? (
               <EmptyLine>{q ? `${tr("No one called")} “${q}”` : tr("No players yet")}</EmptyLine>
             ) : list.map((r, i) => {
@@ -15173,11 +15409,11 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
               the count a step fainter) */}
           {lessonCount > 0 && (
             <div className="nsc-list" style={{ marginTop: SPACE.block }}>
-              <HomeRow boxed tour="roster-archive" label={tr("All lessons")} value={String(lessonCount)} onPress={() => push("archive")} />
+              <HomeRow boxed tour="roster-archive" label={tr("All lessons")} value={String(lessonCount)} hue={HUE.gold} onPress={() => push("archive")} />
             </div>
           )}
         </>) : (<>
-          <div className="nsc-list">
+          <div className="nsc-list" style={cardOf(t, HUE.teal)}>
             {groups.map((g) => row(g.id, "roster-group", () => { haptic(6); push("group:" + g.name); }, <Avatar name={g.name} size={PERSON_FACE} group />, g.name,
                 /* the members still on the roster — the picker's count and the
                    page's list, one number on all three; never a nought */
@@ -15336,7 +15572,12 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
   /* each block is a card as every card is — the light grey line and the ledge
      of it under it, 14px corners — under its subject as a heading (RowHead):
      they were flat 8px boxes under grey field labels */
-  const box = { background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, borderRadius: 14, boxShadow: lipOf(EDGE(t), 2), padding: "14px 16px" };
+  /* THE PROGRESS IS A PAINT CHART (28 November): each block a Lares card in
+     its subject's family — the level the sport's own, what was worked on
+     sky, the months pale gold, attendance the people's teal, practice sand,
+     drills heather — where every block was the white card on the grey line */
+  const boxOf = (hue) => { const c = cardOf(t, hue); return { background: c["--card"], border: `2px solid ${c["--card-ring"]}`, borderRadius: 18, boxShadow: `0 4px 0 ${c["--card-ledge"]}`, padding: "16px 18px" }; };
+  const box = boxOf(HUE.green);
   const firstPoint = p.points[0], lastPoint = p.points[p.points.length - 1];
   return (
     <SwipeBack onBack={pop}>
@@ -15349,7 +15590,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
             {p.points.length > 0 && (
               <div style={{ marginBottom: SPACE.block }} data-progress="level">
                 <RowHead>{p.inputStage.label}</RowHead>
-                <div style={box}>
+                <div style={boxOf(HUE.green)}>
                   {/* the level then takes a line of its own under the level now
                       where the two cannot sit apart (at 320 they touched) */}
                   <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5" style={{ marginBottom: 6 }}>
@@ -15365,7 +15606,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
             {p.reached.size > 0 && (
               <div style={{ marginBottom: SPACE.block }} data-progress="ladder">
                 <RowHead>{tr("Level")}</RowHead>
-                <div style={{ ...box, padding: "4px 16px" }}>
+                <div style={{ ...box, padding: "4px 18px" }}>
                   {p.named.map((st, i) => {
                     const on = p.reached.has(st.id), now = p.current && p.current.st.id === st.id;
                     return (
@@ -15385,7 +15626,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
             {p.areas.length > 0 && (
               <div style={{ marginBottom: SPACE.block }} data-progress="areas">
                 <RowHead>{tr("Worked on")}</RowHead>
-                <div style={{ ...box, padding: "6px 16px" }}>
+                <div style={{ ...boxOf(HUE.blue), padding: "6px 18px" }}>
                   {p.areas.map(([label, count], i) => (
                     <div key={label} style={{ padding: "9px 0", borderBottom: i === p.areas.length - 1 ? "none" : RULE.hair(t.ink) }}>
                       <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
@@ -15403,7 +15644,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
             {/* lessons a month */}
             <div style={{ marginBottom: SPACE.block }} data-progress="months">
               <RowHead>{tr("Lessons a month")}</RowHead>
-              <div style={box}>
+              <div style={boxOf(HUE.gold)}>
                 <MonthBars months={p.months} color={t.accent} ink={t.ink} sub={t.sub} faint={t.trace || t.faint} />
               </div>
             </div>
@@ -15417,7 +15658,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
               return (
                 <div style={{ marginBottom: SPACE.block }} data-progress="attendance">
                   <RowHead>{tr("Attendance")}</RowHead>
-                  <div style={box}>
+                  <div style={boxOf(HUE.teal)}>
                     <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
                       <span style={{ ...TYPE.body, color: t.ink }}>{here} {tr("of")} {attendance.length} {attendance.length === 1 ? tr("lesson") : tr("lessons")}</span>
                       <span style={{ ...TYPE.small, color: t.sub }}>{Math.round((here / attendance.length) * 100)}%</span>
@@ -15449,7 +15690,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
               return (
                 <div style={{ marginBottom: SPACE.block }} data-progress="practice">
                   <RowHead>{tr("Practice")}</RowHead>
-                  <div style={box}>
+                  <div style={boxOf(HUE.orange)}>
                     <div className="flex items-center justify-between">
                       <span style={{ ...TYPE.body, color: t.ink }}>{sorted.length} {sorted.length === 1 ? tr("session") : tr("sessions")}</span>
                       {last && last.iso && <span style={{ ...TYPE.small, color: t.sub }}>{tr("last")} {fmtWeekDay(localDate(last.iso))}</span>}
@@ -15463,7 +15704,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
             {mineDrills.length > 0 && (
               <div style={{ marginBottom: SPACE.block }} data-progress="drills">
                 <RowHead>{tr("Drills")}</RowHead>
-                <div style={box}>
+                <div style={boxOf(HUE.purple)}>
                   <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
                     <span style={{ ...TYPE.body, color: t.ink }}>{done} {tr("of")} {mineDrills.length} {tr("done")}</span>
                     <span style={{ ...TYPE.small, color: t.sub }}>{Math.round((done / mineDrills.length) * 100)}%</span>
@@ -15537,11 +15778,15 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
      line in the sub grey with a chevron after it, reaching 44 to a finger
      without moving a pixel (the reach paints nothing). No level, no door. */
   const meta = stage ? (
+    /* since 28 November a chip of the sport's pale on its ledge, the level
+       in the sport's colour: where the player stands, read at a glance */
     <button data-tour="player-level" onClick={() => { haptic(6); soft(); push("progress:" + (r.id || name)); }}
-            className="relative inline-flex items-center gap-1 text-left active:opacity-50" style={{ ...TYPE.lede, color: t.sub }}>
-      <span aria-hidden="true" className="absolute" style={{ top: -12, bottom: -12, left: -8, right: -8 }} />
+            className="relative inline-flex items-center gap-1 text-left n-key"
+            style={{ ...TYPE.small, fontWeight: 700, color: t.accent, padding: "5px 10px 5px 12px", marginTop: 2, borderRadius: 999,
+                     border: `${EDGE_W}px solid ${KEY_RING(t)}`, "--key-lip": TINT_LIP(t) }}>
+      <span aria-hidden="true" className="absolute" style={{ top: -8, bottom: -8, left: -4, right: -4 }} />
       <span>{metaText}</span>
-      <ChevronRight size={13} color={t.trace || t.faint} strokeWidth={2} className="shrink-0" />
+      <ChevronRight size={14} color={t.accent} strokeWidth={2.4} className="shrink-0" />
     </button>
   ) : metaText;
 
@@ -15612,7 +15857,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               lessons is on the home and the roster — it was a button */}
           {past.length > 0 && (
             <div className="nsc-list" style={{ marginBottom: SPACE.block }}>
-              <HomeRow boxed tour="player-all-lessons" label={tr("All lessons")} value={String(live ? f.done : past.length)}
+              <HomeRow boxed tour="player-all-lessons" label={tr("All lessons")} value={String(live ? f.done : past.length)} hue={HUE.gold}
                        onPress={() => { onAllLessons ? onAllLessons() : push("history:" + (r.id || name)); }} />
             </div>
           )}
@@ -15620,7 +15865,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
 
           {/* what is live right now — three lines, no cards */}
           {f.tip && (
-            <div className="nsc-list" style={{ marginBottom: SPACE.block }}>
+            <div className="nsc-list" style={{ marginBottom: SPACE.block, ...cardOf(t, HUE.gold) }}>
               <div className="flex items-center gap-3 py-3" style={{ minHeight: 56 }}>
                 <span style={{ ...TYPE.small, fontWeight: 600, color: t.sub }}>{tr("Tip")}</span>
                 <span className="flex-1 min-w-0" style={{ ...TYPE.body, color: t.ink }}>{f.tip}</span>
@@ -15632,7 +15877,8 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               "More" hid three: one of them, Progress, went to the same
               archive the block at the top of this screen goes to, under
               a second name. */}
-          <div className="nsc-list">
+          {/* the file's doors, sky (28 November) */}
+          <div className="nsc-list" style={cardOf(t, HUE.blue)}>
             {[[tr("Progress"), () => push("progress:" + (r.id || name)), null],
               /* the coach's own note on this player — the first line as the
                  row's value, the whole of it one tap away; theirs alone */
@@ -15954,7 +16200,7 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
   const preview = seriesOccurrences(day, Math.min(total, 3), freq, undefined, undefined, calendar);
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>
         {existing ? existing.who : `Set up ${(name || "").split(" ")[0]}`}
       </h2>
 
@@ -16239,7 +16485,7 @@ function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers, onMes
           const people = members || group.members.map((n) => ({ id: n, name: n }));
           return people.length > 0 && (<>
             <Eyebrow>{tr("Members")}</Eyebrow>
-            <div className="px-6 pb-2"><div className="nsc-list" data-tour="group-members">{people.map((r, i) => (
+            <div className="px-6 pb-2"><div className="nsc-list" data-tour="group-members" style={cardOf(t, HUE.teal)}>{people.map((r, i) => (
                 /* the roster's own row for the same person: where they
                    stand on the grey line, the level on the right (C6) */
                 (() => {
@@ -16280,7 +16526,7 @@ function JoinRequests({ requests, onAccept, onDecline, pop }) {
                row's text actions — Accept in ink, Decline quiet. Each was a
                card with a filled success-green Accept and an outlined Decline,
                the one person in the app drawn as a card. */
-            <div className="nsc-list">
+            <div className="nsc-list" style={cardOf(t, HUE.blue)}>
               {requests.map((r) => (
                 <PersonRow key={r.id || r.name} tour="request-card" className="pr-1" name={r.name}
                            sub={[r.note, r.sport && SPORTS[r.sport] ? SPORTS[r.sport].label : null, r.junior ? tr("Under 18") : null, askedOn(r)].filter(Boolean).join(" · ")}
@@ -16519,7 +16765,7 @@ function FamilyGuide({ juvenile, name, onDone }) {
         {steps.map((_, k) => (<span key={k} className="flex-1 rounded-full" style={{ height: 2, background: k <= i ? t.accent : t.hair, transition: "background 260ms" }} />))}
       </div>
       <div className="flex-1 flex flex-col justify-center px-8">
-        <h1 style={{ fontFamily: display, fontSize: 34, lineHeight: 1.05, letterSpacing: "-0.033em", color: t.ink }}>{steps[i].h}</h1>
+        <h1 style={{ ...TYPE.screen, color: t.ink }}>{steps[i].h}</h1>
         <p className="mt-5" style={{ fontFamily: ui, fontSize: 16, lineHeight: 1.6, color: t.sub }}>{steps[i].b}</p>
       </div>
       <div className="px-7 pb-8">
@@ -16646,7 +16892,7 @@ function ImportRoster({ close, say, noun, nouns, code }) {
   };
   return (
     <>
-      <h2 className="mb-5" style={{ ...TYPE.title, color: t.ink }}>{tr("Invite")} {nouns}</h2>
+      <h2 className="mb-5" style={{ ...TYPE.head, color: t.ink }}>{tr("Invite")} {nouns}</h2>
 
       <div className="px-5 py-4 mb-5 flex items-center gap-3" style={{ borderRadius: R.surface, background: t.wash }}>
         <span className="flex-1 truncate" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{shown || "—"}</span>
@@ -16702,7 +16948,7 @@ function CreateGroup({ roster, nouns, times: own, onCreate, close, say }) {
 
   return (
     <>
-      <h2 className="mb-5" style={{ ...TYPE.title, color: t.ink }}>{tr("New group")}</h2>
+      <h2 className="mb-5" style={{ ...TYPE.head, color: t.ink }}>{tr("New group")}</h2>
       <div className="mb-5"><VoiceInput value={name} onChange={setName} ph={tr("Group name")} autoFocus /></div>
 
       <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.sub }}>
@@ -16777,7 +17023,7 @@ function GroupEditBody({ group, roster, nouns, picked: start, ahead = 0, session
   };
   if (confirm) return (
     <>
-      <h2 className={sessions ? "mb-1" : "mb-5"} data-tour="group-remove-confirm" style={{ ...TYPE.title, color: t.ink }}>{`${tr("Remove")} ${group.name}`}</h2>
+      <h2 className={sessions ? "mb-1" : "mb-5"} data-tour="group-remove-confirm" style={{ ...TYPE.head, color: t.ink }}>{`${tr("Remove")} ${group.name}`}</h2>
       {/* what stays, in one line: the sessions logged for it are in All lessons still */}
       {sessions > 0 && (
         <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>
@@ -16791,7 +17037,7 @@ function GroupEditBody({ group, roster, nouns, picked: start, ahead = 0, session
   );
   return (
     <>
-      <h2 className="mb-1" data-tour="group-edit" style={{ ...TYPE.title, color: t.ink }}>{group.name}</h2>
+      <h2 className="mb-1" data-tour="group-edit" style={{ ...TYPE.head, color: t.ink }}>{group.name}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>{`${DAY_NAMES[group.day] || ""}s ${group.time || ""}`.trim()}</p>
       <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.sub }}>
         {members.length ? countOf(members.length, nouns) : tr("Members")}
@@ -16925,6 +17171,7 @@ function DrillRow({ x, todayIso, onToggle, tour, delay = 0 }) {
 }
 
 function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder, onLogPractice }) {
+  const t = useT();
   const calendar = useCalendar();
   const todayIso = isoDay(progressToday(calendar));
   /* THE TAB IS WHAT IS TO DO, AND THE LATEST SET. Everything not yet
@@ -16954,7 +17201,8 @@ function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder, onLo
               up, and START / FINISH in tracked caps under one drill. A
               coach sets a drill, not a length; what a player has to do
               is the rows, and the count is the subtitle. */}
-          <div className="px-6 pb-2"><div className="nsc-list">
+          {/* the drills to do are practice's heather, Lares's workouts list (28 November) */}
+          <div className="px-6 pb-2"><div className="nsc-list" style={cardOf(t, HUE.purple)}>
             {ordered.map((x, i) => (
               <div key={x.id}>
                 <DrillRow x={x} todayIso={todayIso} onToggle={tick} tour={i === 0 ? "drill-row" : undefined} delay={Math.min(i, 5) * 22} />
@@ -16970,7 +17218,7 @@ function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder, onLo
               words, under the list */}
           {onAll && (
             <div className="px-6 pt-3"><div className="nsc-list">
-              <HomeRow boxed tour="drills-all" label={tr("All drills")} value={String(items.length)} onPress={onAll} />
+              <HomeRow boxed tour="drills-all" label={tr("All drills")} value={String(items.length)} hue={HUE.gold} onPress={onAll} />
             </div></div>
           )}
         </>
@@ -16999,7 +17247,7 @@ function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder, onLo
         <div className="px-6" style={{ marginTop: SPACE.section }}>
           {/* a row of the list, as Settings' own Reminder is — it was a
               rimmed card, the one green box on a screen of stone and wash */}
-          <div className="nsc-list"><div className="nsc-flush" data-tour="drills-reminder"><FilterRow inset plain label={tr("Reminder")} value={reminder.label} options={reminder.options} onChange={reminder.onPick} /></div></div>
+          <div className="nsc-list" style={cardOf(t, HUE.blue)}><div className="nsc-flush" data-tour="drills-reminder"><FilterRow inset plain label={tr("Reminder")} value={reminder.label} options={reminder.options} onChange={reminder.onPick} /></div></div>
         </div>
       )}
     </Screen>
@@ -17328,7 +17576,7 @@ function AssignBody({ cfg, library, preset, focusHint, onAssign, onSaveDrill, cl
       {/* a title is a noun, never a question; the people are the app's
           one person row in a box, as the pick-a-player sheet's — it was
           "Who's playing" over hairline rows with 38px faces */}
-      <h2 className="mb-5" style={{ ...TYPE.title, color: t.ink }}>{tr("Who")}</h2>
+      <h2 className="mb-5" style={{ ...TYPE.head, color: t.ink }}>{tr("Who")}</h2>
       <div className="nsc-list" data-tour="assign-who">{(livePlayers ?? PLAYERS).map((p) => (
         <PersonRow key={p} name={p} chevron onTap={() => { hapticCommit(); soft(); setWho(p); setStage("drills"); }} />))}</div>
     </>
@@ -17343,7 +17591,7 @@ function AssignBody({ cfg, library, preset, focusHint, onAssign, onSaveDrill, cl
   return (
     <>
       <div className={`flex items-center gap-1 mb-1 ${preset ? "" : "-ml-2"}`}>{!preset && (<button onClick={() => setStage("who")} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>)}
-        <h2 style={{ ...TYPE.title, color: t.ink }}>Drills for {who?.split(" ")[0]}</h2></div>
+        <h2 style={{ ...TYPE.head, color: t.ink }}>Drills for {who?.split(" ")[0]}</h2></div>
 
       {recommended.length > 0 && (<>
         <RowHead>{tr("Recommended")}</RowHead>
@@ -17412,7 +17660,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
     <SwipeBack onBack={pop}>
       <Screen title={tr("Hours")} onBack={pop} meta={total ? `${total} ${tr("slots a week")}` : ""} right={<TextBtn color={t.accent} onClick={() => { setAvail(draft); say("Hours saved"); pop(); }}>{tr("Save")}</TextBtn>}>
         <div className="px-6 mb-5">
-          <button onClick={() => { haptic(6); setEditSlots(!editSlots); }} className="w-full rounded-2xl flex items-center gap-3.5 px-5 n-key" style={{ minHeight: 58, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}>
+          <button onClick={() => { haptic(6); setEditSlots(!editSlots); }} className="w-full flex items-center gap-3.5 px-5 n-key" style={{ minHeight: 58, borderRadius: 18, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}>
             <span className="flex-1 text-left"><span className="block" style={{ fontFamily: ui, fontSize: 14.5, fontWeight: 600, color: t.ink }}>{tr("Slots and lesson length")}</span>
               <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{slots.length} times · {duration} min</span></span>
             <ChevronDown size={16} color={t.trace || t.faint} style={{ transform: editSlots ? "rotate(180deg)" : "none", transition: "transform 200ms" }} />
@@ -17474,7 +17722,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
               </button>
               <Toggle on={on} onChange={(v) => { togDay(day, v); setOpenDay(v ? day : -1); }} />
             </div>
-            {expanded && on && (<div className="px-5 pb-4 pt-3" style={{ background: t.wash }}>
+            {expanded && on && (<div className="px-5 pb-4 pt-3" style={{ background: "rgba(255, 255, 255, 0.55)" }}>
               <TimeGrid times={TIMES} picked={times} onToggle={(time) => togTime(day, time)} />
               {day <= 4 && (<button onClick={() => copyDown(day)} className="mt-3 active:opacity-50" style={{ minHeight: 44, fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.ink }}>{tr("Copy to all weekdays")}</button>)}
             </div>)}
@@ -17500,7 +17748,8 @@ function AwayLine({ role, name, booked = 0, onEdit }) {
        ledge, as the lesson boxes under it (21 November; it was the wash
        at 8px) — the word and its line in the label grey, no plane on a
        tile beside them (23 November: a row of words carries no icon) */
-    <div className="nsc-list mb-4">
+    /* a span away is time ahead: sky (28 November) */
+    <div className="nsc-list mb-4" style={cardOf(t, HUE.blue)}>
       <div data-tour="cal-away" className="flex items-center gap-3.5" style={{ minHeight: 62 }}>
         <span className="flex-1 min-w-0">
           <span className="block" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{tr("Away")}</span>
@@ -17611,7 +17860,7 @@ function DoorRow({ label, value, danger = false, onPress, tour, attrs }) {
   const t = useT();
   return (
     <button data-tour={tour} data-row-door="" {...(attrs || {})} onClick={() => { haptic(8); soft(); onPress && onPress(); }}
-            className="w-full flex items-center gap-3.5 text-left" style={{ minHeight: 60 }}>
+            className="w-full flex items-center gap-3.5 text-left" style={{ minHeight: 60, ...(danger ? cardOf(t, HUE.red) : null) }}>
       <span className="flex-1 min-w-0 flex flex-wrap items-baseline justify-between" style={{ columnGap: 14 }}>
         <span data-row-label="" style={{ ...TYPE.body, color: danger ? DANGER : t.ink, maxWidth: "100%" }}>{label}</span>
         {value && <span data-row-value="" className="min-w-0" style={{ ...TYPE.body, color: t.sub, maxWidth: "100%", overflowWrap: "break-word" }}>{value}</span>}
@@ -17642,7 +17891,7 @@ function DiaryManage({ hours, away, recurring, calendar, onHours, onAway, onRecu
   ].filter(Boolean);
   return (
     <>
-      <h2 className="mb-5" data-tour="manage-sheet" style={{ ...TYPE.title, color: t.ink }}>{tr("Manage")}</h2>
+      <h2 className="mb-5" data-tour="manage-sheet" style={{ ...TYPE.head, color: t.ink }}>{tr("Manage")}</h2>
       <div className="nsc-list">
         {rows.map((r) => <DoorRow key={r.id} tour="manage-row" attrs={{ "data-manage": r.id }} label={r.label} value={r.value || null} danger={!!r.danger} onPress={r.act} />)}
       </div>
@@ -17725,8 +17974,14 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                title, as the family screen's Manage is — never a glyph, never
                the accent, which is a lesson's */
             action={role === "coach" && onManage ? (
-              <button data-tour="diary-manage" onClick={() => { haptic(6); onManage(); }} className="shrink-0 active:opacity-50"
-                      style={{ minHeight: 44, ...TYPE.body, fontWeight: 500, color: t.ink }}>{tr("Manage")}</button>
+              /* a quiet key since 28 November: the lead's pale on its ledge, the
+                 word in the ink, 38 drawn and 44 to a finger */
+              <button data-tour="diary-manage" onClick={() => { haptic(6); onManage(); }} className="shrink-0 relative n-key"
+                      style={{ minHeight: 38, padding: "0 14px", marginTop: 4, borderRadius: 12, border: `${EDGE_W}px solid ${KEY_RING(t)}`, "--key-lip": TINT_LIP(t),
+                               ...TYPE.body, fontSize: 15, fontWeight: 600, color: t.ink }}>
+                <span aria-hidden="true" className="absolute" style={{ top: -5, bottom: -5, left: 0, right: 0 }} />
+                {tr("Manage")}
+              </button>
             ) : null}>
       {/* Who this is for. An adult in a family books for the children as
           well as themselves, so the person is picked first and the hours
@@ -17878,18 +18133,30 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
       ) : (<>
 
       {/* ---- month grid: quiet, availability-led ---- */}
+      {/* THE MONTH IS A CARD OF KEYS (28 November, the design render): the
+          month on the list's white card, its name the bold serif, the arrows
+          small round keys; the chosen day the sport's colour standing on its
+          deep ledge, today the sport's pale, a day with lessons dotted in
+          the sport's colour. It was Apple Calendar's bare grid of figures. */}
       <div className="px-6 mb-8">
-        <div className="flex items-center justify-between mb-5">
-          <span style={{ ...TYPE.heading, color: t.ink }}>{mo.name}</span>
-          <span className="flex items-center gap-1">
-            <button onClick={() => move(-1)} disabled={mi === 0} className="relative p-2 active:opacity-40 disabled:opacity-20" aria-label={tr("Previous month")}><span aria-hidden="true" className="absolute" style={{ top: -5, bottom: -5, left: -8, right: -2 }} /><ChevronLeft size={18} color={t.ink} /></button>
-            <button onClick={() => move(1)} disabled={mi >= months.length - 1} className="relative p-2 active:opacity-40 disabled:opacity-20" aria-label={tr("Next month")}><span aria-hidden="true" className="absolute" style={{ top: -5, bottom: -5, left: -2, right: -8 }} /><ChevronRight size={18} color={t.ink} /></button>
+        <div data-tour="cal-month" className="px-3 pt-3 pb-2" style={{ background: "var(--card)", border: "2px solid var(--card-ring)", borderRadius: 20, boxShadow: "0 4px 0 var(--card-ledge)" }}>
+        <div className="flex items-center justify-between mb-3 pl-2">
+          <span style={{ ...TYPE.head, color: t.ink }}>{mo.name}</span>
+          <span className="flex items-center gap-2.5">
+            {[[-1, mi === 0, tr("Previous month"), ChevronLeft], [1, mi >= months.length - 1, tr("Next month"), ChevronRight]].map(([dir, off, label, Ico]) => (
+              <button key={dir} onClick={() => move(dir)} disabled={off} aria-label={label}
+                      className="relative flex items-center justify-center rounded-full n-key disabled:opacity-30"
+                      style={{ width: 36, height: 36, background: "#FFFFFF", border: `${EDGE_W}px solid var(--card-ring)`, "--key-lip": "var(--card-ledge)" }}>
+                <span aria-hidden="true" className="absolute" style={{ inset: -6 }} />
+                <Ico size={18} color={t.accent} strokeWidth={2.4} />
+              </button>
+            ))}
           </span>
         </div>
-        <div className={`grid mb-2`} style={{ gridTemplateColumns: `repeat(${prefs.weekends ? 7 : 5}, minmax(0, 1fr))` }}>
-          {DOW.map((d, i) => (prefs.weekends || i < 5) && (<div key={i} className="text-center" style={{ ...TYPE.caption, color: t.faint }}>{d}</div>))}
+        <div className={`grid mb-1.5`} style={{ gridTemplateColumns: `repeat(${prefs.weekends ? 7 : 5}, minmax(0, 1fr))` }}>
+          {DOW.map((d, i) => (prefs.weekends || i < 5) && (<div key={i} className="text-center" style={{ ...TYPE.caption, fontWeight: 600, color: t.sub }}>{d}</div>))}
         </div>
-        <div className="gap-y-1.5" style={{ display: "grid", gridTemplateColumns: `repeat(${prefs.weekends ? 7 : 5}, minmax(0, 1fr))` }}>
+        <div className="gap-y-1" style={{ display: "grid", gridTemplateColumns: `repeat(${prefs.weekends ? 7 : 5}, minmax(0, 1fr))` }}>
           {cells.map((d, i) => {
             if (d === null) return <span key={`b${i}`} />;
             if (!prefs.weekends && dowOf(mo.idx, d, cx) > 4) return null;
@@ -17902,13 +18169,17 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
             const available = !gone && (role === "coach" ? (dayBooked > 0 || nOpen > 0) : nOpen > 0);
             return (
               <button key={d} onClick={() => { haptic(6); setSel(d); setPick(null); }} disabled={gone} aria-pressed={on} data-day={d}
-                      className="flex flex-col items-center justify-center disabled:opacity-100" style={{ height: 46 }}>
+                      className="flex flex-col items-center justify-center disabled:opacity-100" style={{ height: 50 }}>
                 <span className="flex items-center justify-center"
-                      style={{ width: 38, height: 38, borderRadius: 999,
-                               /* Apple Calendar: the chosen day a solid disc of the sport's colour, today's figure in it */
-                               background: on ? t.accent : mine ? SEL(t).face : "transparent",
-                               border: "1px solid transparent",
-                               fontFamily: ui, fontSize: 17, fontWeight: on || today ? 600 : available ? 500 : 400,
+                      style={{ width: "min(38px, 100%)", height: 38, borderRadius: 12,
+                               /* the chosen day a key of the sport's colour on its deep ledge,
+                                  today the sport's pale, a lesson of the person's the chosen answer */
+                               /* on the month's pale card, today is the white key */
+                               background: on ? t.accent : mine ? SEL(t).face : today ? "#FFFFFF" : "transparent",
+                               border: `${EDGE_W}px solid ${on ? t.accent : mine ? SEL(t).ring : today ? "var(--card-ring)" : "transparent"}`,
+                               boxShadow: on ? `0 3px 0 ${LIP(t.accent)}` : mine ? `0 2px 0 ${SEL(t).lip}` : today ? "0 2px 0 var(--card-ledge)" : "none",
+                               transition: "background 160ms, box-shadow 160ms",
+                               fontFamily: ui, fontSize: 17, fontWeight: on || today ? 700 : available ? 600 : 400,
                                /* a day away is struck through, the way a diary crosses a day out */
                                textDecoration: !gone && awayOn(mo.idx, d) ? "line-through" : "none",
                                /* a day gone is read, not hidden: the trace grey
@@ -17919,21 +18190,22 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                     ticker mark, an ink dot; a day merely open the faint
                     one — both were the one hairline dot, so the grid could
                     not say which days held lessons */}
-                <span style={{ height: 5, marginTop: 1 }} data-mark={mine ? "mine" : role === "coach" && dayBooked > 0 && !gone && !on ? "booked" : available && !on ? "open" : undefined}>
-                  {mine ? <span className="block rounded-full" style={{ width: 4, height: 4, background: t.accent }} />
-                        : role === "coach" && dayBooked > 0 && !gone && !on ? <span className="block rounded-full" style={{ width: 4, height: 4, background: t.ink }} />
-                        : available && !on ? <span className="block rounded-full" style={{ width: 3, height: 3, background: t.hair }} /> : null}
+                <span style={{ height: 5, marginTop: 4 }} data-mark={mine ? "mine" : role === "coach" && dayBooked > 0 && !gone && !on ? "booked" : available && !on ? "open" : undefined}>
+                  {mine ? <span className="block rounded-full" style={{ width: 5, height: 5, background: t.accent }} />
+                        : role === "coach" && dayBooked > 0 && !gone && !on ? <span className="block rounded-full" style={{ width: 5, height: 5, background: t.accent }} />
+                        : available && !on ? <span className="block rounded-full" style={{ width: 4, height: 4, background: t.trace || t.hair }} /> : null}
                 </span>
               </button>
             );
           })}
+        </div>
         </div>
       </div>
 
       {/* ---- the selected day, as a readable column ---- */}
       <div className="px-6" data-cal-day>
         <div className="flex items-baseline justify-between mb-4">
-          <span style={{ ...TYPE.title, color: t.ink }}>{dayHead}</span>
+          <span style={{ ...TYPE.head, color: t.ink }}>{dayHead}</span>
           <span style={{ ...TYPE.caption, color: t.faint }}>
             {/* a count that is nought is not a fact worth a line: the day
                 reads what it has, and nothing when it has nothing */}
@@ -18220,7 +18492,7 @@ function BroadcastBody({ nouns, say, done, close, onSend, group = null, members 
   const named = firsts.length > 4 ? `${firsts.slice(0, 3).join(" · ")} · +${firsts.length - 3}` : firsts.join(" · ");
   return (
     <>
-      <h2 className="mb-1" data-tour={group ? "group-message" : undefined} style={{ ...TYPE.title, color: t.ink }}>{group ? `${tr("Message")} ${group}` : tr("Message everyone")}</h2>
+      <h2 className="mb-1" data-tour={group ? "group-message" : undefined} style={{ ...TYPE.head, color: t.ink }}>{group ? `${tr("Message")} ${group}` : tr("Message everyone")}</h2>
       {group && named && <p className="mb-5" data-tour="group-message-to" style={{ ...TYPE.small, color: t.sub }}>{named}</p>}
       <div className="mb-6"><VoiceArea value={text} onChange={setText} rows={4} ph={tr("Message")} /></div>
       <Button disabled={!text.trim() || busy} onClick={send}>{busy ? tr("Sending…") : tr("Send")}</Button>
@@ -18245,7 +18517,7 @@ function ClipSendBody({ who, child, areas, file, say, close, onSend }) {
   };
   return (
     <>
-      <h2 className="mb-1" data-tour="clip-send" style={{ ...TYPE.title, color: t.ink }}>{`${tr("Send to")} ${who}`}</h2>
+      <h2 className="mb-1" data-tour="clip-send" style={{ ...TYPE.head, color: t.ink }}>{`${tr("Send to")} ${who}`}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>{[kind, child ? `${tr("for")} ${child}` : null].filter(Boolean).join(" · ")}</p>
       {areas && areas.length > 0 && (
         <div className="mb-5">
@@ -18275,7 +18547,7 @@ function ClipReplyBody({ who, focus, say, close, onSend }) {
   };
   return (
     <>
-      <h2 className="mb-1" data-tour="clip-reply-sheet" style={{ ...TYPE.title, color: t.ink }}>{tr("Reply")}</h2>
+      <h2 className="mb-1" data-tour="clip-reply-sheet" style={{ ...TYPE.head, color: t.ink }}>{tr("Reply")}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>{[`${tr("To")} ${who}`, focus].filter(Boolean).join(" · ")}</p>
       <div className="mb-6"><VoiceArea value={text} onChange={setText} rows={4} ph={tr("Reply")} /></div>
       <Button disabled={busy || !text.trim()} onClick={send} tour="clip-reply-send">{busy ? tr("Sending…") : tr("Send")}</Button>
@@ -18298,7 +18570,7 @@ function PlayerNoteBody({ who, value, say, close, onSave }) {
   };
   return (
     <>
-      <h2 className="mb-1" data-tour="player-note" style={{ ...TYPE.title, color: t.ink }}>{tr("Notes")}</h2>
+      <h2 className="mb-1" data-tour="player-note" style={{ ...TYPE.head, color: t.ink }}>{tr("Notes")}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>{`${who} · ${tr("Private")}`}</p>
       <div className="mb-6"><VoiceArea value={text} onChange={setText} rows={5} ph={tr("Notes")} /></div>
       <Button disabled={busy || (text || "").trim() === (value || "").trim()} onClick={save} tour="player-note-save">{busy ? tr("Saving…") : tr("Save")}</Button>
@@ -18322,7 +18594,7 @@ function PracticeLogBody({ areas, say, close, onSave }) {
   };
   return (
     <>
-      <h2 className="mb-1" data-tour="practice-log" style={{ ...TYPE.title, color: t.ink }}>{tr("Practice")}</h2>
+      <h2 className="mb-1" data-tour="practice-log" style={{ ...TYPE.head, color: t.ink }}>{tr("Practice")}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>{tr("Today")}</p>
       {areas && areas.length > 0 && (
         <div className="mb-5">
@@ -18518,13 +18790,13 @@ function Thread({ role, name, isGroup, pop, say, live, banner }) {
                 <Camera size={24} color={t.faint} strokeWidth={1.8} />
               </button>
             )}
-            <div className="flex-1 min-w-0 rounded-3xl px-4 py-2 flex items-center gap-2" style={{ background: "#FFFFFF", border: "1px solid #D1D1D6" }}>
+            <div className="flex-1 min-w-0 rounded-3xl px-4 py-2 flex items-center gap-2" style={{ background: "#FFFFFF", border: "1px solid #D3CEC4" }}>
               <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") send(); }} placeholder="Message" className="flex-1 min-w-0 outline-none" style={{ fontFamily: ui, fontSize: 17, color: t.ink, background: "transparent" }} />
               {/* the field gives way, never the mic or Send: an input's own
                   width at 17px pushed the mic over Send on a narrow phone */}
               <MicBtn onText={(txt) => setDraft(draft ? draft + " " + txt : txt)} size={28} />
             </div>
-            <button data-tour="thread-send" onClick={send} disabled={!draft.trim() || sending} className="rounded-full flex items-center justify-center shrink-0" style={{ width: 36, height: 36, marginBottom: 2, background: draft.trim() && !sending ? t.accent : "#D1D1D6", transition: "background 160ms" }} aria-label={tr("Send")}><Send size={17} color={t.onAccent} /></button>
+            <button data-tour="thread-send" onClick={send} disabled={!draft.trim() || sending} className="rounded-full flex items-center justify-center shrink-0" style={{ width: 36, height: 36, marginBottom: 2, background: draft.trim() && !sending ? t.accent : "#D3CEC4", transition: "background 160ms" }} aria-label={tr("Send")}><Send size={17} color={t.onAccent} /></button>
           </div>
         </div>
       </div>
@@ -19030,8 +19302,11 @@ function Settings(props) {
 
         {shown.map((g, gi) => (
           <React.Fragment key={g.title || "end"}>
-            {g.title && <Eyebrow>{g.title}</Eyebrow>}
-            <div className="px-6 mb-6" data-tour={g.tour}><div className="nsc-group" data-group="">
+            {/* a group's name is a heading in the titles' serif (28 November):
+                Coaching, Account, Support read as the page's sections, where
+                they were the small grey label a field carries */}
+            {g.title && <h2 className="px-6 mb-2.5" data-group-head="" style={{ ...TYPE.head, fontSize: 20, color: t.ink }}>{g.title}</h2>}
+            <div className="px-6 mb-7" data-tour={g.tour}><div className="nsc-group" data-group="">
               {g.rows.map((r, i) => (
                 <SettingRow key={r.label} r={r} last={i === g.rows.length - 1} open={openPick} setOpen={setOpenPick} />
               ))}
@@ -19207,26 +19482,23 @@ function Notifications({ role, pop, pushOn, setPushOn, live, notify, setNotify, 
 
    · ONLY THIS DEVICE'S STEPS. The device is read (`platformOf`,
      `browserOf`, `iosMajor`) and that one set is shown. Every other
-     device sits behind one quiet row, "iPhone · iOS 27 — Change"
-     (`install-device`), which unfolds the platform and the version on
+     device sits behind one quiet row under the title, "iPhone · iOS 27 —
+     Change" (`install-device`), which unfolds the platform and the version on
      the app's Segmented (`install-platform`, `install-version`) with
      where to look the version up. Two Segmenteds and a hint over the
      steps was the clutter.
-   · A STEP IS A NUMERAL, A FEW WORDS AND A PICTURE of the thing to tap,
-     drawn here in one line (INS_GLYPHS, the Ins* pieces) — the thing to
-     tap is the white key with the ring round it, what stands beside it
-     is drawn faint. No symbol is ever typed into a sentence. Every tap
-     is a step. STEP ONE NAMES THE CONTROL THAT VERSION OF SAFARI SHOWS
-     BY DEFAULT — the three lines on iOS 27, the three dots on iOS 26,
-     read off Safari's own Version/ — and draws Share beside it, for the
-     Bottom and Top tab layouts, which carry Share on the toolbar; its
-     second line says that Share goes straight to step 3, because the
-     share sheet is already open (a sentence that said "three dots" to
-     an iOS 27 phone showing three lines is the mistake the founder was
-     handed; "Tap one of these" over both, for a round, then told the
-     person who tapped Share to tap Share again). A picture that only
-     repeats its words in a key (Samsung's Home screen and Add, a
-     computer's Install) stands on a slim panel.
+   · A STEP IS A NUMERAL AND A FEW WORDS WITH THE CONTROL DRAWN IN THEM
+     (28 November: the drawings were the app's own keys, with faces and
+     ledges, and people pressed them). The glyph sits in the sentence at
+     the words' height ("Tap [lines], then Share [share]"); step one alone
+     carries a flat sketch of the browser's bar with a gold loop round the
+     spot. Four steps at most; two taps in one sheet are one step. STEP ONE
+     NAMES THE CONTROL THAT VERSION OF SAFARI SHOWS BY DEFAULT — the three
+     lines on iOS 27, the three dots on iOS 26, read off Safari's own
+     Version/ — and its second line, "Or tap [share] if you see it", is
+     for the Bottom and Top tab layouts, which carry Share on the toolbar
+     (a sentence that said "three dots" to an iOS 27 phone showing three
+     lines is the mistake the founder was handed).
    · TRUE, BY VERSION (read on 24 November 2026; Apple's own pages could
      not be opened from the build machine, so each line stands on the
      search engine's reading of them and on two independent how-tos).
@@ -19284,8 +19556,9 @@ function Notifications({ role, pop, pushOn, setPushOn, live, notify, setNotify, 
 
    Where the browser offers to install (Chrome and Edge fire
    `beforeinstallprompt`, caught in lib/install.js) the guide leads with
-   one button, Install Nosca, which opens the browser's own sheet, the
-   steps under it as "Or by hand"; Safari never offers. Reached three
+   one button, Install Nosca, which opens the browser's own sheet, and the
+   steps fold behind "Or by hand" (opening out, never jumping in, when the
+   offer arrives after the page); Safari never offers. Reached three
    ways: /install (pages/Install.jsx); Settings › Add to Home Screen, a
    row that is not there once the app is on a Home Screen; and the
    arrival screen's quiet line after sign-up (`nosca.install.now`). An
@@ -19330,6 +19603,8 @@ export const INSTALL_GOLD = "#8E6E26";
    delay). */
 export const INSTALL_CSS = `
 @keyframes insRise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.ins-in{margin:0 0.02em;white-space:nowrap}
+.ins-sr{display:inline-block;width:1px;height:1px;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .calm .ins, .calm .ins *, .calm.ins, .calm.ins * { animation-delay: 0s !important; }
 @media (prefers-reduced-motion: reduce){ .ins, .ins * { animation-delay: 0s !important; } }
 `;
@@ -19351,236 +19626,205 @@ const INS_GLYPHS = {
   appsPlus: "M5.2 4.5h3.6a.7.7 0 0 1 .7.7v3.6a.7.7 0 0 1-.7.7H5.2a.7.7 0 0 1-.7-.7V5.2a.7.7 0 0 1 .7-.7ZM5.2 14.5h3.6a.7.7 0 0 1 .7.7v3.6a.7.7 0 0 1-.7.7H5.2a.7.7 0 0 1-.7-.7v-3.6a.7.7 0 0 1 .7-.7ZM15.2 14.5h3.6a.7.7 0 0 1 .7.7v3.6a.7.7 0 0 1-.7.7h-3.6a.7.7 0 0 1-.7-.7v-3.6a.7.7 0 0 1 .7-.7ZM17 4v6M14 7h6",
   /* Safari's own: a compass */
   compass: "M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17ZM15.4 8.6l-1.9 4.9-4.9 1.9 1.9-4.9 4.9-1.9Z",
-  plus: "M12 5.5v13M5.5 12h13",
-  cross: "M7 7l10 10M17 7 7 17",
+  home: "M4.5 11 12 4.5l7.5 6.5M6.5 9.5v9.5h11V9.5",
 };
-function InsGlyph({ name, size = 26, color, sw = 1.9 }) {
-  const box = { width: size, height: size, viewBox: "0 0 24 24", "aria-hidden": "true", focusable: "false", "data-glyph": name, style: { display: "block", flexShrink: 0 } };
+function InsGlyph({ name, size = 26, color, sw = 1.9, inline }) {
+  const box = { width: size, height: size, viewBox: "0 0 24 24", "aria-hidden": "true", focusable: "false", "data-glyph": name,
+                style: inline ? { display: "inline-block", verticalAlign: "-0.24em" } : { display: "block", flexShrink: 0 } };
   if (name === "dots" || name === "dotsV") {
     const at = [5.2, 12, 18.8];
     return <svg {...box}>{at.map((p) => <circle key={p} cx={name === "dots" ? p : 12} cy={name === "dots" ? 12 : p} r={1.75} fill={color} />)}</svg>;
   }
   return <svg {...box} fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"><path d={INS_GLYPHS[name]} /></svg>;
 }
-/* THE THING TO TAP: a white key with the ring round it, on a ledge of
-   the ring's own colour made pale — the app's key, so the one thing in
-   the picture that is pressed looks pressable. A glyph alone is 52
-   square (the glyph 28); with a word it is a row of the phone's menu. */
-const INS_PAD = 10;   // the picture's own air, left and right
-const insWord = (t) => ({ fontFamily: ui, fontSize: 15, lineHeight: 1.2, fontWeight: 600, letterSpacing: "-0.01em", color: t.ink });
-function InsTap({ p, glyph, label, trail, round, size = 52, h }) {
-  const { t, hi } = p;
-  const tall = h || (label ? 48 : size);
+/* THE PICTURES ARE PICTURES (28 November). The founder: "people found
+   that very confusing. They thought that they just tapped on the buttons
+   on it, rather than following those instructions … way too much text
+   … really complex." Every step drew its control as the app's own key —
+   a white face, a coloured ring, a ledge — so people pressed the
+   drawing. Now nothing in a step has a face or a ledge: the control is a
+   glyph inside the sentence, at the words' height, the way Apple's own
+   guides set it ("Tap [Share]"); and step one, where a person most needs
+   to see WHERE, carries one flat sketch of the browser's bar with a gold
+   loop drawn round the spot, as a ring is drawn on a screenshot. */
+/* a glyph inside a sentence; `label` is what it says to a screen reader,
+   and in a copy of the words, where no word beside it says it */
+function InsIn({ name, label, tight, lead }) {
+  const t = useT();
+  /* a glyph's own drawing leaves air at its sides; a comma after it is drawn in that air */
   return (
-    /* a word is never cut: a long row takes a second line on a narrow phone before it leaves its picture */
-    <span data-ins-tap="" className={`inline-flex items-center justify-center ${label ? "min-w-0" : "shrink-0"}`}
-          style={{ minWidth: label ? 0 : size, minHeight: tall, maxWidth: "100%", padding: label ? (round ? "6px 18px" : "6px 12px") : 0, gap: 8, borderRadius: round ? 999 : 14,
-                   background: "#FFFFFF", boxShadow: `0 0 0 2px ${hi}, 0 5px 0 ${MIX("#FFFFFF", hi, 0.32)}` }}>
-      {glyph && <InsGlyph name={glyph} size={label ? 20 : Math.round(size * 0.54)} color={t.ink} sw={label ? 2 : 1.8} />}
-      {label && <span style={insWord(t)}>{label}</span>}
-      {trail && <InsGlyph name={trail} size={20} color={t.ink} sw={2} />}
+    <span className="ins-in" data-glyph-in={name} style={{ ...(tight ? { marginRight: "-0.2em" } : null), ...(lead ? { marginLeft: "0.26em" } : null) }}>
+      {name === "app"
+        ? <img src="/icons/apple-touch-icon.png" alt="" width={22} height={22} draggable={false} style={{ display: "inline-block", verticalAlign: "-0.3em", width: 22, height: 22, borderRadius: 5, margin: "0 0.16em" }} />
+        : <InsGlyph name={name} size={21} color={t.ink} sw={2} inline />}
+      {label && <span className="ins-sr">{label}</span>}
     </span>
   );
 }
-/* what stands beside it, faint: a glyph, a word, the address in its bar */
-const InsGhost = ({ p, glyph, size = 24 }) => <InsGlyph name={glyph} size={size} color={p.t.trace} sw={1.8} />;
-const InsFaint = ({ p, children }) => <span style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.2, fontWeight: 500, color: p.t.faint, whiteSpace: "nowrap" }}>{children}</span>;
-const InsOr = ({ p }) => <span style={{ fontFamily: ui, fontSize: 13, lineHeight: 1, color: p.t.sub, padding: "0 2px" }}>{tr("or")}</span>;
-/* the address bar: a white capsule on the app's grey line with the
-   address as a soft bar in it; `lead` and `trail` are what sits at its
-   ends. It takes the room the picture has left, so nothing is cut. */
-function InsBar({ p, lead, trail, max = 150, run }) {
-  /* `run`: the bar runs on past the picture's left edge and only its end
-     is shown — what is tapped stands at, or just past, the end of it */
-  const shape = run
-    ? { marginLeft: -INS_PAD, minWidth: trail ? 96 : 48, borderRadius: "0 999px 999px 0", border: "1.5px solid #E2E2E7", borderLeft: "none" }
-    : { maxWidth: max, minWidth: lead || trail ? 96 : 56, borderRadius: 999, boxShadow: "inset 0 0 0 1.5px #E2E2E7" };
+/* "Tap {lines:the three lines}, then Share {share}": the words, with each {glyph} drawn in its place */
+const insSay = (s) => {
+  const parts = String(s).split(/(\{[a-zA-Z]+(?::[^}]*)?\})/).filter(Boolean);
+  const glyph = (x) => x && x.match(/^\{([a-zA-Z]+)(?::([^}]*))?\}$/);
+  return parts.map((part, i) => {
+    const m = glyph(part);
+    /* a glyph with no words of its own stands beside the word it draws ("Share [share]"): the space before it is
+       its margin, not a character, so the words read whole when copied or spoken — "Tap Share", never "Tap Share ," */
+    if (m) return <InsIn key={i} name={m[1]} label={m[2]} lead={!m[2] && /\s$/.test(parts[i - 1] || "")} tight={/^[,.;:]/.test(parts[i + 1] || "")} />;
+    const next = glyph(parts[i + 1]);
+    return <React.Fragment key={i}>{next && !next[2] ? part.replace(/\s+$/, "") : part}</React.Fragment>;
+  });
+};
+/* a loop drawn round the spot by hand, open where the pen came back, as on a marked-up screenshot */
+const INS_LOOP = "M27 4.6C38.6 4 46.4 11 45.6 20.6 44.8 31 34.6 37 23 36.4 11.8 35.8 3.8 28.8 4.6 19.4 5.4 10.6 13.4 4.4 25.6 5.4";
+function InsSpot({ hi, children, wide }) {
   return (
-    <span data-ins-bar="" className="inline-flex items-center min-w-0" style={{ flex: "1 1 0", height: 52, padding: 4, gap: 8, background: "#FFFFFF", boxSizing: "border-box", ...shape }}>
-      {lead}
-      <span className="flex-1 min-w-0" style={{ height: 6, borderRadius: 3, background: "#D9D9DE", margin: run ? `0 ${trail ? 4 : 14}px 0 ${INS_PAD}px` : lead ? "0 12px 0 2px" : trail ? "0 2px 0 12px" : "0 14px" }} />
-      {trail}
+    <span data-ins-tap="" className="relative inline-flex items-center justify-center shrink-0" style={{ minWidth: wide ? 0 : 36, height: 36, padding: wide ? "0 8px" : 0 }}>
+      {children}
+      <svg aria-hidden="true" focusable="false" viewBox="0 0 50 41" preserveAspectRatio="none" className="absolute pointer-events-none"
+           style={{ left: -9, right: -9, top: -6, bottom: -6, width: "calc(100% + 18px)", height: "calc(100% + 12px)", overflow: "visible" }}>
+        <path d={INS_LOOP} fill="none" stroke={hi} strokeWidth="2.2" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      </svg>
     </span>
   );
 }
-/* a small key inside the bar: the ring, no ledge (the bar is its ground) */
-const InsInBar = ({ p, glyph }) => (
-  <span data-ins-tap="" className="inline-flex items-center justify-center shrink-0" style={{ width: 44, height: 44, borderRadius: 999, background: "#FFFFFF", boxShadow: `0 0 0 2px ${p.hi}` }}>
-    <InsGlyph name={glyph} size={26} color={p.t.ink} sw={1.9} />
-  </span>
-);
-/* a sheet of the phone's, small: white on the grey line */
-const InsSheet = ({ children }) => (
-  <span className="flex flex-col w-full" style={{ maxWidth: 280, padding: "10px 12px 8px", gap: 8, borderRadius: 16, background: "#FFFFFF", boxShadow: "inset 0 0 0 1.5px #E2E2E7" }}>{children}</span>
-);
-/* the app on a Home Screen: the icon as the phone draws it, its name under it */
-function InsAppIcon({ p, size = 60 }) {
+/* step one's picture: the browser's bar as a flat grey sketch on a framed
+   panel — the address a soft bar in an outlined capsule, the controls
+   beside it in the trace grey — and the one control in the ink inside
+   the gold loop. No face, no ledge, no shadow: a picture, not a key. */
+function InsScene({ kind, alt, hi }) {
+  const t = useT();
+  const faint = (g) => <InsGlyph name={g} size={22} color={t.trace} sw={1.8} />;
+  const spot = (g) => <InsSpot hi={hi}><InsGlyph name={g} size={22} color={t.ink} sw={2} /></InsSpot>;
+  const bar = (lead, trail) => (
+    <span data-ins-bar="" className="flex items-center flex-1 min-w-0" style={{ height: 38, gap: 6, padding: "0 8px", borderRadius: 999, boxShadow: `inset 0 0 0 1.5px ${t.hair}`, background: "#FFFFFF" }}>
+      {lead}<span className="flex-1 min-w-0" style={{ height: 5, borderRadius: 3, background: t.hair, margin: "0 6px" }} />{trail}
+    </span>
+  );
+  const word = (w) => <span style={{ fontFamily: ui, fontSize: 14, fontWeight: 500, color: t.trace }}>{w}</span>;
+  const row = {
+    ios27: <>{bar(spot("lines"))}{faint("tabs")}</>,
+    ios26: <>{faint("back")}{bar()}{spot("dots")}</>,
+    ios18: <span className="flex items-center justify-between w-full" style={{ padding: "0 6px" }}>{faint("back")}{faint("fwd")}{spot("share")}{faint("book")}{faint("tabs")}</span>,
+    crios: <>{bar(null, spot("share"))}</>,
+    chrome: <>{bar()}{spot("dotsV")}</>,
+    samsung: <span className="flex items-center justify-between w-full" style={{ padding: "0 6px" }}>{faint("back")}{faint("fwd")}{faint("home")}{faint("tabs")}{spot("lines")}</span>,
+    desktop: <>{bar(null, spot("monitorDown"))}</>,
+    mac: <span className="flex items-center" style={{ gap: 18, padding: "0 6px" }}>{word("Safari")}<InsSpot hi={hi} wide><span style={{ fontFamily: ui, fontSize: 14, fontWeight: 600, color: t.ink }}>File</span></InsSpot>{word("Edit")}{word("View")}</span>,
+  }[kind];
+  if (!row) return null;
+  return (
+    <div role="img" aria-label={alt} data-ins-pic="" data-scene={kind} className="flex items-center"
+         style={{ marginTop: 12, maxWidth: 300, gap: 10, padding: "14px 16px", borderRadius: 14, background: t.wash }}>
+      {row}
+    </div>
+  );
+}
+/* the app on a Home Screen, once it is there: the icon as the phone draws it, its name under it */
+function InsAppIcon({ size = 60 }) {
+  const t = useT();
   return (
     <span className="inline-flex flex-col items-center" style={{ gap: 6 }}>
-      {/* the very picture iOS and Android put on the Home Screen (public/icons, made by scripts/icons.mjs), in the phone's own corner —
-          a mark drawn here stood four fifths the size of the real one, and thinner */}
-      <span data-ins-tap="" className="inline-flex items-center justify-center overflow-hidden" style={{ width: size, height: size, borderRadius: size * 0.225, background: BRAND_COLOUR, boxShadow: `0 0 0 2px #FFFFFF, 0 0 0 4px ${p.hi}` }}>
+      <span className="inline-flex items-center justify-center overflow-hidden" style={{ width: size, height: size, borderRadius: size * 0.225, background: BRAND_COLOUR }}>
         <img src="/icons/apple-touch-icon.png" alt="" width={size} height={size} draggable={false} style={{ display: "block", width: size, height: size }} />
       </span>
-      <span style={{ fontFamily: ui, fontSize: 13, lineHeight: 1.2, fontWeight: 500, color: p.t.ink }}>Nosca</span>
+      <span style={{ fontFamily: ui, fontSize: 13, lineHeight: 1.2, fontWeight: 500, color: t.ink }}>Nosca</span>
     </span>
   );
 }
-/* a round action of the share sheet: a disc with its glyph and its name
-   under it; with no glyph, one of the faint ones that stand before it */
-function InsRound({ p, glyph, label }) {
-  const { t, hi } = p;
-  return (
-    <span className="inline-flex flex-col items-center shrink-0" style={{ gap: 7 }}>
-      <span {...(glyph ? { "data-ins-tap": "" } : { "aria-hidden": "true" })} className="inline-flex items-center justify-center"
-            style={{ width: 46, height: 46, borderRadius: 23, ...(glyph ? { background: "#FFFFFF", boxShadow: `0 0 0 2px ${hi}, 0 4px 0 ${MIX("#FFFFFF", hi, 0.32)}` } : { background: "#E2E2E7" }) }}>
-        {glyph && <InsGlyph name={glyph} size={24} color={t.ink} sw={2} />}
-      </span>
-      {label
-        ? <span style={{ ...insWord(t), fontSize: 12, whiteSpace: "nowrap" }}>{label}</span>
-        : <span aria-hidden="true" style={{ width: 24, height: 5, borderRadius: 3, background: "#D9D9DE", marginTop: 5 }} />}
-    </span>
-  );
-}
-/* a row of a Home Screen: Nosca among the others, which are drawn faint */
-function InsHome({ p }) {
-  const other = { flex: "0 0 48px", width: 48, height: 48, marginTop: 2, borderRadius: "23%", background: "#E2E2E7" };
-  return (
-    <span className="flex items-start justify-center w-full" style={{ gap: 12, padding: "4px 2px 0" }}>
-      <span aria-hidden="true" style={other} />
-      <InsAppIcon p={p} size={52} />
-      <span aria-hidden="true" style={other} />
-    </span>
-  );
-}
-/* THE STEPS. `text` is the few words, `sub` a second line only where a
-   picture cannot say it, `alt` what the picture shows for somebody who
-   cannot see it, `pic` the drawing. Where a phone may show either of
-   two controls the words name neither — "Tap one of these" — and the
-   picture draws both. */
+/* THE STEPS. Four at most a device, each a few words with the control
+   drawn in them (`text`, `sub` — "{glyph}" or "{glyph:what it says}"),
+   step one's `scene` the picture of where, and `alt` what that picture
+   shows. Two taps that follow one another in the same sheet are one
+   step ("Tap the three lines, then Share"). A line goes when the phone
+   already does it: Open as Web App is on from iOS 26, so "leave it on"
+   is gone, and so is "Scroll down the list". */
 const INS_OPEN = (ios, card) => ({
   /* iOS gives a Home Screen app its own storage, so an iPhone signs in once more there; Android's shares the browser's.
      The card's page is read by people with no account yet. */
-  text: ios ? tr("Tap Nosca on the Home Screen") : tr("Tap Nosca on the Home screen"), sub: ios ? (card ? tr("Sign up or sign in there") : tr("Sign in there once")) : null,
-  alt: tr("The Nosca icon, among the others on the Home Screen"),
-  pic: (p) => <InsHome p={p} />,
+  text: ios ? tr("Open {app} Nosca from your Home Screen") : tr("Open {app} Nosca from your Home screen"),
+  sub: ios ? (card ? tr("Sign up or sign in there") : tr("Sign in there once")) : null,
 });
-const INS_SHARE_ROW = { text: tr("Tap Share"), alt: tr("Share, in the menu"), pic: (p) => <InsTap p={p} glyph="share" label="Share" /> };
-/* the share sheet's row of round actions ends on View More, a chevron (one 26.4 report names it More: the alt says so, nothing else is drawn) */
-const INS_VIEW_MORE = {
-  text: tr("Tap View More"), alt: tr("View More, the last of the round buttons: a chevron pointing down. On some iPhones it reads More."),
-  pic: (p) => (
-    <span className="flex items-start justify-center" style={{ gap: 10 }}>
-      <InsRound p={p} /><InsRound p={p} /><InsRound p={p} glyph="chevDown" label="View More" />
-    </span>
-  ),
-};
-const INS_ADD_ROW = { text: tr("Tap Add to Home Screen"), sub: tr("Scroll down the list"), alt: tr("Add to Home Screen, a square with a plus"), pic: (p) => <InsTap p={p} glyph="plusSquare" label="Add to Home Screen" /> };
-const INS_ADD_WEBAPP = {
-  text: tr("Tap Add"), sub: tr("Leave Open as Web App on"),
-  alt: tr("Add, top right. Open as Web App is switched on."),
-  pic: (p) => (
-    <InsSheet>
-      <span className="flex items-center justify-between">
-        <InsGhost p={p} glyph="cross" size={22} />
-        <InsTap p={p} label="Add" round h={40} />
-      </span>
-      <span className="flex items-center justify-between" style={{ minHeight: 36, gap: 10 }}>
-        <span style={{ ...insWord(p.t), fontWeight: 500, fontSize: 14 }}>Open as Web App</span>
-        <span aria-hidden="true" className="relative shrink-0" style={{ width: 42, height: 26, borderRadius: 13, background: p.t.accent }}>
-          <span className="absolute" style={{ right: 2, top: 2, width: 22, height: 22, borderRadius: 11, background: "#FFFFFF" }} />
-        </span>
-      </span>
-    </InsSheet>
-  ),
-};
-/* step one of iOS 26 and 27: the control that version shows by default, named and drawn, and Share beside it for the Bottom and Top layouts */
-const INS_SAFARI_FIRST = (text, alt, pic) => ({ text, sub: tr("Or Share, then go to step 3"), alt, pic });
-/* an app's own browser cannot add to the Home Screen: open the page in Safari, where the steps follow */
-const INS_IN_APP = [{ text: tr("Open this page in Safari"), sub: tr("From this app's menu"), alt: tr("Safari, a compass"), pic: (p) => <InsTap p={p} glyph="compass" label="Safari" /> }];
+const INS_IOS_SHEET = { text: tr("Tap View More {chevDown}, then Add to Home Screen {plusSquare}") };
+const INS_ADD = { text: tr("Tap Add") };
+const INS_IN_APP = [{ text: tr("Open this page in Safari {compass}"), sub: tr("From this app's menu") }];
 function installSteps(sub, { iosBrowser = null, inApp = false, card = false } = {}) {
   if (inApp) return INS_IN_APP;
   if (sub === "iOS 27") return [
-    INS_SAFARI_FIRST(tr("Tap the three lines"), tr("Three lines at the left of the address bar. Or Share, the square with an arrow, where the toolbar shows it."),
-      (p) => <><InsBar p={p} lead={<InsInBar p={p} glyph="lines" />} /><InsOr p={p} /><InsTap p={p} glyph="share" /></>),
-    INS_SHARE_ROW, INS_VIEW_MORE, INS_ADD_ROW, INS_ADD_WEBAPP, INS_OPEN(true, card),
+    { text: tr("Tap {lines:the three lines}, then Share {share}"), sub: tr("Or tap {share:Share} if you see it"), scene: "ios27",
+      alt: tr("The three lines, at the left of the address bar") },
+    INS_IOS_SHEET, INS_ADD, INS_OPEN(true, card),
   ];
   if (sub === "iOS 26") return [
-    INS_SAFARI_FIRST(tr("Tap the three dots"), tr("Three dots at the right of the address bar. Or Share, the square with an arrow, where the toolbar shows it."),
-      (p) => <><InsBar p={p} run /><InsTap p={p} glyph="dots" round /><InsOr p={p} /><InsTap p={p} glyph="share" /></>),
-    INS_SHARE_ROW, INS_VIEW_MORE, INS_ADD_ROW, INS_ADD_WEBAPP, INS_OPEN(true, card),
+    { text: tr("Tap {dots:the three dots}, then Share {share}"), sub: tr("Or tap {share:Share} if you see it"), scene: "ios26",
+      alt: tr("The three dots, at the right of the address bar") },
+    INS_IOS_SHEET, INS_ADD, INS_OPEN(true, card),
   ];
   if (sub === "Earlier") return [
     /* Chrome on an iPhone keeps Share at the right of its address bar; Edge and Firefox in their menus: never Safari's toolbar under their names */
-    iosBrowser === "Chrome"
-      ? { text: tr("Tap Share"), alt: tr("Share, at the right of the address bar"), pic: (p) => <InsBar p={p} run trail={<InsInBar p={p} glyph="share" />} /> }
-      : iosBrowser
-        ? { text: tr("Tap Share"), alt: tr("Share, the square with an arrow"), pic: (p) => <InsTap p={p} glyph="share" /> }
-        : { text: tr("Tap Share"), alt: tr("Share, the square with an arrow, in the middle of Safari's toolbar"),
-            pic: (p) => <span className="flex items-center justify-between w-full" style={{ maxWidth: 280, padding: "0 6px" }}><InsGhost p={p} glyph="back" /><InsGhost p={p} glyph="fwd" /><InsTap p={p} glyph="share" /><InsGhost p={p} glyph="book" /><InsGhost p={p} glyph="tabs" /></span> },
-    { text: tr("Tap Add to Home Screen"), sub: tr("Scroll down the list"), alt: tr("Add to Home Screen, a square with a plus"), pic: (p) => <InsTap p={p} label="Add to Home Screen" trail="plusSquare" /> },
-    { text: tr("Tap Add"), alt: tr("Add, top right"),
-      pic: (p) => <InsSheet><span className="flex items-center justify-between" style={{ paddingLeft: 4 }}><InsFaint p={p}>Cancel</InsFaint><InsTap p={p} label="Add" round h={40} /></span></InsSheet> },
-    INS_OPEN(true, card),
+    iosBrowser === "Chrome" ? { text: tr("Tap Share {share}"), scene: "crios", alt: tr("Share, at the right of the address bar") }
+      : iosBrowser ? { text: tr("Tap Share {share}") }
+        : { text: tr("Tap Share {share}"), scene: "ios18", alt: tr("Share, in the middle of Safari's toolbar") },
+    { text: tr("Tap Add to Home Screen {plusSquare}") }, INS_ADD, INS_OPEN(true, card),
   ];
   if (sub === "Samsung") return [
-    { text: tr("Tap the three lines"), alt: tr("Three lines, bottom right"),
-      pic: (p) => <span className="flex items-center justify-between w-full" style={{ maxWidth: 280, padding: "0 6px" }}><InsGhost p={p} glyph="back" /><InsGhost p={p} glyph="fwd" /><InsGhost p={p} glyph="tabs" /><InsTap p={p} glyph="lines" /></span> },
-    { text: tr("Tap Add page to"), alt: tr("Add page to, with a plus"), pic: (p) => <InsTap p={p} glyph="plus" label="Add page to" /> },
-    { text: tr("Tap Home screen"), alt: tr("Home screen, in the list"), slim: true, pic: (p) => <InsTap p={p} label="Home screen" /> },
-    { text: tr("Tap Add"), alt: tr("Add"), slim: true, pic: (p) => <InsTap p={p} label="Add" round /> },
-    INS_OPEN(false),
+    { text: tr("Tap {lines:the three lines}"), scene: "samsung", alt: tr("The three lines, bottom right") },
+    { text: tr("Tap Add page to, then Home screen") }, INS_ADD, INS_OPEN(false),
   ];
   if (sub === "Chrome") return [
-    { text: tr("Tap the three dots"), alt: tr("Three dots, top right, beside the address bar"),
-      pic: (p) => <><InsBar p={p} run /><InsTap p={p} glyph="dotsV" /></> },
+    { text: tr("Tap {dotsV:the three dots}"), scene: "chrome", alt: tr("The three dots, top right, beside the address bar") },
     /* Chrome 150 (July 2026) renamed the row; a phone not yet updated keeps the old name */
-    { text: tr("Tap one of these"), alt: tr("Install and create shortcut, in the menu. On an older Chrome it reads Add to Home screen."),
-      pic: (p) => <span className="flex flex-col items-center" style={{ gap: 9 }}><InsTap p={p} label="Install and create shortcut" /><InsOr p={p} /><InsTap p={p} label="Add to Home screen" /></span> },
-    { text: tr("Tap Install"), alt: tr("Install, not Create shortcut"),
-      pic: (p) => <span className="flex flex-wrap items-center justify-center" style={{ gap: "14px 14px" }}><InsTap p={p} label="Install" round /><InsFaint p={p}>Create shortcut</InsFaint></span> },
-    INS_OPEN(false),
+    { text: tr("Tap Install and create shortcut"), sub: tr("Or Add to Home screen") },
+    { text: tr("Tap Install") }, INS_OPEN(false),
   ];
   if (sub === "Safari") return [
-    { text: tr("Open the File menu"), alt: tr("File, in the menu bar. Or Share, the square with an arrow, in the toolbar."),
-      pic: (p) => <><span className="flex items-center" style={{ gap: 12 }}><InsTap p={p} label="File" h={40} /><InsFaint p={p}>Edit</InsFaint></span><InsOr p={p} /><InsTap p={p} glyph="share" /></> },
-    { text: tr("Choose Add to Dock"), alt: tr("Add to Dock, in the menu"), slim: true, pic: (p) => <InsTap p={p} label="Add to Dock…" /> },
-    { text: tr("Click Add"), alt: tr("Add"), slim: true, pic: (p) => <InsTap p={p} label="Add" round /> },
+    { text: tr("In the File menu, choose Add to Dock"), scene: "mac", alt: tr("File, in the menu bar") },
+    { text: tr("Click Add") },
   ];
   return [
-    { text: tr("Click the install icon"), alt: tr("At the right of the address bar: a screen with an arrow in Chrome, three squares and a plus in Edge"),
-      pic: (p) => <><InsBar p={p} run trail={<InsInBar p={p} glyph="monitorDown" />} /><InsOr p={p} /><InsTap p={p} glyph="appsPlus" /></> },
-    { text: tr("Click Install"), alt: tr("Install"), slim: true, pic: (p) => <InsTap p={p} label="Install" round /> },
+    { text: tr("Click {monitorDown:the install icon} in the address bar"), sub: tr("In Edge it looks like {appsPlus:three squares and a plus}"), scene: "desktop",
+      alt: tr("The install icon, at the right of the address bar") },
+    { text: tr("Click Install") },
   ];
 }
-/* the steps, drawn: a numeral in a ring, the words, the picture on the
-   wash, and a fine thread from each numeral to the next */
+/* the steps: a numeral in a fine ring, the words with the control drawn in them, a thread from each numeral to the next */
 function InstallSteps({ steps, dress, tour, wait = 0 }) {
   const t = useT();
   const card = dress === "card";
-  const p = { t, hi: card ? STAR : t.accent };
+  const hi = card ? CLUB.gold : t.accent;
   const figure = card ? INSTALL_GOLD : t.ink, ring = card ? CLUB.gold : LINE_STRONG, thread = card ? MIX("#FFFFFF", CLUB.gold, 0.55) : t.hair;
   return (
     <ol data-tour={`${tour}-steps`} style={{ listStyle: "none", margin: 0, padding: 0 }}>
       {steps.map((st, i) => {
         const last = i === steps.length - 1;
         return (
-          <li key={`${st.text}:${i}`} data-ins-step="" className="relative flex" style={{ gap: 14, paddingBottom: last ? 0 : 24, animation: `insRise 520ms ${MOTION.curve} ${wait + i * 70}ms backwards` }}>
-            {!last && <span aria-hidden="true" className="absolute" style={{ left: 13.5, top: 34, bottom: 6, width: 1, background: thread }} />}
+          <li key={`${st.text}:${i}`} data-ins-step="" className="relative flex" style={{ gap: 14, paddingBottom: last ? 0 : 22, animation: `insRise 480ms ${MOTION.curve} ${wait + i * 60}ms backwards` }}>
+            {!last && <span aria-hidden="true" className="absolute" style={{ left: 13.5, top: 34, bottom: 4, width: 1, background: thread }} />}
             <span data-ins-num="" className="flex items-center justify-center shrink-0" style={{ width: 28, height: 28, borderRadius: 14, boxShadow: `inset 0 0 0 1.5px ${ring}`, fontFamily: ui, fontSize: 14, lineHeight: 1, fontWeight: 700, color: figure }}>{i + 1}</span>
-            <div className="flex-1 min-w-0">
-              <p data-ins-text="" className="flex items-center" style={{ ...TYPE.heading, color: t.ink, minHeight: 28 }}>{st.text}</p>
-              {st.sub && <p style={{ ...TYPE.small, color: t.sub, marginTop: 1, textWrap: "balance" }}>{st.sub}</p>}
-              {/* a picture that only repeats its words in a key stands on a slim panel */}
-              <div role="img" aria-label={st.alt} data-ins-pic="" className="flex items-center justify-center"
-                   style={{ marginTop: 10, minHeight: st.slim ? 0 : 86, padding: st.slim ? `10px ${INS_PAD}px 15px` : `14px ${INS_PAD}px 19px`, gap: 10, borderRadius: 16, background: t.wash }}>
-                {st.pic(p)}
-              </div>
+            <div className="flex-1 min-w-0" style={{ paddingTop: 3 }}>
+              <p data-ins-text="" style={{ ...TYPE.heading, color: t.ink }}>{insSay(st.text)}</p>
+              {st.sub && <p data-ins-sub="" style={{ ...TYPE.small, color: t.sub, marginTop: 2 }}>{insSay(st.sub)}</p>}
+              {st.scene && <InsScene kind={st.scene} alt={st.alt} hi={hi} />}
             </div>
           </li>
         );
       })}
     </ol>
+  );
+}
+/* what unfolds and folds without a jump: its rows go from nothing to its
+   height. Folded, it is not there at all — kept only while it closes */
+const INS_FOLD_MS = 340;
+function InsFold({ open, children }) {
+  const [kept, setKept] = useState(open);
+  useEffect(() => {
+    if (open) { setKept(true); return undefined; }
+    const x = setTimeout(() => setKept(false), INS_FOLD_MS);
+    return () => clearTimeout(x);
+  }, [open]);
+  return (
+    <div style={{ display: "grid", gridTemplateRows: open ? "1fr" : "0fr", transition: `grid-template-rows ${INS_FOLD_MS}ms ${MOTION.curve}` }}>
+      <div aria-hidden={open ? undefined : true} style={{ minHeight: 0, overflow: open ? "visible" : "hidden", pointerEvents: open ? undefined : "none" }}>{(open || kept) && children}</div>
+    </div>
   );
 }
 export function InstallGuide({ tour = "install", dress = "app", wait = 0, onDone }) {
@@ -19596,6 +19840,8 @@ export function InstallGuide({ tour = "install", dress = "app", wait = 0, onDone
   const setSub = (x) => { setOwn(false); setSubRaw(x); };
   const [choose, setChoose] = useState(false);
   const [offer, setOffer] = useState(canPromptInstall);
+  /* with the browser's own install there, the steps by hand are one tap away, folded */
+  const [byHand, setByHand] = useState(false);
   const [done, setDone] = useState(isStandalone);
   const [note, setNote] = useState("");
   /* the steps wait for the page's arrival once; a change of device is at once */
@@ -19605,7 +19851,6 @@ export function InstallGuide({ tour = "install", dress = "app", wait = 0, onDone
   /* the page that holds the guide takes its title off once there is nothing left to do */
   useEffect(() => { if (done && onDone) onDone(); }, [done]);
   const install = async () => {
-    haptic(10);
     const r = await promptInstall();
     if (r === "accepted") { hapticSuccess(); setDone(true); }
     else if (r === "dismissed") setNote(tr("Not installed"));
@@ -19618,17 +19863,18 @@ export function InstallGuide({ tour = "install", dress = "app", wait = 0, onDone
     /* the card's page: the icon that landed, and the one line, under the card */
     <div data-tour={tour} className="ins flex flex-col items-center text-center" style={{ gap: 14, paddingTop: 4 }}>
       <style>{INSTALL_CSS}</style>
-      <span aria-hidden="true"><InsAppIcon p={{ t, hi: "transparent" }} size={64} /></span>
+      <span aria-hidden="true"><InsAppIcon size={64} /></span>
       <p data-tour={`${tour}-done`} style={{ ...TYPE.title, color: t.ink, textWrap: "balance" }}>{landed}</p>
     </div>
   ) : (
     <div data-tour={tour} className="ins flex items-center" style={{ gap: 16, marginTop: SPACE.row }}>
       <style>{INSTALL_CSS}</style>
-      <span aria-hidden="true"><InsAppIcon p={{ t, hi: "transparent" }} size={56} /></span>
+      <span aria-hidden="true"><InsAppIcon size={56} /></span>
       <p data-tour={`${tour}-done`} className="flex-1 min-w-0" style={{ ...TYPE.heading, color: t.ink }}>{landed}</p>
     </div>
   );
   const button = offer && tab !== "iPhone";
+  const showSteps = !button || byHand;
   const onIphone = own && tab === "iPhone" && mine === "iPhone";
   const iosBrowser = onIphone ? INSTALL_IOS_BROWSER[browser] || null : null;
   const inApp = onIphone && browser === "other";
@@ -19636,36 +19882,48 @@ export function InstallGuide({ tour = "install", dress = "app", wait = 0, onDone
   /* the row names the device as it is: an iPad is not an iPhone */
   const tabName = tab === "iPhone" && mine === "iPhone" && isIpad() ? "iPad" : tab;
   const subName = inApp ? tr("In an app") : iosBrowser || INSTALL_SUB_NAME[sub] || sub;
+  const gold = card ? INSTALL_GOLD : t.accent;
   return (
     <div data-tour={tour} className="ins">
       <style>{INSTALL_CSS}</style>
-      {/* which device these steps are for, and the one way to another */}
-      <button data-tour={`${tour}-device`} aria-expanded={choose} onClick={() => { haptic(6); setChoose(!choose); }}
-              className="w-full flex items-center justify-between text-left active:opacity-60" style={{ minHeight: 48, gap: 12 }}>
-        {/* each half kept whole: a narrow phone breaks the row at the dot, never inside a name */}
-        <span className="min-w-0" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}><span style={{ whiteSpace: "nowrap" }}>{tabName}</span> <span style={{ whiteSpace: "nowrap" }}>· {subName}</span></span>
-        <span className="shrink-0" style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, color: card ? INSTALL_GOLD : t.accent }}>{choose ? tr("Done") : tr("Change")}</span>
-      </button>
-      {choose && (
-        <div data-tour={`${tour}-choices`} style={{ paddingTop: 4, paddingBottom: SPACE.tight }}>
-          <Segmented tall options={INSTALL_TABS} value={tab} onChange={setTab} tour={`${tour}-platform`} />
-          <div style={{ marginTop: SPACE.tight }}>
-            <Segmented tall options={INSTALL_SUBS[tab]} value={sub} onChange={setSub} tour={`${tour}-version`} />
-          </div>
-          {INSTALL_HINT[tab] && <p data-tour={`${tour}-hint`} style={{ ...TYPE.caption, color: t.sub, marginTop: SPACE.tight }}>{tr(INSTALL_HINT[tab])}</p>}
+      {/* THE ONE KEY, where the browser offers it: its own install sheet in one tap. It opens out when the offer
+          arrives after the page (Chrome fires it once the page has loaded), never jumps in */}
+      <InsFold open={button}>
+        <div style={{ paddingTop: SPACE.row }}>
+          <Button tone="accent" onClick={install} tour={`${tour}-now`}>{tr("Install Nosca")}</Button>
+          <button data-tour={`${tour}-hand`} aria-expanded={byHand} onClick={() => { haptic(6); setByHand(!byHand); }}
+                  className="w-full flex items-center justify-center active:opacity-60" style={{ minHeight: 44, gap: 4, ...TYPE.small, fontWeight: 600, color: t.sub }}>
+            {tr("Or by hand")}
+            <ChevronDown size={16} strokeWidth={2.2} style={{ transform: byHand ? "rotate(180deg)" : "none", transition: `transform ${MOTION.settle}ms` }} />
+          </button>
         </div>
-      )}
+      </InsFold>
       {/* the note outlives the button: a dismissed sheet takes the offer away on the same render that says so */}
-      {(button || note) && (
-        <div style={{ marginTop: SPACE.tight }}>
-          {button && <Button tone="accent" onClick={install} tour={`${tour}-now`}>{tr("Install Nosca")}</Button>}
-          {note && <p className="text-center" role="status" style={{ ...TYPE.caption, color: DANGER, marginTop: SPACE.tight }}>{note}</p>}
-          {button && <p className="text-center" style={{ ...TYPE.caption, color: t.sub, marginTop: SPACE.tight }}>{tr("Or by hand")}</p>}
+      {note && <p className="text-center" role="status" style={{ ...TYPE.caption, color: DANGER, marginTop: SPACE.tight }}>{note}</p>}
+      <InsFold open={showSteps}>
+        <div style={{ paddingTop: button ? 0 : 2 }}>
+          {/* which device these steps are for, and the one way to another: a quiet line under the title — above the
+              steps, so a choice changes only what is under it and never moves the row from under the finger */}
+          <button data-tour={`${tour}-device`} aria-expanded={choose} onClick={() => { haptic(6); setChoose(!choose); }}
+                  className="w-full flex items-center justify-between text-left active:opacity-60" style={{ minHeight: 44, gap: 12 }}>
+            {/* each half kept whole: a narrow phone breaks the row at the dot, never inside a name */}
+            <span className="min-w-0" style={{ ...TYPE.small, color: t.sub }}><span style={{ whiteSpace: "nowrap" }}>{tabName}</span> <span style={{ whiteSpace: "nowrap" }}>· {subName}</span></span>
+            <span className="shrink-0" style={{ ...TYPE.small, fontWeight: 600, color: gold }}>{choose ? tr("Done") : tr("Change")}</span>
+          </button>
+          {choose && (
+            <div data-tour={`${tour}-choices`} style={{ paddingTop: 4, paddingBottom: SPACE.tight }}>
+              <Segmented tall options={INSTALL_TABS} value={tab} onChange={setTab} tour={`${tour}-platform`} />
+              <div style={{ marginTop: SPACE.tight }}>
+                <Segmented tall options={INSTALL_SUBS[tab]} value={sub} onChange={setSub} tour={`${tour}-version`} />
+              </div>
+              {INSTALL_HINT[tab] && <p data-tour={`${tour}-hint`} style={{ ...TYPE.caption, color: t.sub, marginTop: SPACE.tight }}>{tr(INSTALL_HINT[tab])}</p>}
+            </div>
+          )}
+          <div style={{ marginTop: SPACE.tight }}>
+            <InstallSteps steps={steps} dress={dress} tour={tour} wait={arrived ? 0 : wait} />
+          </div>
         </div>
-      )}
-      <div style={{ marginTop: SPACE.row }}>
-        <InstallSteps steps={steps} dress={dress} tour={tour} wait={arrived ? 0 : wait} />
-      </div>
+      </InsFold>
     </div>
   );
 }
@@ -19684,7 +19942,7 @@ function Legal({ docKey, pop }) {
     <SwipeBack onBack={pop}>
       <Screen title={d.title} onBack={pop} meta={d.updated}>
         <div className="px-6 pb-4">
-          {d.body.map(([h, p]) => (<div key={h} className="mb-6"><h3 className="mb-2" style={{ fontFamily: display, fontSize: 19, color: t.ink }}>{h}</h3><p style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.65, color: t.sub }}>{p}</p></div>))}
+          {d.body.map(([h, p]) => (<div key={h} className="mb-6"><h3 className="mb-2" style={{ ...TYPE.head, color: t.ink }}>{h}</h3><p style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.65, color: t.sub }}>{p}</p></div>))}
           <p className="pt-2" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{BRAND} · Registered in Ireland</p>
         </div>
       </Screen>
@@ -19734,7 +19992,7 @@ function InviteBody({ code, say }) {
   };
   return (
     <div className="flex flex-col items-center">
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Invite a player")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Invite a player")}</h2>
       <p className="mb-6 text-center" style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>{tr("They enter the code or scan this.")}</p>
       <div className="rounded-3xl p-4 mb-5" style={{ border: `1px solid ${t.hair}`, background: "#fff" }}>
         {url ? <QrImage url={url} size={148} /> : <QrSvg size={148} />}
@@ -19757,7 +20015,7 @@ function ChangePasswordBody({ onSubmit, say, close }) {
   const field = { minHeight: 54, borderRadius: R.surface, background: t.wash, boxShadow: lipOf(SOFT_LIP(t), 2), fontFamily: ui, fontSize: 16, color: t.ink, border: "none" };
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Change password")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Change password")}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{tr("At least 8 characters.")}</p>
       <input type="password" value={pw} onChange={(e) => { setPw(e.target.value); setErr(null); }} placeholder={tr("New password")} autoComplete="new-password"
              aria-label={tr("New password")} className="w-full outline-none px-4 mb-2.5" style={field} />
@@ -19782,7 +20040,7 @@ function DeleteBody({ onCancel, say }) {
   const t = useT();
   return (
     <>
-      <h2 className="mb-3" style={{ ...TYPE.title, color: t.ink }}>{tr("Delete your account")}</h2>
+      <h2 className="mb-3" style={{ ...TYPE.head, color: t.ink }}>{tr("Delete your account")}</h2>
       <p className="mb-6" style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.6, color: t.sub }}>This removes your profile, any linked family profiles, your lessons, drills, tips, messages and every clip stored with them. It cannot be undone, and your subscription must be cancelled separately in the App Store.</p>
       <div className="mb-3"><Button tone="dangerQuiet" onClick={() => say("Account deletion requested")}>{tr("Delete permanently")}</Button></div>
       <Button tone="quiet" onClick={onCancel}>{tr("Keep my account")}</Button>
@@ -20079,7 +20337,9 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
   const earlier = shownList.filter((n) => at(n) < startOfYesterday);
 
   const Eyeb = ({ children }) => (
-    <div className="px-1" style={{ ...TYPE.eyebrow, color: t.sub, marginBottom: 7 }}>{children}</div>
+    /* the bell's Requests · Today · Yesterday · Earlier are the page's
+       sections, in the titles' serif as Settings' groups are (28 November) */
+    <h2 className="px-1" data-bell-head="" style={{ ...TYPE.head, fontSize: 20, color: t.ink, marginBottom: 9 }}>{children}</h2>
   );
 
   /* WHOSE IS IT. Almost everything here happened because of a person,
@@ -20151,7 +20411,7 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
             {waiting.length > 0 && (
               <div style={{ marginBottom: SPACE.block }}>
                 <Eyeb>{tr("Requests")}</Eyeb>
-                <div className="nsc-list">{waiting.map((w) => <Ask key={w.id} w={w} />)}</div>
+                <div className="nsc-list" style={cardOf(t, HUE.blue)}>{waiting.map((w) => <Ask key={w.id} w={w} />)}</div>
               </div>
             )}
             {canFilter && (
@@ -20260,7 +20520,7 @@ function CatchUp({ items, onOpen, onDone }) {
                        animation: "streakUp 520ms cubic-bezier(.22,1,.36,1) 120ms both" }}>
           {tr("While you were away")}
         </span>
-        <h2 className="mt-3" style={{ fontFamily: display, fontSize: 30, letterSpacing: "-0.035em", lineHeight: 1.08, color: "#F4F6F3",
+        <h2 className="mt-3" style={{ ...TYPE.screen, color: "#F4F6F3",
                                        animation: "streakUp 520ms cubic-bezier(.22,1,.36,1) 220ms both" }}>
           {items.length === 1 ? tr("One thing happened") : `${items.length} ${tr("things happened")}`}
         </h2>
@@ -20330,7 +20590,7 @@ function LessonEditBody({ lesson, cfg, onSave, onAddFiles, say, close }) {
 
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Edit lesson")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.head, color: t.ink }}>{tr("Edit lesson")}</h2>
       <p className="mb-5" style={{ ...TYPE.caption, color: t.faint }}>{lesson.who} · {lesson.d} {lesson.m}</p>
 
       <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Focus")}</div>
@@ -20379,7 +20639,7 @@ function LessonDeleteBody({ lesson, mediaCount = 0, onConfirm, say, close }) {
     <>
       {/* the sheet's title, as every sheet's is: a red bin on a disc led it,
           beside words that already say Delete (23 November) */}
-      <h2 className="mb-4" style={{ ...TYPE.title, color: t.ink }}>{tr("Delete this lesson")}</h2>
+      <h2 className="mb-4" style={{ ...TYPE.head, color: t.ink }}>{tr("Delete this lesson")}</h2>
       <p className="mb-5" style={{ ...TYPE.body, lineHeight: 1.6, color: t.sub }}>
         {lesson.focus} · {lesson.who} · {lesson.d} {lesson.m}.
         {mediaCount > 0 ? ` ${mediaCount} ${mediaCount === 1 ? tr("file goes with it") : tr("files go with it")}.` : ""}
@@ -23750,7 +24010,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           it has throughout design. In the product it simply fills the
           screen. */}
       <div className={demo ? "min-h-screen w-full flex flex-col items-center py-6 px-3" : "w-full"}
-           style={{ "--rule-hair": HAIR(theme.ink, 0.14), "--rule-section": HAIR(theme.ink, 0.24), "--surface": theme.surface, "--wash": theme.wash, "--edge": EDGE(theme), "--lip": SOFT_LIP(theme), "--group-rule": MIX(theme.wash, theme.mark || theme.accent || theme.ink, 0.12), "--faint": theme.faint, "--tint": TINT(theme), "--tint-lip": TINT_LIP(theme),
+           style={{ "--rule-hair": HAIR(theme.ink, 0.14), "--rule-section": HAIR(theme.ink, 0.24), "--surface": theme.surface, "--wash": theme.wash, "--edge": EDGE(theme), "--lip": SOFT_LIP(theme), "--group-rule": MIX(theme.wash, theme.mark || theme.accent || theme.ink, 0.12), "--faint": theme.faint, "--tint": TINT(theme), "--tint-lip": TINT_LIP(theme), ...cardOf(theme, HUE.green), "--white-ring": CARD_WHITE["--card-ring"], "--white-ledge": CARD_WHITE["--card-ledge"],
                     ...(demo ? { background: "#0B0F0C" } : sc ? { background: theme.page, width: 390, height: 780, overflow: "hidden" } : { background: theme.page }) }}>
         {demo && (
         <div className="flex flex-col items-center mb-4">
@@ -24124,7 +24384,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                     {/* the player's request sheet's head: the day as the title,
                         the time under it — one head for one moment on both
                         sides (it was the day and the time on one title line) */}
-                    <h2 className="mb-1" style={{ ...TYPE.title, color: theme.ink }}>
+                    <h2 className="mb-1" style={{ ...TYPE.head, color: theme.ink }}>
                       {DAY_NAMES[dowOf(bookSlot.day.m, bookSlot.day.d, calendar)].slice(0, 3)} {bookSlot.day.d} {monthName(bookSlot.day.m).slice(0, 3)}
                     </h2>
                     <p data-tour="book-who-time" className="mb-5" style={{ ...TYPE.small, color: theme.sub }}>{span(bookSlot.time, duration)}</p>
@@ -24156,7 +24416,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                 )
               : sheet === "bookSelf" && bookSlot ? (
                   <>
-                    <h2 className="mb-1" style={{ ...TYPE.title, color: theme.ink }}>
+                    <h2 className="mb-1" style={{ ...TYPE.head, color: theme.ink }}>
                       {DAY_NAMES[dowOf(bookSlot.day.m, bookSlot.day.d, calendar)].slice(0, 3)} {bookSlot.day.d} {monthName(bookSlot.day.m).slice(0, 3)}
                     </h2>
                     <p className="mb-6" style={{ ...TYPE.small, color: theme.sub }}>
@@ -24177,7 +24437,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                 )
               : sheet === "rebookAfter" ? (
                   <>
-                    <h2 className="mb-1" style={{ ...TYPE.title, color: theme.ink }}>{tr("Book the next one")}</h2>
+                    <h2 className="mb-1" style={{ ...TYPE.head, color: theme.ink }}>{tr("Book the next one")}</h2>
                     <p className="mb-6" style={{ fontFamily: ui, fontSize: 13.5, color: theme.faint }}>{(conn || {}).coach}</p>
                     <Button onClick={() => { setSheet(null); if (data) { go("calendar"); return; } done(tr("Booked"), tr("Same time next week")); }}>{tr("Book it")}</Button>
                     <button onClick={() => { setSheet(null); go("calendar"); }} className="w-full mt-3 py-3 active:opacity-50"
@@ -24318,7 +24578,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             close={() => setSheet(null)} />
               : sheet === "decline" && declining ? (
                   <>
-                    <h2 className="mb-1" style={{ ...TYPE.title, color: theme.ink }}>{tr("Decline request")}</h2>
+                    <h2 className="mb-1" style={{ ...TYPE.head, color: theme.ink }}>{tr("Decline request")}</h2>
                     <p className="mb-5" style={{ ...TYPE.small, color: theme.faint }}>{declining.who}</p>
                     {/* what the player asked for, in their words */}
                     {declining.note && <p className="mb-5" data-tour="decline-note" style={{ ...TYPE.body, color: theme.ink }}>{declining.note}</p>}
@@ -24374,7 +24634,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                 )
               : sheet === "pickRecurWho" ? (
                   <>
-                    <h2 className="mb-1" style={{ ...TYPE.title, color: theme.ink }}>{tr("Who")}</h2>
+                    <h2 className="mb-1" style={{ ...TYPE.head, color: theme.ink }}>{tr("Who")}</h2>
                     {/* a named being in a list is a row: one boxed list of PersonRows, as every other picker */}
                     <div className="nsc-list" data-tour="recur-who">
                       {roster.map((r) => {
