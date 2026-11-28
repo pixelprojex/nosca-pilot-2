@@ -39,6 +39,11 @@
 > `.rule-gold` ends in a point (a clip-path). A loop's veil is graded (`.bgv.vid--veil::after`: `--veil-dir` and the three
 > stops `--veil-a/-b/-c`, deepest where the words stand; set them on the loop's own class). The page's grid, scale and
 > parts are in `src/css/index.css`.
+>
+> The WhatsApp import (`#import`, `.im`): the import's own stills in a fan of three phones (`.im__fan`, the review in
+> front), a programme's caption, and the safeguards as a `<dl>` (`.im__list`: a small-caps term in the ground's gold
+> over each, a hairline above, three across on a desk). The import, the coach's part and the player's part stand in one
+> `<div id="product">`, so the header's Product lands on the first and stays marked through all three.
 
 Read `BRIEF.md` first (the founder's words and this round's direction). This file says how to build a page on
 the shared kit. Every piece below is on one page, working: build with `--kit` and open `_kit.html`

@@ -2,7 +2,8 @@
 
 One page about Nosca for shareholders, partners and anyone meeting the app for the first time (`index.html`), each
 part answering one question: **what it is** (a still lake at sunrise under the deep green, "Coaching, linked.", Open
-Nosca, and the coach's day in the app arriving once), **what the coach does** (a headline, a line, the app's own
+Nosca, and the coach's day in the app arriving once), **what a coach brings with them** (a WhatsApp chat, in as dated
+lessons: the import's own Review, a day and its Feed preview, and how the chat is kept safe), **what the coach does** (a headline, a line, the app's own
 screens), **what the player keeps** (oaks in a foggy dawn, and the app's feed in use, played in a phone), **for which
 sports** (mist in low fields, then the six in their own words), **who made it and why** (steam off a lake under the
 name, the moment every coach screen is judged against, climate) and **how to start** (the pilot, the two printed
@@ -50,6 +51,7 @@ To give the site a domain of its own, add a second site in Netlify from this sam
 - **Type and grid.** Headlines in Nosca Serif, the app's own title face, so the site and the app are one family; every other word Instrument Sans; labels in small capitals tracked wide. One scale, one measure (1240) for the header and every part, and on a desk one grid of twelve columns: the words in the first five, the app, the card and the list's second column from the seventh.
 - **Loading.** Everything is on the site itself, and nothing is ever a blank box: each picture stands on its own blurred placeholder (a few hundred bytes inline), photographs come as AVIF or WebP at three widths, each loop's poster is its own first frame (the opening's preloaded), and a loop asks only for its metadata until it is near and starts only when it can play through.
 - **Motion.** One mode on every device: the visitor's own scroll, untouched. Nothing is pinned and nothing moves with the scroll; each piece plays once, on its own clock, as it arrives, and nothing moves on after the scroll stops. With Reduce Motion on or JavaScript off the page shows whole and still.
+- **The import in its own terms.** The import section says only what `docs/import/SPEC.md` says the import does, and its six safeguards are the spec's own: read on the phone; only the coach's written messages go to Anthropic's AI, with the names Nosca knows, numbers and links taken out; no video, photo or voice note goes to it; nothing is added until ticked; nobody else sees it until it is finished; it can be removed at any time. Never "entire history", email, group chats, WhatsApp's share button or the background (the spec's "What it cannot do"). The import is off until the founder switches it on (CLAUDE.md), so the section goes live with it.
 - **The screenshots are the app.** They are shot from the real build against demo data (the names are fictional), every lesson carrying real side-on coaching clips, never a drone shot, and re-shot when the app's look changes (last: 28 November, the bold serif titles and the colour-family keys).
 
 ## What the founder can add

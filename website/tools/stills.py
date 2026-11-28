@@ -24,6 +24,9 @@ STILLS = [
     ("player-progress", "player-progress", LIGHT), ("player-progress-attendance", "player-progress-attendance", LIGHT),
     ("player-feed-tennis", "player-feed-tennis", DARK), ("player-drills-tennis", "player-drills-tennis", LIGHT),
     ("parent-family", "parent-family", LIGHT), ("junior-home", "junior-home", DARK), ("junior-drills", "junior-drills", LIGHT),
+    # the WhatsApp import, as the coach: the Review list, A day, the List · Feed preview
+    ("coach-import-review", "coach-import-review", LIGHT), ("coach-import-day", "coach-import-day", LIGHT),
+    ("coach-import-feed", "coach-import-feed", DARK),
     # the Product page's (kept by name): the same screens, on the same real clips
     ("product-feed", "product-feed", LIGHT), ("product-lesson", "product-lesson", LIGHT), ("product-markup", "product-markup", LIGHT),
     ("product-compare", "product-compare", LIGHT), ("product-junior-home", "product-junior-home", LIGHT),
@@ -35,17 +38,21 @@ STILLS = [
   + [(f"coach-log-{s}", f"coach-log-{s}", LIGHT) for s in SPORTS[1:]] \
   + [(f"splash-{s}", f"splash-{s}", SPLASH) for s in SPORTS]
 
+# taken only when their shot is there: the import's opening page waits for feat/import-launch's redesign
+# (shoot.cjs … import-start, then this with the name)
+OPTIONAL = [("coach-import-start", "coach-import-start", LIGHT)]
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     present = "--present" in sys.argv   # only the stills whose raw shot is there (a shoot of some steps)
     raw, out = args[0], args[1]
     only = set(args[2].split(",")) if len(args) > 2 else None
     done, missing = [], []
-    for name, src, q in STILLS:
+    for name, src, q in STILLS + OPTIONAL:
         if only and name not in only: continue
         f = os.path.join(raw, src + ".png")
         if not os.path.exists(f):
-            if not present: missing.append(src)
+            if not present and (name, src, q) not in OPTIONAL: missing.append(src)
             continue
         im = Image.open(f).convert("RGB")
         if im.size != (1170, 2532): raise SystemExit(f"{src}.png is {im.size[0]} x {im.size[1]}, not 1170 x 2532 (shot at 3x?)")

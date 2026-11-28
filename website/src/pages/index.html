@@ -6,8 +6,8 @@ header: green
 preloadImage: assets/photo/loop-lake-mist-2-poster.webp
 -->
 
-<!-- ONE PAGE, each part answering one question: what Nosca is, what the coach does, what the player keeps, for which
-     sports, who made it and why, and how to start. The grounds are foggy mornings in one grade, each a short loop whose
+<!-- ONE PAGE, each part answering one question: what Nosca is, what a coach brings with them (the WhatsApp import),
+     what the coach does, what the player keeps, for which sports, who made it and why, and how to start. The grounds are foggy mornings in one grade, each a short loop whose
      own first frame stands in place before it plays. Nothing is pinned and nothing is tied to the scroll: each piece
      plays once, on its own clock, as it arrives (html.glide, site.js), and the header's three anchors reach every part. -->
 
@@ -21,6 +21,7 @@ preloadImage: assets/photo/loop-lake-mist-2-poster.webp
       <h1 class="op__h" id="op-title" data-rise><span>Coaching,</span> <span>linked.</span></h1>
       <p class="op__p" data-rise="lines">One app for coach, player and parent.</p>
       <a class="key key--paper op__key" href="{{appUrl}}" rel="noopener">Open Nosca <!-- @include arrow --></a>
+      <p class="op__more"><a class="link" href="#import">On WhatsApp? Bring it with you <!-- @include arrow --></a></p>
     </div>
     <div class="op__dev">
       <!-- @include phone screens="coach-today-golf" alts="A golf coach's day in Nosca: the lessons in order, the one on now with Register on it" class="op__phone" attrs="data-arrive='none'" eager="1" -->
@@ -28,8 +29,45 @@ preloadImage: assets/photo/loop-lake-mist-2-poster.webp
   </div>
 </section>
 
-<!-- 2. WHAT THE COACH DOES. A headline, one line and the app's own screens. -->
-<section class="g-paper pr" id="product" data-header="paper" aria-labelledby="pr-coach">
+<!-- THE PRODUCT: what a coach brings with them, what the coach does, what the player keeps. The header's Product
+     reaches the first of the three and stays marked through all of them. -->
+<div class="prod" id="product">
+
+<!-- 2. WHAT A COACH BRINGS WITH THEM. A coach's WhatsApp chat with a player, in as dated lessons: the review of the
+     days it found, one day opened, and the feed they will make, before anything is added; then how the chat is kept
+     safe, in the import's own terms (docs/import/SPEC.md: nothing here claims more than the app does). -->
+<section class="g-paper im" id="import" data-header="paper" aria-labelledby="im-title">
+  <div class="wrap">
+    <div class="im__top">
+      <div class="im__copy">
+        <h2 class="im__h" id="im-title" data-rise>WhatsApp, in as&nbsp;lessons.</h2>
+        <p class="im__p" data-rise="lines">A coach’s chat with a player comes in as dated lessons: what was worked on, that day’s clips and photos, and the coach’s own lines, word for word.</p>
+      </div>
+      <figure class="im__devs" data-arrive>
+        <div class="im__fan">
+          <!-- @include phone screens="coach-import-day" alts="One day of the chat opened in Nosca's import: the note in the coach's own words, the day's video and photo ticked, and the messages they came from" class="im__phone im__phone--l" -->
+          <!-- @include phone screens="coach-import-review" alts="Nosca's import review: eleven lessons found in the chat, newest first, each with its day, what was worked on and its files, and a tick" class="im__phone im__phone--c" -->
+          <!-- @include phone screens="coach-import-feed" alts="The import's feed preview: a chipping lesson's clip playing from the chat, before anything is added" class="im__phone im__phone--r" -->
+        </div>
+        <figcaption class="im__cap">The days it found, one of them opened, and the feed they will make, before anything is added.</figcaption>
+      </figure>
+    </div>
+    <div class="im__safe">
+      <h3 class="im__sh" data-rise>How the chat is kept&nbsp;safe.</h3>
+      <dl class="im__list">
+        <div><dt>Read on the phone</dt><dd>WhatsApp’s export is opened and read on the phone itself.</dd></div>
+        <div><dt>The coach’s words only</dt><dd>Only the coach’s written messages go to Anthropic’s AI to be sorted, a day at a time, with the names Nosca knows, numbers and links taken out first.</dd></div>
+        <div><dt>No clip, photo or voice note</dt><dd>Videos, photos and voice notes never go to the AI.</dd></div>
+        <div><dt>Nothing until ticked</dt><dd>Nothing is added until it is ticked, and a day the sorting is unsure of starts unticked.</dd></div>
+        <div><dt>Held until finished</dt><dd>Nobody else sees the lessons until the import is finished.</dd></div>
+        <div><dt>Removable</dt><dd>An import can be removed at any time: its lessons at once, its files within the hour.</dd></div>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<!-- 3. WHAT THE COACH DOES. A headline, one line and the app's own screens. -->
+<section class="g-rest pr" data-header="rest" aria-labelledby="pr-coach">
   <div class="wrap">
     <article class="piece">
       <div class="piece__copy">
@@ -44,7 +82,7 @@ preloadImage: assets/photo/loop-lake-mist-2-poster.webp
   </div>
 </section>
 
-<!-- 3. WHAT THE PLAYER KEEPS. Oaks in a foggy dawn, and the app's feed in use: a player scrolling their lessons,
+<!-- 4. WHAT THE PLAYER KEEPS. Oaks in a foggy dawn, and the app's feed in use: a player scrolling their lessons,
      starring one, swiping through what the coach filmed. -->
 <section class="g-green fd" id="feed" data-header="green" aria-labelledby="fd-title">
   <!-- @include loop name="loop-trees-fog-1" class="fd__bg bgv vid--veil" alt="" bg="1" -->
@@ -59,7 +97,9 @@ preloadImage: assets/photo/loop-lake-mist-2-poster.webp
   </div>
 </section>
 
-<!-- 4. FOR WHICH SPORTS. Mist in the low fields at sunrise, and the six, once, in their own words. -->
+</div>
+
+<!-- 5. FOR WHICH SPORTS. Mist in the low fields at sunrise, and the six, once, in their own words. -->
 <section class="g-rest sp" id="sports" data-header="rest" aria-labelledby="sp-title">
   <div class="sp__band g-green" data-header="green">
     <!-- @include loop name="loop-fields-mist-1" class="sp__bg bgv vid--veil" alt="" bg="1" -->
@@ -80,7 +120,7 @@ preloadImage: assets/photo/loop-lake-mist-2-poster.webp
   </div>
 </section>
 
-<!-- 5. WHO MADE IT, AND WHY. Steam off a lake at sunrise under the name; the moment every coach screen is judged
+<!-- 6. WHO MADE IT, AND WHY. Steam off a lake at sunrise under the name; the moment every coach screen is judged
      against; what it stands for; climate over a misty pasture. -->
 <section class="g-green st" id="story" data-header="green" aria-labelledby="st-title">
   <div class="st__hero">
@@ -107,7 +147,7 @@ preloadImage: assets/photo/loop-lake-mist-2-poster.webp
   </div>
 </section>
 
-<!-- 6. HOW TO START. Ireland, English; the way in; and the card itself, the one place it stands as an object: both
+<!-- 7. HOW TO START. Ireland, English; the way in; and the card itself, the one place it stands as an object: both
      designs as printed, the deep green banded, the olive wedged. -->
 <section class="g-paper pi" id="pilot" data-header="paper" aria-labelledby="pi-title">
   <div class="wrap pi__in">
