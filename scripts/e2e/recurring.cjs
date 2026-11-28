@@ -231,7 +231,7 @@ const { check, results, summary } = M.checker("recurring");
       /* the chosen chip is a chosen tile: filled with golf's cloth tone, the word in its ink, a ring of the same hue, since
          every key was filled on 23 November (golf's colour at a tenth over white before; the ink before that) — never the success green */
       const chipLook = chipThere ? await chip.first().evaluate((el) => { const cs = getComputedStyle(el); return { bg: cs.backgroundColor, fg: cs.color, ring: cs.borderTopColor }; }) : null;
-      check("(c2) the chosen day chip is the chosen answer, golf's light colour filling it with the word in its ink — never the success green", !!chipLook && chipLook.bg === "rgb(164, 201, 172)" && chipLook.fg === "rgb(22, 49, 30)" && chipLook.ring === "rgb(94, 139, 107)", JSON.stringify(chipLook));
+      check("(c2) the chosen day chip is the chosen answer, golf's light colour filling it with the word in its ink — never the success green", !!chipLook && chipLook.bg === "rgb(164, 201, 172)" && chipLook.fg === "rgb(22, 49, 30)" && chipLook.ring === "rgb(102, 145, 114)", JSON.stringify(chipLook));
       check("(c) a day chip on Cian's tile sends one PATCH to recurring id=eq.S with the new weekday, no DELETE, no POST",
         cp.length === 1 && idsOf(cp[0].query).join() === REC.S && cp[0].body.weekday === toDay && cp[0].n === 1
           && since(db.deletes, m1.deletes, "recurring").length === 0 && since(db.posts, m1.posts, "recurring").length === 0 && db.recurring.some((r) => r.id === REC.S && r.weekday === toDay),

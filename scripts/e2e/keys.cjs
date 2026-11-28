@@ -116,7 +116,7 @@ const ty = (transform) => { const m = String(transform || "").match(/matrix\(([^
        grey ring (#E4E0D7), a three-point grey ledge (#D9D4C9) — never the sport's colour, never the wash */
     /* FILLED KEYS (23 November): a function's tile is filled with its function's light colour — Register the lead's
        cloth tone, #A4C9AC — with no ring, the word in the hue's ink, on a three-point ledge of the same hue */
-    check("(a) Register on the plus is a filled tile: the lead's light colour on the face, no ring, a three-point ledge of the same hue, the word in its ink — never a white key", regTile && !!reg && reg.bg === "rgb(164, 201, 172)" && reg.border === "rgba(0, 0, 0, 0)" && lipOf(reg.shadow) === 3 && /rgb\(94, 139, 107\)/.test(reg.shadow) && reg.fg === "rgb(22, 49, 30)" && reg.w > reg.h, JSON.stringify(reg));
+    check("(a) Register on the plus is a filled tile: the lead's light colour on the face, no ring, a three-point ledge of the same hue, the word in its ink — never a white key", regTile && !!reg && reg.bg === "rgb(164, 201, 172)" && reg.border === "rgba(0, 0, 0, 0)" && lipOf(reg.shadow) === 3 && /rgb\(102, 145, 114\)/.test(reg.shadow) && reg.fg === "rgb(22, 49, 30)" && reg.w > reg.h, JSON.stringify(reg));
     /* Call off is filled like its neighbours, in the brick's light colour with the brick's ink — #E0B1AA since the
        cloth of the reds and the blues was capped (24 November; #DAA198 before, a salmon) */
     check("(a) …Call off filled with the brick's light colour, its word in the brick's ink, on the same ledge", !!off && off.bg === "rgb(224, 177, 170)" && off.fg === "rgb(85, 28, 23)" && lipOf(off.shadow) === 3, JSON.stringify(off));
@@ -126,7 +126,7 @@ const ty = (transform) => { const m = String(transform || "").match(/matrix\(([^
     /* (c) content stands on a foot: a row of a list on three points of the wash made deeper, and one that is a
        button sinks onto it under the finger — Lares's tiles, so a list is the same family as its keys */
     const row = await page.evaluate(() => { const b = [...document.querySelectorAll(".nsc-list > *")].find((x) => /Cian Murphy/.test(x.innerText)); return b ? getComputedStyle(b).boxShadow : null; });
-    check("(c) a row of the day stands on a two-point ledge of the light grey line, not the sport's colour", lipOf(row) === 2 && /rgb\(226, 226, 231\)/.test(String(row)) && !/40, 89, 55/.test(String(row)), String(row));
+    check("(c) a row of the day stands on a two-point ledge of the light grey line, not the sport's colour", lipOf(row) === 2 && /rgb\(228, 224, 215\)/.test(String(row)) && !/40, 89, 55/.test(String(row)), String(row));
     const arch = page.locator('[data-tour="today-archive"]').first();
     let sink = null;
     if (await arch.count()) {
