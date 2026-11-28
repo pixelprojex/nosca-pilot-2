@@ -67,7 +67,7 @@ html.glide .op__dev{animation:op-in 1.25s .35s cubic-bezier(.16,.84,.24,1) backw
   .op__in{display:grid;padding-block:calc(var(--hdr-h) + 40px) 48px}
   .op__copy{grid-column:1 / span 7}
   .op__dev{grid-column:8 / -1;justify-self:center;margin-top:0;padding-top:0}
-  .op__phone{--phone-w:clamp(260px,20vw,312px);margin-bottom:0}
+  .op__phone{--phone-w:clamp(270px,22vw,336px);margin-bottom:0}
 }
 
 /* ───────── 2. what the coach does ───────── */
