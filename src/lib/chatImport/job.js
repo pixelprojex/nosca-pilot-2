@@ -418,7 +418,11 @@ function stopSorter(status) {
 }
 export function retrySorting() {
   const j = importJob.get(); if (!j || !DAYS) return;
-  /* a person's Retry gives a day not sorted a fresh go */
+  /* a person's Retry gives a day not sorted a fresh go: its parts' spent calls are let go too. The count is kept
+     in the manifest so a reload never bills a part again, but a part with no answer that has used its four calls
+     was going straight back to "Not sorted" on Retry with nothing sent (launch, 28 November) — a tap is the
+     person's own leave for four more */
+  for (const k of Object.keys(PARTV)) if (!PARTV[k].s) delete PARTV[k];
   DAYS.forEach((d) => { if ((DAYV.get(d.iso) || {}).status === "failed") DAYV.delete(d.iso); });
   importJob.patch((x) => ({ phase: "sorting", sort: { ...(x.sort || {}), status: "running", failed: 0 } }));
   runSorter();

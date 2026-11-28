@@ -152,6 +152,11 @@ function freshDb() {
       const shot = (n) => page.screenshot({ path: path.join(outDir, `${n}.png`) });
       const tap = async (sel, ms = 800) => { const el = page.locator(sel).first(); if (await el.count()) { await el.dispatchEvent("click"); await page.waitForTimeout(ms); return true; } return false; };
       await tap('[data-tour="profile-pill"]', 900); await tap('[data-tour="settings-import"]', 1200); await shot("i1-import-start");
+      /* the opening page, scrolled: the safeguards and WhatsApp's steps under the key held at the foot, then its end */
+      const scrollTo = async (f) => { await page.evaluate((k) => { const s = document.querySelector('[data-scroll="screen"]'); s.scrollTo(0, k * s.scrollHeight); }, f); await page.waitForTimeout(500); };
+      await scrollTo(0.36); await shot("i1b-import-start-safe");
+      await scrollTo(1); await shot("i1c-import-start-end");
+      await scrollTo(0);
       await page.locator('[data-tour="import-players"] button').last().click().catch(() => {}); await page.waitForTimeout(700); await shot("i2-import-allow");
       await tap('[data-tour="import-allow-no"]', 600);
       await page.setInputFiles('[data-tour="import-file"]', path.join(CH, "chat-iphone.zip")); await page.waitForTimeout(2500); await shot("i3-import-found");
@@ -163,7 +168,18 @@ function freshDb() {
       await page.locator('[data-tour="import-view"] button', { hasText: "Feed" }).click().catch(() => {}); await page.waitForTimeout(1500); await shot("i5-import-review-feed");
       await page.locator('[data-tour="import-feed"] [aria-label="Back"]').first().click().catch(() => {}); await page.waitForTimeout(800);
       await page.locator('[data-tour="import-row"][data-day="2025-06-14"] button').first().click().catch(() => {}); await page.waitForTimeout(1000); await shot("i6-import-day");
-      await ctx.close(); }
+      await ctx.close();
+      /* the opening page on the narrowest phone, as the player sees it */
+      const ctx2 = await browser.newContext({ viewport: { width: 320, height: 568 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+      const page2 = await ctx2.newPage(); await M.attach(page2, idb);
+      await M.injectSession(page2, M.session(Object.values(idb.users).find((x) => x.id === P), idb));
+      await page2.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page2);
+      const tap2 = async (sel, ms = 800) => { const el = page2.locator(sel).first(); if (await el.count()) { await el.dispatchEvent("click"); await page2.waitForTimeout(ms); } };
+      M.setPrefs(idb, C, { setup_done: true, player_imports: true });
+      await page2.reload({ waitUntil: "networkidle" }); await M.settle(page2);
+      await tap2('[data-tour="profile-pill"]', 900); await tap2('[data-tour="sheet-settings"]', 900); await tap2('[data-tour="settings-import"]', 1200);
+      await page2.screenshot({ path: path.join(outDir, "i7-import-start-player-320.png") });
+      await ctx2.close(); }
   } catch (e) { notes.push(`ABORTED: ${String(e).slice(0, 220)}`); } finally { await browser.close(); M.stopServer(server); }
   console.log("polish shots written to", outDir, notes.join(" "));
 })();
