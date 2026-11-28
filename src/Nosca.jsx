@@ -7,6 +7,7 @@ import { useDownloads, fmtBytes } from "./lib/useDownloads";
 import { pushSupport, subscribePush, unsubscribePush, currentSubscription } from "./lib/push";
 import { canPromptInstall, onInstallPromptChange, promptInstall, isStandalone, platformOf, browserOf, iosMajor, isIpad } from "./lib/install";
 import { supabase } from "./lib/supabase";
+import { FOCUS } from "./lib/taxonomy";
 import { Mark, BrandLoader, RING_L, RING_R, RING_LEN, BRAND as BRAND_COLOUR, BRAND_PAPER } from "./lib/brandmark.jsx";
 /* THE LIST'S OWN RULES, shared with the pages that render without
    Nosca mounted (pages/Install.jsx): a list is a column of soft rows,
@@ -836,17 +837,7 @@ export const SPORTS = {
     ],
     extras: [],
     formats: ["Lesson", "Playing lesson", "Group clinic", "Short game clinic", "Junior class", "Camp", "TrackMan session", "Video analysis", "Custom fitting", "Get into Golf", "GolfSixes"],
-    focus: [
-      { id: "swing", label: "Full swing", subs: ["Driver", "Fairway woods", "Hybrids", "Irons", "Wedges", "Ball striking", "Setup"] },
-      { id: "pitch", label: "Pitching", subs: ["Distance control", "Trajectory", "Spin"] },
-      { id: "chip", label: "Chipping", subs: ["Contact", "Landing spot", "Club choice"] },
-      { id: "bunker", label: "Bunker play", subs: ["Greenside", "Fairway bunker", "Plugged lies"] },
-      { id: "putt", label: "Putting", subs: ["Stroke", "Green reading", "Pace", "Short putts"] },
-      { id: "course", label: "On course", subs: ["Playing lesson", "Course management", "Strategy", "Club selection"] },
-      { id: "mental", label: "Mental game", subs: ["Routine", "Commitment", "Pressure"] },
-      { id: "fitness", label: "Fitness", subs: ["Mobility", "Speed", "Stability"] },
-      { id: "fitting", label: "Custom fitting", subs: ["Driver", "Irons", "Putter"] },
-    ],
+    focus: FOCUS.golf,
     angles: ["Face-on", "Down the line", "Overhead", "Slow motion"],
     drills: [
       { t: "Gate drill", d: "Two tees just wider than the putter head. Three feet, then back to ten.", focus: "putt" },
@@ -926,16 +917,7 @@ export const SPORTS = {
       { id: "level", label: "Tournament level", options: ["Level 1", "Level 2", "Level 3", "Level 4", "Level 5", "Level 6", "Level 7"] },
     ],
     formats: ["Individual", "Group", "Squad", "Cardio Tennis", "Tennis Xpress", "Match play", "Tournament"],
-    focus: [
-      { id: "serve", label: "Serve", subs: ["First serve", "Second serve", "Toss", "Placement"] },
-      { id: "return", label: "Return", subs: ["First-serve return", "Second-serve return", "Chip and charge"] },
-      { id: "fh", label: "Forehand", subs: ["Topspin", "Slice", "Inside-out", "Contact point"] },
-      { id: "bh", label: "Backhand", subs: ["Two-handed", "One-handed", "Slice", "Contact point"] },
-      { id: "net", label: "Net game", subs: ["Volley", "Smash", "Approach", "Drop shot", "Lob"] },
-      { id: "rally", label: "Rally", subs: ["Depth", "Height over the net", "Direction", "Consistency"] },
-      { id: "move", label: "Movement", subs: ["Split step", "Footwork", "Recovery", "Court coverage"] },
-      { id: "match", label: "Match play", subs: ["Tactics", "Point construction", "Physical", "Mental"] },
-    ],
+    focus: FOCUS.tennis,
     angles: ["Behind baseline", "Side on", "Court level", "Slow motion"],
     drills: [
       { t: "Wall rally", d: "Chalk a net line; twenty in a row.", focus: "rally" },
@@ -1026,13 +1008,7 @@ export const SPORTS = {
       { id: "boat", label: "Boat", options: ["1x", "2x", "4x", "4x+", "2-", "2+", "4-", "4+", "8+"] },
     ],
     formats: ["Water", "Erg", "S&C", "Circuits", "Cross-training", "Race"],
-    focus: [
-      { id: "technique", label: "Technique", subs: ["Catch", "Drive", "Finish", "Recovery", "Blade work", "Balance"] },
-      { id: "rhythm", label: "Rhythm & rating", subs: ["Ratio", "Rate", "Sequencing", "Length"] },
-      { id: "racing", label: "Racing", subs: ["Starts", "Pieces", "Pacing", "Steering"] },
-      { id: "erg", label: "Erg", subs: ["2k test", "5k", "30 min r20", "UT2", "UT1", "AT", "TR", "AN"] },
-      { id: "sc", label: "S&C", subs: ["Weights", "Circuits", "Core", "Cross-training"] },
-    ],
+    focus: FOCUS.rowing,
     angles: ["Side on", "Bow mounted", "From the launch", "Slow motion"],
     drills: [
       { t: "Pause drill", d: "Pause at the finish, then arms away, then body over. Twenty each.", focus: "technique" },
@@ -1113,16 +1089,7 @@ export const SPORTS = {
       { id: "age", label: "Age group", options: ["U11", "U13", "U15", "U17", "U19"] },
     ],
     formats: ["Individual", "Group", "Junior", "Squad", "Club night", "Conditioned games", "Match play", "Solo", "Pairs"],
-    focus: [
-      { id: "drives", label: "Drives", subs: ["Straight drive", "Cross-court", "Length", "Width"] },
-      { id: "volleys", label: "Volleys", subs: ["Straight volley", "Cross-court volley", "Taking it early"] },
-      { id: "serve", label: "Serve & return", subs: ["Serve", "Return of serve"] },
-      { id: "front", label: "Front court", subs: ["Drop", "Boast", "Lob", "Kill"] },
-      { id: "move", label: "Movement", subs: ["Ghosting", "The T", "Footwork"] },
-      { id: "tactics", label: "Tactics", subs: ["Length & width", "Pressure", "Court craft"] },
-      { id: "physical", label: "Physical & mental", subs: ["Fitness", "Mental"] },
-      { id: "games", label: "Games", subs: ["Conditioned games", "Match play", "Solo practice"] },
-    ],
+    focus: FOCUS.squash,
     angles: ["Back wall", "Side on", "Court level", "Slow motion"],
     drills: [
       { t: "Straight drives", d: "Solo, twenty in a row each side.", focus: "drives" },
@@ -1200,16 +1167,7 @@ export const SPORTS = {
       { id: "age", label: "Age group", options: ["U12", "U14", "U16", "U18"] },
     ],
     formats: ["Private", "Pair", "Group", "Clinic", "Match play", "Americano", "Junior", "Camp"],
-    focus: [
-      { id: "net", label: "Net game", subs: ["Volleys", "Net position", "Transitions"] },
-      { id: "overhead", label: "Overheads", subs: ["Bandeja", "Víbora", "Smash"] },
-      { id: "lob", label: "Lob", subs: ["Defensive lob", "Attacking lob"] },
-      { id: "wall", label: "Back wall", subs: ["Off the back wall", "Side wall", "Double wall"] },
-      { id: "chiquita", label: "Chiquita", subs: ["Placement", "Approach"] },
-      { id: "serve", label: "Serve & return", subs: ["Serve", "Return", "Serve & volley"] },
-      { id: "defence", label: "Defence & tactics", subs: ["Back-court defence", "Tactics", "Footwork"] },
-      { id: "match", label: "Match play", subs: ["Points", "Pairs", "Americano"] },
-    ],
+    focus: FOCUS.padel,
     angles: ["Behind the glass", "Side on", "Court level", "Slow motion"],
     drills: [
       { t: "Wall volleys", d: "Solo, close to the glass. Two minutes.", focus: "net" },
@@ -1297,18 +1255,7 @@ export const SPORTS = {
     ],
     formats: ["Private", "Semi-private", "Group", "Lead rein", "Lunge", "Hack", "Clinic", "Rally", "Camp", "Competition"],
     mount: { label: "Horse or pony", prefix: "on " },
-    focus: [
-      { id: "flat", label: "Flatwork", subs: ["Walk", "Trot", "Canter", "Transitions", "Contact", "Bend", "Lateral work"] },
-      { id: "dressage", label: "Dressage", subs: ["Test riding", "Centre line", "Circles & serpentines", "Accuracy"] },
-      { id: "poles", label: "Pole work", subs: ["Trotting poles", "Canter poles", "Cavaletti"] },
-      { id: "grid", label: "Gridwork", subs: ["Placing pole", "Cross", "One stride", "Related distances"] },
-      { id: "sj", label: "Showjumping", subs: ["Course work", "Related distances", "Turns", "Rhythm"] },
-      { id: "xc", label: "Cross-country", subs: ["Schooling", "Ditches & water", "Banks", "Undulating ground"] },
-      { id: "hack", label: "Hacking", subs: ["Road sense", "Open ground"] },
-      { id: "lunge", label: "Lunge", subs: ["Lunge lesson", "Long reining"] },
-      { id: "seat", label: "Position & seat", subs: ["Rising trot", "Light seat", "Without stirrups", "Balance"] },
-      { id: "care", label: "Horse care", subs: ["Tacking up", "Grooming", "Feeding", "Yard"] },
-    ],
+    focus: FOCUS.equestrian,
     angles: ["Side on", "Head on", "Arena corner", "Slow motion"],
     drills: [
       { t: "Transitions every 10 strides", d: "Walk–trot–walk, then trot–canter–trot.", focus: "flat" },

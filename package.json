@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build && node website/build.mjs --out dist/about",
     "preview": "vite preview",
-    "check": "eslint ."
+    "check": "eslint . && node scripts/import-areas-sql.mjs --check"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
