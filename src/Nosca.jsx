@@ -3010,7 +3010,8 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
               {role === "coach" && (
                 <button data-tour="agenda-edit" onClick={() => { haptic(9); soft(); onEditDay(day); }} className="relative flex items-center justify-center rounded-full n-key"
                         aria-label={tr("Edit this day")} style={{ width: 34, height: 34, border: `${EDGE_W}px solid ${KEY_RING(t)}`, "--key-lip": TINT_LIP(t) }}>
-                  <span aria-hidden="true" className="absolute" style={{ inset: -5 }} />
+                  {/* the reach is measured from inside the ring: 31 and 7 either side make 45 */}
+                  <span aria-hidden="true" className="absolute" style={{ inset: -7 }} />
                   <Edit3 size={15} color={t.accent} strokeWidth={2.2} />
                 </button>
               )}
@@ -17881,7 +17882,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
               <button data-tour="diary-manage" onClick={() => { haptic(6); onManage(); }} className="shrink-0 relative n-key"
                       style={{ minHeight: 38, padding: "0 14px", marginTop: 4, borderRadius: 12, border: `${EDGE_W}px solid ${KEY_RING(t)}`, "--key-lip": TINT_LIP(t),
                                ...TYPE.body, fontSize: 15, fontWeight: 600, color: t.ink }}>
-                <span aria-hidden="true" className="absolute" style={{ top: -3, bottom: -3, left: 0, right: 0 }} />
+                <span aria-hidden="true" className="absolute" style={{ top: -5, bottom: -5, left: 0, right: 0 }} />
                 {tr("Manage")}
               </button>
             ) : null}>
@@ -18049,7 +18050,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
               <button key={dir} onClick={() => move(dir)} disabled={off} aria-label={label}
                       className="relative flex items-center justify-center rounded-full n-key disabled:opacity-30"
                       style={{ width: 36, height: 36, border: `${EDGE_W}px solid ${KEY_RING(t)}`, "--key-lip": TINT_LIP(t) }}>
-                <span aria-hidden="true" className="absolute" style={{ inset: -4 }} />
+                <span aria-hidden="true" className="absolute" style={{ inset: -6 }} />
                 <Ico size={18} color={t.accent} strokeWidth={2.4} />
               </button>
             ))}
