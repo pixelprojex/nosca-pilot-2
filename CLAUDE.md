@@ -155,7 +155,8 @@ seeded data and no account.
 - **The front door is one shell, and a choice goes on by itself (28
   November).** Sign-up and sign-in are `AuthShell` in Auth.jsx: Back, the
   brand's mark in the middle of the bar in its bottle green, the title,
-  a body that scrolls, the one key at the foot. Join as (it was "Who are
+  a body that scrolls, the one key at the foot — one column of 480 at
+  most, centred on a computer, never a form stretched across the screen. Join as (it was "Who are
   you?" — a title is never a question) and Main sport answer and go on
   with the tap (`useAnswer`: the chosen tile shows for 240 ms, then the
   next screen), so neither carries Continue; Join as carries Sign in top

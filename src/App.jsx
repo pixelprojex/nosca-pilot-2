@@ -229,7 +229,12 @@ function Gate() {
     window.scrollTo(0, 0);
   });
   /* signed in inside this app at least once: a Home Screen app on an iPhone opens on sign-in, saying why, only before that */
-  useEffect(() => { if (session) { try { window.localStorage.setItem("nosca.here", "1"); } catch (e) { /* private mode */ } } }, [!!session]);
+  useEffect(() => {
+    if (!session) return;
+    try { window.localStorage.setItem("nosca.here", "1"); } catch (e) { /* private mode */ }
+    /* the hand-over's first question was for that visit: signed out later, the front door is the landing again */
+    setAuthStart(null);
+  }, [!!session]);
 
   React.useEffect(() => {
     if (!loadingProfile) { setStuck(false); return; }

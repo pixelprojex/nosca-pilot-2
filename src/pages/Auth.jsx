@@ -119,7 +119,8 @@ const QuietLink = ({ children, onClick, disabled, tour }) => {
 function AuthShell({ onBack, right, title, sub, children, footer }) {
   const t = useT();
   return (
-    <div data-auth-shell="" className="flex flex-col h-full" style={{ background: t.page }}>
+    /* one column, 480 at most: on a computer the front door is a phone's width in the middle, never a form stretched across the screen */
+    <div data-auth-shell="" className="flex flex-col h-full w-full mx-auto" style={{ background: t.page, maxWidth: 480 }}>
       <div className="shrink-0" style={{ height: "env(safe-area-inset-top, 0px)" }} />
       <div className="relative flex items-center justify-between shrink-0 px-1.5" style={{ height: 52 }}>
         {onBack
@@ -184,7 +185,8 @@ const showProblem = (ref) => {
   if (input) setTimeout(() => input.focus(), 250);
 };
 
-/* a choice that answers and goes on: the chosen tile shows for a beat, then the next screen */
+/* a choice that answers and goes on: the chosen tile shows for a beat, then the next screen. The tile's own tap is
+   the one beat a finger feels — a buzz from the timer would fall outside the gesture, where iOS does not play it */
 const ANSWER_MS = 240;
 function useAnswer(onPick) {
   const gone = useRef(false), timer = useRef(null);
@@ -192,7 +194,7 @@ function useAnswer(onPick) {
   return (value) => {
     if (gone.current) return;
     gone.current = true;
-    timer.current = setTimeout(() => { hapticSuccess(); onPick(value); }, ANSWER_MS);
+    timer.current = setTimeout(() => onPick(value), ANSWER_MS);
   };
 }
 
@@ -214,7 +216,7 @@ function Landing({ invite, onCreate, onSignIn }) {
           <span aria-hidden="true" data-foil-rule="" className="mt-5" style={{ width: 56, height: 1, background: FOIL,
                          animation: "fadeUp 700ms cubic-bezier(.22,1,.36,1) 150ms both" }} />
         </div>
-        <div className="px-7" style={{ paddingBottom: "max(28px, env(safe-area-inset-bottom, 28px))",
+        <div className="px-7 w-full mx-auto" style={{ maxWidth: 480, paddingBottom: "max(28px, env(safe-area-inset-bottom, 28px))",
                                         animation: "fadeUp 640ms cubic-bezier(.22,1,.36,1) 200ms both" }}>
           {invite && (
             <p className="text-center mb-5" style={{ ...TYPE.body, color: NEUTRAL.ink }}>
@@ -328,7 +330,10 @@ function DetailsStep({ role, initial, busy, err, onBack, onDone, onSignInInstead
             <DobBox ref={dRef} value={d} onChange={setD} ph={tr("DD")} len={2} bad={dobBad} onDone={() => mRef.current && mRef.current.focus()} />
             <DobBox ref={mRef} value={m} onChange={setM} ph={tr("MM")} len={2} bad={dobBad} onDone={() => yRef.current && yRef.current.focus()} />
             <DobBox ref={yRef} value={y} onChange={setY} ph={tr("YYYY")} len={4} bad={dobBad} onDone={() => { mark("dob"); yRef.current && yRef.current.blur(); }} />
-            {typeof age === "number" && <Check size={18} color={STEADY} strokeWidth={2.2} aria-label={`${age}`} style={{ marginLeft: 4 }} />}
+            {typeof age === "number" && (
+              <span className="flex items-center gap-1.5 ml-1"><Check size={16} color={STEADY} strokeWidth={2.2} />
+                <span style={{ ...TYPE.small, color: t.sub }}>{age}</span></span>
+            )}
           </div>
           {dobBad
             ? <p role="alert" style={{ ...TYPE.caption, color: DANGER, marginTop: 6 }}>{dobMsg}</p>

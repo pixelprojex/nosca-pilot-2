@@ -19374,11 +19374,11 @@ function InsGlyph({ name, size = 26, color, sw = 1.9, inline }) {
    loop drawn round the spot, as a ring is drawn on a screenshot. */
 /* a glyph inside a sentence; `label` is what it says to a screen reader,
    and in a copy of the words, where no word beside it says it */
-function InsIn({ name, label, tight }) {
+function InsIn({ name, label, tight, lead }) {
   const t = useT();
   /* a glyph's own drawing leaves air at its sides; a comma after it is drawn in that air */
   return (
-    <span className="ins-in" data-glyph-in={name} style={tight ? { marginRight: "-0.2em" } : undefined}>
+    <span className="ins-in" data-glyph-in={name} style={{ ...(tight ? { marginRight: "-0.2em" } : null), ...(lead ? { marginLeft: "0.26em" } : null) }}>
       {name === "app"
         ? <img src="/icons/apple-touch-icon.png" alt="" width={22} height={22} draggable={false} style={{ display: "inline-block", verticalAlign: "-0.3em", width: 22, height: 22, borderRadius: 5, margin: "0 0.16em" }} />
         : <InsGlyph name={name} size={21} color={t.ink} sw={2} inline />}
@@ -19389,9 +19389,14 @@ function InsIn({ name, label, tight }) {
 /* "Tap {lines:the three lines}, then Share {share}": the words, with each {glyph} drawn in its place */
 const insSay = (s) => {
   const parts = String(s).split(/(\{[a-zA-Z]+(?::[^}]*)?\})/).filter(Boolean);
+  const glyph = (x) => x && x.match(/^\{([a-zA-Z]+)(?::([^}]*))?\}$/);
   return parts.map((part, i) => {
-    const m = part.match(/^\{([a-zA-Z]+)(?::([^}]*))?\}$/);
-    return m ? <InsIn key={i} name={m[1]} label={m[2]} tight={/^[,.;:]/.test(parts[i + 1] || "")} /> : <React.Fragment key={i}>{part}</React.Fragment>;
+    const m = glyph(part);
+    /* a glyph with no words of its own stands beside the word it draws ("Share [share]"): the space before it is
+       its margin, not a character, so the words read whole when copied or spoken — "Tap Share", never "Tap Share ," */
+    if (m) return <InsIn key={i} name={m[1]} label={m[2]} lead={!m[2] && /\s$/.test(parts[i - 1] || "")} tight={/^[,.;:]/.test(parts[i + 1] || "")} />;
+    const next = glyph(parts[i + 1]);
+    return <React.Fragment key={i}>{next && !next[2] ? part.replace(/\s+$/, "") : part}</React.Fragment>;
   });
 };
 /* a loop drawn round the spot by hand, open where the pen came back, as on a marked-up screenshot */

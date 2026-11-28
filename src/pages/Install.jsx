@@ -124,8 +124,8 @@ function InstallCard() {
   return (
     <div data-tour="install-card" role="img" aria-label={tr("The two Nosca cards: two woven rings and NOSCA in gold, one on deep green with gold pinstripes across its top and foot, one on olive green with gold pinstripes in two corners")}
          className="ins-card relative mx-auto" style={{ aspectRatio: `${CARD_W} / ${CARD_H}`, animation: `insRise 620ms ${MOTION.curve} 60ms backwards` }}>
-      <OneCard id="olive" ground={CLUB.olive} design="wedges" style={{ left: 0, top: 0, width: "70%", transform: "rotate(-6deg)", zIndex: 1 }} />
-      <OneCard id="green" ground={CARD_GREEN} design="band" style={{ right: 0, bottom: 0, width: "70%", transform: "rotate(2.5deg)", zIndex: 2 }} />
+      <OneCard id="olive" ground={CLUB.olive} design="wedges" style={{ left: 0, top: 0, width: "66%", transform: "rotate(-6deg)", zIndex: 1 }} />
+      <OneCard id="green" ground={CARD_GREEN} design="band" style={{ right: 0, bottom: 0, width: "66%", transform: "rotate(2.5deg)", zIndex: 2 }} />
     </div>
   );
 }
