@@ -7,8 +7,8 @@
   "use is a suggestion: hero (a full-bleed opening), chapter (a full-width picture inside a page), inline (beside or between text), loop (video).",
   "Nobody shown is a Nosca coach, player or customer, and nothing on the page may say or imply so; no picture shows a face to the camera.",
   "Legible brand marks were painted out of five pictures (CREDITS.md says which); nothing else in any picture was altered beyond the crop and the grade.",
-  "A loop is muted H.264, 1280 wide, with a keyframe every 24 frames (about a second): it plays and loops, and its currentTime can be set by the scroll, though a canvas sequence scrubs more smoothly than any video.",
-  "`loop-equestrian-stable-2` is from Mixkit, under the Mixkit Stock Video Free License (free for commercial use, no attribution required); everything else here is from Pexels."
+  "A loop is a calm background: muted H.264, 1280 x 720, 30 fps, a keyframe every 2 s, its last second dissolved into its first; its poster is its own first frame, so nothing changes when it starts.",
+  "lqip is each picture's tiny blurred placeholder (a few hundred bytes of WebP), painted under it by the build; avif beside a file is the same picture as AVIF (tools/photos.py writes both)."
  ],
  "grade": "One grade for all: saturation lowered to about four fifths with a ceiling on the hottest colours, a gentle S-curve with lifted blacks and held whites, a touch of warmth, shadows leaning to the card's bottle green and highlights to cream. The loops take the same grade as a 3D LUT.",
  "sports": [
@@ -47,21 +47,28 @@
      "file": "golf-fairway-1-2400.webp",
      "width": 2400,
      "height": 1600,
-     "bytes": 546456
+     "bytes": 546456,
+     "avif": "golf-fairway-1-2400.avif",
+     "avif_bytes": 509054
     },
     {
      "file": "golf-fairway-1-1400.webp",
      "width": 1400,
      "height": 933,
-     "bytes": 203594
+     "bytes": 203594,
+     "avif": "golf-fairway-1-1400.avif",
+     "avif_bytes": 177854
     },
     {
      "file": "golf-fairway-1-800.webp",
      "width": 800,
      "height": 533,
-     "bytes": 88174
+     "bytes": 88174,
+     "avif": "golf-fairway-1-800.avif",
+     "avif_bytes": 60897
     }
-   ]
+   ],
+   "lqip": "data:image/webp;base64,UklGRoAAAABXRUJQVlA4IHQAAADQBACdASocABMAPulorVApJaQiqAqpIB0JQBYdgb1Q2Jl+bGzgkphYtBMVDeAaAAC7GG4MylAp/GhPMcUe5PoPjJNf4l8H5QOETLhj5aPfkYbPV0Pb8xW4AK8G6Gzw3jQhRWMhRpe6q0s7iiULomhqNndYAA=="
   },
   {
    "name": "golf-mist-2",
@@ -89,21 +96,28 @@
      "file": "golf-mist-2-2400.webp",
      "width": 2400,
      "height": 1602,
-     "bytes": 489878
+     "bytes": 489878,
+     "avif": "golf-mist-2-2400.avif",
+     "avif_bytes": 339176
     },
     {
      "file": "golf-mist-2-1400.webp",
      "width": 1400,
      "height": 934,
-     "bytes": 211286
+     "bytes": 211286,
+     "avif": "golf-mist-2-1400.avif",
+     "avif_bytes": 126697
     },
     {
      "file": "golf-mist-2-800.webp",
      "width": 800,
      "height": 534,
-     "bytes": 71332
+     "bytes": 71332,
+     "avif": "golf-mist-2-800.avif",
+     "avif_bytes": 38927
     }
-   ]
+   ],
+   "lqip": "data:image/webp;base64,UklGRmQAAABXRUJQVlA4IFgAAACQAwCdASocABMAPulepU2pJSMiMBgMASAdCWUAAAh299qJtlHAAP3h4ez9OYQz/rJAE6xJL2fRqq+rHBDwhpUPMXii76zQO+b3oMIMvUcztxMVG1xQkAAA"
   },
   {
    "name": "golf-flag-3",
@@ -131,21 +145,28 @@
      "file": "golf-flag-3-2400.webp",
      "width": 2400,
      "height": 1667,
-     "bytes": 99900
+     "bytes": 99900,
+     "avif": "golf-flag-3-2400.avif",
+     "avif_bytes": 73948
     },
     {
      "file": "golf-flag-3-1400.webp",
      "width": 1400,
      "height": 972,
-     "bytes": 47470
+     "bytes": 47470,
+     "avif": "golf-flag-3-1400.avif",
+     "avif_bytes": 24235
     },
     {
      "file": "golf-flag-3-800.webp",
      "width": 800,
      "height": 556,
-     "bytes": 14790
+     "bytes": 14790,
+     "avif": "golf-flag-3-800.avif",
+     "avif_bytes": 8198
     }
-   ]
+   ],
+   "lqip": "data:image/webp;base64,UklGRlwAAABXRUJQVlA4IFAAAADwAwCdASocABMAPulgqE0pJaQrsAgBcB0JZQC2yCHWh3DPzwZMVFYAAP7Um55hUIGYJHK9IzT2t1BdlE5+v07OzYw0eElWMpOeaLafd+0AAA=="
   },
   {
    "name": "tennis-grass-1",
@@ -173,21 +194,28 @@
      "file": "tennis-grass-1-2400.webp",
      "width": 2400,
      "height": 1257,
-     "bytes": 44488
+     "bytes": 44488,
+     "avif": "tennis-grass-1-2400.avif",
+     "avif_bytes": 33695
     },
     {
      "file": "tennis-grass-1-1400.webp",
      "width": 1400,
      "height": 733,
-     "bytes": 20042
+     "bytes": 20042,
+     "avif": "tennis-grass-1-1400.avif",
+     "avif_bytes": 13257
     },
     {
      "file": "tennis-grass-1-800.webp",
      "width": 800,
      "height": 419,
-     "bytes": 7942
+     "bytes": 7942,
+     "avif": "tennis-grass-1-800.avif",
+     "avif_bytes": 6082
     }
-   ]
+   ],
+   "lqip": "data:image/webp;base64,UklGRkwAAABXRUJQVlA4IEAAAAAQAwCdASocAA8APuliq04pJaQiMAgBIB0JYwC06EvCfAAA+cPyPtsLsCvnivQ5e2eL1xubr1rCMNDlVPjWjQAA"
   },
   {
    "name": "tennis-serve-2",
@@ -215,21 +243,28 @@
      "file": "tennis-serve-2-2400.webp",
      "width": 2400,
      "height": 1600,
-     "bytes": 580344
+     "bytes": 580344,
+     "avif": "tennis-serve-2-2400.avif",
+     "avif_bytes": 535407
     },
     {
      "file": "tennis-serve-2-1400.webp",
      "width": 1400,
      "height": 933,
-     "bytes": 201614
+     "bytes": 201614,
+     "avif": "tennis-serve-2-1400.avif",
+     "avif_bytes": 179913
     },
     {
      "file": "tennis-serve-2-800.webp",
      "width": 800,
      "height": 533,
-     "bytes": 84932
+     "bytes": 84932,
+     "avif": "tennis-serve-2-800.avif",
+     "avif_bytes": 54994
     }
-   ]
+   ],
+   "lqip": "data:image/webp;base64,UklGRmIAAABXRUJQVlA4IFYAAABwBACdASocABMAPuleqE2pJKOiMBgMASAdCWUAACkmr4Zr3aVyCrSD9tRcgAD+7EPe17M63Jl9YC/cnW9/BltsLx2t6/JdDZwvM+zpcVChtRwh2AAAAA=="
   },
   {
    "name": "tennis-clay-3",
@@ -257,21 +292,28 @@
      "file": "tennis-clay-3-2400.webp",
      "width": 2400,
      "height": 1601,
-     "bytes": 410256
+     "bytes": 410256,
+     "avif": "tennis-clay-3-2400.avif",
+     "avif_bytes": 293396
     },
     {
      "file": "tennis-clay-3-1400.webp",
      "width": 1400,
      "height": 934,
-     "bytes": 205902
+     "bytes": 205902,
+     "avif": "tennis-clay-3-1400.avif",
+     "avif_bytes": 119500
     },
     {
      "file": "tennis-clay-3-800.webp",
      "width": 800,
      "height": 534,
-     "bytes": 67958
+     "bytes": 67958,
+     "avif": "tennis-clay-3-800.avif",
+     "avif_bytes": 39721
     }
-   ]
+   ],
+   "lqip": "data:image/webp;base64,UklGRnwAAABXRUJQVlA4IHAAAADwBACdASocABMAPuliqU8pJSOiMBgIASAdCUAXZygADNIxhQHhDh/6DM4Li77HKoAA9hPWfDE+Wym7u8RRR4MvcCnr6As/0rrvwPuZLJE4ujsubRo0VJuIzAEs9ZKsUkugHUmww43RSZ79aQYuuAAA"
   },
   {
    "name": "rowing-river-1",
@@ -299,21 +341,28 @@
      "file": "rowing-river-1-2400.webp",
      "width": 2400,
      "height": 1348,
-     "bytes": 315230
+     "bytes": 315230,
+     "avif": "rowing-river-1-2400.avif",
+     "avif_bytes": 242570
     },
     {
      "file": "rowing-river-1-1400.webp",
      "width": 1400,
      "height": 786,
-     "bytes": 150672
+     "bytes": 150672,
+     "avif": "rowing-river-1-1400.avif",
+     "avif_bytes": 81999
     },
     {
      "file": "rowing-river-1-800.webp",
      "width": 800,
      "height": 449,
-     "bytes": 46794
+     "bytes": 46794,
+     "avif": "rowing-river-1-800.avif",
+     "avif_bytes": 26094
     }
-   ]
+   ],
+   "lqip": "data:image/webp;base64,UklGRmQAAABXRUJQVlA4IFgAAADQAwCdASocABAAPulgqE0pJaQiMAgBIB0JYwCsACHcmBu/L7VDjoAA/u2MoaPPY5+rKRgUUK54njYoMhJGOCK0kIUZlVEbmFrKXnXNzUUhCb8HdVvDM8AA"
   },
   {
    "name": "rowing-crew-2",
@@ -341,21 +390,28 @@
      "file": "rowing-crew-2-2400.webp",
      "width": 2400,
      "height": 3000,
-     "bytes": 281814
+     "bytes": 281814,
+     "avif": "rowing-crew-2-2400.avif",
+     "avif_bytes": 190202
     },
     {
      "file": "rowing-crew-2-1400.webp",
      "width": 1400,
      "height": 1750,
-     "bytes": 171090
+     "bytes": 171090,
+     "avif": "rowing-crew-2-1400.avif",
+     "avif_bytes": 96810
     },
     {
      "file": "rowing-crew-2-800.webp",
      "width": 800,
      "height": 1000,
-     "bytes": 67944
+     "bytes": 67944,
+     "avif": "rowing-crew-2-800.avif",
+     "avif_bytes": 39138
     }
-   ]
+   ],
+   "lqip": "data:image/webp;base64,UklGRmgAAABXRUJQVlA4IFwAAAAQBACdASocACMAPuVcqE0pJSQiNVgIASAciWcAxNgX1AuwI2vMzgWBUAD+zIQeEG+q/mgkaC6fTGGh+zMwuRNVQddp83nqRAX5CspJiNPneDPSzFOHBtysKXwAAA=="
   },
   {
    "name": "rowing-sculler-3",
@@ -383,21 +439,28 @@
      "file": "rowing-sculler-3-2400.webp",
      "width": 2400,
      "height": 1600,
-     "bytes": 328118
+     "bytes": 328118,
+     "avif": "rowing-sculler-3-2400.avif",
+     "avif_bytes": 194327
     },
     {
      "file": "rowing-sculler-3-1400.webp",
      "width": 1400,
      "height": 933,
-     "bytes": 180160
+     "bytes": 180160,
+     "avif": "rowing-sculler-3-1400.avif",
+     "avif_bytes": 86488
     },
     {
      "file": "rowing-sculler-3-800.webp",
      "width": 800,
      "height": 533,
-     "bytes": 73648
+     "bytes": 73648,
+     "avif": "rowing-sculler-3-800.avif",
+     "avif_bytes": 36938
     }
-   ]
+   ],
+   "lqip": "data:image/webp;base64,UklGRmAAAABXRUJQVlA4IFQAAACwBACdASocABMAPtlaqE0oJSiiMAwBEBsJZwC90CP7GjehsjApQLPmALu2yhwAAP38wVb/+Qq5P9hD1HLQRG/W3NN+gypPmGsQaiD7Qa/ShaXOQAA="
   },
   {
    "name": "rowing-shell-4",
@@ -425,21 +488,28 @@
      "file": "rowing-shell-4-2400.webp",
      "width": 2400,
      "height": 3200,
-     "bytes": 207196
+     "bytes": 207196,
+     "avif": "rowing-shell-4-2400.avif",
+     "avif_bytes": 154719
     },
     {
      "file": "rowing-shell-4-1400.webp",
      "width": 1400,
      "height": 1867,
-     "bytes": 112792
+     "bytes": 112792,
+     "avif": "rowing-shell-4-1400.avif",
+     "avif_bytes": 66248
     },
     {
      "file": "rowing-shell-4-800.webp",
      "width": 800,
      "height": 1067,
-     "bytes": 45510
+     "bytes": 45510,
+     "avif": "rowing-shell-4-800.avif",
+     "avif_bytes": 26050
     }
-   ]
+   ],
+   "lqip": "data:image/webp;base64,UklGRpoAAABXRUJQVlA4II4AAACwBQCdASocACUAPulsr1IpJaQipWmZIB0JZwDKeFzPDo7C0gpLhhmoX2KV+CZt5KZbIMcH/zAA/lcCAVrdz3rq0qZBrkRwT/HhDU66Vhwj2jSa4Qg+1Avrwdbpteq7KrkrxXhjWRpZcb9pfwE5wdkvA4WXSLcDabPnDMMqep1xk7o8RB9RM2LTbtVeBAAA"
   },
   {
    "name": "squash-court-1",
@@ -467,21 +537,28 @@
      "file": "squash-court-1-2400.webp",
      "width": 2400,
      "height": 2195,
-     "bytes": 36802
+     "bytes": 36802,
+     "avif": "squash-court-1-2400.avif",
+     "avif_bytes": 26653
     },
     {
      "file": "squash-court-1-1400.webp",
      "width": 1400,
      "height": 1280,
-     "bytes": 19642
+     "bytes": 19642,
+     "avif": "squash-court-1-1400.avif",
+     "avif_bytes": 12240
     },
     {
      "file": "squash-court-1-800.webp",
      "width": 800,
      "height": 732,
-     "bytes": 8272
+     "bytes": 8272,
+     "avif": "squash-court-1-800.avif",
+     "avif_bytes": 5787
     }
-   ]
+   ],
+   "lqip": "data:image/webp;base64,UklGRlgAAABXRUJQVlA4IEwAAADQAwCdASocABoAPtlUpE07pKOiN/qoA3AbCWUAxNgyyGDMo9VWKsAA/u+2z8AiCf9vXliT6S7lSei3W2ArLjoisTri9G9zGgimoAAA"
   },
   {
    "name": "squash-hand-2",
@@ -509,21 +586,28 @@
      "file": "squash-hand-2-2400.webp",
      "width": 2400,
      "height": 1350,
-     "bytes": 53208
+     "bytes": 53208,
+     "avif": "squash-hand-2-2400.avif",
+     "avif_bytes": 42692
     },
     {
      "file": "squash-hand-2-1400.webp",
      "width": 1400,
      "height": 788,
-     "bytes": 31490
+     "bytes": 31490,
+     "avif": "squash-hand-2-1400.avif",
+     "avif_bytes": 21007
     },
     {
      "file": "squash-hand-2-800.webp",
      "width": 800,
      "height": 450,
-     "bytes": 14232
+     "bytes": 14232,
+     "avif": "squash-hand-2-800.avif",
+     "avif_bytes": 10004
     }
-   ]
+   ],
+   "lqip": "data:image/webp;base64,UklGRlYAAABXRUJQVlA4IEoAAABQAwCdASocABAAPuluq08pJyQiMAgBIB0JYwCw7C0Hmf+uIAD+7p1G61bv7KhJSf+AzIgZZauCx7RrYJSchmkhllJCiEkw9GAAAA=="
   },
   {
    "name": "squash-laces-3",
@@ -551,21 +635,28 @@
      "file": "squash-laces-3-2400.webp",
      "width": 2400,
      "height": 1350,
-     "bytes": 75112
+     "bytes": 75112,
+     "avif": "squash-laces-3-2400.avif",
+     "avif_bytes": 52678
     },
     {
      "file": "squash-laces-3-1400.webp",
      "width": 1400,
      "height": 788,
-     "bytes": 45424
+     "bytes": 45424,
+     "avif": "squash-laces-3-1400.avif",
+     "avif_bytes": 25298
     },
     {
      "file": "squash-laces-3-800.webp",
      "width": 800,
      "height": 450,
-     "bytes": 20978
+     "bytes": 20978,
+     "avif": "squash-laces-3-800.avif",
+     "avif_bytes": 12018
     }
-   ]
+   ],
+   "lqip": "data:image/webp;base64,UklGRnQAAABXRUJQVlA4IGgAAAAQBACdASocABAAPulgqU0pJaQiMAgBIB0JQBOgBFcHiLj8HlNwMcnV6AD+l7CMjxBcD/Y7eX6K2gS2sYTSTmUUUd6virjBK7oNs6voHDLe9oYwCTYlCErx3EiGdyqjse27agJ3YkAAAA=="
   },
   {
    "name": "padel-court-1",
@@ -593,21 +684,28 @@
      "file": "padel-court-1-2400.webp",
      "width": 2400,
      "height": 1800,
-     "bytes": 456128
+     "bytes": 456128,
+     "avif": "padel-court-1-2400.avif",
+     "avif_bytes": 293669
     },
     {
      "file": "padel-court-1-1400.webp",
      "width": 1400,
      "height": 1050,
-     "bytes": 183170
+     "bytes": 183170,
+     "avif": "padel-court-1-1400.avif",
+     "avif_bytes": 109605
     },
     {
      "file": "padel-court-1-800.webp",
      "width": 800,
      "height": 600,
-     "bytes": 72084
+     "bytes": 72084,
+     "avif": "padel-court-1-800.avif",
+     "avif_bytes": 35810
     }
-   ]
+   ],
+   "lqip": "data:image/webp;base64,UklGRm4AAABXRUJQVlA4IGIAAAAwBACdASocABUAPulep00pJSOlsAgBIB0JZwAAT93Y2nWrPlklxraJRgAA/rVK/eOi+M51PvD8QkSGAH8E3gmD+gxI+31RCI86Z9gRUdJsoEs+Vx/L2SSSsrTTvLoKdeIAAA=="
   },
   {
    "name": "padel-shadows-3",
@@ -635,21 +733,28 @@
      "file": "padel-shadows-3-2400.webp",
      "width": 2400,
      "height": 1601,
-     "bytes": 487530
+     "bytes": 487530,
+     "avif": "padel-shadows-3-2400.avif",
+     "avif_bytes": 335794
     },
     {
      "file": "padel-shadows-3-1400.webp",
      "width": 1400,
      "height": 934,
-     "bytes": 210992
+     "bytes": 210992,
+     "avif": "padel-shadows-3-1400.avif",
+     "avif_bytes": 178134
     },
     {
      "file": "padel-shadows-3-800.webp",
      "width": 800,
      "height": 534,
-     "bytes": 86500
+     "bytes": 86500,
+     "avif": "padel-shadows-3-800.avif",
+     "avif_bytes": 68132
     }
-   ]
+   ],
+   "lqip": "data:image/webp;base64,UklGRmoAAABXRUJQVlA4IF4AAABQBACdASocABMAPulmqU8pJaOiKA1RIB0JZwDGfA9RwOo2Rowl07x0XxoAAP673vIRkOybLbgRW7RUUQSQfFo114mzwvQUY87Hgp1w/Npn1A0Q/vAWaZLQBZ7S4QAA"
   },
   {
    "name": "padel-net-4",
@@ -677,21 +782,28 @@
      "file": "padel-net-4-2400.webp",
      "width": 2400,
      "height": 1601,
-     "bytes": 487592
+     "bytes": 487592,
+     "avif": "padel-net-4-2400.avif",
+     "avif_bytes": 305999
     },
     {
      "file": "padel-net-4-1400.webp",
      "width": 1400,
      "height": 934,
-     "bytes": 210798
+     "bytes": 210798,
+     "avif": "padel-net-4-1400.avif",
+     "avif_bytes": 156016
     },
     {
      "file": "padel-net-4-800.webp",
      "width": 800,
      "height": 534,
-     "bytes": 90482
+     "bytes": 90482,
+     "avif": "padel-net-4-800.avif",
+     "avif_bytes": 64024
     }
-   ]
+   ],
+   "lqip": "data:image/webp;base64,UklGRlwAAABXRUJQVlA4IFAAAADwAwCdASocABMAPulkqk6pJaOiKA1RIB0JZ2i2WUEJfIQnrYwHP7EgAP7qjuV2GG2BseXQpXYteCQWgjnBvqLF7uQXkZrNRKF9p9hqAAAAAA=="
   },
   {
    "name": "equestrian-pasture-1",
@@ -719,21 +831,28 @@
      "file": "equestrian-pasture-1-2400.webp",
      "width": 2400,
      "height": 1600,
-     "bytes": 169806
+     "bytes": 169806,
+     "avif": "equestrian-pasture-1-2400.avif",
+     "avif_bytes": 129196
     },
     {
      "file": "equestrian-pasture-1-1400.webp",
      "width": 1400,
      "height": 933,
-     "bytes": 91120
+     "bytes": 91120,
+     "avif": "equestrian-pasture-1-1400.avif",
+     "avif_bytes": 55470
     },
     {
      "file": "equestrian-pasture-1-800.webp",
      "width": 800,
      "height": 533,
-     "bytes": 36324
+     "bytes": 36324,
+     "avif": "equestrian-pasture-1-800.avif",
+     "avif_bytes": 21574
     }
-   ]
+   ],
+   "lqip": "data:image/webp;base64,UklGRngAAABXRUJQVlA4IGwAAADwBACdASocABMAPulep02pJKOiMBgMASAdCWMArAAPSo/Y6Nh1HhQKEEZTDUf9hOAA/ujvygg43yPx9/j4oS3u5dAVJ4pKolAwxi45YCqj2EmEHtVI7yijxgzimmsVTUjHBNnAozACc6zaAAA="
   },
   {
    "name": "equestrian-school-2",
@@ -761,21 +880,28 @@
      "file": "equestrian-school-2-2400.webp",
      "width": 2400,
      "height": 1600,
-     "bytes": 148936
+     "bytes": 148936,
+     "avif": "equestrian-school-2-2400.avif",
+     "avif_bytes": 97511
     },
     {
      "file": "equestrian-school-2-1400.webp",
      "width": 1400,
      "height": 933,
-     "bytes": 90942
+     "bytes": 90942,
+     "avif": "equestrian-school-2-1400.avif",
+     "avif_bytes": 48796
     },
     {
      "file": "equestrian-school-2-800.webp",
      "width": 800,
      "height": 533,
-     "bytes": 39238
+     "bytes": 39238,
+     "avif": "equestrian-school-2-800.avif",
+     "avif_bytes": 21767
     }
-   ]
+   ],
+   "lqip": "data:image/webp;base64,UklGRmQAAABXRUJQVlA4IFgAAAAwBACdASocABMAPulgp00pJaOiMAgBIB0JZwDM0CHXGnmxQnMkQnUGwQAA/vLVnMWtKmE4ErXXmFpHG/zL7F1tz1rNz0yFVoBhaV2lcdR9TUpNi9rcAAAA"
   },
   {
    "name": "equestrian-stirrup-3",
@@ -803,21 +929,28 @@
      "file": "equestrian-stirrup-3-2400.webp",
      "width": 2400,
      "height": 1600,
-     "bytes": 169168
+     "bytes": 169168,
+     "avif": "equestrian-stirrup-3-2400.avif",
+     "avif_bytes": 113269
     },
     {
      "file": "equestrian-stirrup-3-1400.webp",
      "width": 1400,
      "height": 933,
-     "bytes": 93276
+     "bytes": 93276,
+     "avif": "equestrian-stirrup-3-1400.avif",
+     "avif_bytes": 50919
     },
     {
      "file": "equestrian-stirrup-3-800.webp",
      "width": 800,
      "height": 533,
-     "bytes": 36694
+     "bytes": 36694,
+     "avif": "equestrian-stirrup-3-800.avif",
+     "avif_bytes": 21756
     }
-   ]
+   ],
+   "lqip": "data:image/webp;base64,UklGRogAAABXRUJQVlA4IHwAAADQBACdASocABMAPt1Yp00opSOiMAwBEBuJYwCdABjqsZEP7z0ckArsxRd8HR/d4AD+5lwMwVboV1qBaneJRyT5qsMaGQJ/JJZYwK7Kn3v4/DDXggdVQP+nPecFZ+0KnoyRtaUFlvzHudgyBWvGMWoQ3XWqndVLOxiOh2AA"
   },
   {
    "name": "equestrian-hand-4",
@@ -845,21 +978,28 @@
      "file": "equestrian-hand-4-2400.webp",
      "width": 2400,
      "height": 1607,
-     "bytes": 404042
+     "bytes": 404042,
+     "avif": "equestrian-hand-4-2400.avif",
+     "avif_bytes": 252850
     },
     {
      "file": "equestrian-hand-4-1400.webp",
      "width": 1400,
      "height": 937,
-     "bytes": 181838
+     "bytes": 181838,
+     "avif": "equestrian-hand-4-1400.avif",
+     "avif_bytes": 114066
     },
     {
      "file": "equestrian-hand-4-800.webp",
      "width": 800,
      "height": 536,
-     "bytes": 76900
+     "bytes": 76900,
+     "avif": "equestrian-hand-4-800.avif",
+     "avif_bytes": 41651
     }
-   ]
+   ],
+   "lqip": "data:image/webp;base64,UklGRoIAAABXRUJQVlA4IHYAAADwBACdASocABMAPulorlApJiSiqAqpIB0JYwC2yA9gWRNAgVS+Xf6dNmXBs+dXBagA/o0fTergtduHX/57LcGce9lMjIT06MvCMMg/kSIAcHe6ddgbQWgsdscn+c5DLqCt5vevLYzTFB8sVv1sTBEKwlWz0AAA"
   },
   {
    "name": "coaching-watching-1",
@@ -887,21 +1027,28 @@
      "file": "coaching-watching-1-2400.webp",
      "width": 2400,
      "height": 1601,
-     "bytes": 46712
+     "bytes": 46712,
+     "avif": "coaching-watching-1-2400.avif",
+     "avif_bytes": 37439
     },
     {
      "file": "coaching-watching-1-1400.webp",
      "width": 1400,
      "height": 934,
-     "bytes": 25680
+     "bytes": 25680,
+     "avif": "coaching-watching-1-1400.avif",
+     "avif_bytes": 16989
     },
     {
      "file": "coaching-watching-1-800.webp",
      "width": 800,
      "height": 534,
-     "bytes": 11238
+     "bytes": 11238,
+     "avif": "coaching-watching-1-800.avif",
+     "avif_bytes": 7941
     }
-   ]
+   ],
+   "lqip": "data:image/webp;base64,UklGRoIAAABXRUJQVlA4IHYAAAAwBQCdASocABMAPuliq0+pJSOiMBgIASAdCWUAsOwQ63RQ2JSFjQsCjApaxji9CtOiAAD+2ly0yieRJs7ZxXhc9nngDQz6XOtwIbF5gJDKQBhUt9waSihoLK+dDR6H7YiGlZzT1RFqPx0XGCgV0tVvvVtRxoAA"
   },
   {
    "name": "coaching-lesson-2",
@@ -929,21 +1076,28 @@
      "file": "coaching-lesson-2-2400.webp",
      "width": 2400,
      "height": 1504,
-     "bytes": 481252
+     "bytes": 481252,
+     "avif": "coaching-lesson-2-2400.avif",
+     "avif_bytes": 436122
     },
     {
      "file": "coaching-lesson-2-1400.webp",
      "width": 1400,
      "height": 877,
-     "bytes": 206838
+     "bytes": 206838,
+     "avif": "coaching-lesson-2-1400.avif",
+     "avif_bytes": 172950
     },
     {
      "file": "coaching-lesson-2-800.webp",
      "width": 800,
      "height": 501,
-     "bytes": 89056
+     "bytes": 89056,
+     "avif": "coaching-lesson-2-800.avif",
+     "avif_bytes": 60047
     }
-   ]
+   ],
+   "lqip": "data:image/webp;base64,UklGRnQAAABXRUJQVlA4IGgAAADQBACdASocABIAPulgq08pJSOjMBgIASAdCWcAvdAQ73Sqe+e58deIbJ2TfW6BAAD+vAkfxJTO1uPV2QGCERN1MqVuPxM4PmOcqttEs/7Z35kaHy8xy5U6J6FB416Q+euXxpjnCfTAAA=="
   },
   {
    "name": "coaching-notes-3",
@@ -971,21 +1125,28 @@
      "file": "coaching-notes-3-2400.webp",
      "width": 2400,
      "height": 1163,
-     "bytes": 72210
+     "bytes": 72210,
+     "avif": "coaching-notes-3-2400.avif",
+     "avif_bytes": 52839
     },
     {
      "file": "coaching-notes-3-1400.webp",
      "width": 1400,
      "height": 678,
-     "bytes": 44446
+     "bytes": 44446,
+     "avif": "coaching-notes-3-1400.avif",
+     "avif_bytes": 26878
     },
     {
      "file": "coaching-notes-3-800.webp",
      "width": 800,
      "height": 388,
-     "bytes": 20572
+     "bytes": 20572,
+     "avif": "coaching-notes-3-800.avif",
+     "avif_bytes": 12483
     }
-   ]
+   ],
+   "lqip": "data:image/webp;base64,UklGRowAAABXRUJQVlA4IIAAAABQBACdASocAA4APulmq00pJiQiMAgBIB0JYgCdMoAKTIfW0ka1R+W7rkAAAP6t8UmJzkls0ERMEGIhBTtqhftuf8CV4SfvXSjz7SF4z3I1y2Qt+3gfymgLy7UbQdLJ8oAWLIaor6p3La0fkdufD6htCSvE2F3X9TI8RZEHYiHAAA=="
   },
   {
    "name": "coaching-notebook-4",
@@ -1013,63 +1174,28 @@
      "file": "coaching-notebook-4-2400.webp",
      "width": 2400,
      "height": 1603,
-     "bytes": 57492
+     "bytes": 57492,
+     "avif": "coaching-notebook-4-2400.avif",
+     "avif_bytes": 42254
     },
     {
      "file": "coaching-notebook-4-1400.webp",
      "width": 1400,
      "height": 935,
-     "bytes": 33176
+     "bytes": 33176,
+     "avif": "coaching-notebook-4-1400.avif",
+     "avif_bytes": 19343
     },
     {
      "file": "coaching-notebook-4-800.webp",
      "width": 800,
      "height": 534,
-     "bytes": 15834
+     "bytes": 15834,
+     "avif": "coaching-notebook-4-800.avif",
+     "avif_bytes": 9753
     }
-   ]
-  },
-  {
-   "name": "coaching-phone-5",
-   "sport": "coaching",
-   "subject": "A phone held up in both hands, filming; seen from behind the person holding it (the scene on the screen is a skate park, not one of the six sports)",
-   "alt": "A phone held up in both hands, filming",
-   "orientation": "landscape",
-   "width": 2400,
-   "height": 1398,
-   "ratio": 1.7167,
-   "focal": {
-    "x": 0.42,
-    "y": 0.42
-   },
-   "focus": "42% 42%",
-   "dominant": "#62514E",
-   "headline": "lower right, on the jacket, in ink",
-   "use": "inline",
-   "author": "Jan Kopřiva",
-   "credit": "Jan Kopřiva / Pexels",
-   "source": "https://www.pexels.com/photo/person-holding-phone-3327577/",
-   "licence": "Pexels Licence",
-   "files": [
-    {
-     "file": "coaching-phone-5-2400.webp",
-     "width": 2400,
-     "height": 1398,
-     "bytes": 79012
-    },
-    {
-     "file": "coaching-phone-5-1400.webp",
-     "width": 1400,
-     "height": 816,
-     "bytes": 40092
-    },
-    {
-     "file": "coaching-phone-5-800.webp",
-     "width": 800,
-     "height": 466,
-     "bytes": 16686
-    }
-   ]
+   ],
+   "lqip": "data:image/webp;base64,UklGRoAAAABXRUJQVlA4IHQAAABwBQCdASocABMAPuloqk6pJiQiMBgIASAdCWUAuwAQqmt/9MMmS9kSkog8QU4pj/gtoUQAAP7jFNPwJUW9UzIIJUqV4ENuV86EaH13DgvNfYkr+oDP3Wfpg/ogqIrkctCKS7td3S+yQy1P4kyXd6vWxgAAAA=="
   },
   {
    "name": "coaching-megaphone-6",
@@ -1097,204 +1223,31 @@
      "file": "coaching-megaphone-6-2400.webp",
      "width": 2400,
      "height": 1600,
-     "bytes": 495260
+     "bytes": 495260,
+     "avif": "coaching-megaphone-6-2400.avif",
+     "avif_bytes": 328961
     },
     {
      "file": "coaching-megaphone-6-1400.webp",
      "width": 1400,
      "height": 933,
-     "bytes": 206038
+     "bytes": 206038,
+     "avif": "coaching-megaphone-6-1400.avif",
+     "avif_bytes": 129471
     },
     {
      "file": "coaching-megaphone-6-800.webp",
      "width": 800,
      "height": 533,
-     "bytes": 84920
+     "bytes": 84920,
+     "avif": "coaching-megaphone-6-800.avif",
+     "avif_bytes": 50520
     }
-   ]
+   ],
+   "lqip": "data:image/webp;base64,UklGRo4AAABXRUJQVlA4IIIAAAAwBQCdASocABMAPulmqk6pJaOiMBgIASAdCWcAwoAR7zPiH5/PwU/d6t/JlzUI27eJ4AD+6bvH0nSGW6R6lf5T4yfYCzRlyMtNyeDUYmm9lrynpQ/OhckDek/n04ijlLHzQveA12279lDoq+6jQ3usxqYPV6YlRk/tNBC37CYEkAAA"
   }
  ],
  "loops": [
-  {
-   "name": "loop-golf-green-1",
-   "sport": "golf",
-   "subject": "A green and its bunkers from directly above in low sun, two players and their long shadows small on the grass",
-   "alt": "A golf green and its bunkers seen from directly above, players small on the grass",
-   "orientation": "landscape",
-   "width": 1280,
-   "height": 720,
-   "ratio": 1.7778,
-   "duration": 8.0,
-   "fps": 24.0,
-   "frames": 192,
-   "keyframe_every": 24,
-   "codec": "H.264 (High), yuv420p, faststart, no audio",
-   "seam": "the last 1 s dissolve into the first frame, so it loops without a cut",
-   "focal": {
-    "x": 0.42,
-    "y": 0.5
-   },
-   "focus": "42% 50%",
-   "dominant": "#9B9368",
-   "headline": "centre, on the green, in white",
-   "use": "loop",
-   "author": "K (@kelly)",
-   "credit": "K (@kelly) / Pexels",
-   "source": "https://www.pexels.com/video/a-top-view-of-a-golf-field-from-a-drone-4198770/",
-   "licence": "Pexels Licence",
-   "file": "loop-golf-green-1.mp4",
-   "bytes": 1405335,
-   "poster": {
-    "file": "loop-golf-green-1-poster.webp",
-    "width": 1280,
-    "height": 720,
-    "bytes": 66830
-   }
-  },
-  {
-   "name": "loop-tennis-courts-1",
-   "sport": "tennis",
-   "subject": "Tennis courts among trees as the sun goes down behind them, seen from the air, the camera drifting sideways",
-   "alt": "Tennis courts among trees at sunset, seen from the air",
-   "orientation": "landscape",
-   "width": 1280,
-   "height": 720,
-   "ratio": 1.7778,
-   "duration": 8.01,
-   "fps": 29.97,
-   "frames": 240,
-   "keyframe_every": 24,
-   "codec": "H.264 (High), yuv420p, faststart, no audio",
-   "seam": "the last 1 s dissolve into the first frame, so it loops without a cut",
-   "focal": {
-    "x": 0.62,
-    "y": 0.72
-   },
-   "focus": "62% 72%",
-   "dominant": "#333317",
-   "headline": "upper left, on the sky, in white",
-   "use": "loop",
-   "author": "Ibrahim Bennett",
-   "credit": "Ibrahim Bennett / Pexels",
-   "source": "https://www.pexels.com/video/drone-footage-of-tennis-courts-5015666/",
-   "licence": "Pexels Licence",
-   "file": "loop-tennis-courts-1.mp4",
-   "bytes": 1376651,
-   "poster": {
-    "file": "loop-tennis-courts-1-poster.webp",
-    "width": 1280,
-    "height": 720,
-    "bytes": 42830
-   }
-  },
-  {
-   "name": "loop-tennis-hands-2",
-   "sport": "tennis",
-   "subject": "Hands, a racket and two tennis balls against a dark ground; the player is seen from chest to knee, no face",
-   "alt": "Hands holding a racket and two tennis balls against a dark ground",
-   "orientation": "landscape",
-   "width": 1280,
-   "height": 674,
-   "ratio": 1.8991,
-   "duration": 7.0,
-   "fps": 25.0,
-   "frames": 175,
-   "keyframe_every": 24,
-   "codec": "H.264 (High), yuv420p, faststart, no audio",
-   "seam": "the last 0.8 s dissolve into the first frame, so it loops without a cut",
-   "focal": {
-    "x": 0.45,
-    "y": 0.5
-   },
-   "focus": "45% 50%",
-   "dominant": "#151A19",
-   "headline": "left third, on the dark ground, in white",
-   "use": "loop",
-   "author": "cottonbro studio",
-   "credit": "cottonbro studio / Pexels",
-   "source": "https://www.pexels.com/video/a-person-playing-tennis-5730331/",
-   "licence": "Pexels Licence",
-   "file": "loop-tennis-hands-2.mp4",
-   "bytes": 904372,
-   "poster": {
-    "file": "loop-tennis-hands-2-poster.webp",
-    "width": 1280,
-    "height": 674,
-    "bytes": 20368
-   }
-  },
-  {
-   "name": "loop-rowing-lake-1",
-   "sport": "rowing",
-   "subject": "A crew crossing a wide, still lake at dusk, far off under a banded sky",
-   "alt": "A rowing crew far off on a still lake at dusk",
-   "orientation": "landscape",
-   "width": 1280,
-   "height": 720,
-   "ratio": 1.7778,
-   "duration": 8.01,
-   "fps": 23.976,
-   "frames": 192,
-   "keyframe_every": 24,
-   "codec": "H.264 (High), yuv420p, faststart, no audio",
-   "seam": "the last 1 s dissolve into the first frame, so it loops without a cut",
-   "focal": {
-    "x": 0.55,
-    "y": 0.26
-   },
-   "focus": "55% 26%",
-   "dominant": "#070C14",
-   "headline": "lower half, on the dark water, in white",
-   "use": "loop",
-   "author": "Danilo Riba",
-   "credit": "Danilo Riba / Pexels",
-   "source": "https://www.pexels.com/video/people-rowing-a-boat-on-a-calm-lake-5378537/",
-   "licence": "Pexels Licence",
-   "file": "loop-rowing-lake-1.mp4",
-   "bytes": 1741799,
-   "poster": {
-    "file": "loop-rowing-lake-1-poster.webp",
-    "width": 1280,
-    "height": 720,
-    "bytes": 54418
-   }
-  },
-  {
-   "name": "loop-equestrian-stable-2",
-   "sport": "equestrian",
-   "subject": "A bay horse's head close to the bars of its stable in soft light, its eye and its mane; it breathes and turns a little",
-   "alt": "A horse's head at the bars of its stable, in soft light",
-   "orientation": "landscape",
-   "width": 1280,
-   "height": 720,
-   "ratio": 1.7778,
-   "duration": 6.2,
-   "fps": 25.0,
-   "frames": 155,
-   "keyframe_every": 24,
-   "codec": "H.264 (High), yuv420p, faststart, no audio",
-   "seam": "the tail dissolves into the head, so it loops without a cut",
-   "focal": {
-    "x": 0.35,
-    "y": 0.4
-   },
-   "focus": "35% 40%",
-   "dominant": "#3B2A1C",
-   "headline": "none: it stands beside words, never under them",
-   "use": "loop",
-   "author": "Mixkit",
-   "credit": "Mixkit",
-   "source": "https://mixkit.co/free-stock-video/horse-in-a-stable-close-up-100645/",
-   "licence": "Mixkit Stock Video Free License",
-   "file": "loop-equestrian-stable-2.mp4",
-   "bytes": 1575872,
-   "poster": {
-    "file": "loop-equestrian-stable-2-poster.webp",
-    "width": 1280,
-    "height": 720,
-    "bytes": 55322
-   }
-  },
   {
    "name": "loop-lake-mist-2",
    "sport": "rowing",
@@ -1330,7 +1283,8 @@
     "width": 1280,
     "height": 720,
     "bytes": 21188
-   }
+   },
+   "lqip": "data:image/webp;base64,UklGRmIAAABXRUJQVlA4IFYAAACwAwCdASocABAAPulkqU2pJaQiMAgBIB0JQBOgA9DI2YFWd+tywAD+r5sYV3w54KmNP/eDW0o/Ae0m3hEIIlN6FWzd+GjHKqJyKLocXmpteUfIKgAAAA=="
   },
   {
    "name": "loop-trees-fog-1",
@@ -1367,7 +1321,8 @@
     "width": 1280,
     "height": 720,
     "bytes": 76424
-   }
+   },
+   "lqip": "data:image/webp;base64,UklGRoAAAABXRUJQVlA4IHQAAABQBACdASocABAAPulkqE0pJaQiMAgBIB0JYwC7IIjBf35aUDn/I3odYEBCAP7sQ8sbpJiylSJhUlYPZVUW7/kglIlUFf6No+w/7BNoQYRdAaPzKDHaXiDFthJwVGNNRpJYDhZ13+RfJEmV2zbJ40vFJqAAAA=="
   },
   {
    "name": "loop-fields-mist-1",
@@ -1404,7 +1359,8 @@
     "width": 1280,
     "height": 720,
     "bytes": 15278
-   }
+   },
+   "lqip": "data:image/webp;base64,UklGRmoAAABXRUJQVlA4IF4AAAAwBACdASocABAAPulep00pJSOiMAgBIB0JQBOmUGQ6iUfeKVAjjgV7o0AA/tScyI2ArLYlwzM7t7BGsiQ2Ekg2pdt5kE9gFHypJw36Sw/XBOJksTBuXM+cX1lR0vAA"
   },
   {
    "name": "loop-lake-steam-3",
@@ -1441,7 +1397,8 @@
     "width": 1280,
     "height": 720,
     "bytes": 33086
-   }
+   },
+   "lqip": "data:image/webp;base64,UklGRnYAAABXRUJQVlA4IGoAAAAQBACdASocABAAPulgqE0pJaQiMAgBIB0JQBadBD3X6zrjrsC6mNbTAAD80vj7A9vmAywAYyodyIIekD/yMFeWIr0qZPQMj6n9sSyr81Ka6c6wzKHXvrVzRk9eFDBpxN3uUlLaPzgU4AAA"
   }
  ],
  "files": {
@@ -2669,57 +2626,6 @@
    "headline": "lower right, on the table, in white",
    "use": "inline"
   },
-  "coaching-phone-5-2400.webp": {
-   "kind": "photo",
-   "of": "coaching-phone-5",
-   "sport": "coaching",
-   "subject": "A phone held up in both hands, filming; seen from behind the person holding it (the scene on the screen is a skate park, not one of the six sports)",
-   "orientation": "landscape",
-   "width": 2400,
-   "height": 1398,
-   "focal": {
-    "x": 0.42,
-    "y": 0.42
-   },
-   "dominant": "#62514E",
-   "alt": "A phone held up in both hands, filming",
-   "headline": "lower right, on the jacket, in ink",
-   "use": "inline"
-  },
-  "coaching-phone-5-1400.webp": {
-   "kind": "photo",
-   "of": "coaching-phone-5",
-   "sport": "coaching",
-   "subject": "A phone held up in both hands, filming; seen from behind the person holding it (the scene on the screen is a skate park, not one of the six sports)",
-   "orientation": "landscape",
-   "width": 1400,
-   "height": 816,
-   "focal": {
-    "x": 0.42,
-    "y": 0.42
-   },
-   "dominant": "#62514E",
-   "alt": "A phone held up in both hands, filming",
-   "headline": "lower right, on the jacket, in ink",
-   "use": "inline"
-  },
-  "coaching-phone-5-800.webp": {
-   "kind": "photo",
-   "of": "coaching-phone-5",
-   "sport": "coaching",
-   "subject": "A phone held up in both hands, filming; seen from behind the person holding it (the scene on the screen is a skate park, not one of the six sports)",
-   "orientation": "landscape",
-   "width": 800,
-   "height": 466,
-   "focal": {
-    "x": 0.42,
-    "y": 0.42
-   },
-   "dominant": "#62514E",
-   "alt": "A phone held up in both hands, filming",
-   "headline": "lower right, on the jacket, in ink",
-   "use": "inline"
-  },
   "coaching-megaphone-6-2400.webp": {
    "kind": "photo",
    "of": "coaching-megaphone-6",
@@ -2770,157 +2676,6 @@
    "alt": "A coach's megaphone beside the blades of oars on a pontoon",
    "headline": "lower left, on the pontoon, in white",
    "use": "inline"
-  },
-  "loop-golf-green-1.mp4": {
-   "kind": "loop",
-   "of": "loop-golf-green-1",
-   "sport": "golf",
-   "subject": "A green and its bunkers from directly above in low sun, two players and their long shadows small on the grass",
-   "orientation": "landscape",
-   "width": 1280,
-   "height": 720,
-   "focal": {
-    "x": 0.42,
-    "y": 0.5
-   },
-   "dominant": "#9B9368",
-   "alt": "A golf green and its bunkers seen from directly above, players small on the grass",
-   "headline": "centre, on the green, in white",
-   "use": "loop"
-  },
-  "loop-golf-green-1-poster.webp": {
-   "kind": "poster",
-   "of": "loop-golf-green-1",
-   "sport": "golf",
-   "subject": "A green and its bunkers from directly above in low sun, two players and their long shadows small on the grass",
-   "orientation": "landscape",
-   "width": 1280,
-   "height": 720,
-   "focal": {
-    "x": 0.42,
-    "y": 0.5
-   },
-   "dominant": "#9B9368",
-   "alt": "A golf green and its bunkers seen from directly above, players small on the grass",
-   "headline": "centre, on the green, in white",
-   "use": "loop"
-  },
-  "loop-tennis-courts-1.mp4": {
-   "kind": "loop",
-   "of": "loop-tennis-courts-1",
-   "sport": "tennis",
-   "subject": "Tennis courts among trees as the sun goes down behind them, seen from the air, the camera drifting sideways",
-   "orientation": "landscape",
-   "width": 1280,
-   "height": 720,
-   "focal": {
-    "x": 0.62,
-    "y": 0.72
-   },
-   "dominant": "#333317",
-   "alt": "Tennis courts among trees at sunset, seen from the air",
-   "headline": "upper left, on the sky, in white",
-   "use": "loop"
-  },
-  "loop-tennis-courts-1-poster.webp": {
-   "kind": "poster",
-   "of": "loop-tennis-courts-1",
-   "sport": "tennis",
-   "subject": "Tennis courts among trees as the sun goes down behind them, seen from the air, the camera drifting sideways",
-   "orientation": "landscape",
-   "width": 1280,
-   "height": 720,
-   "focal": {
-    "x": 0.62,
-    "y": 0.72
-   },
-   "dominant": "#333317",
-   "alt": "Tennis courts among trees at sunset, seen from the air",
-   "headline": "upper left, on the sky, in white",
-   "use": "loop"
-  },
-  "loop-tennis-hands-2.mp4": {
-   "kind": "loop",
-   "of": "loop-tennis-hands-2",
-   "sport": "tennis",
-   "subject": "Hands, a racket and two tennis balls against a dark ground; the player is seen from chest to knee, no face",
-   "orientation": "landscape",
-   "width": 1280,
-   "height": 674,
-   "focal": {
-    "x": 0.45,
-    "y": 0.5
-   },
-   "dominant": "#151A19",
-   "alt": "Hands holding a racket and two tennis balls against a dark ground",
-   "headline": "left third, on the dark ground, in white",
-   "use": "loop"
-  },
-  "loop-tennis-hands-2-poster.webp": {
-   "kind": "poster",
-   "of": "loop-tennis-hands-2",
-   "sport": "tennis",
-   "subject": "Hands, a racket and two tennis balls against a dark ground; the player is seen from chest to knee, no face",
-   "orientation": "landscape",
-   "width": 1280,
-   "height": 674,
-   "focal": {
-    "x": 0.45,
-    "y": 0.5
-   },
-   "dominant": "#151A19",
-   "alt": "Hands holding a racket and two tennis balls against a dark ground",
-   "headline": "left third, on the dark ground, in white",
-   "use": "loop"
-  },
-  "loop-rowing-lake-1.mp4": {
-   "kind": "loop",
-   "of": "loop-rowing-lake-1",
-   "sport": "rowing",
-   "subject": "A crew crossing a wide, still lake at dusk, far off under a banded sky",
-   "orientation": "landscape",
-   "width": 1280,
-   "height": 720,
-   "focal": {
-    "x": 0.55,
-    "y": 0.26
-   },
-   "dominant": "#070C14",
-   "alt": "A rowing crew far off on a still lake at dusk",
-   "headline": "lower half, on the dark water, in white",
-   "use": "loop"
-  },
-  "loop-rowing-lake-1-poster.webp": {
-   "kind": "poster",
-   "of": "loop-rowing-lake-1",
-   "sport": "rowing",
-   "subject": "A crew crossing a wide, still lake at dusk, far off under a banded sky",
-   "orientation": "landscape",
-   "width": 1280,
-   "height": 720,
-   "focal": {
-    "x": 0.55,
-    "y": 0.26
-   },
-   "dominant": "#070C14",
-   "alt": "A rowing crew far off on a still lake at dusk",
-   "headline": "lower half, on the dark water, in white",
-   "use": "loop"
-  },
-  "loop-equestrian-stable-2.mp4": {
-   "kind": "loop",
-   "of": "loop-equestrian-stable-2",
-   "sport": "equestrian",
-   "subject": "A bay horse's head close to the bars of its stable in soft light, its eye and its mane; it breathes and turns a little",
-   "bytes": 1575872,
-   "licence": "Mixkit Stock Video Free License",
-   "source": "https://mixkit.co/free-stock-video/horse-in-a-stable-close-up-100645/"
-  },
-  "loop-equestrian-stable-2-poster.webp": {
-   "kind": "poster",
-   "of": "loop-equestrian-stable-2",
-   "sport": "equestrian",
-   "bytes": 55322
   },
   "loop-lake-mist-2.mp4": {
    "kind": "loop",

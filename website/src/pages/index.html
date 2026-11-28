@@ -4,16 +4,18 @@ description: One coaching app for coach, player and parent, in golf, tennis, row
 world: green
 header: green
 preload: InstrumentSerif-Italic
+preloadImage: assets/photo/loop-lake-mist-2-poster.webp
 -->
 
-<!-- ONE PAGE, five parts, each answering one question: what Nosca is, what it does, for which sports, who made it
-     and why, and how to start. Nothing is pinned and nothing is tied to the scroll: each piece plays once, on its own
-     clock, as it arrives (html.glide, site.js), and the header's three anchors reach every part. -->
+<!-- ONE PAGE, each part answering one question: what Nosca is, what the coach does, what the player keeps, for which
+     sports, who made it and why, and how to start. The grounds are foggy mornings in one grade, each a short loop whose
+     own first frame stands in place before it plays. Nothing is pinned and nothing is tied to the scroll: each piece
+     plays once, on its own clock, as it arrives (html.glide, site.js), and the header's three anchors reach every part. -->
 
-<!-- 1. WHAT IT IS. Flat water at dusk under the deep green, the name of the thing in a few words, and the app itself:
-     the coach's day, arriving once. The gold mark is a signature, small. -->
+<!-- 1. WHAT IT IS. A still lake at sunrise under the deep green, the name of the thing in a few words, and the app
+     itself: the coach's day, arriving once. The gold mark is a signature, small. -->
 <section class="g-green op" id="top" data-header="green" aria-labelledby="op-title">
-  <!-- @include loop name="loop-rowing-lake-1" class="op__vid vid--veil" alt="" -->
+  <!-- @include loop name="loop-lake-mist-2" class="op__vid bgv vid--veil" alt="" first="1" bg="1" -->
   <div class="op__in wrap wrap--wide">
     <div class="op__copy">
       <p class="op__sig" aria-hidden="true"><!-- @include mark class="op__mark" --><span class="wordmark">Nosca</span></p>
@@ -27,10 +29,10 @@ preload: InstrumentSerif-Italic
   </div>
 </section>
 
-<!-- 2. WHAT IT DOES. Two pieces, each a headline, one line and the app's own screens. -->
-<section class="g-paper pr" id="product" data-header="paper" aria-label="What Nosca does">
+<!-- 2. WHAT THE COACH DOES. A headline, one line and the app's own screens. -->
+<section class="g-paper pr" id="product" data-header="paper" aria-labelledby="pr-coach">
   <div class="wrap">
-    <article class="piece" aria-labelledby="pr-coach">
+    <article class="piece">
       <div class="piece__copy">
         <h2 class="piece__h" id="pr-coach" data-rise>Log a lesson in seconds.</h2>
         <p class="piece__p" data-rise="lines">For the coach: who, what was worked on, Log it. Video, photo and voice go with it, and the register is a tap away.</p>
@@ -40,31 +42,34 @@ preload: InstrumentSerif-Italic
         <!-- @include phone screens="coach-register" alts="The register for a Thursday clinic: each player marked Present or Absent" class="piece__phone piece__phone--back" -->
       </div>
     </article>
-    <article class="piece piece--flip" aria-labelledby="pr-player">
-      <div class="piece__copy">
-        <h2 class="piece__h" id="pr-player" data-rise>Every lesson, kept.</h2>
-        <p class="piece__p" data-rise="lines">For the player: the coach's notes, the drills and their progress. A parent books and answers for a child.</p>
-      </div>
-      <div class="piece__devs">
-        <!-- @include phone screens="player-progress" alts="A player's progress: the Handicap Index over time and what was worked on" class="piece__phone" -->
-        <!-- @include phone screens="parent-family" alts="A parent's family screen: the next lesson, the children, and what is coming up" class="piece__phone piece__phone--back" -->
-      </div>
-    </article>
   </div>
 </section>
 
-<!-- 3. FOR WHICH SPORTS. Three pictures of the sports' places and hands, and the six, once, in their own words. -->
+<!-- 3. WHAT THE PLAYER KEEPS. Oaks in a foggy dawn, and the app's feed in use: a player scrolling their lessons,
+     starring one, swiping through what the coach filmed. -->
+<section class="g-green fd" id="feed" data-header="green" aria-labelledby="fd-title">
+  <!-- @include loop name="loop-trees-fog-1" class="fd__bg bgv vid--veil" alt="" bg="1" -->
+  <div class="fd__in wrap">
+    <div class="fd__copy">
+      <h2 class="fd__h" id="fd-title" data-rise>Every lesson, kept.</h2>
+      <p class="fd__p" data-rise="lines">For the player: the coach's clips, photos and notes in one feed. A parent books and answers for a child.</p>
+    </div>
+    <div class="fd__dev">
+      <!-- @include phone film="feed-demo" screens="player-progress" alt="A player's lessons in Nosca: a swing playing, slowed to half speed, starred, a swipe across to the lesson's photo and its next clip, then up to the next lesson" alts="A player's progress in Nosca" class="fd__phone" -->
+    </div>
+  </div>
+</section>
+
+<!-- 4. FOR WHICH SPORTS. Mist in the low fields at sunrise, and the six, once, in their own words. -->
 <section class="g-rest sp" id="sports" data-header="rest" aria-labelledby="sp-title">
-  <div class="wrap">
-    <div class="sp__head">
+  <div class="sp__band g-green" data-header="green">
+    <!-- @include loop name="loop-fields-mist-1" class="sp__bg bgv vid--veil" alt="" bg="1" -->
+    <div class="sp__head wrap">
       <h2 class="sp__h" id="sp-title" data-rise>Six sports, one&nbsp;app.</h2>
       <p class="sp__p" data-rise="lines">Each in its own words, with the levels its governing body uses.</p>
     </div>
-    <div class="sp__pics">
-      <!-- @include photo name="golf-mist-2" class="sp__pic" focus="66% 50%" sizes="(min-width:900px) 32vw, 33vw" -->
-      <!-- @include loop name="loop-tennis-hands-2" class="sp__pic" focus="58% 50%" -->
-      <!-- @include loop name="loop-equestrian-stable-2" class="sp__pic" focus="34% 45%" -->
-    </div>
+  </div>
+  <div class="wrap">
     <ul class="sp__list">
       <li><h3 class="sp__n"><i class="sport-dot" data-sport="golf" aria-hidden="true"></i>Golf</h3><p class="sp__w">Full swing, short game, on course</p><p class="sp__l">Handicap Index</p></li>
       <li><h3 class="sp__n"><i class="sport-dot" data-sport="tennis" aria-hidden="true"></i>Tennis</h3><p class="sp__w">Serve, return, rally, net</p><p class="sp__l">Red, Orange, Green and Yellow ball, then WTN</p></li>
@@ -76,25 +81,22 @@ preload: InstrumentSerif-Italic
   </div>
 </section>
 
-<!-- 4. WHO MADE IT, AND WHY. The name, the one moment every coach screen is judged against, what it stands for,
-     made in Ireland, climate. -->
+<!-- 5. WHO MADE IT, AND WHY. Steam off a lake at sunrise under the name; the moment every coach screen is judged
+     against; what it stands for; climate over a misty pasture. -->
 <section class="g-green st" id="story" data-header="green" aria-labelledby="st-title">
-  <!-- @include band edge="top" class="st__band" -->
-  <div class="wrap">
-    <div class="st__name">
+  <div class="st__hero">
+    <!-- @include loop name="loop-lake-steam-3" class="st__bg bgv vid--veil" alt="" bg="1" -->
+    <div class="st__name wrap">
       <!-- @include weave foil="1" class="st__rings" attrs="data-weave" label="Two rings, each passing through the other: the Nosca mark" -->
       <h2 class="t-quote st__h" id="st-title">From the Irish <i lang="ga">nascadh</i>, linking.</h2>
       <p class="st__long" data-rise="lines">Nosca is an anglicised spelling of the Irish word <i lang="ga">nascadh</i>, which means linking. Made in Ireland.</p>
     </div>
-    <div class="st__why">
-      <!-- @include photo name="coaching-phone-5" class="st__pic" focus="60% 40%" sizes="(min-width:900px) 42vw, 100vw" -->
-      <div class="st__words">
-        <p class="st__q">A coach picks up the phone mid-lesson, does one thing in seconds and puts it&nbsp;down.</p>
-        <p class="st__qs">Every coach screen is judged against it.</p>
-        <hr class="rule-gold rule-gold--hair st__rule" data-rule>
-        <p class="st__pcs">Professional. Curated. Specialist.</p>
-      </div>
-    </div>
+  </div>
+  <div class="st__why wrap">
+    <p class="st__q">A coach picks up the phone mid-lesson, does one thing in seconds and puts it&nbsp;down.</p>
+    <p class="st__qs">Every coach screen is judged against it.</p>
+    <hr class="rule-gold rule-gold--hair st__rule" data-rule>
+    <p class="st__pcs">Professional. Curated. Specialist.</p>
   </div>
   <div class="st__climate">
     <!-- @include photo name="equestrian-pasture-1" class="st__climate-pic photo--veil" sizes="100vw" -->
@@ -105,7 +107,7 @@ preload: InstrumentSerif-Italic
   </div>
 </section>
 
-<!-- 5. HOW TO START. Ireland, English; the way in; and the card itself, the one place it stands as an object: both
+<!-- 6. HOW TO START. Ireland, English; the way in; and the card itself, the one place it stands as an object: both
      designs as printed, the deep green banded, the olive wedged. -->
 <section class="g-paper pi" id="pilot" data-header="paper" aria-labelledby="pi-title">
   <div class="wrap pi__in">

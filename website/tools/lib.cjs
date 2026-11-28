@@ -13,9 +13,9 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
 const M = require("../../scripts/e2e/mock.cjs");
 const D = require("./fixtures/db.cjs");
 
-/* the clip inside the app's screens: the e2e suite's own stylised ball flight (the mock's default), or a putting
-   green seen from above (the Product page's pictures; cut from assets/photo/loop-golf-green-1.mp4, Pexels Licence) */
-const CLIPS = { synthetic: null, green: path.join(__dirname, "fixtures", "putting-green.webm") };
+/* the clip inside the app's screens: the e2e suite's own stylised ball flight (the mock's default). The real coaching
+   clips (fixtures/: a swing, a chip, a putt, a forehand, a rider) are served by name by feed-demo.cjs. */
+const CLIPS = { synthetic: null };
 
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".webp": "image/webp",
   ".webmanifest": "application/manifest+json", ".ico": "image/x-icon", ".pdf": "application/pdf", ".woff2": "font/woff2", ".webm": "video/webm", ".mp4": "video/mp4", ".txt": "text/plain" };

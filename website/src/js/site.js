@@ -653,13 +653,25 @@
     else if (!api._own && !staged(v)) api._own = gsap.fromTo(api, { p: 0 }, { p: 1, ease: 'none', scrollTrigger: { trigger: o.trigger || v, start: o.start || v.dataset.start || 'clamp(top 80%)', end: o.end || v.dataset.end || 'clamp(bottom 25%)', scrub: o.scrub == null ? 0.25 : o.scrub } });
     return api;
   };
+  /* a loop: its poster (its own first frame) stands from the start; as it nears the screen it is asked for whole, and it
+     starts only once it can play through, so it never stalls on a frame. Off screen and in a hidden tab it rests. Under
+     Reduce Motion it is its poster: a background stays a picture, anything else gets the browser's own controls. */
   function videoInView(v) {
     if (v._vid) return; v._vid = true;
     v.muted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.setAttribute('muted', '');
-    if (!live) { v.removeAttribute('autoplay'); v.pause(); v.controls = true; return; }
+    if (!live) { v.removeAttribute('autoplay'); v.pause(); if (!v.hasAttribute('data-bg')) v.controls = true; return; }
     v.loop = v.dataset.video !== 'once';
-    Site.inView(v, { threshold: 0.25, margin: '0px', enter: () => { const p = v.play(); if (p && p.catch) p.catch(() => {}); }, leave: () => v.pause() });
-    D.addEventListener('visibilitychange', () => { if (D.hidden) v.pause(); });
+    let inside = false;
+    const go = () => {
+      if (!inside || D.hidden) return;
+      if (v.readyState >= 4 || v._waited) { const p = v.play(); if (p && p.catch) p.catch(() => {}); return; }
+      v.addEventListener('canplaythrough', go, { once: true });
+      /* a browser that will not say it can play through (it keeps a small buffer) is given two seconds, then plays */
+      if (!v._wait) v._wait = setTimeout(() => { v._waited = true; go(); }, 2000);
+    };
+    Site.inView(v, { once: true, margin: '60% 0px 60% 0px', enter: () => { if (v.preload !== 'auto') v.preload = 'auto'; } });
+    Site.inView(v, { threshold: 0.2, margin: '0px', enter: () => { inside = true; go(); }, leave: () => { inside = false; v.pause(); } });
+    D.addEventListener('visibilitychange', () => { if (D.hidden) v.pause(); else go(); });
   }
 
   /* ───────── films: a tall section, a stage that stays, a timeline the scroll plays ─────────
