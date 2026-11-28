@@ -20924,7 +20924,9 @@ function ImportScreen({ data, me, role, cfg, pop, push, say, done, openSheet, cl
             <div className="nsc-list">
               {shown.map((r, i) => {
                 const two = people.length > 1 && coachSide && r.forId !== mine.forId ? (people.find((p) => p.id === r.forId) || {}).name : null;
-                const second = r.reason && !r.ticked ? r.reason : two || (r.fileCount ? nOf(r.fileCount, "file", "files") : null);
+                /* a row to check says why as its second fact; a day already imported says so even ticked, with its new files */
+                const said = r.reason && (!r.ticked || r.add);
+                const second = said ? r.reason : two || (r.fileCount ? nOf(r.fileCount, "file", "files") : null);
                 const tickable = !r.locked && !r.sleep;
                 return (
                   <div key={r.iso} data-tour="import-row" data-state={r.state} data-day={r.iso} data-on={r.ticked ? "1" : "0"} className="flex items-center gap-2"
@@ -20934,7 +20936,7 @@ function ImportScreen({ data, me, role, cfg, pop, push, say, done, openSheet, cl
                       <span className="flex-1 min-w-0">
                         <Facts parts={String(r.focus || "").split(" · ")} attrs={{ "data-focus": "" }} style={{ ...TYPE.body, fontWeight: 600, color: t.ink }} />
                         <span className="block mt-0.5" style={{ ...TYPE.small, color: t.sub }}>
-                          {fmtDayYear(r.iso)}{second ? <> · <span data-reason={r.reason && !r.ticked ? "1" : undefined} style={{ color: r.reason && !r.ticked ? CAUTION : t.sub }}>{second}</span></> : null}
+                          {fmtDayYear(r.iso)}{second ? <> · <span data-reason={said ? "1" : undefined} style={{ color: said ? CAUTION : t.sub }}>{second}</span></> : null}
                         </span>
                       </span>
                     </button>
@@ -25117,6 +25119,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               const check = await data.verifyPassword(pw);
                                               if (check.error) return check;
                                               try { await downloads.removeAll(); } catch (e) { /* the account goes either way */ }
+                                              /* and an import's manifest on this phone (docs/import/SPEC.md) */
+                                              try { await clearImports(account.id); } catch (e) { /* the account goes either way */ }
                                               const res = await data.deleteAccount();
                                               if (res.error) return { error: res.error.message };
                                               /* The account is gone and the session with

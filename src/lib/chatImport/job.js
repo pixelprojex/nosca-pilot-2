@@ -547,7 +547,9 @@ export function replan() {
     let note = buildNote(day, r.chosen.note, r.chosen.tip, r.chosen.drills);
     for (const iso of r.recaps || []) { const rr = rows[iso]; const t = buildNote(DAYS[IDX.get(iso)], rr.chosen.note, rr.chosen.tip, rr.chosen.drills); if (t) note = note ? `${note}\n${t}` : t; }
     r.note = e.note !== undefined ? e.note : note;
-    r.focus = focusFor(j.sport, r.focusIds, r.kind);
+    /* a day already imported reads as the lesson it already is */
+    const was = r.existingId ? (C().lessons || []).find((l) => l.id === r.existingId) : null;
+    r.focus = was && was.focus && e.focus === undefined ? was.focus : focusFor(j.sport, r.focusIds, r.kind);
     r.files = dayFiles(j, day, r, r.ticked);
     r.fileCount = r.files.filter((f) => f.ticked).length;
   }

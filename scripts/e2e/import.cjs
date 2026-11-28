@@ -117,6 +117,24 @@ async function coachToReview(page, file = chat("chat-iphone.zip")) {
   await sorted(page);
 }
 const doneFor = (db, pid) => until(async () => importsOf(db, pid).some((b) => b.status === "done"), 40000, 300);
+const idbCount = (page) => page.evaluate(() => new Promise((res) => { const r = indexedDB.open("nosca-offline"); r.onsuccess = () => { try { const t = r.result.transaction("lessons", "readonly").objectStore("lessons").getAll(); t.onsuccess = () => res(t.result.length); t.onerror = () => res(-1); } catch (e) { res(-1); } }; r.onerror = () => res(-1); }));
+/* a player's own first imported lesson saved onto their phone, from their List */
+async function downloadOne(page) {
+  await page.locator(sel("log-view")).locator("button", { hasText: "List" }).first().click().catch(() => {});
+  await page.waitForTimeout(800);
+  await page.locator('button[data-download="none"]').first().click().catch(() => {});
+  return until(async () => (await count(page, 'button[data-download="saved"]')) > 0, 10000);
+}
+/* the 12px floor: no element carrying words under twelve pixels (the tab bar's labels are the written exception) */
+const floor = (page) => page.evaluate(() => {
+  const out = [];
+  document.querySelectorAll("#root *").forEach((el) => {
+    if (!el.offsetParent || el.closest("nav") || el.closest('[data-tour="tabbar"]')) return;
+    const own = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
+    if (own && parseFloat(getComputedStyle(el).fontSize) < 12) out.push(`${el.textContent.trim().slice(0, 24)} @${getComputedStyle(el).fontSize}`);
+  });
+  return out;
+});
 /* nothing cut: no element past the screen's edge, nothing ellipsised that has more to say */
 const cut = (page) => page.evaluate(() => {
   const W = window.innerWidth; const out = [];
@@ -362,7 +380,8 @@ const cut = (page) => page.evaluate(() => {
       const watch = setInterval(() => {
         const ids = new Set(db.imports.map((b) => b.id));
         db.lessons.filter((l) => l.import_id).forEach((l) => db.media.filter((m) => m.lesson_id === l.id).forEach((m) => { if (!db.files.media[m.storage_path]) invariant = false; }));
-        if (db.imports.some((b) => b.status === "adding") && db.notifications.some((n) => /imported/.test(n.title))) toldEarly = true;
+        /* a batch still filling, and somebody it is about already told */
+        if (db.imports.some((b) => b.status === "adding" && db.notifications.some((n) => /imported/.test(n.title) && (n.user_id === b.player_id || n.user_id === b.coach_id)))) toldEarly = true;
         void ids;
       }, 50);
       await until(async () => !!bad2 && db.uploads.filter((u) => u.path === bad2 && u.refused).length >= 3, 30000);
@@ -441,44 +460,36 @@ const cut = (page) => page.evaluate(() => {
       await c2.close();
     }
 
-    /* ================================================================ (n) REMOVE, BY THE COACH, BEHIND THE PASSWORD */
+    /* ================================================================ (n) THE COACH REMOVES THEIR OWN IMPORT */
     {
       const db = coachDb;
       const p = await boot(db, "cian");
-      await p.page.locator(sel("log-view")).locator("button", { hasText: "List" }).first().click().catch(() => {});
-      await p.page.waitForTimeout(800);
-      const disc = p.page.locator('button[data-download="none"]').first();
-      await disc.click().catch(() => {});
-      const saved = await until(async () => (await count(p.page, 'button[data-download="saved"]')) > 0, 10000);
+      const saved = await downloadOne(p.page);
       await p.close();
       const c = await boot(db, "coach");
       await openImport(c.page, true);
       const batch = importsOf(db, IDS.cian).find((b) => b.status === "done" && b.lessons > 1);
       await c.page.locator(`[data-batch="${batch.id}"]`).click(); await c.page.waitForTimeout(700);
-      const pw = c.page.locator('input[type="password"]');
-      await pw.fill("not-it"); await c.page.locator("button", { hasText: `Remove ${batch.lessons} lessons` }).click(); await c.page.waitForTimeout(900);
-      const wrong = /That password isn't right/.test(await c.text()) && batch.status === "done";
-      await pw.fill(PASS); await c.page.locator("button", { hasText: `Remove ${batch.lessons} lessons` }).click(); await c.page.waitForTimeout(1200);
-      check("(n1) the coach removes a player's import behind the password, the wrong one first", wrong && batch.status === "removed" && !db.lessons.some((l) => l.import_id === batch.id) && /Removed/.test(await c.text()));
+      const own = (await count(c.page, 'input[type="password"]')) === 0 && (await count(c.page, sel("import-remove-sheet"))) === 1 && new RegExp(`Remove ${batch.lessons} lessons`).test(await c.text());
+      await c.page.locator(sel("import-remove-go")).click(); await c.page.waitForTimeout(1200);
+      check("(n0) the importer removing their own import: the red key, no password", own && batch.status === "removed" && !db.lessons.some((l) => l.import_id === batch.id) && /Removed/.test(await c.text()));
       const told = db.notifications.filter((x) => /removed/.test(x.title));
-      check("(n2) everyone told is told, the remover not", told.length === 1 && told[0].user_id === IDS.cian && told[0].title === `Niamh Byrne removed ${batch.lessons} imported lessons`, JSON.stringify(told.map((x) => [x.user_id.slice(-4), x.title])));
+      check("(n2) everyone told is told, the remover not", told.length === 1 && told[0].user_id === IDS.cian && told[0].title === `Niamh Byrne removed ${batch.lessons} imported lessons` && told[0].body === "Mar 2025 – Nov 2025", JSON.stringify(told.map((x) => [x.user_id.slice(-4), x.title, x.body])));
       const leftBefore = Object.keys(db.files.media).filter((k) => k.startsWith(`import/${batch.id}/`)).length;
       db.sweep();
       const leftAfter = Object.keys(db.files.media).filter((k) => k.startsWith(`import/${batch.id}/`)).length;
       check("(n3) the files are gone after the sweep", leftBefore > 0 && leftAfter === 0, `${leftBefore}→${leftAfter}`);
       await c.close();
       const p2 = await boot(db, "cian");
-      const kept = await p2.page.evaluate(() => new Promise((res) => { const r = indexedDB.open("nosca-offline"); r.onsuccess = () => { const t = r.result.transaction("lessons", "readonly").objectStore("lessons").getAll(); t.onsuccess = () => res(t.result.length); t.onerror = () => res(-1); }; r.onerror = () => res(-1); }));
       await p2.page.waitForTimeout(1500);
-      const keptAfter = await p2.page.evaluate(() => new Promise((res) => { const r = indexedDB.open("nosca-offline"); r.onsuccess = () => { const t = r.result.transaction("lessons", "readonly").objectStore("lessons").getAll(); t.onsuccess = () => res(t.result.length); t.onerror = () => res(-1); }; r.onerror = () => res(-1); }));
-      check("(n4) the player's downloaded copy leaves their phone on the next load", saved && keptAfter === 0, `${saved} ${kept} → ${keptAfter}`);
+      const keptAfter = await idbCount(p2.page);
+      check("(n4) the player's downloaded copy leaves their phone on the next load", saved && keptAfter === 0, `${saved} → ${keptAfter}`);
       await p2.close();
     }
 
     /* ================================================================ (h) A PLAYER, WITH THE SWITCH ON */
-    let playerDb;
     {
-      const db = playerDb = freshDb({ allow: true });
+      const db = freshDb({ allow: true });
       const p = await boot(db, "aoife");
       check("(h1) the empty Lessons hero carries Import", (await count(p.page, sel("lessons-import"))) === 1);
       await p.page.locator(sel("lessons-import")).click(); await p.page.waitForTimeout(1200);
@@ -523,6 +534,19 @@ const cut = (page) => page.evaluate(() => {
       const pg = await c.text();
       check("(h13) the coach's page for one: Imported by Aoife Green, and no Waiting on, no Reply, no Sent by", /Imported by Aoife Green/.test(pg) && !/Waiting on/.test(pg) && (await count(c.page, sel("clip-reply"))) === 0 && !/Sent by/.test(pg), pg.slice(0, 300));
       await c.close();
+      /* (n1) the coach removes the player's import: behind the password, the wrong one first */
+      const c2 = await boot(db, "coach");
+      await openImport(c2.page, true);
+      await c2.page.locator(`[data-batch="${b.id}"]`).click(); await c2.page.waitForTimeout(700);
+      const pw = c2.page.locator('input[type="password"]');
+      const asked = (await pw.count()) === 1;
+      await pw.fill("not-it"); await c2.page.locator("button", { hasText: `Remove ${b.lessons} lessons` }).click(); await c2.page.waitForTimeout(1000);
+      const wrong = /That password isn't right/.test(await c2.text()) && b.status === "done";
+      await pw.fill(PASS); await c2.page.locator("button", { hasText: `Remove ${b.lessons} lessons` }).click(); await c2.page.waitForTimeout(1300);
+      check("(n1) the coach removes a player's import behind the password, the wrong one first", asked && wrong && b.status === "removed" && !db.lessons.some((l) => l.import_id === b.id) && /Removed/.test(await c2.text()));
+      const told = db.notifications.filter((x) => /removed/.test(x.title));
+      check("(n1b) the player is told, the coach not", told.length === 1 && told[0].user_id === IDS.aoife && told[0].title === `Niamh Byrne removed ${b.lessons} imported lessons`, JSON.stringify(told.map((x) => [x.user_id.slice(-4), x.title])));
+      await c2.close();
     }
 
     /* ================================================================ (i) A PARENT, FOR A JUNIOR */
@@ -577,20 +601,19 @@ const cut = (page) => page.evaluate(() => {
       }, { sb: M.SB, id: b.id });
       check("(n5) a parent who has left the family has no Remove: no control, and the database refuses her", (await count(o2.page, sel("settings-import"))) === 0 && gone.status >= 400 && /Not yours to remove/.test(gone.body) && b.status === "done", JSON.stringify(gone));
       await o2.close();
+      /* (n6) back in the family, her own import is hers to remove: no password */
+      db.profiles[IDS.orla].family_id = FAM;
+      const o3 = await boot(db, "orla");
+      await openImport(o3.page, false, "Family");
+      await o3.page.locator(`[data-batch="${b.id}"]`).click(); await o3.page.waitForTimeout(700);
+      const own = (await count(o3.page, 'input[type="password"]')) === 0 && (await count(o3.page, sel("import-remove-sheet"))) === 1;
+      await o3.page.locator(sel("import-remove-go")).click(); await o3.page.waitForTimeout(1300);
+      check("(n6) an importer removing their own import: no password, and the others are told", own && b.status === "removed" && !db.lessons.some((l) => l.import_id === b.id)
+        && db.notifications.filter((x) => /removed/.test(x.title)).map((x) => x.user_id).sort().join() === [IDS.coach, IDS.saoirse, IDS.tom].sort().join(), JSON.stringify(db.notifications.filter((x) => /removed/.test(x.title)).map((x) => x.user_id.slice(-4))));
+      await o3.close();
     }
 
-    /* ================================================================ (n) A PLAYER REMOVES THEIR OWN, AND ONE LESSON */
-    {
-      const db = playerDb;
-      const p = await boot(db, "aoife");
-      await openImport(p.page, false);
-      const b = importsOf(db, IDS.aoife).find((x) => x.status === "done");
-      await p.page.locator(`[data-batch="${b.id}"]`).click(); await p.page.waitForTimeout(700);
-      const own = (await count(p.page, 'input[type="password"]')) === 0 && (await count(p.page, sel("import-remove-sheet"))) === 1;
-      await p.page.locator(sel("import-remove-go")).click(); await p.page.waitForTimeout(1200);
-      check("(n6) a player removing their own import: no password", own && b.status === "removed" && !db.lessons.some((l) => l.import_id === b.id));
-      await p.close();
-    }
+    /* ================================================================ (n) ONE LESSON FROM ITS PAGE, AND (u) A FILE TAKEN OFF */
     {
       const db = freshDb({ allow: true });
       const c = await boot(db, "coach");
@@ -771,6 +794,8 @@ const cut = (page) => page.evaluate(() => {
       await c.shot(`s-${width}-day`);
       const all = [...start, ...found, ...roleSheet, ...checkSheet, ...review, ...day];
       check(`(s${width}) at ${width}: Start, Found, the sheets, the check, Review and A day — nothing cut`, all.length === 0, all.slice(0, 5).join(" | "));
+      const small = await floor(c.page);
+      check(`(s${width}b) …and nothing on A day under the 12px floor`, small.length === 0, small.slice(0, 5).join(" | "));
       if (width === 320) check("(c7) a label merged by hand: Same person as", same && merged === "same:Cian M", merged);
       await c.close();
     }
