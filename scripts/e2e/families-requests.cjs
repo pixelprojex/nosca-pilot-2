@@ -274,7 +274,7 @@ const leaks = [];
          it steps back to the white key, as Copy — it was the sport's colour beside Save's */
       await page.locator('[data-scroll="screen"]').getByText("Name", { exact: true }).first().click(); await page.waitForTimeout(600);
       const shareR = await faceOf(page, '[data-tour="family-share"]'), saveR = await keyFace(page, "Save"); await shot("16b-cian-renaming");
-      check("(d) renaming, Save is the one accent and Share the quiet key with the ink word", !!shareR && !!saveR && saveR.bg === ACCENT && shareR.bg === WHITE && shareR.ring === RING && shareR.fg === "rgb(28, 28, 30)", JSON.stringify({ share: shareR, save: saveR }));
+      check("(d) renaming, Save is the one accent and Share the quiet key with the ink word", !!shareR && !!saveR && saveR.bg === ACCENT && shareR.bg === WHITE && shareR.ring === RING && shareR.fg === "rgb(29, 27, 23)", JSON.stringify({ share: shareR, save: saveR }));
       await ctx.close();
     }
 

@@ -223,7 +223,8 @@ const { check, results, summary } = M.checker("narrow");
         check(width === 320
           ? "(c7) at 320 the time leads the day's other rows at 17/600 in its 74 column and the long name reads whole beside it — no word broken, nothing cut, Log beside it — the face giving way to the name"
           : "(c8) at 360 the same row keeps its face, the time leading at 17/600, the long name whole on three lines at most, no word broken",
-          lead && r.name === LONG && !r.nameCut && !r.broken && r.log && r.logBeside && (width === 320 ? (!r.face && r.lines <= 2) : (r.face && r.lines <= 3)), JSON.stringify(r));
+          /* the card's 18 inside (28 November, the Lares card) gives the long name its third line at 320, whole */
+          lead && r.name === LONG && !r.nameCut && !r.broken && r.log && r.logBeside && (width === 320 ? (!r.face && r.lines <= 3) : (r.face && r.lines <= 3)), JSON.stringify(r));
       }
       await ctx.close();
     }
@@ -238,7 +239,8 @@ const { check, results, summary } = M.checker("narrow");
         return { text: nm.textContent.trim(), w: Math.round(r.width), lines: Math.round(r.height / lh), cut: nm.scrollWidth > nm.clientWidth + 1 || nm.scrollHeight > nm.clientHeight + 1, rowH: Math.round(row.getBoundingClientRect().height) };
       }, LONG);
       await shot("04-diary-row");
-      check('(d) the Diary\'s List row at 320 reads the whole name on a second line — it read "Maximiliano Ó Súil…" beside the time', !!o && o.text === LONG && !o.cut && o.lines <= 2, JSON.stringify(o));
+      /* since 28 November the row is a chip inside the day's card, and at 320 the long name takes a third line, whole */
+      check('(d) the Diary\'s List row at 320 reads the whole name on a second line, and a third — it read "Maximiliano Ó Súil…" beside the time', !!o && o.text === LONG && !o.cut && o.lines <= 3, JSON.stringify(o));
       await ctx.close();
     }
 

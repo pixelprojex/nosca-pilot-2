@@ -30,10 +30,13 @@ const FAM = "fa000000-0000-4000-8000-00000000fa01";
 const L = { two: "10000000-0000-4000-8000-00000000dd01", one: "10000000-0000-4000-8000-00000000dd02", drills: "10000000-0000-4000-8000-00000000dd03", grp: "10000000-0000-4000-8000-00000000dd04" };
 const TODAY = M.ymd(new Date());
 const dayFrom = (n) => { const x = new Date(`${TODAY}T12:00:00`); x.setDate(x.getDate() + n); return x; };
-/* 21 November: every card and box stands on one light grey line, #E2E2E7, in every sport — the sport's own dark tone was the edge until then —
-   and a row inside a box sits on the hairline, #EBEBF0 */
-const EDGE = { golf: "rgb(226, 226, 231)" };
-const HAIRLINE = { golf: "rgb(235, 235, 240)" };
+/* 21 November: every card and box stands on one light grey line, #E4E0D7, in every sport — the sport's own dark tone was the edge until then —
+   and a row inside a box sits on the hairline, #ECE9E2 */
+const EDGE = { golf: "rgb(228, 224, 215)" };
+const HAIRLINE = { golf: "rgb(236, 233, 226)" };
+/* 28 November, the Lares card: golf's family's ring (#C1DAC6) is a card's edge and the rule between its rows; the
+   white card's warm ring (#E6E2D9) is a grouped box's (Settings', New group's people) */
+const CARD_RING = { golf: "rgb(193, 218, 198)" }, WHITE_RING = "rgb(230, 226, 217)";
 const DAY_FORM = /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) [1-9]\d? (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)$/;
 
 function freshDb() {
@@ -86,10 +89,11 @@ const audit = (page, scope, edge) => page.evaluate(([scope, edge]) => {
     [...list.children].forEach((box) => {
       if (!vis(box)) return; out.boxes++;
       const cs = getComputedStyle(box);
-      /* a list row is Duolingo's card (21 November): white, every side on the one light grey line, 14px corners —
-         it sat on the sport's wash with no edge from 14 November */
-      const sides = cs.backgroundColor === "rgb(255, 255, 255)" && ["Top", "Right", "Bottom", "Left"].every((s) => cs[`border${s}Color`] === edge && parseFloat(cs[`border${s}Width`]) >= 1);
-      if (!sides || cs.borderTopLeftRadius !== "14px") out.bad.push(`${label(box)} · ${cs.backgroundColor} ${cs.borderTopWidth} ${cs.borderTopColor} r${cs.borderTopLeftRadius}`);
+      /* a list row is a Lares card (28 November): filled, one 2px ring on every side, 18px corners — it was
+         Duolingo's white card on the light grey line at 14px from 21 November */
+      const ring = cs.borderTopColor;
+      const sides = cs.backgroundColor !== "rgba(0, 0, 0, 0)" && ["Top", "Right", "Bottom", "Left"].every((s) => cs[`border${s}Color`] === ring && parseFloat(cs[`border${s}Width`]) >= 2);
+      if (!sides || cs.borderTopLeftRadius !== "18px") out.bad.push(`${label(box)} · ${cs.backgroundColor} ${cs.borderTopWidth} ${cs.borderTopColor} r${cs.borderTopLeftRadius}`);
       const bw = box.getBoundingClientRect().width;
       [box, ...box.querySelectorAll("*")].forEach((el) => {
         const day = el.closest(".nsc-day"); if (day && box.contains(day) && day !== el) return;
@@ -127,11 +131,11 @@ const dayBox = (page, scope) => page.evaluate((scope) => {
   return { n: rows.length, edge: cs.borderTopColor, w: cs.borderTopWidth, radius: cs.borderTopLeftRadius,
            inner: rows.slice(0, -1).map((r) => `${getComputedStyle(r).borderBottomWidth} ${getComputedStyle(r).borderBottomColor}`), last: rows.length ? getComputedStyle(rows[rows.length - 1]).borderBottomStyle : null };
 }, scope);
-const dayFine = (d, edge, hair) => !!d && d.n >= 2 && d.edge === edge && parseFloat(d.w) >= 1 && d.radius === "16px" && d.inner.every((x) => x === `1px ${hair}`) && d.last === "none";
+const dayFine = (d, edge, hair) => !!d && d.n >= 2 && d.edge === edge && parseFloat(d.w) >= 2 && d.radius === "20px" && d.inner.every((x) => x === `1px ${hair}`) && d.last === "none";
 /* boxed: each row its own box in an .nsc-list on the edge, or a row inside an .nsc-day */
 /* a list row is Duolingo's card since 21 November: white on the light grey line, 14px corners (it was the sport's wash at 8px from 14 November) */
 const CARD = "rgb(255, 255, 255)";
-const boxedRows = (rows, edge) => !!rows && rows.length > 0 && rows.every((r) => (r.inList && r.bg === CARD && r.radius === "14px") || r.inDay);
+const boxedRows = (rows, edge) => !!rows && rows.length > 0 && rows.every((r) => (r.inList && r.bg !== "rgba(0, 0, 0, 0)" && r.radius === "18px") || r.inDay);
 const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map((r) => `"${r.text}" parent[${r.parent}] list=${r.inList} day=${r.inDay} bottom ${r.bottom} left ${r.left}`).join(" | ")}` : "no scope";
 
 (async () => {
@@ -217,7 +221,7 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
         return { n: rows.length, edge: cs.borderTopColor, w: cs.borderTopWidth, r: cs.borderTopLeftRadius, inner: rows.slice(0, -1).map((x) => `${getComputedStyle(x).borderBottomWidth} ${getComputedStyle(x).borderBottomColor}`) }; });
       const disc = await page.evaluate(() => { const b = [...document.querySelectorAll('[data-scroll="screen"] button')].find((x) => /Slots and lesson length/.test(x.textContent)); if (!b) return null; const cs = getComputedStyle(b); return { c: cs.borderTopColor, w: b.style.borderTopWidth || cs.borderTopWidth, r: cs.borderTopLeftRadius }; });
       await shot("s-hours-days");
-      check("(s) guard: the hours' seven days are one Card on the card's edge, the days as rows inside on the 1px hairline", !!daysC && daysC.n === 7 && daysC.edge === EDGE.golf && parseFloat(daysC.w) >= 1 && daysC.inner.every((x) => x === `1px ${HAIRLINE.golf}`), JSON.stringify(daysC));
+      check("(s) guard: the hours' seven days are one Card of golf's family, the days as rows inside on the card's ring", !!daysC && daysC.n === 7 && daysC.edge === CARD_RING.golf && parseFloat(daysC.w) >= 2 && daysC.inner.every((x) => x === `1px ${CARD_RING.golf}`), JSON.stringify(daysC));
       /* a control, so the white key (21 November): its light grey ring at the edge's width, the Card's corner */
       check("(s2) Slots and lesson length is the quiet key — the ring of the sport's pale at the edge's width, the Card's corner", !!disc && disc.c === "rgb(193, 218, 198)" && disc.w === "1.5px" && !!daysC && disc.r === daysC.r, JSON.stringify(disc));
       await page.locator(`${SCREEN} button`, { hasText: /Slots and lesson length/ }).first().click(); await page.waitForTimeout(500);
@@ -283,7 +287,7 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       }, ["Cian Murphy", "Aoife Doyle", "Eoin Breathnach", "Saoirse Kelly"]);
       await shot("t-new-group-people");
       check("(t) New group's people (PersonPicker) are the rows of one grouped box on the card's edge — the group's rule between them, none under the last, a tick box on each — never a box a person",
-        !!pg && pg.n === 4 && pg.groups === 1 && !pg.inList && pg.edge === EDGE.golf && parseFloat(pg.bw) >= 1 && pg.rules.length === 3 && pg.rules.every((r) => parseFloat(r) >= 1 && r.endsWith(EDGE.golf)) && parseFloat(pg.last) === 0 && pg.ticks === 4, JSON.stringify(pg));
+        !!pg && pg.n === 4 && pg.groups === 1 && !pg.inList && pg.edge === WHITE_RING && parseFloat(pg.bw) >= 2 && pg.rules.length === 3 && pg.rules.every((r) => parseFloat(r) >= 1 && r.endsWith(WHITE_RING)) && parseFloat(pg.last) === 0 && pg.ticks === 4, JSON.stringify(pg));
       await closeSheet(page);
 
       /* (y) the push prompt at the head of the alerts */
@@ -336,7 +340,7 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       await shot("x-lesson-drills");
       check("(x) the lesson page's drills are boxed rows on the card's edge, the way the Drills tab draws them", boxedRows(ld, EDGE.golf) && ld.length === 2, rowSaid(ld));
       /* a tick box is the one control whose ring is all that says where it is: the strong grey, 3.3:1 on white */
-      check("(x2) an undone drill's tick on the lesson page is on the strong grey ring, not the hairline", tick === "rgb(142, 142, 147)", String(tick));
+      check("(x2) an undone drill's tick on the lesson page is on the strong grey ring, not the hairline", tick === "rgb(139, 134, 123)", String(tick));
       const drillPad = await page.evaluate(() => { const s = document.querySelector('[data-tour="lesson-drills"] .nsc-list'); return s ? [...s.children].map((r) => parseFloat(getComputedStyle(r).paddingTop)) : []; });
       check("(x3) a drill's box keeps air above its name, so a drill that wraps never touches the edge", drillPad.length === 2 && drillPad.every((x) => x >= 8), JSON.stringify(drillPad));
 
@@ -349,7 +353,8 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       const fr = await rowsOf(page, "[data-cal-day]", `return [...root.querySelectorAll("button")].filter((b) => /^\\d{1,2}:\\d\\d/.test(b.textContent.trim()));`);
       await shot("r-calendar-free");
       const frD = await dayBox(page, "[data-cal-day]");
-      check("(r) the Calendar view's free hours (TimeList) are rows in one box on the card's edge, as the List view's day", boxedRows(fr, EDGE.golf) && fr.length >= 2 && dayFine(frD, EDGE.golf, HAIRLINE.golf), `${rowSaid(fr)} · ${JSON.stringify(frD)}`);
+      /* since 28 November the free times are the List view's chips: white keys on the day's card */
+      check("(r) the Calendar view's free hours (TimeList) are chips in one card, as the List view's day", boxedRows(fr, EDGE.golf) && fr.length >= 2 && fr.every((r) => r.inDay && r.bg === CARD && r.radius === "14px") && !!frD && frD.edge === CARD_RING.golf && frD.radius === "20px", `${rowSaid(fr)} · ${JSON.stringify(frD)}`);
 
       /* (u) the attendance record */
       await openSettings(page, '[aria-label="Home"]');

@@ -34,7 +34,7 @@ const WEEK = ["9:00 am", "10:00 am", "11:00 am", "4:00 pm", "5:00 pm"];
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const dayPlus = (db, n) => M.ymd(new Date(db.now() + n * 86400000));
 const dayWord = (iso) => { const d = new Date(`${iso}T12:00:00`); return `${DAYS[d.getDay()]} ${d.getDate()} ${M.MON[d.getMonth()]}`; };
-const INK = "rgb(28, 28, 30)", SUB = "rgb(95, 95, 101)", RED = "rgb(154, 50, 42)";
+const INK = "rgb(29, 27, 23)", SUB = "rgb(93, 89, 80)", RED = "rgb(154, 50, 42)";
 
 function freshDb() {
   const db = M.emptyDb();

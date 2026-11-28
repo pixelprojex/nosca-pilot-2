@@ -105,8 +105,9 @@ const { check, results, summary } = M.checker("away");
       check("(c) the day picked reads Away with nothing offered and Edit, and no Free times", (await page.locator('[data-tour="cal-away"]').count()) === 1 && /Nothing offered/.test(t2) && !/^Free$/m.test(t2) && /Edit/.test(t2), t2.slice(0, 200));
       /* 18 November (B4): the Away row is the column's own box — the wash at 8px, 14 in — and its line in the label grey (t.faint on the wash read 4.4:1) */
       const aw = await page.locator('[data-tour="cal-away"]').first().evaluate((el) => { const cs = getComputedStyle(el); const line = el.querySelector("span span:last-child"); return { r: cs.borderRadius, pl: cs.paddingLeft, c: line ? getComputedStyle(line).color : null }; }).catch(() => null);
-      /* the list's white card since 21 November (it was the wash at 8px, 14 in), its line in the sub grey, #5F5F65 */
-      check("(c) the Away row is the column's white card (14px, 16 in) with its line in t.sub", !!aw && aw.r === "14px" && aw.pl === "16px" && aw.c === "rgb(95, 95, 101)", JSON.stringify(aw));
+      /* the list's white card since 21 November (it was the wash at 8px, 14 in), its line in the sub grey, #5D5950 */
+      /* a Lares card since 28 November: sky, what is ahead — 18px corners, 15 inside the 2px ring */
+      check("(c) the Away row is the column's sky card (18px, 15 in) with its line in t.sub", !!aw && aw.r === "18px" && aw.pl === "15px" && aw.c === "rgb(93, 89, 80)", JSON.stringify(aw));
       /* 23 November: a row of words carries no icon — the plane on its blue tile is gone, and the word Away starts on the
          box's own inset with nothing before it; Edit stays, the row's one action */
       const lead = await page.locator('[data-tour="cal-away"]').first().evaluate((el) => { const w = [...el.querySelectorAll("span")].find((s) => s.children.length === 0 && s.textContent.trim() === "Away"), r = el.getBoundingClientRect(), cs = getComputedStyle(el);

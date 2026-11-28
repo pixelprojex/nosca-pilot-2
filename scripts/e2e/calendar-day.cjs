@@ -29,17 +29,21 @@ fs.mkdirSync(outDir, { recursive: true });
 const IDS = { coach: "00000000-0000-4000-8000-00000000c0ac", adult: "00000000-0000-4000-8000-0000000adu17", parent: "00000000-0000-4000-8000-000000pa4e07", junior: "00000000-0000-4000-8000-00000000c41d", rider: "00000000-0000-4000-8000-00000000e9c0", tadhg: "00000000-0000-4000-8000-0000000ta0d6" };
 const FAM = "fa000000-0000-4000-8000-00000000fa01";
 const REC = "c0000000-0000-4000-8000-00000000ca01";
-/* 21 November: a list row is Duolingo's card — white on one light grey line, #E2E2E7, 14px corners, in every sport (the sport's
-   wash at 8px from 14 November) — a row inside a box sits on the hairline #EBEBF0, and a chosen reason is Duolingo's chosen
+/* 21 November: a list row is Duolingo's card — white on one light grey line, #E4E0D7, 14px corners, in every sport (the sport's
+   wash at 8px from 14 November) — a row inside a box sits on the hairline #ECE9E2, and a chosen reason is Duolingo's chosen
    answer: the sport's colour at a tenth over white, its ring at 55%, the word in the sport's colour a step deeper */
-const EDGE = { golf: "rgb(226, 226, 231)", equestrian: "rgb(226, 226, 231)" };
+const EDGE = { golf: "rgb(228, 224, 215)", equestrian: "rgb(228, 224, 215)" };
 const CARD = "rgb(255, 255, 255)";
-const HAIRLINE = "rgb(235, 235, 240)";
+const HAIRLINE = "rgb(236, 233, 226)";
+/* 28 November: a Lares card — golf's pale fairway (#DBEEDF) on its ledge's ring (#C1DAC6), 18px corners; what calls
+   off the brick's pale (#F8E2DF) on its ring (#EACAC6) */
+const PALE = { golf: "rgb(219, 238, 223)" }, CARD_RING = { golf: "rgb(193, 218, 198)" };
+const BLUSH = "rgb(248, 226, 223)", BLUSH_RING = "rgb(234, 202, 198)";
 /* the club colours of 22 November: golf's fairway, the yard's claret; a chosen answer is the lead's cloth
    tone with the hue's ink since the 23rd, when every key was filled (it was the lead at a tenth and at 55%
    over white, then for a morning its pale) */
 const ACCENT = { golf: "#285937", equestrian: "#6B2935" };
-const CLOTH = { golf: "#94BD9E", equestrian: "#CDAEB1" };   // claret's cloth capped with the reds and blues on 24 November (#DA9FA6 before)
+const CLOTH = { golf: "#A4C9AC", equestrian: "#D7B3B7" };   // claret's cloth capped with the reds and blues on 24 November (#DA9FA6 before)
 const mixRgb = (a, b, k) => { const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); const x = p(a), y = p(b); return `rgb(${x.map((v, i) => Math.round(v + (y[i] - v) * k)).join(", ")})`; };
 const SEL = (sport) => ({ face: mixRgb(CLOTH[sport], "#000000", 0), ring: mixRgb(CLOTH[sport], ACCENT[sport], 0.5), fg: mixRgb(ACCENT[sport], "#000000", 0.45) });
 const GROUP = "rgb(110, 90, 147)";
@@ -105,8 +109,8 @@ const lum = (c) => { const v = String(c).match(/[\d.]+/g); if (!v) return 1; con
   }), tour);
   const reasonChecks = async (page, id, tour, pick, sport) => {
     const rs = await reasons(page, tour);
-    check(`(${id}) the reasons are rows of one list, each the white card on the light grey line, 14px corners — never the hairline`,
-          rs.length >= 3 && rs.every((r) => r.inList && (r.t === pick || (r.bg === CARD && r.border === EDGE[sport])) && r.radius === "14px"), JSON.stringify(rs.slice(0, 3)));
+    check(`(${id}) the reasons are rows of one list, each a Lares card — filled, on its 2px ring, 18px corners — never the hairline`,
+          rs.length >= 3 && rs.every((r) => r.inList && (r.t === pick || (r.bg !== CARD && r.bg !== r.border && r.bw >= 2)) && r.radius === "18px"), JSON.stringify(rs.slice(0, 3)));
     await page.locator(`[data-tour="${tour}"]`, { hasText: new RegExp(`^${pick}$`) }).first().click(); await page.waitForTimeout(500);
     const on = (await reasons(page, tour)).find((r) => r.t === pick);
     const sel = SEL(sport);
@@ -127,7 +131,7 @@ const lum = (c) => { const v = String(c).match(/[\d.]+/g); if (!v) return 1; con
         const bar = [...b.querySelectorAll("span")].find((x) => getComputedStyle(x).width === "3px");
         return { t: b.innerText.replace(/\s+/g, " ").slice(0, 80), bg: s.backgroundColor, border: s.borderTopColor, bw: parseFloat(s.borderTopWidth), radius: s.borderTopLeftRadius, bar: bar ? getComputedStyle(bar).backgroundColor : null };
       }));
-      check("(c5) each of the coach's lessons is the list's white card on the light grey line at 14px — not a pale 16px accent card", blocks.length === 3 && blocks.every((b) => b.bg === CARD && b.border === EDGE.golf && b.radius === "14px"), JSON.stringify(blocks));
+      check("(c5) each of the coach's lessons is a Lares card of golf's own family, 18px — not a white box, not the deep card", blocks.length === 3 && blocks.every((b) => b.bg === PALE.golf && b.border === CARD_RING.golf && b.radius === "18px"), JSON.stringify(blocks));
       const clinic = blocks.find((b) => /Saturday clinic/.test(b.t));
       check("(c5) …a group keeps the List view's 3px bar in its own colour", !!clinic && clinic.bar === GROUP, JSON.stringify(clinic));
       check("(c3) the coach reads the clinic at its own hour, 11:00 am–12:00 pm — not the diary's 45 minutes, not an am stripped across noon", !!clinic && /11:00 am–12:00 pm/.test(clinic.t), JSON.stringify(clinic));
@@ -146,9 +150,9 @@ const lum = (c) => { const v = String(c).match(/[\d.]+/g); if (!v) return 1; con
          its word's — the calendar-and-X on the red tile is gone and the word is the family's red (#9A322A) on the box's
          16 inset, the chevron after it, a door's 60 tall. Never the rain: a coach calls off for a closed course as often */
       const calloff = await M.rowLead(page, '[data-tour="cal-weather"]');
-      check("(c6) the call-off row is the list's white card at 14px: the word in the family's red on the box's inset and the chevron, no glyph before it — never the rain, never a tile",
-        !!weather && weather.bg === CARD && weather.border === EDGE.golf && weather.radius === "14px" && !/cloud-rain|calendar-x/.test(weather.cls)
-        && M.plainRow(calloff) && calloff.inset === 16 && calloff.h === 60 && calloff.color === "rgb(154, 50, 42)" && /^Call (today off|off (Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{1,2})$/.test(calloff.label), `${JSON.stringify(weather)} · ${JSON.stringify(calloff)}`);
+      check("(c6) the call-off row is the blush card at 18px: the word in the family's red on the card's inset and the chevron, no glyph before it — never the rain, never a tile",
+        !!weather && weather.bg === BLUSH && weather.border === BLUSH_RING && weather.radius === "18px" && !/cloud-rain|calendar-x/.test(weather.cls)
+        && M.plainRow(calloff) && calloff.inset === 15 && calloff.h === 60 && calloff.color === "rgb(154, 50, 42)" && /^Call (today off|off (Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{1,2})$/.test(calloff.label), `${JSON.stringify(weather)} · ${JSON.stringify(calloff)}`);
       /* (w2) Call off, from that row */
       await tap(page, '[data-tour="cal-weather"]', 1000);
       await reasonChecks(page, "w2", "calloff-why", "Weather", "golf"); await shot("03-calloff-why");
@@ -185,8 +189,8 @@ const lum = (c) => { const v = String(c).match(/[\d.]+/g); if (!v) return 1; con
                  clear: cancel ? !hit(r(cancel), r(time)) && !hit(r(resched), r(time)) : null, below: cancel && len ? r(cancel).top >= r(len).bottom - 1 : null, text: b.innerText.replace(/\s+/g, " ") };
       }), HAIRLINE);
       if (w === 390) {
-        check("(c1) every lesson of the player's day is its own row of one list, the white card on the light grey line, nothing inside on the hairline",
-              mine.length === 3 && mine.every((m) => m.inList && m.bg === CARD && m.border.every((c) => c === EDGE.golf) && m.onHair === 0), JSON.stringify(mine.map((m) => ({ t: m.time, inList: m.inList, border: m.border[2], onHair: m.onHair }))));
+        check("(c1) every lesson of the player's day is its own row of one list, a Lares card of golf's family, nothing inside on the hairline",
+              mine.length === 3 && mine.every((m) => m.inList && m.bg === PALE.golf && m.border.every((c) => c === CARD_RING.golf) && m.onHair === 0), JSON.stringify(mine.map((m) => ({ t: m.time, inList: m.inList, border: m.border[2], onHair: m.onHair }))));
         const clinic = mine.find((m) => /Saturday clinic/.test(m.text));
         check("(c3) the member reads the clinic as the coach does: 11:00 am–12:00 pm, an hour", !!clinic && clinic.time === "11:00 am–12:00 pm" && /60 min with/.test(clinic.text), JSON.stringify(clinic));
         const free = await page.evaluate(() => [...document.querySelectorAll("[data-cal-day] .nsc-day button, [data-cal-day] .nsc-day span")].map((x) => x.textContent.trim()).filter((x) => /–/.test(x)));

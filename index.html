@@ -81,6 +81,12 @@
       })(location);
     </script>
     <title>Nosca</title>
+    <!-- the titles' bold serif, asked for while the page is still being read: the
+         bundle is far larger, so the face is here before the first title is
+         drawn and nothing swaps (src/index.css). The build rewrites the path
+         to the hashed file the stylesheet names; crossorigin, as every font
+         is fetched, or the browser would fetch it twice. -->
+    <link rel="preload" href="/src/fonts/NotoSerifDisplay-ExtraCondensedBold.woff2" as="font" type="font/woff2" crossorigin />
     <!-- the paper, not the brand: a phone paints the status bar and the browser chrome
          with it, and a green or cream band above a white app read as a blank strip -->
     <meta name="theme-color" content="#FFFFFF" />
