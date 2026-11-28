@@ -34,6 +34,9 @@ const DAY_FORM = /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) [1-9]\d? (Jan|Feb|Mar|Apr|May|J
    the theme's hairline, #ECE9E2, for a row inside a box */
 const EDGE = { golf: "rgb(228, 224, 215)", equestrian: "rgb(228, 224, 215)" };
 const HAIRLINE = { golf: "rgb(236, 233, 226)" };
+/* a Lares card's ring in golf's own family (fairway's pale ledge, #C1DAC6): a box's edge since 28 November, and the
+   rule between the rows inside a card */
+const CARD_RING = { golf: "rgb(193, 218, 198)" };
 
 function freshDb() {
   const db = M.emptyDb();
@@ -94,10 +97,12 @@ const audit = (page, scope, edge) => page.evaluate(([scope, edge]) => {
     [...list.children].forEach((box) => {
       if (!vis(box)) return; out.boxes++;
       const cs = getComputedStyle(box);
-      /* a list row is Duolingo's card (21 November): white, every side on the one light grey line, 14px corners —
-         it sat on the sport's wash with no edge from 14 November */
-      const sides = cs.backgroundColor === "rgb(255, 255, 255)" && ["Top", "Right", "Bottom", "Left"].every((s) => cs[`border${s}Color`] === edge && parseFloat(cs[`border${s}Width`]) >= 1);
-      if (!sides || cs.borderTopLeftRadius !== "14px") out.bad.push(`${label(box)} · ${cs.borderTopWidth} ${cs.borderTopColor} (want white on ${edge}, 14px) bg ${cs.backgroundColor} r${cs.borderTopLeftRadius}`);
+      /* a list row is a Lares card (28 November): filled, one 2px ring on every side, 18px corners, a 4px ledge
+         under it — it was Duolingo's white card on the one light grey line at 14px from 21 November, the sport's
+         wash with no edge from 14 November */
+      const ring = cs.borderTopColor, lip = /\b0px (\d+(?:\.\d+)?)px 0px\b/.exec(cs.boxShadow);
+      const sides = cs.backgroundColor !== "rgba(0, 0, 0, 0)" && ["Top", "Right", "Bottom", "Left"].every((s) => cs[`border${s}Color`] === ring && parseFloat(cs[`border${s}Width`]) >= 2);
+      if (!sides || cs.borderTopLeftRadius !== "18px" || !lip || parseFloat(lip[1]) < 3) out.bad.push(`${label(box)} · ${cs.borderTopWidth} ${cs.borderTopColor} (want a filled card on one 2px ring, 18px, a ledge) bg ${cs.backgroundColor} r${cs.borderTopLeftRadius} ${cs.boxShadow}`);
       const bw = box.getBoundingClientRect().width;
       [box, ...box.querySelectorAll("*")].forEach((el) => {
         const day = el.closest(".nsc-day"); if (day && box.contains(day) && day !== el) return;
@@ -196,10 +201,12 @@ const metaOf = (page, title) => page.evaluate((title) => {
       const st = await sheetText(page);
       const peek = await audit(page, "[data-sheet]", EDGE.golf);
       await shot("01-peek");
-      /* four boxes since 17 November: the two lessons, All lessons as the list's last row (A14), the competition */
-      check("(a) the peek's last lessons, All lessons and competitions are the app's list — a box each on golf's edge, no rule inside", peeked && fine(peek) && peek.boxes === 4 && /Short game/.test(st) && /Autumn Medal/.test(st), said(peek));
+      /* since 28 November (the class plan's S5) the last lessons and All lessons are the rows of one card
+         (peek-lessons, a .nsc-day of rows), and the competition a box of the list (it was four boxes) */
+      const peekRows = await page.locator('[data-sheet] [data-tour="peek-lessons"] > *').count();
+      check("(a) the peek's last lessons and All lessons are one card, the competitions the app's list — a box each, no rule inside", peeked && fine(peek) && peek.boxes === 1 && peekRows === 3 && /Short game/.test(st) && /Autumn Medal/.test(st), `${said(peek)} · rows ${peekRows}`);
       check("(a2) the competition reads its own day, never a countdown, and one that has been is not on it", st.includes(nice(dayFrom(12))) && !/\b\d+d\b/.test(st) && !/Club Fourball/.test(st), st.slice(-220));
-      const cols = await page.evaluate(() => [...document.querySelectorAll("[data-sheet] .nsc-list > :not([data-tour=peek-all]) > span:first-child")].map((s) => ({ d: s.textContent.trim(), at: Math.round(s.nextElementSibling.getBoundingClientRect().left) })));
+      const cols = await page.evaluate(() => [...document.querySelectorAll("[data-sheet] [data-tour=peek-lessons] > :not([data-tour=peek-all]) > span:first-child, [data-sheet] .nsc-list > :not([data-tour=peek-all]) > span:first-child")].map((s) => ({ d: s.textContent.trim(), at: Math.round(s.nextElementSibling.getBoundingClientRect().left) })));
       const days = cols.map((c) => c.d);
       check("(a3) every day on the peek is the app's one form, in one column", days.length === 3 && days.every((d) => DAY_FORM.test(d)) && days[0] === nice(dayFrom(-12)) && cols.every((c) => Math.abs(c.at - cols[0].at) <= 1), JSON.stringify(cols));
       await closeSheet(page);
@@ -262,7 +269,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
                  names: names.map((x) => x.textContent) };
       });
       await shot("02-register-375");
-      check("(b) the group's register is one box on golf's edge with its members as rows inside it — the clinic's three, not the roster's four — a 1px hairline between and none under the last", !!reg && reg.day && reg.n === 3 && !reg.names.includes("Aoife Doyle") && parseFloat(reg.edgeW) >= 1 && reg.edge === EDGE.golf && reg.radius === "16px" && reg.inner.length === reg.n - 1 && reg.inner.every((x) => x === `1px ${HAIRLINE.golf}`) && reg.last === "none", JSON.stringify(reg));
+      check("(b) the group's register is one box on golf's edge with its members as rows inside it — the clinic's three, not the roster's four — a 1px hairline between and none under the last", !!reg && reg.day && reg.n === 3 && !reg.names.includes("Aoife Doyle") && parseFloat(reg.edgeW) >= 2 && reg.edge === CARD_RING.golf && reg.radius === "20px" && reg.inner.length === reg.n - 1 && reg.inner.every((x) => x === `1px ${CARD_RING.golf}`) && reg.last === "none", JSON.stringify(reg));
       check("(b2) at 375 every name is whole — Eoin Breathnach and Saoirse Kelly are not cut", !!reg && reg.names.includes("Eoin Breathnach") && reg.names.includes("Saoirse Kelly") && reg.cut.length === 0, JSON.stringify(reg && { names: reg.names, cut: reg.cut }));
       await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(300);
       /* the day's lessons, then the walk-ins */
@@ -301,7 +308,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
          chevron, 60 tall, and no glyph (it was drawn here by hand at 56, the count a step fainter) */
       const rosAll = await M.rowLead(page, '[data-tour="roster-archive"]');
       check("(f1) the roster's All lessons is the home's own door: the word, the count in the sub grey, the chevron, 60 tall, no glyph before the word",
-        M.plainRow(rosAll) && rosAll.h === 60 && rosAll.inset === 16 && rosAll.label === "All lessons" && /All lessons\s*\d+$/.test(M.norm(await page.locator('[data-tour="roster-archive"]').innerText())), JSON.stringify(rosAll));
+        M.plainRow(rosAll) && rosAll.h === 60 && rosAll.inset === 18 && rosAll.label === "All lessons" && /All lessons\s*\d+$/.test(M.norm(await page.locator('[data-tour="roster-archive"]').innerText())), JSON.stringify(rosAll));
       await page.locator('[data-scroll="screen"] button', { hasText: /^Groups$/ }).first().click(); await page.waitForTimeout(700);
       const grp = await audit(page, '[data-scroll="screen"]', EDGE.golf);
       const gr = await holder(page, '[data-tour="roster-group"]');
@@ -332,7 +339,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
       const doors = [];
       for (const sel of ['[data-tour="player-all-lessons"]', '[data-tour="player-progress"]', '[data-tour="player-notes"]', '[data-tour="player-recurring"]']) doors.push(await M.rowLead(page, sel));
       check("(g1) the player file's doors lead with their word: All lessons · Progress · Notes · Recurring lessons, no glyph before any, the chevron after, 60 tall on one left edge",
-        doors.every((d) => M.plainRow(d) && d.h === 60 && d.inset === 16 && d.boxed) && doors.map((d) => d.label).join(" · ") === "All lessons · Progress · Notes · Recurring lessons", JSON.stringify(doors.map((d) => d && `${d.label} lead ${d.lead} before ${d.before} [${d.glyphs}] h${d.h}`)));
+        doors.every((d) => M.plainRow(d) && d.h === 60 && d.inset === 18 && d.boxed) && doors.map((d) => d.label).join(" · ") === "All lessons · Progress · Notes · Recurring lessons", JSON.stringify(doors.map((d) => d && `${d.label} lead ${d.lead} before ${d.before} [${d.glyphs}] h${d.h}`)));
       check("(g2) the tip's label and its words sit on one centre line, in the middle of the box", !!tip && Math.abs(tip.label - tip.value) <= 2 && Math.abs(tip.label - tip.box) <= 2, JSON.stringify(tip));
       await M.back(page);
       /* a player with no lessons: the empty line is a line, not a box */
@@ -379,7 +386,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
         const rows = [...day.children]; return { n: rows.length, edge: getComputedStyle(day).borderTopColor, inner: rows.slice(0, -1).every((r) => getComputedStyle(r).borderBottomWidth === "1px"), last: getComputedStyle(rows[rows.length - 1]).borderBottomStyle };
       });
       await shot("09-tip-prompts");
-      check("(k3) the tip sheet's prompts are one box on golf's edge with the prompts as rows inside it", !!pr && pr.n >= 2 && pr.edge === EDGE.golf && pr.inner && pr.last === "none", JSON.stringify(pr));
+      check("(k3) the tip sheet's prompts are one card of golf's family with the prompts as rows inside it", !!pr && pr.n >= 2 && pr.edge === CARD_RING.golf && pr.inner && pr.last === "none", JSON.stringify(pr));
       await closeSheet(page);
       /* past midnight on data loaded the day before: the competition still reads its own day, never a count from now */
       await page.clock.setFixedTime(new Date(`${M.ymd(dayFrom(1))}T08:00:00`));
@@ -400,7 +407,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
       await tap(page, '[aria-label="Roster"]', 900);
       const ros = await audit(page, '[data-scroll="screen"]', EDGE.equestrian);
       /* one light grey line in every sport since 21 November: the sport's colour lives in the keys and the tab bar, not the edge */
-      check("(l2) the riding coach's lists are the same white cards on the same light grey line as golf's", fine(ros) && EDGE.equestrian === EDGE.golf, said(ros));
+      check("(l2) the riding coach's lists are the same Lares cards as golf's", fine(ros) && EDGE.equestrian === EDGE.golf, said(ros));
       /* Ahead with nothing on it carries no nought */
       await tap(page, '[data-tour="quick"]', 900);
       await page.locator('[data-sheet] button[aria-label="Competition"], [data-sheet] button', { hasText: /^Competition$/ }).first().click(); await page.waitForTimeout(900);
@@ -462,7 +469,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
       const door = await M.rowLead(page, '[data-scroll="screen"] [data-tour="kid-progress"]');
       const doorKey = await page.evaluate(() => { const b = document.querySelector('[data-scroll="screen"] [data-tour="kid-progress"]'); return b ? b.classList.contains("n-key") : null; });
       check("(n5) the child's Progress is a door — a row in a box of its own, the word on the box's inset and the chevron, no glyph before it, 60 tall, never a key",
-        !!door && door.boxed && doorKey === false && door.h === 60 && M.plainRow(door) && door.inset === 16 && door.label === "Progress" && door.color === "rgb(29, 27, 23)", JSON.stringify(door));
+        !!door && door.boxed && doorKey === false && door.h === 60 && M.plainRow(door) && door.inset === 18 && door.label === "Progress" && door.color === "rgb(29, 27, 23)", JSON.stringify(door));
       check("(n3) the child's lessons read the app's one day form", days.length === 2 && days.every((d) => DAY_FORM.test(d)) && days[0] === nice(dayFrom(-9)), JSON.stringify(days));
       /* Next, Drills and the lessons under them: one value column down the page */
       const vcol = await page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] .nsc-list > :not([data-tour]) > span:first-child')]

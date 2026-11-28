@@ -28,6 +28,8 @@ const FAM = "fa000000-0000-4000-8000-00000000fa01";
 const TODAY = M.ymd(new Date());
 const dayFrom = (n) => { const x = new Date(`${TODAY}T12:00:00`); x.setDate(x.getDate() + n); return x; };
 const CARD = "rgb(255, 255, 255)", EDGE = "rgb(228, 224, 215)", NONE = "rgba(0, 0, 0, 0)";
+/* the white card's warm ring and ledge (Settings' groups, CARD_WHITE) since 28 November */
+const WHITE_RING = "rgb(230, 226, 217)", WHITE_LEDGE = "rgb(218, 213, 201)";
 
 function freshDb() {
   const db = M.emptyDb();
@@ -64,8 +66,9 @@ const rows = (page, scope) => page.evaluate((scope) => {
     out.push({ kind: "day", text: (el.innerText || "").replace(/\s+/g, " ").slice(0, 24), bg: cs.backgroundColor, radius: cs.borderTopLeftRadius, edges: [`${cs.borderTopWidth} ${cs.borderTopColor}`] }); });
   return out;
 }, scope);
-/* a list row is the white card on the light grey line, every side, 14px corners (the wash with no edge from 14 November) */
-const soft = (r) => r.bg === CARD && r.radius === "14px" && r.edges.every((e) => e.endsWith(EDGE) && parseFloat(e) >= 1);
+/* a list row is a Lares card (28 November): filled, one 2px ring on every side a step deeper than the fill, 18px
+   corners (it was the white card on the light grey line at 14px from 21 November, the wash with no edge before) */
+const soft = (r) => r.bg !== NONE && r.radius === "18px" && r.edges.every((e) => e === r.edges[0] && parseFloat(e) >= 2) && !r.edges[0].endsWith(r.bg);
 const say = (rs) => rs ? `${rs.length}: ` + rs.filter((r) => r.kind === "row" && !soft(r)).slice(0, 3).map((r) => `"${r.text}" ${r.bg} ${r.edges[0]} r${r.radius}`).join(" | ") : "no scope";
 /* Chat's rows: Messages' plain list — no fill of its own, no border, a 1px separator (::after) inset from the face under every row but the last */
 const plainRows = (page) => page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] .nsc-plain > *')].filter((el) => el.getBoundingClientRect().height > 0).map((el, i, all) => {
@@ -144,10 +147,10 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
       const { ctx, page, shot } = await boot(db, "coach");
       await tap(page, '[aria-label="Today"]', 900);
       const home = await rows(page, '[data-scroll="screen"]'); await shot("01-today");
-      check("(a) the coach's home: every row — the day's lessons, the folded next day, the Actions rows, All lessons — is the white card on the light grey line, 14px corners", !!home && home.filter((r) => r.kind === "row").length >= 5 && home.filter((r) => r.kind === "row").every(soft), say(home));
+      check("(a) the coach's home: every row — the day's lessons, the folded next day, the Actions rows, All lessons — is a Lares card, filled on its 2px ring, 18px corners", !!home && home.filter((r) => r.kind === "row").length >= 5 && home.filter((r) => r.kind === "row").every(soft), say(home));
       /* …but one: the lesson next is the day's coloured card, filled, on its own colour's line, 16px corners — one a screen at most */
       const cards = home ? home.filter((r) => r.kind === "card") : [];
-      check("(a0) …and exactly one box is coloured: the day's next lesson, filled and ringed in its own colour, 16px corners", cards.length === 1 && cards[0].bg !== CARD && cards[0].bg !== NONE && cards[0].radius === "16px" && cards[0].edges.every((e) => e.endsWith(cards[0].bg)), JSON.stringify(cards));
+      check("(a0) …and exactly one box is deep: the day's next lesson, filled and ringed in its own colour, 18px corners", cards.length === 1 && cards[0].bg !== CARD && cards[0].bg !== NONE && cards[0].radius === "18px" && cards[0].edges.every((e) => e.endsWith(cards[0].bg)), JSON.stringify(cards));
       /* since 18 November the home carries no board: the six verbs were every one on the plus already, and the founder asked for the duplicate gone */
       const board = await page.locator('[data-tour="today-board"]').count();
       await tap(page, '[data-tour="quick"]', 900);
@@ -173,7 +176,7 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
       const nJobs = await page.locator('[data-scroll="screen"] .nsc-ruled > [data-row-door]').count(), jobs = [];
       for (let i = 0; i < nJobs; i++) jobs.push(await M.rowLead(page, '[data-scroll="screen"] .nsc-ruled > [data-row-door]', i));
       check("(c2b) the home's Actions rows and All lessons lead with their word: no glyph before any, the chevron after, 60 tall on the box's inset",
-        jobs.length >= 3 && jobs.every((j) => M.plainRow(j) && j.h === 60 && j.inset === 16 && j.color === "rgb(29, 27, 23)") && jobs.some((j) => j.label === "Join requests") && !jobs.some((j) => j.label === "Messages") && jobs[jobs.length - 1].label === "All lessons",
+        jobs.length >= 3 && jobs.every((j) => M.plainRow(j) && j.h === 60 && j.inset === 18 && j.color === "rgb(29, 27, 23)") && jobs.some((j) => j.label === "Join requests") && !jobs.some((j) => j.label === "Messages") && jobs[jobs.length - 1].label === "All lessons",
         JSON.stringify(jobs.map((j) => j && `${j.label} lead ${j.lead} before ${j.before} [${j.glyphs}] h${j.h}`)));
       {
         /* the same coach on a heavy morning: three requests, a join request, a message, a lesson to log, somebody drifting */
@@ -197,7 +200,7 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
       const ros = await rows(page, '[data-scroll="screen"]'); await shot("02-roster");
       const g3 = await page.evaluate(() => { const t = document.querySelector('[data-tour="roster-invite"]'), s = document.querySelector('[data-tour="roster-tab"]'); return t && s ? Math.round(s.getBoundingClientRect().top - t.getBoundingClientRect().bottom) : null; });
       const inv = await tile(page, "Add player");
-      check("(d) the roster: the players' rows and All lessons the white card, the two action tiles keys, SPACE.section between the tiles and the list", !!ros && ros.filter((r) => r.kind === "row").length >= 3 && ros.filter((r) => r.kind === "row").every(soft) && !!inv && inv.bg !== NONE && g3 !== null && g3 >= 40, `${say(ros)} · gap ${g3} · ${JSON.stringify(inv)}`);
+      check("(d) the roster: the players' rows and All lessons Lares cards, the two action tiles keys, SPACE.section between the tiles and the list", !!ros && ros.filter((r) => r.kind === "row").length >= 3 && ros.filter((r) => r.kind === "row").every(soft) && !!inv && inv.bg !== NONE && g3 !== null && g3 >= 40, `${say(ros)} · gap ${g3} · ${JSON.stringify(inv)}`);
       await tap(page, '[aria-label="Chat"]', 900);
       await shot("03-chat");
       const chat = await plainRows(page);
@@ -212,8 +215,8 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
         return { bg: cs.backgroundColor, radius: cs.borderTopLeftRadius, n: kids.length,
                  own: kids.filter((k) => getComputedStyle(k).backgroundColor !== "rgba(0, 0, 0, 0)").length,
                  rules: kids.slice(0, -1).filter((k) => getComputedStyle(k).borderBottomWidth === "1px").length, lastRule: kids.length ? getComputedStyle(kids[kids.length - 1]).borderBottomWidth : null }; }));
-      check("(f) Settings' rows sit in groups: each a white box at 16px, iOS's grouped list, the rows inside on a fine rule, the last with none",
-        groups.length >= 3 && groups.reduce((n, g) => n + g.n, 0) >= 8 && groups.every((g) => g.bg === CARD && g.radius === "16px" && g.own === 0 && g.rules === g.n - 1 && g.lastRule === "0px"), JSON.stringify(groups).slice(0, 300));
+      check("(f) Settings' rows sit in groups: each a white box at 18px, iOS's grouped list, the rows inside on a fine rule, the last with none",
+        groups.length >= 3 && groups.reduce((n, g) => n + g.n, 0) >= 8 && groups.every((g) => g.bg === CARD && g.radius === "18px" && g.own === 0 && g.rules === g.n - 1 && g.lastRule === "0px"), JSON.stringify(groups).slice(0, 300));
       /* 23 November: "I don't want you to have the icons in the settings, as it makes it look very tacky." A Settings row
          is label · value · chevron and nothing leading it: the label on the group's 16 inset with nothing before it, 56
          tall, the only glyph a chevron (none beside a switch or a value that opens nothing); what a row holds is its
@@ -221,8 +224,8 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
          and a value on the right on others */
       const nRows = await page.locator('[data-scroll="screen"] .nsc-group > *').count(), srows = [];
       for (let i = 0; i < nRows; i++) srows.push(await M.rowLead(page, '[data-scroll="screen"] .nsc-group > *', i));
-      const badLead = srows.filter((r) => !r || r.lead !== 0 || r.before !== 0 || r.inset !== 16 || r.h !== 56 || r.glyphs.some((g) => g !== "chevron-right") || r.glyphs.length > 1 || r.size !== "16px");
-      check("(f2) no Settings row leads with a glyph: every row is its label on the group's 16 inset, 56 tall, and its only glyph a chevron",
+      const badLead = srows.filter((r) => !r || r.lead !== 0 || r.before !== 0 || r.inset !== 18 || r.h !== 56 || r.glyphs.some((g) => g !== "chevron-right") || r.glyphs.length > 1 || r.size !== "16px");
+      check("(f2) no Settings row leads with a glyph: every row is its label on the group's 18 inset, 56 tall, and its only glyph a chevron",
         srows.length >= 8 && badLead.length === 0 && srows.filter((r) => r.glyphs.length === 1).length >= 6, `${srows.length} rows · ` + JSON.stringify(badLead.slice(0, 3)));
       const valued = srows.filter((r) => r && r.value), subs = await page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] .nsc-group [data-row] span')].filter((s) => s.children.length === 0 && s.textContent.trim() && getComputedStyle(s).fontSize === "13px").map((s) => s.textContent.trim()));
       check("(f3) a Settings row's value sits on the label's line at the right, whole, in the sub grey — Default view, the invite code, the build — and no row carries a small line under its label",
@@ -257,7 +260,7 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
       const onList = page.locator('[data-tour="cal-view"] button[aria-pressed="true"]');
       if ((await onList.count()) && (await onList.getAttribute("aria-label")) !== "List") await tap(page, '[data-tour="cal-view"] [aria-label="List"]', 700);
       const diary = await rows(page, '[data-scroll="screen"]'); await shot("06-diary-list");
-      check("(h) the Diary's List view: a day's box — a container of times — stands on the light grey line; any list row beside it is the white card", !!diary && diary.some((r) => r.kind === "day") && diary.filter((r) => r.kind === "day").every((r) => r.edges[0].endsWith(EDGE) && parseFloat(r.edges[0]) >= 1) && diary.filter((r) => r.kind === "row").every(soft), say(diary));
+      check("(h) the Diary's List view: a day's box — a card of chips — stands on its own 2px ring; any list row beside it is a Lares card", !!diary && diary.some((r) => r.kind === "day") && diary.filter((r) => r.kind === "day").every((r) => !r.edges[0].endsWith(r.bg) && parseFloat(r.edges[0]) >= 2 && r.radius === "20px") && diary.filter((r) => r.kind === "row").every(soft), say(diary));
       await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-group"]', 1000);
       await shot("07-sheet-people");
       /* since 24 November New group's people — several are chosen — are the rows of ONE grouped box (Settings' own),
@@ -267,7 +270,7 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
         let el = g.parentElement; while (el && getComputedStyle(el).backgroundColor === "rgba(0, 0, 0, 0)") el = el.parentElement;
         return { rows: g.querySelectorAll("[data-person-row]").length, bg: cs.backgroundColor, edge: cs.borderTopColor, bw: cs.borderTopWidth, ledge: cs.boxShadow, ground: el ? getComputedStyle(el).backgroundColor : null }; });
       check("(i) inside a sheet the people are one white box on its line and ledge, the rows inside it — an object on the white sheet",
-        !!grp && grp.rows >= 3 && grp.bg === CARD && grp.edge === EDGE && parseFloat(grp.bw) >= 1 && grp.ledge.includes(EDGE) && grp.ground === CARD, JSON.stringify(grp));
+        !!grp && grp.rows >= 3 && grp.bg === CARD && grp.edge === WHITE_RING && parseFloat(grp.bw) >= 2 && grp.ledge.includes(WHITE_LEDGE) && grp.ground === CARD, JSON.stringify(grp));
       await closeSheet(page);
       await ctx.close();
     }
@@ -296,7 +299,7 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
       if (await page.locator('[data-tour="sheet-settings"]').count()) await tap(page, '[data-tour="sheet-settings"]', 900);
       const n = await page.locator('[data-scroll="screen"] .nsc-group > *').count(), rs = [];
       for (let i = 0; i < n; i++) rs.push(await M.rowLead(page, '[data-scroll="screen"] .nsc-group > *', i));
-      const bad = rs.filter((r) => !r || r.lead !== 0 || r.before !== 0 || r.inset !== 16 || r.glyphs.length > 1 || r.glyphs.some((g) => g !== "chevron-right") || r.labelCut || r.valueCut
+      const bad = rs.filter((r) => !r || r.lead !== 0 || r.before !== 0 || r.inset !== 18 || r.glyphs.length > 1 || r.glyphs.some((g) => g !== "chevron-right") || r.labelCut || r.valueCut
         || (r.value && r.valueColor !== "rgb(93, 89, 80)") || (r.value ? (r.valueLine === "beside" ? r.h !== 56 : r.valueLine !== "under") : r.h !== 56));
       if (width === 320) await shot(`09-settings-${role}-320`);
       check(`(l) ${role} at ${width}: every Settings row is label · value · chevron — nothing before the label, no glyph but the chevron, nothing cut`,

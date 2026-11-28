@@ -76,6 +76,69 @@ seeded data and no account.
 
 ## Rules — each of these cost a deploy to learn
 
+- **Lares cards: every list a card filled in its function's family (28
+  November, the design render's second pass).** The orchestrator, of the
+  first pass: the serif is right, "the rest is too subtle; the founder will
+  say again 'it still basically looks the exact same'"; the founder, of
+  Lares, his own app: "absolutely stunning", and of Nosca: "the epitome of
+  luxury … nothing … AI-built, cheap". So the white box on the grey line
+  is gone:
+  - **The card.** A row of `.nsc-list`, a `.nsc-day`, `Card`, `Tile` (the
+    Calendar view's blocks) and Progress's blocks are FILLED with the pale
+    of a colour family (`--card`), on a 2px ring of the pale's ledge
+    (`--card-ring`) and a 4px ledge a step deeper in the same hue
+    (`--card-ledge`: the ledge mixed three quarters to the cloth), 18px
+    corners (20 on a `.nsc-day`), 18px inside; a row that is one button
+    sinks 3px onto it. `cardOf(t, hue)` gives the three on a list or on one
+    row; the sport's own family (`HUE.green`) is every list's default, set
+    on the app's root. **Settings keeps white groups** (`.nsc-group`) on
+    the warm ring `#E6E2D9` and a 4px ledge `#DAD5C9` (`CARD_WHITE`), as
+    Lares's settings are plain. A rule inside a card is the card's ring.
+  - **A hue a function, one calm chart a screen** (the page stays white):
+    lessons the sport's family; what is ahead and every request sky
+    (`HUE.blue`: the home's folded next day, Today's and the bell's
+    requests, Join requests, the Calendar view's request block, a
+    request's chip); To log sand (`HUE.orange`); To review heather
+    (`HUE.purple`, and the drills to do, the lesson page's drills); a
+    player drifting and every row that calls off blush (`HUE.red`: the
+    Calendar view's Call off, the Manage sheet's); the record pale gold
+    (`HUE.gold`: every All lessons, All drills, Competitions, a tip — the
+    player file's and the lesson page's, a card of its own); people the
+    teal role (the roster's players and groups, a group's members); the
+    player file's doors (Progress · Notes · Recurring lessons) and the
+    Drills tab's Reminder sky; Progress's blocks each their subject's
+    (the level the sport's, what was worked on sky, the months gold,
+    attendance teal, practice sand, drills heather). A count of what waits
+    is a white chip in its card's own ink (`CountPill`).
+  - **The Diary's day is a card of chips** (`.nsc-day.nsc-chips`, 8 in, 8
+    apart, each 56 tall on a 3px ledge, 14px corners): a lesson the
+    sport's cloth with the person's face ringed white and the chevron in
+    the cloth's ink; a request sky; a free hour the white key with its
+    `PlusKey`; the person's next lesson the deep colour; a blocked hour and
+    Away words on the card. **A coach's free hours fold** (the class plan's
+    S3): on every day but the one holding the first bookable hour, two or
+    more are one chip, "Free · 4" (`agenda-free`, `data-free`), the plus on
+    it, a tap laying them out in their places — the walkthrough's ring and
+    `agenda-book` stay on the open day. The Calendar view's month is the
+    pale card (today the white key, its arrows white keys) and its free
+    times the same white chips (`TimeList`). A lesson with nothing filmed
+    is a white tile on its card, the glyph in the lead.
+  - **The peek's last lessons and All lessons are one card** (the class
+    plan's S5; `peek-lessons` is a `.nsc-day.nsc-rows`, the rows on the
+    card's ring). This supersedes, for the peek, "the bell, Chat, the
+    roster and the day's rows keep a box per item".
+  This supersedes the white card wherever it is named below: "A box is
+  Duolingo's card … white, a 1.5px `#E2E2E7` line … 14px corners (16 on a
+  day's box and a group)", "A list is a column of boxes, and every edge is
+  one line, 1.5px", "WHITE CARDS", the Diary's day box "with its times as
+  rows inside" on hairlines, the Calendar view's blocks "the same box at
+  8px", the reasons "boxes of one list" as white cards (they are cards of
+  the sheet's family now, the chosen one `SEL`), and Progress's "cards
+  under `RowHead` headings" in white. Not changed: the page, the one deep
+  card, the keys, the tab bar and the plus, Chat's plain list, Settings'
+  shape. `boxes.cjs`, `calendar-day.cjs`, `ease.cjs`, `lists.cjs`,
+  `diary.cjs`, `edit-day.cjs`, `narrow.cjs`, `sprint-3.cjs`, `keys.cjs`
+  read it.
 - **The design render: bold serif titles, Lares's round keys, words on
   the plus, one paint chart a sport, warm neutrals, the Diary as keys
   (24–28 November).** The founder, 24 November, of the serif titles he

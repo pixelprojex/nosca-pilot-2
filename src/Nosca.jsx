@@ -12131,15 +12131,18 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
           {tipHere && (
             <div className="py-5" data-tour="lesson-tip">
               <Label>{tr("Tip")}</Label>
-              <p style={{ ...TYPE.title, color: t.ink }}>{tipHere.title}</p>
-              {tipHere.body && <p className="mt-1.5" style={{ ...TYPE.small, lineHeight: 1.55, color: t.sub }}>{tipHere.body}</p>}
+              {/* the tip is a card of the gold's family (28 November), as Lares's Verse is */}
+              <div data-card="" style={{ background: "var(--card)", border: "2px solid var(--card-ring)", borderRadius: 18, boxShadow: "0 4px 0 var(--card-ledge)", padding: "16px 18px", ...cardOf(t, HUE.gold) }}>
+                <p style={{ ...TYPE.title, color: t.ink }}>{tipHere.title}</p>
+                {tipHere.body && <p className="mt-1.5" style={{ ...TYPE.small, lineHeight: 1.55, color: t.sub }}>{tipHere.body}</p>}
+              </div>
             </div>
           )}
 
           {drillsHere.length > 0 && (
             <div className="py-5" data-tour="lesson-drills">
               <Label>{tr("Drills")}</Label>
-              <div className="nsc-list">
+              <div className="nsc-list" style={cardOf(t, HUE.purple)}>
               {drillsHere.map((d) => {
                 const Tag = onGoDrills ? "button" : "div";
                 return (
@@ -16478,7 +16481,7 @@ function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers, onMes
           const people = members || group.members.map((n) => ({ id: n, name: n }));
           return people.length > 0 && (<>
             <Eyebrow>{tr("Members")}</Eyebrow>
-            <div className="px-6 pb-2"><div className="nsc-list" data-tour="group-members">{people.map((r, i) => (
+            <div className="px-6 pb-2"><div className="nsc-list" data-tour="group-members" style={cardOf(t, HUE.teal)}>{people.map((r, i) => (
                 /* the roster's own row for the same person: where they
                    stand on the grey line, the level on the right (C6) */
                 (() => {
