@@ -12,7 +12,13 @@
  *
  * Nothing here throws, and every browser API is checked before it is
  * touched — this runs on every open, signed in or not.
+ *
+ * Inside the App Store and Google Play shell (lib/native.js) the app is
+ * installed by definition: isStandalone() says so, and with it the
+ * guide, the Settings row and the arrival screen's line are never
+ * offered there.
  */
+import { isNative } from "./native";
 
 let deferred = null;
 const listeners = new Set();
@@ -65,6 +71,7 @@ export function isIpad() {
 /* Opened from a Home Screen (or a Dock) rather than in a browser tab. */
 export function isStandalone() {
   if (!hasWindow()) return false;
+  if (isNative()) return true;
   try {
     if (navigator.standalone === true) return true;
     if (typeof window.matchMedia === "function" && window.matchMedia("(display-mode: standalone)").matches) return true;

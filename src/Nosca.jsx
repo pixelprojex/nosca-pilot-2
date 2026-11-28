@@ -11,6 +11,7 @@ import { FOCUS } from "./lib/taxonomy";
 import { importJob, importBusy } from "./lib/importJob";
 import { useSyncExternalStore } from "react";
 import { listImports, clearImports } from "./lib/offline";
+import { isNative, nativeHaptic, nativeShareFile, keepCopy, openExternal, onNativeOpen, PUBLIC_ORIGIN } from "./lib/native";
 import { Mark, BrandLoader, RING_L, RING_R, RING_LEN, BRAND as BRAND_COLOUR, BRAND_PAPER } from "./lib/brandmark.jsx";
 /* THE LIST'S OWN RULES, shared with the pages that render without
    Nosca mounted (pages/Install.jsx): a list is a column of soft rows,
@@ -80,7 +81,11 @@ export const BRAND = "NOSCA";
    find it." It opens beside the app, never over it: in a browser a new
    tab, on a Home Screen the phone's own in-app page with its way back. */
 export const ABOUT_URL = "/about/";
-export const openAbout = () => { try { window.open(ABOUT_URL, "_blank", "noopener"); } catch { /* a browser with no window.open has no second tab to give */ } };
+export const openAbout = () => {
+  /* inside the App Store shell the page is localhost, which carries no website: the public one, in the phone's browser */
+  if (isNative()) { openExternal(PUBLIC_ORIGIN + ABOUT_URL); return; }
+  try { window.open(ABOUT_URL, "_blank", "noopener"); } catch { /* a browser with no window.open has no second tab to give */ }
+};
 /* Where "Email support" goes. Unset in a build, and the help rows are
    not shown — nothing offers a route that leads nowhere. */
 const SUPPORT_EMAIL = (import.meta.env && import.meta.env.VITE_SUPPORT_EMAIL) || "";
@@ -1803,6 +1808,8 @@ const _vibrate = (pattern) => {
 export const haptic = (ms = 8) => {
   if (!HAPTICS_ON) return;
   try {
+    /* inside the App Store shell, the phone's own haptic engine (lib/native.js) */
+    if (nativeHaptic("tap", ms)) return;
     if (_vibrate(ms)) return;
     _iosTick();
   } catch (e) {}
@@ -1811,9 +1818,10 @@ export const haptic = (ms = 8) => {
 /* Distinct patterns, so the hand learns the difference between a tap,
    a commitment, and something going wrong. On iOS we can only fire the
    one tick, so patterns become a short burst of them. */
-const buzz = (pattern) => {
+const buzz = (pattern, kind) => {
   if (!HAPTICS_ON) return;
   try {
+    if (nativeHaptic(kind || "commit")) return;
     if (_vibrate(pattern)) return;
     /* iOS only honours the switch trick inside the user's gesture, and a
        setTimeout — even of 0 — is outside it. Every pattern used to be
@@ -1824,9 +1832,9 @@ const buzz = (pattern) => {
     for (let i = 1; i < beats; i++) setTimeout(_iosTick, i * 70);
   } catch (e) {}
 };
-export const hapticSuccess = () => buzz([14, 40, 26]);
-export const hapticWarn    = () => buzz([28, 60, 28]);
-export const hapticCommit  = () => buzz([10, 30, 10, 30, 22]);
+export const hapticSuccess = () => buzz([14, 40, 26], "success");
+export const hapticWarn    = () => buzz([28, 60, 28], "warning");
+export const hapticCommit  = () => buzz([10, 30, 10, 30, 22], "commit");
 
 /* The harness's roster. Every row has an id because two of them are
    called Tom Beckett — which is the whole point of them: the app must
@@ -5820,6 +5828,8 @@ function Attendance({ lessons, roster, groups = [], taken, chosen, onSubmit, clo
    depends on that copy being there, and says nothing it cannot see. */
 function saveToDevice(file, name) {
   try {
+    /* the App Store shell has no downloads: the app's own Documents (lib/native.js) */
+    if (isNative()) return keepCopy(file, name);
     if (!file || !("download" in HTMLAnchorElement.prototype)) return false;
     const url = URL.createObjectURL(file);
     const a = document.createElement("a");
@@ -11843,6 +11853,13 @@ function icsOf(events) {
   return lines.join("\r\n") + "\r\n";
 }
 async function shareTextFile({ text, name, type, title, say }) {
+  /* the App Store shell: the file goes to the phone's share sheet from the app's cache —
+     its WebView has no share for files and a download there goes nowhere */
+  if (isNative()) {
+    const r = await nativeShareFile({ text, name, title });
+    if (r === "failed") say && say(tr("Couldn't share"));
+    return;
+  }
   const file = new File([text], name, { type });
   try {
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -19595,8 +19612,8 @@ function Notifications({ role, pop, pushOn, setPushOn, live, notify, setNotify, 
                    ["digest",  tr("Once a day"),     tr("One summary each morning")],
                    ["quiet",   tr("Only urgent"),    tr("Cancellations, bookings, requests and messages")]];
   const why = support === "ios-home-screen" ? tr("On an iPhone, add Nosca to your Home Screen first (Share → Add to Home Screen) and open it from there.")
-    : support === "denied" ? tr("Notifications are blocked for this site in your browser's settings. Allow them there, then come back.")
-    : support === "unsupported" ? tr("This browser can't receive notifications while the app is closed.")
+    : support === "denied" ? (isNative() ? tr("Notifications are off for Nosca in the phone's Settings. Turn them on there, then come back.") : tr("Notifications are blocked for this site in your browser's settings. Allow them there, then come back."))
+    : support === "unsupported" ? (isNative() ? tr("Notifications aren't set up in this build of the app yet.") : tr("This browser can't receive notifications while the app is closed."))
     : null;
   if (live) return (
     <SwipeBack onBack={pop}>
@@ -22120,10 +22137,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
         setTimeout(() => openNotificationRef.current && openNotificationRef.current({ data: { screen: open, ...(oid ? { id: oid } : {}), ...(oday ? { remind_day: oday } : {}) } }), 300);
       }
     } catch (e) { /* no history API */ }
-    if (typeof navigator === "undefined" || !navigator.serviceWorker) return;
+    /* inside the App Store shell a tapped notification comes from the phone, with the worker's own keys */
+    const offNative = isNative() ? onNativeOpen((m) => openNotificationRef.current && openNotificationRef.current({ data: { screen: m.screen, ...(m.data || {}) } })) : null;
+    if (typeof navigator === "undefined" || !navigator.serviceWorker) return offNative || undefined;
     const onMsg = (e) => { const m = e && e.data; if (m && m.type === "nosca:open" && openNotificationRef.current) openNotificationRef.current({ data: { screen: m.screen, ...(m.data || {}) } }); };
     navigator.serviceWorker.addEventListener("message", onMsg);
-    return () => navigator.serviceWorker.removeEventListener("message", onMsg);
+    return () => { navigator.serviceWorker.removeEventListener("message", onMsg); if (offNative) offNative(); };
   }, [!!data]);
 
   /* A NEW BUILD TAKES EFFECT WHEN THE APP COMES BACK. A home-screen app

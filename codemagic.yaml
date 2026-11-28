@@ -1,0 +1,80 @@
+# THE APP STORE AND GOOGLE PLAY BUILDS, on Codemagic's own Macs and Linux
+# machines — no Mac is needed anywhere else. Each is started by hand from
+# Codemagic's dashboard (nothing builds on a push, so no minutes go on a
+# build nobody asked for). What has to be set up in Codemagic once, by the
+# founder, is in docs/native/README.md: the App Store Connect key named
+# "Nosca", the upload keystore named "nosca_upload", and the google_play
+# group (GCLOUD_SERVICE_ACCOUNT_CREDENTIALS, GOOGLE_SERVICES_JSON).
+#
+# The app's id is in capacitor.config.json (npm run native:id -- <id>);
+# bundle_identifier below must match it.
+
+workflows:
+  ios-testflight:
+    name: iOS · TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: Nosca
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: ie.nosca.app
+      node: 22
+      xcode: latest
+    scripts:
+      - name: Install
+        script: npm install
+      - name: Build the app and copy it into ios/
+        # reads the database's public address and key off the live site,
+        # as a Netlify build with none does (vite.config.js), or takes
+        # VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY if they are set here
+        script: npm run native:sync
+      - name: Signing
+        script: xcode-project use-profiles
+      - name: Build number
+        # Codemagic's own count of this workflow's builds: always higher than the last
+        script: perl -pi -e "s/CURRENT_PROJECT_VERSION = \d+;/CURRENT_PROJECT_VERSION = $BUILD_NUMBER;/g" ios/App/App.xcodeproj/project.pbxproj
+      - name: Build the .ipa
+        script: xcode-project build-ipa --project ios/App/App.xcodeproj --scheme App
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+
+  android-play:
+    name: Android · Play internal testing
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment:
+      android_signing:
+        - nosca_upload
+      groups:
+        - google_play
+      node: 22
+      java: 21
+    scripts:
+      - name: Install
+        script: npm install
+      - name: The Firebase file, for push
+        # before the app is built: the bundle is told whether it is there
+        # (vite.config.js), and Android's push is switched on only if so
+        script: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          fi
+      - name: Build the app and copy it into android/
+        script: npm run native:sync
+      - name: Build the .aab
+        # signed with the upload key (android/app/build.gradle reads
+        # Codemagic's CM_KEYSTORE_*); versionCode is $BUILD_NUMBER
+        script: cd android && ./gradlew bundleRelease
+    artifacts:
+      - android/app/build/outputs/bundle/release/*.aab
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: true

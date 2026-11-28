@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- the brand, as src/lib/brandmark.jsx's BRAND (scripts/icons.mjs) -->
+    <color name="ic_launcher_background">#123C30</color>
+    <color name="nosca_brand">#123C30</color>
+</resources>

@@ -1,6 +1,6 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { resolve, join, relative } from "node:path";
 import { FIRST_SITE, settingsFromSite, forwardScript, cleanUrl, usable, secretNamed } from "./scripts/public-settings.mjs";
 
@@ -74,6 +74,18 @@ const keyNeverShipped = () => {
   };
 };
 
+/* THE APP STORE AND GOOGLE PLAY SHELL (capacitor.config.json, ios/,
+   android/; docs/native/README.md). `npm run native:sync` builds with
+   NOSCA_NATIVE=1: the shell carries this bundle on the phone, so it reads
+   the three public settings off the first site exactly as a Netlify build
+   with none does, and a build that still has no database stops — a shell
+   that throws on its first line would go to the stores as a blank page.
+   Android's push library takes the app down without the app's Firebase
+   file, so the bundle is told whether android/app/google-services.json
+   was there (lib/native.js). */
+const NATIVE = process.env.NOSCA_NATIVE === "1";
+const ANDROID_PUSH = existsSync(new URL("./android/app/google-services.json", import.meta.url));
+
 export default defineConfig(async ({ mode, command }) => {
   const files = loadEnv(mode, process.cwd(), "VITE_");
   /* The address as it is usually pasted is put right first (cleanUrl), wherever it was named. */
@@ -84,7 +96,7 @@ export default defineConfig(async ({ mode, command }) => {
      reach the bundle by Vite's own VITE_ prefix, in place of whatever would not do. A build that names
      its own — the site's variables, the e2e mock, a .env file — reads nothing, and neither does a build
      off Netlify or `vite` on a laptop. */
-  if (command === "build" && process.env.NETLIFY === "true"
+  if (command === "build" && (process.env.NETLIFY === "true" || NATIVE)
       && !usable(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY || files.VITE_SUPABASE_ANON_KEY)) {
     const read = await settingsFromSite(FIRST_SITE);
     if (read) Object.assign(process.env, read);
@@ -97,8 +109,12 @@ export default defineConfig(async ({ mode, command }) => {
   const secret = command === "build" ? secretNamed(env) : null;
   if (secret) throw new Error(`nosca: ${secret}. A bundle is handed to every visitor, so this build stops; the last good deploy is still served.`);
   const configured = usable(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY);
+  if (NATIVE && command === "build" && !configured) throw new Error("nosca: the native shell's build has no database (VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY), and none could be read from the first site. Name them in the shell, a .env file or Codemagic's environment, and build again.");
   return {
     plugins: [react(), buildStamp(env), forwardUnlessConfigured(configured), keyNeverShipped()],
-    define: { "import.meta.env.VITE_BUILD_TIME": JSON.stringify(BUILT) },
+    define: {
+      "import.meta.env.VITE_BUILD_TIME": JSON.stringify(BUILT),
+      "import.meta.env.VITE_NATIVE_PUSH_ANDROID": JSON.stringify(ANDROID_PUSH ? "1" : ""),
+    },
   };
 });
