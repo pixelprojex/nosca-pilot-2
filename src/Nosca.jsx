@@ -18,25 +18,25 @@ export const LIST_CSS = `    .nsc-list { border: none !important; padding-bottom
     /* WHITE CARDS (21 November): a row is Duolingo's card — white, a light
        grey line round it and a ledge of the same under it — never a slab of
        the sport's tint; the founder: "White background throughout" */
-    .nsc-list > * { background: var(--surface, #fff); border: 1.5px solid var(--edge, #E2E2E7) !important; border-radius: 14px;
-                    box-shadow: 0 2px 0 var(--edge, #E2E2E7);
+    .nsc-list > * { background: var(--surface, #fff); border: 1.5px solid var(--edge, #E4E0D7) !important; border-radius: 14px;
+                    box-shadow: 0 2px 0 var(--edge, #E4E0D7);
                     transition: transform .15s cubic-bezier(.2,.7,.3,1), box-shadow .15s cubic-bezier(.2,.7,.3,1), background-color .15s;
                     margin-bottom: 10px; padding-left: 16px !important; padding-right: 16px !important; }
     /* a row that is one button sinks onto its ledge under the finger (the one press, data-down) */
-    .nsc-list > button[data-down]:not(:disabled) { transform: translateY(2px); box-shadow: 0 0 0 var(--edge, #E2E2E7); transition: none; opacity: 1; }
+    .nsc-list > button[data-down]:not(:disabled) { transform: translateY(2px); box-shadow: 0 0 0 var(--edge, #E4E0D7); transition: none; opacity: 1; }
     .nsc-list > *:last-child { margin-bottom: 0; }
     /* SETTINGS IN GROUPS (21 November): a group of rows is one soft box on
        its foot, the rows inside on a fine rule — iOS's grouped list, and
        Lares's own More sheet — where it was twenty slabs down the page */
-    .nsc-group { background: var(--surface, #fff); border: 1.5px solid var(--edge, #E2E2E7); border-radius: 16px; box-shadow: 0 2px 0 var(--edge, #E2E2E7); overflow: hidden; }
+    .nsc-group { background: var(--surface, #fff); border: 1.5px solid var(--edge, #E4E0D7); border-radius: 16px; box-shadow: 0 2px 0 var(--edge, #E4E0D7); overflow: hidden; }
     .nsc-group > * { background: transparent; padding-left: 16px !important; padding-right: 16px !important;
-                     border-bottom: 1.5px solid var(--edge, #E2E2E7) !important; border-radius: 0; }
+                     border-bottom: 1.5px solid var(--edge, #E4E0D7) !important; border-radius: 0; }
     .nsc-group > *:last-child { border-bottom: 0 !important; }
     .nsc-group > .nsc-flush { padding: 0 !important; }
     /* THE MESSENGER'S LIST (21 November): Apple Messages and WhatsApp — no
        card round a row, a fine separator that starts where the words do */
     .nsc-plain > * { position: relative; }
-    .nsc-plain > *::after { content: ""; position: absolute; left: var(--sep-in, 70px); right: 0; bottom: 0; height: 1px; background: #ECECF0; }
+    .nsc-plain > *::after { content: ""; position: absolute; left: var(--sep-in, 70px); right: 0; bottom: 0; height: 1px; background: #ECE9E2; }
     .nsc-plain > *:last-child::after { display: none; }
     /* a swipeable row pads its sliding surface, not the box, so the
        red action behind it never peeks out at the edges */
@@ -454,9 +454,17 @@ export const HAIR = (ink, a = 0.09) => `${ink}${Math.round(a * 255).toString(16)
    tints throughout this site. But what I want is fixed colors, and also a
    white background … White background throughout". The sport's colour is
    the tab bar's, the one action's and a chosen key's. */
-export const EDGE = (t) => (darkPage(t) ? HAIR(t.mark || t.accent || t.ink, 0.72) : "#E2E2E7");
+/* WARM NEUTRALS (28 November, the design render): the greys are the
+   card's, not Apple's — the ink, the sub and faint greys, the wash, the
+   card's line, its ledge and the hairline all lean to the gold's hue, as
+   Lares's neutrals do, so the club colours sit on stone rather than on a
+   cool violet-grey that fought every warm key. The page stays #FFFFFF.
+   ink #1D1B17, sub #5D5950 (7.0:1), faint #6C685E (5.6:1), trace #B2ADA3,
+   hair #ECE9E2, wash #F4F2ED, edge #E4E0D7, its ledge #D9D4C9, a tick
+   box's ring #8B867B (3.6:1). */
+export const EDGE = (t) => (darkPage(t) ? HAIR(t.mark || t.accent || t.ink, 0.72) : "#E4E0D7");
 /* a control whose outline is all it has (a tick box) keeps a line that reads 3:1 */
-export const LINE_STRONG = "#8E8E93";
+export const LINE_STRONG = "#8B867B";
 /* THE CLUB COLOURS (22 November, the colour study). The founder, three
    times in a day: of ten bright hues, "way too colourful. Not cohesive
    or classy"; of everything in the sport's one green, "I do want
@@ -494,16 +502,16 @@ export const CLUB = { fairway: "#285937", olive: "#4F5B29", bottle: "#123C30", l
    bubble, a badge; what labels is pale with the deep as its ink — a
    glyph tile, a face with no picture, what is chosen. */
 const CLUB_PALE = {
-  fairway: ["#DBEEDF", "#C1DAC6", "#94BD9E"], olive: ["#E5EBD7", "#CFD7BC", "#ABB78D"],
-  bottle: ["#DCECE6", "#C3D8D0", "#98BAAE"], lawn: ["#E0ECDC", "#C8D8C2", "#A0BA98"],
-  court: ["#D7EDEC", "#BBDAD8", "#8ABCBA"], petrol: ["#D9ECF1", "#BED8DF", "#9EBEC7"],
-  river: ["#DBEAFA", "#C1D5EC", "#A7BACE"], navy: ["#DFE9F7", "#C7D4E7", "#A9B9CF"],
-  steel: ["#DFE9F2", "#C6D5E0", "#A4BBCD"], aubergine: ["#EDE3F9", "#D9CCEA", "#BDB2CA"],
-  indigo: ["#E4E6FA", "#CDD0EC", "#B2B5CF"], plum: ["#F3E2ED", "#E2CBDA", "#C8AFBF"],
-  claret: ["#F7E2E4", "#E9C9CC", "#CDAEB1"], sienna: ["#F6E4DA", "#E7CCBE", "#D6A589"],
-  rust: ["#F7E3DC", "#E8CCC1", "#D8A38E"], saddle: ["#F3E5D9", "#E2CFBE", "#C8AB91"],
-  chestnut: ["#F4E4DC", "#E3CEC2", "#CAA998"], gold: ["#F0E7D0", "#DED2B2", "#C3AF7E"],
-  slate: ["#E3E9EC", "#CBD4D9", "#A5BBC7"], brick: ["#F8E2DF", "#EACAC6", "#D9ABA4"],
+  fairway: ["#DBEEDF", "#C1DAC6", "#A4C9AC"], olive: ["#E5EBD7", "#CFD7BC", "#B9C3A3"],
+  bottle: ["#DCECE6", "#C3D8D0", "#ABC5BB"], lawn: ["#E0ECDC", "#C8D8C2", "#B1C5AB"],
+  court: ["#D7EDEC", "#BBDAD8", "#97C9C6"], petrol: ["#D9ECF1", "#BED8DF", "#A6C4CC"],
+  river: ["#DBEAFA", "#C1D5EC", "#ABC0D9"], navy: ["#DFE9F7", "#C7D4E7", "#B0BFD4"],
+  steel: ["#DFE9F2", "#C6D5E0", "#ABC1D2"], aubergine: ["#EDE3F9", "#D9CCEA", "#C4B7D4"],
+  indigo: ["#E4E6FA", "#CDD0EC", "#B9BCD4"], plum: ["#F3E2ED", "#E2CBDA", "#CDB6C5"],
+  claret: ["#F7E2E4", "#E9C9CC", "#D7B3B7"], sienna: ["#F6E4DA", "#E7CCBE", "#DCB49E"],
+  rust: ["#F7E3DC", "#E8CCC1", "#D9B5A7"], saddle: ["#F3E5D9", "#E2CFBE", "#CFB9A5"],
+  chestnut: ["#F4E4DC", "#E3CEC2", "#D1B8AB"], gold: ["#F0E7D0", "#DED2B2", "#CABD9D"],
+  slate: ["#E3E9EC", "#CBD4D9", "#ABC2CE"], brick: ["#F8E2DF", "#EACAC6", "#E0B1AA"],
 };
 const PALE_BY_HEX = Object.fromEntries(Object.keys(CLUB).map((k) => [CLUB[k].toUpperCase(), CLUB_PALE[k]]));
 /* A FUNCTION HAS A HUE, AND A SPORT SAYS WHICH COLOUR THAT IS. `HUE`
@@ -523,10 +531,10 @@ const clubSet = (lead, teal, blue, orange, purple, wine, brand) => ({ green: CLU
 export const CLUB_SETS = {
   brand:      clubSet("bottle",    "olive",   "navy",  "saddle", "plum",      "claret",   "bottle"),
   golf:       clubSet("fairway",   "olive",   "navy",  "saddle", "plum",      "claret",   "bottle"),
-  tennis:     clubSet("court",     "lawn",    "navy",  "rust",   "aubergine", "claret",   "bottle"),
-  rowing:     clubSet("river",     "court",   "indigo", "saddle", "plum",      "claret",   "bottle"),
-  squash:     clubSet("sienna",    "petrol",  "navy",  "saddle", "plum",      "claret",   "bottle"),
-  padel:      clubSet("aubergine", "petrol",  "navy",  "rust",   "plum",      "claret",   "bottle"),
+  tennis:     clubSet("court",     "lawn",    "navy",  "saddle", "aubergine", "claret",   "bottle"),
+  rowing:     clubSet("river",     "olive",   "indigo", "saddle", "plum",      "claret",   "bottle"),
+  squash:     clubSet("sienna",    "petrol",  "navy",  "olive",  "plum",      "claret",   "bottle"),
+  padel:      clubSet("aubergine", "petrol",  "navy",  "saddle", "plum",      "claret",   "bottle"),
   equestrian: clubSet("claret",    "fairway", "navy",  "saddle", "aubergine", "chestnut", "bottle"),
 };
 /* NO TWO KEYS OF A SPORT THE SAME COLOUR (24 November). The cool and red
@@ -652,7 +660,7 @@ const darkPage = (t) => { const [r, g, b] = rgbOf(t.page || "#FEFEFE"); return (
 /* under a strong face (the accent, the ink, red): the face a third deeper */
 export const LIP = (c) => MIX(c, "#000000", 0.3);
 /* under a soft face (the wash): the wash with a fifth of the sport's mark */
-export const SOFT_LIP = (t) => (darkPage(t) ? MIX(t.wash, "#000000", 0.5) : "#E2E2E7");
+export const SOFT_LIP = (t) => (darkPage(t) ? MIX(t.wash, "#000000", 0.5) : "#E4E0D7");
 /* THE TINT: a saturated fill of the sport's own colour for every key that
    is not the one action (the founder, 18 November: "the saturated colors
    for the buttons … a lot of the buttons on the Nosca app are like white
@@ -685,9 +693,9 @@ export const TINT = (t) => (darkPage(t) ? MIX(t.surface, t.accent, 0.12) : KEYS_
    with no fill, whose outline is the only thing that says where it is.
    It was the sport's edge for three days — a white key with a green rule
    round it, the very thing the founder asked to have filled. */
-export const TINT_LIP = (t) => (darkPage(t) ? MIX(t.surface, "#000000", 0.45) : KEYS_TINTED ? MIX(lightsOf(t.accent)[1], t.accent, 0.12) : "#D9D9DE");
+export const TINT_LIP = (t) => (darkPage(t) ? MIX(t.surface, "#000000", 0.45) : KEYS_TINTED ? MIX(lightsOf(t.accent)[1], t.accent, 0.12) : "#D9D4C9");
 /* the stone key's fine ring, Lares's inset line of its ledge at 60% */
-export const KEY_RING = (t) => (darkPage(t) ? "transparent" : KEYS_TINTED ? lightsOf(t.accent)[1] : "#E2E2E7");
+export const KEY_RING = (t) => (darkPage(t) ? "transparent" : KEYS_TINTED ? lightsOf(t.accent)[1] : "#E4E0D7");
 /* CHOSEN (21 November): Duolingo's chosen answer — the sport's colour faint
    on the face, its ring and its ledge, the word in the sport's colour —
    where a chosen key was the ink, black among white keys */
@@ -800,9 +808,9 @@ const BAND_TO_PLAN = { "Just starting out": "solo", "Under 20": "solo", "20 to 6
    its mark are the brand colour — the one anchor Nosca has before a
    sport tints anything — and its text stays ink. */
 export const NEUTRAL = {
-  ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2",
-  hair: "#EBEBF0", page: "#FFFFFF", surface: "#FFFFFF",
-  wash: "#F2F2F7", mark: BRAND_COLOUR, accent: BRAND_COLOUR, onAccent: BRAND_PAPER,
+  ink: "#1D1B17", sub: "#5D5950", faint: "#6C685E", trace: "#B2ADA3",
+  hair: "#ECE9E2", page: "#FFFFFF", surface: "#FFFFFF",
+  wash: "#F4F2ED", mark: BRAND_COLOUR, accent: BRAND_COLOUR, onAccent: BRAND_PAPER,
   club: CLUB_SETS.brand,
 };
 /* Three states, learned once, applied everywhere — the WHOOP model.
@@ -837,8 +845,8 @@ export const SPORTS = {
   golf: {
     noun: "player", nouns: "players",
     label: "Golf", tagline: "Full swing, short game, on course",
-    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#285937", accent: "#285937", onAccent: "#FFFFFF", club: CLUB_SETS.golf },
+    theme: { ink: "#1D1B17", sub: "#5D5950", faint: "#6C685E", trace: "#B2ADA3", hair: "#ECE9E2",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F4F2ED", mark: "#285937", accent: "#285937", onAccent: "#FFFFFF", club: CLUB_SETS.golf },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -926,8 +934,8 @@ export const SPORTS = {
   tennis: {
     noun: "player", nouns: "players",
     label: "Tennis", tagline: "Serve, return, rally, net",
-    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#125856", accent: "#125856", onAccent: "#FFFFFF", club: CLUB_SETS.tennis },
+    theme: { ink: "#1D1B17", sub: "#5D5950", faint: "#6C685E", trace: "#B2ADA3", hair: "#ECE9E2",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F4F2ED", mark: "#125856", accent: "#125856", onAccent: "#FFFFFF", club: CLUB_SETS.tennis },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -1018,8 +1026,8 @@ export const SPORTS = {
   rowing: {
     noun: "rower", nouns: "rowers",
     label: "Rowing", tagline: "Technique, rhythm, racing, erg",
-    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#264A70", accent: "#264A70", onAccent: "#FFFFFF", club: CLUB_SETS.rowing },
+    theme: { ink: "#1D1B17", sub: "#5D5950", faint: "#6C685E", trace: "#B2ADA3", hair: "#ECE9E2",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F4F2ED", mark: "#264A70", accent: "#264A70", onAccent: "#FFFFFF", club: CLUB_SETS.rowing },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -1113,8 +1121,8 @@ export const SPORTS = {
   squash: {
     noun: "player", nouns: "players",
     label: "Squash", tagline: "Drives, volleys, front court, movement",
-    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#844925", accent: "#844925", onAccent: "#FFFFFF", club: CLUB_SETS.squash },
+    theme: { ink: "#1D1B17", sub: "#5D5950", faint: "#6C685E", trace: "#B2ADA3", hair: "#ECE9E2",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F4F2ED", mark: "#844925", accent: "#844925", onAccent: "#FFFFFF", club: CLUB_SETS.squash },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -1199,8 +1207,8 @@ export const SPORTS = {
   padel: {
     noun: "player", nouns: "players",
     label: "Padel", tagline: "Net game, overheads, walls",
-    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#4D3566", accent: "#4D3566", onAccent: "#FFFFFF", club: CLUB_SETS.padel },
+    theme: { ink: "#1D1B17", sub: "#5D5950", faint: "#6C685E", trace: "#B2ADA3", hair: "#ECE9E2",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F4F2ED", mark: "#4D3566", accent: "#4D3566", onAccent: "#FFFFFF", club: CLUB_SETS.padel },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -1285,8 +1293,8 @@ export const SPORTS = {
   equestrian: {
     noun: "rider", nouns: "riders",
     label: "Equestrian", tagline: "Flatwork, poles, jumping, cross-country",
-    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#6B2935", accent: "#6B2935", onAccent: "#FFFFFF", club: CLUB_SETS.equestrian },
+    theme: { ink: "#1D1B17", sub: "#5D5950", faint: "#6C685E", trace: "#B2ADA3", hair: "#ECE9E2",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F4F2ED", mark: "#6B2935", accent: "#6B2935", onAccent: "#FFFFFF", club: CLUB_SETS.equestrian },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -2824,6 +2832,21 @@ function DrillTimer({ seconds, onDone }) {
    at a size that makes them the subject, and the months as a plain
 
 
+/* A FREE TIME'S PLUS IS A KEY (28 November, the design render): a 30px
+   round key of the sport's pale on its ledge, the plus in the sport's
+   colour — the Diary's one offer drawn as something to press. It sits
+   inside a row that is itself the button, so it draws and takes nothing. */
+const PlusKey = ({ on = false }) => {
+  const t = useT();
+  return (
+    <span aria-hidden="true" data-plus-key="" className="shrink-0 flex items-center justify-center rounded-full"
+          style={{ width: 30, height: 30, background: on ? SEL(t).face : TINT(t), border: `${EDGE_W}px solid ${on ? SEL(t).ring : KEY_RING(t)}`,
+                   boxShadow: `0 2px 0 ${on ? SEL(t).lip : TINT_LIP(t)}` }}>
+      {on ? <Check size={15} color={SEL(t).fg} strokeWidth={2.6} /> : <Plus size={15} color={t.accent} strokeWidth={2.4} />}
+    </span>
+  );
+};
+
 /* The whole diary as one scroll. A coach thinks in days, not in a
    grid — so every day gets its own block with the lessons and the gaps
    between them, running as far forward as they want to look. */
@@ -2836,6 +2859,7 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
   const calendar = useCalendar();
   const cx = now ? { ...calendar, today: now } : calendar;
   const T = cx.today;
+  const narrow = useNarrow();
   /* Names are stripped for anyone who is not the coach. A player has no
      business knowing who else is on the sheet, and filtering at render
      is not good enough — the data must not reach them. */
@@ -2920,23 +2944,26 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
           behind the one that is isolated, a wash disc under today, and
           for a coach one mark under a day that has anything booked.
           Tap a day to isolate it; tap it again to release. */}
-      <div className="flex overflow-x-auto px-6 pb-4" style={{ scrollbarWidth: "none", gap: 2 }}>
+      {/* THE WEEK AS KEYS (28 November, the design render): each day a key
+          standing on its ledge — the weekday over the date, a dot for a day
+          with lessons — the isolated day the sport's colour on its own deep
+          ledge, today the sport's pale. It was plain figures over a disc,
+          Apple Calendar's week, and the Diary read as it always had. */}
+      <div className="flex overflow-x-auto px-6 pt-1 pb-6" style={{ scrollbarWidth: "none", gap: 8 }}>
         {days.slice(0, 10).map((day) => {
           const on = focus && focus.m === day.m && focus.d === day.d;
           const isToday = day.m === T.m && day.d === T.d;
           const any = isCoach ? day.booked.length > 0 : day.mine.length > 0;
+          const face = on ? t.accent : isToday ? TINT(t) : t.surface;
           return (
-            <button key={key(day.m, day.d)} aria-pressed={!!on}
+            <button key={key(day.m, day.d)} aria-pressed={!!on} data-today={isToday ? "1" : undefined}
                     onClick={() => { haptic(7); soft(); setFocus(on ? null : { m: day.m, d: day.d }); }}
-                    className="shrink-0 flex flex-col items-center active:opacity-70" style={{ width: 44, paddingTop: 2 }}>
-              <span style={{ ...TYPE.caption, color: t.faint }}>{DAY_NAMES[dowOf(day.m, day.d, cx)].slice(0, 3)}</span>
-              {/* Apple Calendar's week: the chosen day a solid disc of the sport's
-                  colour, today's figure in the colour, a day with lessons its dot */}
-              <span className="flex items-center justify-center rounded-full mt-1"
-                    style={{ width: 34, height: 34, background: on ? t.accent : "transparent", transition: "background 200ms" }}>
-                <span style={{ ...TYPE.figureSm, fontSize: 17, fontWeight: on || isToday ? 600 : 500, color: on ? "#fff" : isToday ? t.accent : t.ink }}>{day.d}</span>
-              </span>
-              <span className="rounded-full mt-1" style={{ width: 5, height: 5, background: any ? t.accent : "transparent" }} />
+                    className="shrink-0 flex flex-col items-center justify-center n-key"
+                    style={{ width: 50, height: 68, borderRadius: 16, background: face, "--key-lip": on ? LIP(t.accent) : isToday ? TINT_LIP(t) : EDGE(t),
+                             border: `${EDGE_W}px solid ${on ? t.accent : isToday ? KEY_RING(t) : EDGE(t)}` }}>
+              <span style={{ ...TYPE.caption, fontWeight: 600, color: on ? t.onAccent : t.sub }}>{DAY_NAMES[dowOf(day.m, day.d, cx)].slice(0, 3)}</span>
+              <span style={{ ...TYPE.figureSm, fontSize: 19, fontWeight: 700, lineHeight: 1.15, color: on ? t.onAccent : isToday ? t.accent : t.ink }}>{day.d}</span>
+              <span className="rounded-full" style={{ width: 5, height: 5, marginTop: 3, background: any ? (on ? t.onAccent : t.accent) : "transparent" }} />
             </button>
           );
         })}
@@ -2967,16 +2994,19 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
           <div key={`${day.m}-${day.d}`} className="mb-6">
 
             {/* one quiet line, not a header competing with the rows */}
-            <div className="flex items-center gap-2.5 mb-2.5 px-1">
-              <span style={{ ...TYPE.heading, color: t.ink }}>
+            {/* the day's name is a heading, the app's bold serif as every
+                section's; the pencil a small round key on its ledge, 44 to a
+                finger (it was a 14px grey glyph) */}
+            <div className="flex items-center gap-2.5 mb-3 px-1" style={{ minHeight: 34 }}>
+              <span style={{ ...TYPE.head, color: t.ink }}>
                 {isToday ? tr("Today") : (day.m === tomorrow.m && day.d === tomorrow.d) ? tr("Tomorrow") : `${DAY_NAMES[dowOf(day.m, day.d, cx)].slice(0, 3)} ${day.d} ${day.mo.name.split(" ")[0].slice(0, 3)}`}
               </span>
               <span className="flex-1" />
               {role === "coach" && (
-                <button data-tour="agenda-edit" onClick={() => { haptic(9); soft(); onEditDay(day); }} className="relative p-1.5 active:opacity-50"
-                        aria-label={tr("Edit this day")}>
-                  <span aria-hidden="true" className="absolute" style={{ inset: -9 }} />
-                  <Edit3 size={14} color={t.faint} strokeWidth={2} />
+                <button data-tour="agenda-edit" onClick={() => { haptic(9); soft(); onEditDay(day); }} className="relative flex items-center justify-center rounded-full n-key"
+                        aria-label={tr("Edit this day")} style={{ width: 34, height: 34, border: `${EDGE_W}px solid ${KEY_RING(t)}`, "--key-lip": TINT_LIP(t) }}>
+                  <span aria-hidden="true" className="absolute" style={{ inset: -5 }} />
+                  <Edit3 size={15} color={t.accent} strokeWidth={2.2} />
                 </button>
               )}
             </div>
@@ -3071,6 +3101,10 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                         stays only for a group, where the colour is the one
                         thing that tells a squad from a single lesson. */}
                     {isGroup && <span className="rounded-full shrink-0" style={{ width: 3, height: 26, background: GROUP }} />}
+                    {/* the person's face, as the home's day row carries it — a
+                        booked hour reads as somebody, a free one as a time; at 350
+                        and under the face gives its room to the name */}
+                    {!isGroup && !narrow && <Avatar name={bk.who} size={34} />}
                     {/* who said they will not be at the group's lesson, counted
                         under its name where the coach reads the day (beside it,
                         the name went to "Satur…" at 320); the peek names them */}
@@ -3114,10 +3148,11 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                           className="w-full flex items-center gap-3 px-4 text-left active:opacity-50"
                           style={{ minHeight: 56, ...line }}>
                     <Rail style={{ width: TIME_LEAD.width }}>{h}</Rail>
-                    {/* an empty row is empty; its plus, the hour on offer, in the
-                        sport's colour (it was the trace grey, 2.2:1 on white) */}
+                    {/* an empty row is empty; its plus, the hour on offer, on a
+                        small round key of the sport's pale (it was a bare 15px
+                        plus); the whole row is still the button */}
                     <span className="flex-1" />
-                    <Plus size={15} color={t.accent} strokeWidth={2.2} />
+                    <PlusKey />
                   </button>
                 );
               })}
@@ -8997,19 +9032,24 @@ function Segmented({ options, value, onChange, tour, tall = false }) {
     /* Lares's control: the wash for a track with a fine ring of its own
        lip, and the chosen option a paper face standing on a two-point
        lip that glides to it */
-    <div data-tour={tour} className="relative flex rounded-xl p-0.5" style={{ background: t.wash, boxShadow: `inset 0 0 0 1px ${SOFT_LIP(t)}` }}>
+    /* THE CHOSEN SIDE IS THE CHOSEN ANSWER (28 November, the design render):
+       the thumb is the sport's cloth on its ledge with the word in its ink,
+       Duolingo's picked answer, where it was a white face on the grey — the
+       one switch on every list (List · Feed, List · Calendar) now says which
+       side is on at a glance */
+    <div data-tour={tour} className="relative flex p-1" style={{ borderRadius: 14, background: t.wash, boxShadow: `inset 0 0 0 1px ${SOFT_LIP(t)}` }}>
       {/* one thumb that glides to the chosen option, rather than a
           surface that jumps from one to the next */}
-      <span aria-hidden="true" className="absolute rounded-lg" data-lip=""
-            style={{ top: 2, bottom: 4, left: 2, width: `calc((100% - 4px) / ${n})`, transform: `translateX(${idx * 100}%)`,
-                     background: t.surface, boxShadow: `${lipOf(SOFT_LIP(t), 2)}, 0 0 0 1px ${SOFT_LIP(t)}`, transition: `transform ${MOTION.move}ms ${MOTION.curve}` }} />
+      <span aria-hidden="true" className="absolute" data-lip="" data-thumb=""
+            style={{ top: 4, bottom: 6, left: 4, width: `calc((100% - 8px) / ${n})`, transform: `translateX(${idx * 100}%)`, borderRadius: 10,
+                     background: SEL(t).face, boxShadow: `${lipOf(SEL(t).lip, 2)}, 0 0 0 ${EDGE_W}px ${SEL(t).ring}`, transition: `transform ${MOTION.move}ms ${MOTION.curve}` }} />
       {options.map((o) => {
         const on = value === o;
         return (
           <button key={o} aria-pressed={on} aria-label={o} onClick={() => { haptic(6); onChange(o); }} className="relative flex-1 rounded-lg"
                   /* `tall`: 44 to a finger, where the control is the only way to another answer (the install guide's Change) */
-                  style={{ minHeight: tall ? 44 : 34, paddingBottom: 2, background: "transparent", transition: `color ${MOTION.move}ms`,
-                           fontFamily: ui, fontSize: tall ? 14 : 13.5, fontWeight: 600, color: on ? t.ink : t.sub }}>{o}</button>
+                  style={{ minHeight: tall ? 44 : 38, paddingBottom: 2, background: "transparent", transition: `color ${MOTION.move}ms`,
+                           fontFamily: ui, fontSize: tall ? 14.5 : 14.5, fontWeight: on ? 700 : 600, color: on ? SEL(t).fg : t.sub }}>{o}</button>
         );
       })}
     </div>
@@ -9019,7 +9059,7 @@ function Toggle({ on, onChange }) {
   const t = useT();
   return (
     <button onClick={() => { haptic(6); onChange(!on); }} aria-pressed={on} className="rounded-full shrink-0 relative"
-            style={{ width: 50, height: 30, background: on ? t.accent : "#D6DAD3", transition: "background 280ms cubic-bezier(.22,1,.36,1)" }}>
+            style={{ width: 50, height: 30, background: on ? t.accent : "#DCD8CF", transition: "background 280ms cubic-bezier(.22,1,.36,1)" }}>
       <span className="absolute rounded-full" style={{ width: 26, height: 26, top: 2, left: on ? 22 : 2, background: "#fff",
                      boxShadow: "0 1px 3px rgba(0,0,0,0.2)", transition: "left 200ms cubic-bezier(.32,.72,0,1)" }} />
     </button>
@@ -9736,8 +9776,7 @@ const TimeList = ({ times, picked, onPick, tour, muted = false }) => {
                            fontWeight: on ? 600 : 400, fontVariantNumeric: "tabular-nums lining" }}>{x}</span>
             {/* a read-only row (a junior's diary) offers nothing, so it carries no plus —
                 the row stays, a plain line, as the List view draws it */}
-            {on ? <Check size={16} color={t.accent} strokeWidth={2.4} />
-                : muted ? null : <Plus size={15} color={t.accent} strokeWidth={2.2} />}
+            {muted ? null : <PlusKey on={on} />}
           </button>
         );
       })}
@@ -17952,18 +17991,30 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
       ) : (<>
 
       {/* ---- month grid: quiet, availability-led ---- */}
+      {/* THE MONTH IS A CARD OF KEYS (28 November, the design render): the
+          month on the list's white card, its name the bold serif, the arrows
+          small round keys; the chosen day the sport's colour standing on its
+          deep ledge, today the sport's pale, a day with lessons dotted in
+          the sport's colour. It was Apple Calendar's bare grid of figures. */}
       <div className="px-6 mb-8">
-        <div className="flex items-center justify-between mb-5">
-          <span style={{ ...TYPE.heading, color: t.ink }}>{mo.name}</span>
-          <span className="flex items-center gap-1">
-            <button onClick={() => move(-1)} disabled={mi === 0} className="relative p-2 active:opacity-40 disabled:opacity-20" aria-label={tr("Previous month")}><span aria-hidden="true" className="absolute" style={{ top: -5, bottom: -5, left: -8, right: -2 }} /><ChevronLeft size={18} color={t.ink} /></button>
-            <button onClick={() => move(1)} disabled={mi >= months.length - 1} className="relative p-2 active:opacity-40 disabled:opacity-20" aria-label={tr("Next month")}><span aria-hidden="true" className="absolute" style={{ top: -5, bottom: -5, left: -2, right: -8 }} /><ChevronRight size={18} color={t.ink} /></button>
+        <div data-tour="cal-month" className="px-3 pt-3 pb-2" style={{ background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, borderRadius: 20, boxShadow: `0 2px 0 ${EDGE(t)}` }}>
+        <div className="flex items-center justify-between mb-3 pl-2">
+          <span style={{ ...TYPE.head, color: t.ink }}>{mo.name}</span>
+          <span className="flex items-center gap-2.5">
+            {[[-1, mi === 0, tr("Previous month"), ChevronLeft], [1, mi >= months.length - 1, tr("Next month"), ChevronRight]].map(([dir, off, label, Ico]) => (
+              <button key={dir} onClick={() => move(dir)} disabled={off} aria-label={label}
+                      className="relative flex items-center justify-center rounded-full n-key disabled:opacity-30"
+                      style={{ width: 36, height: 36, border: `${EDGE_W}px solid ${KEY_RING(t)}`, "--key-lip": TINT_LIP(t) }}>
+                <span aria-hidden="true" className="absolute" style={{ inset: -4 }} />
+                <Ico size={18} color={t.accent} strokeWidth={2.4} />
+              </button>
+            ))}
           </span>
         </div>
-        <div className={`grid mb-2`} style={{ gridTemplateColumns: `repeat(${prefs.weekends ? 7 : 5}, minmax(0, 1fr))` }}>
-          {DOW.map((d, i) => (prefs.weekends || i < 5) && (<div key={i} className="text-center" style={{ ...TYPE.caption, color: t.faint }}>{d}</div>))}
+        <div className={`grid mb-1.5`} style={{ gridTemplateColumns: `repeat(${prefs.weekends ? 7 : 5}, minmax(0, 1fr))` }}>
+          {DOW.map((d, i) => (prefs.weekends || i < 5) && (<div key={i} className="text-center" style={{ ...TYPE.caption, fontWeight: 600, color: t.sub }}>{d}</div>))}
         </div>
-        <div className="gap-y-1.5" style={{ display: "grid", gridTemplateColumns: `repeat(${prefs.weekends ? 7 : 5}, minmax(0, 1fr))` }}>
+        <div className="gap-y-1" style={{ display: "grid", gridTemplateColumns: `repeat(${prefs.weekends ? 7 : 5}, minmax(0, 1fr))` }}>
           {cells.map((d, i) => {
             if (d === null) return <span key={`b${i}`} />;
             if (!prefs.weekends && dowOf(mo.idx, d, cx) > 4) return null;
@@ -17976,13 +18027,16 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
             const available = !gone && (role === "coach" ? (dayBooked > 0 || nOpen > 0) : nOpen > 0);
             return (
               <button key={d} onClick={() => { haptic(6); setSel(d); setPick(null); }} disabled={gone} aria-pressed={on} data-day={d}
-                      className="flex flex-col items-center justify-center disabled:opacity-100" style={{ height: 46 }}>
+                      className="flex flex-col items-center justify-center disabled:opacity-100" style={{ height: 50 }}>
                 <span className="flex items-center justify-center"
-                      style={{ width: 38, height: 38, borderRadius: 999,
-                               /* Apple Calendar: the chosen day a solid disc of the sport's colour, today's figure in it */
-                               background: on ? t.accent : mine ? SEL(t).face : "transparent",
-                               border: "1px solid transparent",
-                               fontFamily: ui, fontSize: 17, fontWeight: on || today ? 600 : available ? 500 : 400,
+                      style={{ width: "min(38px, 100%)", height: 38, borderRadius: 12,
+                               /* the chosen day a key of the sport's colour on its deep ledge,
+                                  today the sport's pale, a lesson of the person's the chosen answer */
+                               background: on ? t.accent : mine ? SEL(t).face : today ? TINT(t) : "transparent",
+                               border: `${EDGE_W}px solid ${on ? t.accent : mine ? SEL(t).ring : today ? KEY_RING(t) : "transparent"}`,
+                               boxShadow: on ? `0 3px 0 ${LIP(t.accent)}` : mine ? `0 2px 0 ${SEL(t).lip}` : today ? `0 2px 0 ${TINT_LIP(t)}` : "none",
+                               transition: "background 160ms, box-shadow 160ms",
+                               fontFamily: ui, fontSize: 17, fontWeight: on || today ? 700 : available ? 600 : 400,
                                /* a day away is struck through, the way a diary crosses a day out */
                                textDecoration: !gone && awayOn(mo.idx, d) ? "line-through" : "none",
                                /* a day gone is read, not hidden: the trace grey
@@ -17993,21 +18047,22 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                     ticker mark, an ink dot; a day merely open the faint
                     one — both were the one hairline dot, so the grid could
                     not say which days held lessons */}
-                <span style={{ height: 5, marginTop: 1 }} data-mark={mine ? "mine" : role === "coach" && dayBooked > 0 && !gone && !on ? "booked" : available && !on ? "open" : undefined}>
-                  {mine ? <span className="block rounded-full" style={{ width: 4, height: 4, background: t.accent }} />
-                        : role === "coach" && dayBooked > 0 && !gone && !on ? <span className="block rounded-full" style={{ width: 4, height: 4, background: t.ink }} />
-                        : available && !on ? <span className="block rounded-full" style={{ width: 3, height: 3, background: t.hair }} /> : null}
+                <span style={{ height: 5, marginTop: 4 }} data-mark={mine ? "mine" : role === "coach" && dayBooked > 0 && !gone && !on ? "booked" : available && !on ? "open" : undefined}>
+                  {mine ? <span className="block rounded-full" style={{ width: 5, height: 5, background: t.accent }} />
+                        : role === "coach" && dayBooked > 0 && !gone && !on ? <span className="block rounded-full" style={{ width: 5, height: 5, background: t.accent }} />
+                        : available && !on ? <span className="block rounded-full" style={{ width: 4, height: 4, background: t.trace || t.hair }} /> : null}
                 </span>
               </button>
             );
           })}
+        </div>
         </div>
       </div>
 
       {/* ---- the selected day, as a readable column ---- */}
       <div className="px-6" data-cal-day>
         <div className="flex items-baseline justify-between mb-4">
-          <span style={{ ...TYPE.title, color: t.ink }}>{dayHead}</span>
+          <span style={{ ...TYPE.head, color: t.ink }}>{dayHead}</span>
           <span style={{ ...TYPE.caption, color: t.faint }}>
             {/* a count that is nought is not a fact worth a line: the day
                 reads what it has, and nothing when it has nothing */}
@@ -18592,13 +18647,13 @@ function Thread({ role, name, isGroup, pop, say, live, banner }) {
                 <Camera size={24} color={t.faint} strokeWidth={1.8} />
               </button>
             )}
-            <div className="flex-1 min-w-0 rounded-3xl px-4 py-2 flex items-center gap-2" style={{ background: "#FFFFFF", border: "1px solid #D1D1D6" }}>
+            <div className="flex-1 min-w-0 rounded-3xl px-4 py-2 flex items-center gap-2" style={{ background: "#FFFFFF", border: "1px solid #D3CEC4" }}>
               <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") send(); }} placeholder="Message" className="flex-1 min-w-0 outline-none" style={{ fontFamily: ui, fontSize: 17, color: t.ink, background: "transparent" }} />
               {/* the field gives way, never the mic or Send: an input's own
                   width at 17px pushed the mic over Send on a narrow phone */}
               <MicBtn onText={(txt) => setDraft(draft ? draft + " " + txt : txt)} size={28} />
             </div>
-            <button data-tour="thread-send" onClick={send} disabled={!draft.trim() || sending} className="rounded-full flex items-center justify-center shrink-0" style={{ width: 36, height: 36, marginBottom: 2, background: draft.trim() && !sending ? t.accent : "#D1D1D6", transition: "background 160ms" }} aria-label={tr("Send")}><Send size={17} color={t.onAccent} /></button>
+            <button data-tour="thread-send" onClick={send} disabled={!draft.trim() || sending} className="rounded-full flex items-center justify-center shrink-0" style={{ width: 36, height: 36, marginBottom: 2, background: draft.trim() && !sending ? t.accent : "#D3CEC4", transition: "background 160ms" }} aria-label={tr("Send")}><Send size={17} color={t.onAccent} /></button>
           </div>
         </div>
       </div>
@@ -19467,12 +19522,12 @@ function InsBar({ p, lead, trail, max = 150, run }) {
   /* `run`: the bar runs on past the picture's left edge and only its end
      is shown — what is tapped stands at, or just past, the end of it */
   const shape = run
-    ? { marginLeft: -INS_PAD, minWidth: trail ? 96 : 48, borderRadius: "0 999px 999px 0", border: "1.5px solid #E2E2E7", borderLeft: "none" }
-    : { maxWidth: max, minWidth: lead || trail ? 96 : 56, borderRadius: 999, boxShadow: "inset 0 0 0 1.5px #E2E2E7" };
+    ? { marginLeft: -INS_PAD, minWidth: trail ? 96 : 48, borderRadius: "0 999px 999px 0", border: "1.5px solid #E4E0D7", borderLeft: "none" }
+    : { maxWidth: max, minWidth: lead || trail ? 96 : 56, borderRadius: 999, boxShadow: "inset 0 0 0 1.5px #E4E0D7" };
   return (
     <span data-ins-bar="" className="inline-flex items-center min-w-0" style={{ flex: "1 1 0", height: 52, padding: 4, gap: 8, background: "#FFFFFF", boxSizing: "border-box", ...shape }}>
       {lead}
-      <span className="flex-1 min-w-0" style={{ height: 6, borderRadius: 3, background: "#D9D9DE", margin: run ? `0 ${trail ? 4 : 14}px 0 ${INS_PAD}px` : lead ? "0 12px 0 2px" : trail ? "0 2px 0 12px" : "0 14px" }} />
+      <span className="flex-1 min-w-0" style={{ height: 6, borderRadius: 3, background: "#D9D4C9", margin: run ? `0 ${trail ? 4 : 14}px 0 ${INS_PAD}px` : lead ? "0 12px 0 2px" : trail ? "0 2px 0 12px" : "0 14px" }} />
       {trail}
     </span>
   );
@@ -19485,7 +19540,7 @@ const InsInBar = ({ p, glyph }) => (
 );
 /* a sheet of the phone's, small: white on the grey line */
 const InsSheet = ({ children }) => (
-  <span className="flex flex-col w-full" style={{ maxWidth: 280, padding: "10px 12px 8px", gap: 8, borderRadius: 16, background: "#FFFFFF", boxShadow: "inset 0 0 0 1.5px #E2E2E7" }}>{children}</span>
+  <span className="flex flex-col w-full" style={{ maxWidth: 280, padding: "10px 12px 8px", gap: 8, borderRadius: 16, background: "#FFFFFF", boxShadow: "inset 0 0 0 1.5px #E4E0D7" }}>{children}</span>
 );
 /* the app on a Home Screen: the icon as the phone draws it, its name under it */
 function InsAppIcon({ p, size = 60 }) {
@@ -19507,18 +19562,18 @@ function InsRound({ p, glyph, label }) {
   return (
     <span className="inline-flex flex-col items-center shrink-0" style={{ gap: 7 }}>
       <span {...(glyph ? { "data-ins-tap": "" } : { "aria-hidden": "true" })} className="inline-flex items-center justify-center"
-            style={{ width: 46, height: 46, borderRadius: 23, ...(glyph ? { background: "#FFFFFF", boxShadow: `0 0 0 2px ${hi}, 0 4px 0 ${MIX("#FFFFFF", hi, 0.32)}` } : { background: "#E2E2E7" }) }}>
+            style={{ width: 46, height: 46, borderRadius: 23, ...(glyph ? { background: "#FFFFFF", boxShadow: `0 0 0 2px ${hi}, 0 4px 0 ${MIX("#FFFFFF", hi, 0.32)}` } : { background: "#E4E0D7" }) }}>
         {glyph && <InsGlyph name={glyph} size={24} color={t.ink} sw={2} />}
       </span>
       {label
         ? <span style={{ ...insWord(t), fontSize: 12, whiteSpace: "nowrap" }}>{label}</span>
-        : <span aria-hidden="true" style={{ width: 24, height: 5, borderRadius: 3, background: "#D9D9DE", marginTop: 5 }} />}
+        : <span aria-hidden="true" style={{ width: 24, height: 5, borderRadius: 3, background: "#D9D4C9", marginTop: 5 }} />}
     </span>
   );
 }
 /* a row of a Home Screen: Nosca among the others, which are drawn faint */
 function InsHome({ p }) {
-  const other = { flex: "0 0 48px", width: 48, height: 48, marginTop: 2, borderRadius: "23%", background: "#E2E2E7" };
+  const other = { flex: "0 0 48px", width: 48, height: 48, marginTop: 2, borderRadius: "23%", background: "#E4E0D7" };
   return (
     <span className="flex items-start justify-center w-full" style={{ gap: 12, padding: "4px 2px 0" }}>
       <span aria-hidden="true" style={other} />
