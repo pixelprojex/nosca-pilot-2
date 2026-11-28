@@ -9072,7 +9072,7 @@ function SearchField({ value, onChange, placeholder, tour, onEnter, className = 
     </div>
   );
 }
-function MicBtn({ onText, size = 34, tint, onNotice }) {
+export function MicBtn({ onText, size = 34, tint, onNotice }) {
   const t = useT();
   const notice = useContext(NoticeCtx);
   const { state, start, supported } = useDictation(onText, onNotice || notice);
@@ -9673,7 +9673,7 @@ const TimeList = ({ times, picked, onPick, tour, muted = false }) => {
 };
 
 /* the sports, each as its own colour — a sport has no glyph, it has a mark */
-const SportGrid = ({ ids, picked, onPick, cols = 3, tour, add, mainId }) => {
+export const SportGrid = ({ ids, picked, onPick, cols = 3, tour, add, mainId }) => {
   const t = useT();
   return (
     <div data-tour={tour}>
@@ -19207,26 +19207,23 @@ function Notifications({ role, pop, pushOn, setPushOn, live, notify, setNotify, 
 
    · ONLY THIS DEVICE'S STEPS. The device is read (`platformOf`,
      `browserOf`, `iosMajor`) and that one set is shown. Every other
-     device sits behind one quiet row, "iPhone · iOS 27 — Change"
-     (`install-device`), which unfolds the platform and the version on
+     device sits behind one quiet row under the steps, "iPhone · iOS 27 —
+     Change" (`install-device`), which unfolds the platform and the version on
      the app's Segmented (`install-platform`, `install-version`) with
      where to look the version up. Two Segmenteds and a hint over the
      steps was the clutter.
-   · A STEP IS A NUMERAL, A FEW WORDS AND A PICTURE of the thing to tap,
-     drawn here in one line (INS_GLYPHS, the Ins* pieces) — the thing to
-     tap is the white key with the ring round it, what stands beside it
-     is drawn faint. No symbol is ever typed into a sentence. Every tap
-     is a step. STEP ONE NAMES THE CONTROL THAT VERSION OF SAFARI SHOWS
-     BY DEFAULT — the three lines on iOS 27, the three dots on iOS 26,
-     read off Safari's own Version/ — and draws Share beside it, for the
-     Bottom and Top tab layouts, which carry Share on the toolbar; its
-     second line says that Share goes straight to step 3, because the
-     share sheet is already open (a sentence that said "three dots" to
-     an iOS 27 phone showing three lines is the mistake the founder was
-     handed; "Tap one of these" over both, for a round, then told the
-     person who tapped Share to tap Share again). A picture that only
-     repeats its words in a key (Samsung's Home screen and Add, a
-     computer's Install) stands on a slim panel.
+   · A STEP IS A NUMERAL AND A FEW WORDS WITH THE CONTROL DRAWN IN THEM
+     (28 November: the drawings were the app's own keys, with faces and
+     ledges, and people pressed them). The glyph sits in the sentence at
+     the words' height ("Tap [lines], then Share [share]"); step one alone
+     carries a flat sketch of the browser's bar with a gold loop round the
+     spot. Four steps at most; two taps in one sheet are one step. STEP ONE
+     NAMES THE CONTROL THAT VERSION OF SAFARI SHOWS BY DEFAULT — the three
+     lines on iOS 27, the three dots on iOS 26, read off Safari's own
+     Version/ — and its second line, "Or tap [share] if you see it", is
+     for the Bottom and Top tab layouts, which carry Share on the toolbar
+     (a sentence that said "three dots" to an iOS 27 phone showing three
+     lines is the mistake the founder was handed).
    · TRUE, BY VERSION (read on 24 November 2026; Apple's own pages could
      not be opened from the build machine, so each line stands on the
      search engine's reading of them and on two independent how-tos).
@@ -19284,8 +19281,9 @@ function Notifications({ role, pop, pushOn, setPushOn, live, notify, setNotify, 
 
    Where the browser offers to install (Chrome and Edge fire
    `beforeinstallprompt`, caught in lib/install.js) the guide leads with
-   one button, Install Nosca, which opens the browser's own sheet, the
-   steps under it as "Or by hand"; Safari never offers. Reached three
+   one button, Install Nosca, which opens the browser's own sheet, and the
+   steps fold behind "Or by hand" (opening out, never jumping in, when the
+   offer arrives after the page); Safari never offers. Reached three
    ways: /install (pages/Install.jsx); Settings › Add to Home Screen, a
    row that is not there once the app is on a Home Screen; and the
    arrival screen's quiet line after sign-up (`nosca.install.now`). An
@@ -19330,6 +19328,8 @@ export const INSTALL_GOLD = "#8E6E26";
    delay). */
 export const INSTALL_CSS = `
 @keyframes insRise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.ins-in{display:inline-flex;vertical-align:-0.22em;margin:0 -0.1em}
+.ins-sr{display:inline-block;width:1px;height:1px;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .calm .ins, .calm .ins *, .calm.ins, .calm.ins * { animation-delay: 0s !important; }
 @media (prefers-reduced-motion: reduce){ .ins, .ins * { animation-delay: 0s !important; } }
 `;
@@ -19351,8 +19351,7 @@ const INS_GLYPHS = {
   appsPlus: "M5.2 4.5h3.6a.7.7 0 0 1 .7.7v3.6a.7.7 0 0 1-.7.7H5.2a.7.7 0 0 1-.7-.7V5.2a.7.7 0 0 1 .7-.7ZM5.2 14.5h3.6a.7.7 0 0 1 .7.7v3.6a.7.7 0 0 1-.7.7H5.2a.7.7 0 0 1-.7-.7v-3.6a.7.7 0 0 1 .7-.7ZM15.2 14.5h3.6a.7.7 0 0 1 .7.7v3.6a.7.7 0 0 1-.7.7h-3.6a.7.7 0 0 1-.7-.7v-3.6a.7.7 0 0 1 .7-.7ZM17 4v6M14 7h6",
   /* Safari's own: a compass */
   compass: "M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17ZM15.4 8.6l-1.9 4.9-4.9 1.9 1.9-4.9 4.9-1.9Z",
-  plus: "M12 5.5v13M5.5 12h13",
-  cross: "M7 7l10 10M17 7 7 17",
+  home: "M4.5 11 12 4.5l7.5 6.5M6.5 9.5v9.5h11V9.5",
 };
 function InsGlyph({ name, size = 26, color, sw = 1.9 }) {
   const box = { width: size, height: size, viewBox: "0 0 24 24", "aria-hidden": "true", focusable: "false", "data-glyph": name, style: { display: "block", flexShrink: 0 } };
@@ -19362,225 +19361,179 @@ function InsGlyph({ name, size = 26, color, sw = 1.9 }) {
   }
   return <svg {...box} fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"><path d={INS_GLYPHS[name]} /></svg>;
 }
-/* THE THING TO TAP: a white key with the ring round it, on a ledge of
-   the ring's own colour made pale — the app's key, so the one thing in
-   the picture that is pressed looks pressable. A glyph alone is 52
-   square (the glyph 28); with a word it is a row of the phone's menu. */
-const INS_PAD = 10;   // the picture's own air, left and right
-const insWord = (t) => ({ fontFamily: ui, fontSize: 15, lineHeight: 1.2, fontWeight: 600, letterSpacing: "-0.01em", color: t.ink });
-function InsTap({ p, glyph, label, trail, round, size = 52, h }) {
-  const { t, hi } = p;
-  const tall = h || (label ? 48 : size);
+/* THE PICTURES ARE PICTURES (28 November). The founder: "people found
+   that very confusing. They thought that they just tapped on the buttons
+   on it, rather than following those instructions … way too much text
+   … really complex." Every step drew its control as the app's own key —
+   a white face, a coloured ring, a ledge — so people pressed the
+   drawing. Now nothing in a step has a face or a ledge: the control is a
+   glyph inside the sentence, at the words' height, the way Apple's own
+   guides set it ("Tap [Share]"); and step one, where a person most needs
+   to see WHERE, carries one flat sketch of the browser's bar with a gold
+   loop drawn round the spot, as a ring is drawn on a screenshot. */
+/* a glyph inside a sentence; `label` is what it says to a screen reader,
+   and in a copy of the words, where no word beside it says it */
+function InsIn({ name, label }) {
+  const t = useT();
   return (
-    /* a word is never cut: a long row takes a second line on a narrow phone before it leaves its picture */
-    <span data-ins-tap="" className={`inline-flex items-center justify-center ${label ? "min-w-0" : "shrink-0"}`}
-          style={{ minWidth: label ? 0 : size, minHeight: tall, maxWidth: "100%", padding: label ? (round ? "6px 18px" : "6px 12px") : 0, gap: 8, borderRadius: round ? 999 : 14,
-                   background: "#FFFFFF", boxShadow: `0 0 0 2px ${hi}, 0 5px 0 ${MIX("#FFFFFF", hi, 0.32)}` }}>
-      {glyph && <InsGlyph name={glyph} size={label ? 20 : Math.round(size * 0.54)} color={t.ink} sw={label ? 2 : 1.8} />}
-      {label && <span style={insWord(t)}>{label}</span>}
-      {trail && <InsGlyph name={trail} size={20} color={t.ink} sw={2} />}
+    <span className="ins-in" data-glyph-in={name}>
+      {name === "app"
+        ? <img src="/icons/apple-touch-icon.png" alt="" width={22} height={22} draggable={false} style={{ display: "block", width: 22, height: 22, borderRadius: 5 }} />
+        : <InsGlyph name={name} size={21} color={t.ink} sw={2} />}
+      {label && <span className="ins-sr">{label}</span>}
     </span>
   );
 }
-/* what stands beside it, faint: a glyph, a word, the address in its bar */
-const InsGhost = ({ p, glyph, size = 24 }) => <InsGlyph name={glyph} size={size} color={p.t.trace} sw={1.8} />;
-const InsFaint = ({ p, children }) => <span style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.2, fontWeight: 500, color: p.t.faint, whiteSpace: "nowrap" }}>{children}</span>;
-const InsOr = ({ p }) => <span style={{ fontFamily: ui, fontSize: 13, lineHeight: 1, color: p.t.sub, padding: "0 2px" }}>{tr("or")}</span>;
-/* the address bar: a white capsule on the app's grey line with the
-   address as a soft bar in it; `lead` and `trail` are what sits at its
-   ends. It takes the room the picture has left, so nothing is cut. */
-function InsBar({ p, lead, trail, max = 150, run }) {
-  /* `run`: the bar runs on past the picture's left edge and only its end
-     is shown — what is tapped stands at, or just past, the end of it */
-  const shape = run
-    ? { marginLeft: -INS_PAD, minWidth: trail ? 96 : 48, borderRadius: "0 999px 999px 0", border: "1.5px solid #E2E2E7", borderLeft: "none" }
-    : { maxWidth: max, minWidth: lead || trail ? 96 : 56, borderRadius: 999, boxShadow: "inset 0 0 0 1.5px #E2E2E7" };
+/* "Tap {lines:the three lines}, then Share {share}": the words, with each {glyph} drawn in its place */
+const insSay = (s) => String(s).split(/(\{[a-zA-Z]+(?::[^}]*)?\})/).filter(Boolean).map((part, i) => {
+  const m = part.match(/^\{([a-zA-Z]+)(?::([^}]*))?\}$/);
+  return m ? <InsIn key={i} name={m[1]} label={m[2]} /> : <React.Fragment key={i}>{part}</React.Fragment>;
+});
+/* a loop drawn round the spot by hand, open where the pen came back, as on a marked-up screenshot */
+const INS_LOOP = "M27 4.6C38.6 4 46.4 11 45.6 20.6 44.8 31 34.6 37 23 36.4 11.8 35.8 3.8 28.8 4.6 19.4 5.4 10.6 13.4 4.4 25.6 5.4";
+function InsSpot({ hi, children, wide }) {
   return (
-    <span data-ins-bar="" className="inline-flex items-center min-w-0" style={{ flex: "1 1 0", height: 52, padding: 4, gap: 8, background: "#FFFFFF", boxSizing: "border-box", ...shape }}>
-      {lead}
-      <span className="flex-1 min-w-0" style={{ height: 6, borderRadius: 3, background: "#D9D9DE", margin: run ? `0 ${trail ? 4 : 14}px 0 ${INS_PAD}px` : lead ? "0 12px 0 2px" : trail ? "0 2px 0 12px" : "0 14px" }} />
-      {trail}
+    <span data-ins-tap="" className="relative inline-flex items-center justify-center shrink-0" style={{ minWidth: wide ? 0 : 36, height: 36, padding: wide ? "0 8px" : 0 }}>
+      {children}
+      <svg aria-hidden="true" focusable="false" viewBox="0 0 50 41" preserveAspectRatio="none" className="absolute pointer-events-none"
+           style={{ left: -9, right: -9, top: -6, bottom: -6, width: "calc(100% + 18px)", height: "calc(100% + 12px)", overflow: "visible" }}>
+        <path d={INS_LOOP} fill="none" stroke={hi} strokeWidth="2.2" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      </svg>
     </span>
   );
 }
-/* a small key inside the bar: the ring, no ledge (the bar is its ground) */
-const InsInBar = ({ p, glyph }) => (
-  <span data-ins-tap="" className="inline-flex items-center justify-center shrink-0" style={{ width: 44, height: 44, borderRadius: 999, background: "#FFFFFF", boxShadow: `0 0 0 2px ${p.hi}` }}>
-    <InsGlyph name={glyph} size={26} color={p.t.ink} sw={1.9} />
-  </span>
-);
-/* a sheet of the phone's, small: white on the grey line */
-const InsSheet = ({ children }) => (
-  <span className="flex flex-col w-full" style={{ maxWidth: 280, padding: "10px 12px 8px", gap: 8, borderRadius: 16, background: "#FFFFFF", boxShadow: "inset 0 0 0 1.5px #E2E2E7" }}>{children}</span>
-);
-/* the app on a Home Screen: the icon as the phone draws it, its name under it */
-function InsAppIcon({ p, size = 60 }) {
+/* step one's picture: the browser's bar as a flat grey sketch on a framed
+   panel — the address a soft bar in an outlined capsule, the controls
+   beside it in the trace grey — and the one control in the ink inside
+   the gold loop. No face, no ledge, no shadow: a picture, not a key. */
+function InsScene({ kind, alt, hi }) {
+  const t = useT();
+  const faint = (g) => <InsGlyph name={g} size={22} color={t.trace} sw={1.8} />;
+  const spot = (g) => <InsSpot hi={hi}><InsGlyph name={g} size={22} color={t.ink} sw={2} /></InsSpot>;
+  const bar = (lead, trail) => (
+    <span className="flex items-center flex-1 min-w-0" style={{ height: 38, gap: 6, padding: "0 8px", borderRadius: 999, boxShadow: `inset 0 0 0 1.5px ${t.hair}`, background: "#FFFFFF" }}>
+      {lead}<span className="flex-1 min-w-0" style={{ height: 5, borderRadius: 3, background: t.hair, margin: "0 6px" }} />{trail}
+    </span>
+  );
+  const word = (w) => <span style={{ fontFamily: ui, fontSize: 14, fontWeight: 500, color: t.trace }}>{w}</span>;
+  const row = {
+    ios27: <>{bar(spot("lines"))}{faint("tabs")}</>,
+    ios26: <>{faint("back")}{bar()}{spot("dots")}</>,
+    ios18: <span className="flex items-center justify-between w-full" style={{ padding: "0 6px" }}>{faint("back")}{faint("fwd")}{spot("share")}{faint("book")}{faint("tabs")}</span>,
+    crios: <>{bar(null, spot("share"))}</>,
+    chrome: <>{bar()}{spot("dotsV")}</>,
+    samsung: <span className="flex items-center justify-between w-full" style={{ padding: "0 6px" }}>{faint("back")}{faint("fwd")}{faint("home")}{faint("tabs")}{spot("lines")}</span>,
+    desktop: <>{bar(null, spot("monitorDown"))}</>,
+    mac: <span className="flex items-center" style={{ gap: 18, padding: "0 6px" }}>{word("Safari")}<InsSpot hi={hi} wide><span style={{ fontFamily: ui, fontSize: 14, fontWeight: 600, color: t.ink }}>File</span></InsSpot>{word("Edit")}{word("View")}</span>,
+  }[kind];
+  if (!row) return null;
+  return (
+    <div role="img" aria-label={alt} data-ins-pic="" data-scene={kind} className="flex items-center"
+         style={{ marginTop: 12, maxWidth: 300, gap: 10, padding: "14px 16px", borderRadius: 14, background: t.wash }}>
+      {row}
+    </div>
+  );
+}
+/* the app on a Home Screen, once it is there: the icon as the phone draws it, its name under it */
+function InsAppIcon({ size = 60 }) {
+  const t = useT();
   return (
     <span className="inline-flex flex-col items-center" style={{ gap: 6 }}>
-      {/* the very picture iOS and Android put on the Home Screen (public/icons, made by scripts/icons.mjs), in the phone's own corner —
-          a mark drawn here stood four fifths the size of the real one, and thinner */}
-      <span data-ins-tap="" className="inline-flex items-center justify-center overflow-hidden" style={{ width: size, height: size, borderRadius: size * 0.225, background: BRAND_COLOUR, boxShadow: `0 0 0 2px #FFFFFF, 0 0 0 4px ${p.hi}` }}>
+      <span className="inline-flex items-center justify-center overflow-hidden" style={{ width: size, height: size, borderRadius: size * 0.225, background: BRAND_COLOUR }}>
         <img src="/icons/apple-touch-icon.png" alt="" width={size} height={size} draggable={false} style={{ display: "block", width: size, height: size }} />
       </span>
-      <span style={{ fontFamily: ui, fontSize: 13, lineHeight: 1.2, fontWeight: 500, color: p.t.ink }}>Nosca</span>
+      <span style={{ fontFamily: ui, fontSize: 13, lineHeight: 1.2, fontWeight: 500, color: t.ink }}>Nosca</span>
     </span>
   );
 }
-/* a round action of the share sheet: a disc with its glyph and its name
-   under it; with no glyph, one of the faint ones that stand before it */
-function InsRound({ p, glyph, label }) {
-  const { t, hi } = p;
-  return (
-    <span className="inline-flex flex-col items-center shrink-0" style={{ gap: 7 }}>
-      <span {...(glyph ? { "data-ins-tap": "" } : { "aria-hidden": "true" })} className="inline-flex items-center justify-center"
-            style={{ width: 46, height: 46, borderRadius: 23, ...(glyph ? { background: "#FFFFFF", boxShadow: `0 0 0 2px ${hi}, 0 4px 0 ${MIX("#FFFFFF", hi, 0.32)}` } : { background: "#E2E2E7" }) }}>
-        {glyph && <InsGlyph name={glyph} size={24} color={t.ink} sw={2} />}
-      </span>
-      {label
-        ? <span style={{ ...insWord(t), fontSize: 12, whiteSpace: "nowrap" }}>{label}</span>
-        : <span aria-hidden="true" style={{ width: 24, height: 5, borderRadius: 3, background: "#D9D9DE", marginTop: 5 }} />}
-    </span>
-  );
-}
-/* a row of a Home Screen: Nosca among the others, which are drawn faint */
-function InsHome({ p }) {
-  const other = { flex: "0 0 48px", width: 48, height: 48, marginTop: 2, borderRadius: "23%", background: "#E2E2E7" };
-  return (
-    <span className="flex items-start justify-center w-full" style={{ gap: 12, padding: "4px 2px 0" }}>
-      <span aria-hidden="true" style={other} />
-      <InsAppIcon p={p} size={52} />
-      <span aria-hidden="true" style={other} />
-    </span>
-  );
-}
-/* THE STEPS. `text` is the few words, `sub` a second line only where a
-   picture cannot say it, `alt` what the picture shows for somebody who
-   cannot see it, `pic` the drawing. Where a phone may show either of
-   two controls the words name neither — "Tap one of these" — and the
-   picture draws both. */
+/* THE STEPS. Four at most a device, each a few words with the control
+   drawn in them (`text`, `sub` — "{glyph}" or "{glyph:what it says}"),
+   step one's `scene` the picture of where, and `alt` what that picture
+   shows. Two taps that follow one another in the same sheet are one
+   step ("Tap the three lines, then Share"). A line goes when the phone
+   already does it: Open as Web App is on from iOS 26, so "leave it on"
+   is gone, and so is "Scroll down the list". */
 const INS_OPEN = (ios, card) => ({
   /* iOS gives a Home Screen app its own storage, so an iPhone signs in once more there; Android's shares the browser's.
      The card's page is read by people with no account yet. */
-  text: ios ? tr("Tap Nosca on the Home Screen") : tr("Tap Nosca on the Home screen"), sub: ios ? (card ? tr("Sign up or sign in there") : tr("Sign in there once")) : null,
-  alt: tr("The Nosca icon, among the others on the Home Screen"),
-  pic: (p) => <InsHome p={p} />,
+  text: ios ? tr("Open {app} Nosca from your Home Screen") : tr("Open {app} Nosca from your Home screen"),
+  sub: ios ? (card ? tr("Sign up or sign in there") : tr("Sign in there once")) : null,
 });
-const INS_SHARE_ROW = { text: tr("Tap Share"), alt: tr("Share, in the menu"), pic: (p) => <InsTap p={p} glyph="share" label="Share" /> };
-/* the share sheet's row of round actions ends on View More, a chevron (one 26.4 report names it More: the alt says so, nothing else is drawn) */
-const INS_VIEW_MORE = {
-  text: tr("Tap View More"), alt: tr("View More, the last of the round buttons: a chevron pointing down. On some iPhones it reads More."),
-  pic: (p) => (
-    <span className="flex items-start justify-center" style={{ gap: 10 }}>
-      <InsRound p={p} /><InsRound p={p} /><InsRound p={p} glyph="chevDown" label="View More" />
-    </span>
-  ),
-};
-const INS_ADD_ROW = { text: tr("Tap Add to Home Screen"), sub: tr("Scroll down the list"), alt: tr("Add to Home Screen, a square with a plus"), pic: (p) => <InsTap p={p} glyph="plusSquare" label="Add to Home Screen" /> };
-const INS_ADD_WEBAPP = {
-  text: tr("Tap Add"), sub: tr("Leave Open as Web App on"),
-  alt: tr("Add, top right. Open as Web App is switched on."),
-  pic: (p) => (
-    <InsSheet>
-      <span className="flex items-center justify-between">
-        <InsGhost p={p} glyph="cross" size={22} />
-        <InsTap p={p} label="Add" round h={40} />
-      </span>
-      <span className="flex items-center justify-between" style={{ minHeight: 36, gap: 10 }}>
-        <span style={{ ...insWord(p.t), fontWeight: 500, fontSize: 14 }}>Open as Web App</span>
-        <span aria-hidden="true" className="relative shrink-0" style={{ width: 42, height: 26, borderRadius: 13, background: p.t.accent }}>
-          <span className="absolute" style={{ right: 2, top: 2, width: 22, height: 22, borderRadius: 11, background: "#FFFFFF" }} />
-        </span>
-      </span>
-    </InsSheet>
-  ),
-};
-/* step one of iOS 26 and 27: the control that version shows by default, named and drawn, and Share beside it for the Bottom and Top layouts */
-const INS_SAFARI_FIRST = (text, alt, pic) => ({ text, sub: tr("Or Share, then go to step 3"), alt, pic });
-/* an app's own browser cannot add to the Home Screen: open the page in Safari, where the steps follow */
-const INS_IN_APP = [{ text: tr("Open this page in Safari"), sub: tr("From this app's menu"), alt: tr("Safari, a compass"), pic: (p) => <InsTap p={p} glyph="compass" label="Safari" /> }];
+const INS_IOS_SHEET = { text: tr("Tap View More {chevDown}, then Add to Home Screen {plusSquare}") };
+const INS_ADD = { text: tr("Tap Add") };
+const INS_IN_APP = [{ text: tr("Open this page in Safari {compass}"), sub: tr("From this app's menu") }];
 function installSteps(sub, { iosBrowser = null, inApp = false, card = false } = {}) {
   if (inApp) return INS_IN_APP;
   if (sub === "iOS 27") return [
-    INS_SAFARI_FIRST(tr("Tap the three lines"), tr("Three lines at the left of the address bar. Or Share, the square with an arrow, where the toolbar shows it."),
-      (p) => <><InsBar p={p} lead={<InsInBar p={p} glyph="lines" />} /><InsOr p={p} /><InsTap p={p} glyph="share" /></>),
-    INS_SHARE_ROW, INS_VIEW_MORE, INS_ADD_ROW, INS_ADD_WEBAPP, INS_OPEN(true, card),
+    { text: tr("Tap {lines:the three lines}, then Share {share}"), sub: tr("Or tap {share:Share} if you see it"), scene: "ios27",
+      alt: tr("The three lines, at the left of the address bar") },
+    INS_IOS_SHEET, INS_ADD, INS_OPEN(true, card),
   ];
   if (sub === "iOS 26") return [
-    INS_SAFARI_FIRST(tr("Tap the three dots"), tr("Three dots at the right of the address bar. Or Share, the square with an arrow, where the toolbar shows it."),
-      (p) => <><InsBar p={p} run /><InsTap p={p} glyph="dots" round /><InsOr p={p} /><InsTap p={p} glyph="share" /></>),
-    INS_SHARE_ROW, INS_VIEW_MORE, INS_ADD_ROW, INS_ADD_WEBAPP, INS_OPEN(true, card),
+    { text: tr("Tap {dots:the three dots}, then Share {share}"), sub: tr("Or tap {share:Share} if you see it"), scene: "ios26",
+      alt: tr("The three dots, at the right of the address bar") },
+    INS_IOS_SHEET, INS_ADD, INS_OPEN(true, card),
   ];
   if (sub === "Earlier") return [
     /* Chrome on an iPhone keeps Share at the right of its address bar; Edge and Firefox in their menus: never Safari's toolbar under their names */
-    iosBrowser === "Chrome"
-      ? { text: tr("Tap Share"), alt: tr("Share, at the right of the address bar"), pic: (p) => <InsBar p={p} run trail={<InsInBar p={p} glyph="share" />} /> }
-      : iosBrowser
-        ? { text: tr("Tap Share"), alt: tr("Share, the square with an arrow"), pic: (p) => <InsTap p={p} glyph="share" /> }
-        : { text: tr("Tap Share"), alt: tr("Share, the square with an arrow, in the middle of Safari's toolbar"),
-            pic: (p) => <span className="flex items-center justify-between w-full" style={{ maxWidth: 280, padding: "0 6px" }}><InsGhost p={p} glyph="back" /><InsGhost p={p} glyph="fwd" /><InsTap p={p} glyph="share" /><InsGhost p={p} glyph="book" /><InsGhost p={p} glyph="tabs" /></span> },
-    { text: tr("Tap Add to Home Screen"), sub: tr("Scroll down the list"), alt: tr("Add to Home Screen, a square with a plus"), pic: (p) => <InsTap p={p} label="Add to Home Screen" trail="plusSquare" /> },
-    { text: tr("Tap Add"), alt: tr("Add, top right"),
-      pic: (p) => <InsSheet><span className="flex items-center justify-between" style={{ paddingLeft: 4 }}><InsFaint p={p}>Cancel</InsFaint><InsTap p={p} label="Add" round h={40} /></span></InsSheet> },
-    INS_OPEN(true, card),
+    iosBrowser === "Chrome" ? { text: tr("Tap Share {share}"), scene: "crios", alt: tr("Share, at the right of the address bar") }
+      : iosBrowser ? { text: tr("Tap Share {share}") }
+        : { text: tr("Tap Share {share}"), scene: "ios18", alt: tr("Share, in the middle of Safari's toolbar") },
+    { text: tr("Tap Add to Home Screen {plusSquare}") }, INS_ADD, INS_OPEN(true, card),
   ];
   if (sub === "Samsung") return [
-    { text: tr("Tap the three lines"), alt: tr("Three lines, bottom right"),
-      pic: (p) => <span className="flex items-center justify-between w-full" style={{ maxWidth: 280, padding: "0 6px" }}><InsGhost p={p} glyph="back" /><InsGhost p={p} glyph="fwd" /><InsGhost p={p} glyph="tabs" /><InsTap p={p} glyph="lines" /></span> },
-    { text: tr("Tap Add page to"), alt: tr("Add page to, with a plus"), pic: (p) => <InsTap p={p} glyph="plus" label="Add page to" /> },
-    { text: tr("Tap Home screen"), alt: tr("Home screen, in the list"), slim: true, pic: (p) => <InsTap p={p} label="Home screen" /> },
-    { text: tr("Tap Add"), alt: tr("Add"), slim: true, pic: (p) => <InsTap p={p} label="Add" round /> },
-    INS_OPEN(false),
+    { text: tr("Tap {lines:the three lines}"), scene: "samsung", alt: tr("The three lines, bottom right") },
+    { text: tr("Tap Add page to, then Home screen") }, INS_ADD, INS_OPEN(false),
   ];
   if (sub === "Chrome") return [
-    { text: tr("Tap the three dots"), alt: tr("Three dots, top right, beside the address bar"),
-      pic: (p) => <><InsBar p={p} run /><InsTap p={p} glyph="dotsV" /></> },
+    { text: tr("Tap {dotsV:the three dots}"), scene: "chrome", alt: tr("The three dots, top right, beside the address bar") },
     /* Chrome 150 (July 2026) renamed the row; a phone not yet updated keeps the old name */
-    { text: tr("Tap one of these"), alt: tr("Install and create shortcut, in the menu. On an older Chrome it reads Add to Home screen."),
-      pic: (p) => <span className="flex flex-col items-center" style={{ gap: 9 }}><InsTap p={p} label="Install and create shortcut" /><InsOr p={p} /><InsTap p={p} label="Add to Home screen" /></span> },
-    { text: tr("Tap Install"), alt: tr("Install, not Create shortcut"),
-      pic: (p) => <span className="flex flex-wrap items-center justify-center" style={{ gap: "14px 14px" }}><InsTap p={p} label="Install" round /><InsFaint p={p}>Create shortcut</InsFaint></span> },
-    INS_OPEN(false),
+    { text: tr("Tap Install and create shortcut"), sub: tr("Or Add to Home screen") },
+    { text: tr("Tap Install") }, INS_OPEN(false),
   ];
   if (sub === "Safari") return [
-    { text: tr("Open the File menu"), alt: tr("File, in the menu bar. Or Share, the square with an arrow, in the toolbar."),
-      pic: (p) => <><span className="flex items-center" style={{ gap: 12 }}><InsTap p={p} label="File" h={40} /><InsFaint p={p}>Edit</InsFaint></span><InsOr p={p} /><InsTap p={p} glyph="share" /></> },
-    { text: tr("Choose Add to Dock"), alt: tr("Add to Dock, in the menu"), slim: true, pic: (p) => <InsTap p={p} label="Add to Dock…" /> },
-    { text: tr("Click Add"), alt: tr("Add"), slim: true, pic: (p) => <InsTap p={p} label="Add" round /> },
+    { text: tr("In the File menu, choose Add to Dock"), scene: "mac", alt: tr("File, in the menu bar") },
+    { text: tr("Click Add") },
   ];
   return [
-    { text: tr("Click the install icon"), alt: tr("At the right of the address bar: a screen with an arrow in Chrome, three squares and a plus in Edge"),
-      pic: (p) => <><InsBar p={p} run trail={<InsInBar p={p} glyph="monitorDown" />} /><InsOr p={p} /><InsTap p={p} glyph="appsPlus" /></> },
-    { text: tr("Click Install"), alt: tr("Install"), slim: true, pic: (p) => <InsTap p={p} label="Install" round /> },
+    { text: tr("Click {monitorDown:the install icon} in the address bar"), sub: tr("In Edge it looks like {appsPlus:three squares and a plus}"), scene: "desktop",
+      alt: tr("The install icon, at the right of the address bar") },
+    { text: tr("Click Install") },
   ];
 }
-/* the steps, drawn: a numeral in a ring, the words, the picture on the
-   wash, and a fine thread from each numeral to the next */
+/* the steps: a numeral in a fine ring, the words with the control drawn in them, a thread from each numeral to the next */
 function InstallSteps({ steps, dress, tour, wait = 0 }) {
   const t = useT();
   const card = dress === "card";
-  const p = { t, hi: card ? STAR : t.accent };
+  const hi = card ? CLUB.gold : t.accent;
   const figure = card ? INSTALL_GOLD : t.ink, ring = card ? CLUB.gold : LINE_STRONG, thread = card ? MIX("#FFFFFF", CLUB.gold, 0.55) : t.hair;
   return (
     <ol data-tour={`${tour}-steps`} style={{ listStyle: "none", margin: 0, padding: 0 }}>
       {steps.map((st, i) => {
         const last = i === steps.length - 1;
         return (
-          <li key={`${st.text}:${i}`} data-ins-step="" className="relative flex" style={{ gap: 14, paddingBottom: last ? 0 : 24, animation: `insRise 520ms ${MOTION.curve} ${wait + i * 70}ms backwards` }}>
-            {!last && <span aria-hidden="true" className="absolute" style={{ left: 13.5, top: 34, bottom: 6, width: 1, background: thread }} />}
+          <li key={`${st.text}:${i}`} data-ins-step="" className="relative flex" style={{ gap: 14, paddingBottom: last ? 0 : 22, animation: `insRise 480ms ${MOTION.curve} ${wait + i * 60}ms backwards` }}>
+            {!last && <span aria-hidden="true" className="absolute" style={{ left: 13.5, top: 34, bottom: 4, width: 1, background: thread }} />}
             <span data-ins-num="" className="flex items-center justify-center shrink-0" style={{ width: 28, height: 28, borderRadius: 14, boxShadow: `inset 0 0 0 1.5px ${ring}`, fontFamily: ui, fontSize: 14, lineHeight: 1, fontWeight: 700, color: figure }}>{i + 1}</span>
-            <div className="flex-1 min-w-0">
-              <p data-ins-text="" className="flex items-center" style={{ ...TYPE.heading, color: t.ink, minHeight: 28 }}>{st.text}</p>
-              {st.sub && <p style={{ ...TYPE.small, color: t.sub, marginTop: 1, textWrap: "balance" }}>{st.sub}</p>}
-              {/* a picture that only repeats its words in a key stands on a slim panel */}
-              <div role="img" aria-label={st.alt} data-ins-pic="" className="flex items-center justify-center"
-                   style={{ marginTop: 10, minHeight: st.slim ? 0 : 86, padding: st.slim ? `10px ${INS_PAD}px 15px` : `14px ${INS_PAD}px 19px`, gap: 10, borderRadius: 16, background: t.wash }}>
-                {st.pic(p)}
-              </div>
+            <div className="flex-1 min-w-0" style={{ paddingTop: 3 }}>
+              <p data-ins-text="" style={{ ...TYPE.heading, color: t.ink }}>{insSay(st.text)}</p>
+              {st.sub && <p data-ins-sub="" style={{ ...TYPE.small, color: t.sub, marginTop: 2 }}>{insSay(st.sub)}</p>}
+              {st.scene && <InsScene kind={st.scene} alt={st.alt} hi={hi} />}
             </div>
           </li>
         );
       })}
     </ol>
+  );
+}
+/* what unfolds and folds without a jump: its rows go from nothing to its
+   height, and while folded it is hidden from a finger and a reader */
+function InsFold({ open, children }) {
+  return (
+    <div style={{ display: "grid", gridTemplateRows: open ? "1fr" : "0fr", transition: `grid-template-rows 340ms ${MOTION.curve}` }}>
+      <div aria-hidden={open ? undefined : true} style={{ minHeight: 0, overflow: open ? "visible" : "hidden", visibility: open ? "visible" : "hidden",
+                                                       transition: open ? "visibility 0s" : "visibility 0s linear 340ms" }}>{children}</div>
+    </div>
   );
 }
 export function InstallGuide({ tour = "install", dress = "app", wait = 0, onDone }) {
@@ -19596,6 +19549,8 @@ export function InstallGuide({ tour = "install", dress = "app", wait = 0, onDone
   const setSub = (x) => { setOwn(false); setSubRaw(x); };
   const [choose, setChoose] = useState(false);
   const [offer, setOffer] = useState(canPromptInstall);
+  /* with the browser's own install there, the steps by hand are one tap away, folded */
+  const [byHand, setByHand] = useState(false);
   const [done, setDone] = useState(isStandalone);
   const [note, setNote] = useState("");
   /* the steps wait for the page's arrival once; a change of device is at once */
@@ -19605,7 +19560,6 @@ export function InstallGuide({ tour = "install", dress = "app", wait = 0, onDone
   /* the page that holds the guide takes its title off once there is nothing left to do */
   useEffect(() => { if (done && onDone) onDone(); }, [done]);
   const install = async () => {
-    haptic(10);
     const r = await promptInstall();
     if (r === "accepted") { hapticSuccess(); setDone(true); }
     else if (r === "dismissed") setNote(tr("Not installed"));
@@ -19618,17 +19572,18 @@ export function InstallGuide({ tour = "install", dress = "app", wait = 0, onDone
     /* the card's page: the icon that landed, and the one line, under the card */
     <div data-tour={tour} className="ins flex flex-col items-center text-center" style={{ gap: 14, paddingTop: 4 }}>
       <style>{INSTALL_CSS}</style>
-      <span aria-hidden="true"><InsAppIcon p={{ t, hi: "transparent" }} size={64} /></span>
+      <span aria-hidden="true"><InsAppIcon size={64} /></span>
       <p data-tour={`${tour}-done`} style={{ ...TYPE.title, color: t.ink, textWrap: "balance" }}>{landed}</p>
     </div>
   ) : (
     <div data-tour={tour} className="ins flex items-center" style={{ gap: 16, marginTop: SPACE.row }}>
       <style>{INSTALL_CSS}</style>
-      <span aria-hidden="true"><InsAppIcon p={{ t, hi: "transparent" }} size={56} /></span>
+      <span aria-hidden="true"><InsAppIcon size={56} /></span>
       <p data-tour={`${tour}-done`} className="flex-1 min-w-0" style={{ ...TYPE.heading, color: t.ink }}>{landed}</p>
     </div>
   );
   const button = offer && tab !== "iPhone";
+  const showSteps = !button || byHand;
   const onIphone = own && tab === "iPhone" && mine === "iPhone";
   const iosBrowser = onIphone ? INSTALL_IOS_BROWSER[browser] || null : null;
   const inApp = onIphone && browser === "other";
@@ -19636,36 +19591,46 @@ export function InstallGuide({ tour = "install", dress = "app", wait = 0, onDone
   /* the row names the device as it is: an iPad is not an iPhone */
   const tabName = tab === "iPhone" && mine === "iPhone" && isIpad() ? "iPad" : tab;
   const subName = inApp ? tr("In an app") : iosBrowser || INSTALL_SUB_NAME[sub] || sub;
+  const gold = card ? INSTALL_GOLD : t.accent;
   return (
     <div data-tour={tour} className="ins">
       <style>{INSTALL_CSS}</style>
-      {/* which device these steps are for, and the one way to another */}
-      <button data-tour={`${tour}-device`} aria-expanded={choose} onClick={() => { haptic(6); setChoose(!choose); }}
-              className="w-full flex items-center justify-between text-left active:opacity-60" style={{ minHeight: 48, gap: 12 }}>
-        {/* each half kept whole: a narrow phone breaks the row at the dot, never inside a name */}
-        <span className="min-w-0" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}><span style={{ whiteSpace: "nowrap" }}>{tabName}</span> <span style={{ whiteSpace: "nowrap" }}>· {subName}</span></span>
-        <span className="shrink-0" style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, color: card ? INSTALL_GOLD : t.accent }}>{choose ? tr("Done") : tr("Change")}</span>
-      </button>
-      {choose && (
-        <div data-tour={`${tour}-choices`} style={{ paddingTop: 4, paddingBottom: SPACE.tight }}>
-          <Segmented tall options={INSTALL_TABS} value={tab} onChange={setTab} tour={`${tour}-platform`} />
-          <div style={{ marginTop: SPACE.tight }}>
-            <Segmented tall options={INSTALL_SUBS[tab]} value={sub} onChange={setSub} tour={`${tour}-version`} />
-          </div>
-          {INSTALL_HINT[tab] && <p data-tour={`${tour}-hint`} style={{ ...TYPE.caption, color: t.sub, marginTop: SPACE.tight }}>{tr(INSTALL_HINT[tab])}</p>}
+      {/* THE ONE KEY, where the browser offers it: its own install sheet in one tap. It opens out when the offer
+          arrives after the page (Chrome fires it once the page has loaded), never jumps in */}
+      <InsFold open={button}>
+        <div style={{ paddingTop: SPACE.row }}>
+          <Button tone="accent" onClick={install} tour={`${tour}-now`}>{tr("Install Nosca")}</Button>
+          <button data-tour={`${tour}-hand`} aria-expanded={byHand} onClick={() => { haptic(6); setByHand(!byHand); }}
+                  className="w-full flex items-center justify-center active:opacity-60" style={{ minHeight: 44, gap: 4, ...TYPE.small, fontWeight: 600, color: t.sub }}>
+            {tr("Or by hand")}
+            <ChevronDown size={16} strokeWidth={2.2} style={{ transform: byHand ? "rotate(180deg)" : "none", transition: `transform ${MOTION.settle}ms` }} />
+          </button>
         </div>
-      )}
+      </InsFold>
       {/* the note outlives the button: a dismissed sheet takes the offer away on the same render that says so */}
-      {(button || note) && (
-        <div style={{ marginTop: SPACE.tight }}>
-          {button && <Button tone="accent" onClick={install} tour={`${tour}-now`}>{tr("Install Nosca")}</Button>}
-          {note && <p className="text-center" role="status" style={{ ...TYPE.caption, color: DANGER, marginTop: SPACE.tight }}>{note}</p>}
-          {button && <p className="text-center" style={{ ...TYPE.caption, color: t.sub, marginTop: SPACE.tight }}>{tr("Or by hand")}</p>}
+      {note && <p className="text-center" role="status" style={{ ...TYPE.caption, color: DANGER, marginTop: SPACE.tight }}>{note}</p>}
+      <InsFold open={showSteps}>
+        <div style={{ paddingTop: SPACE.row }}>
+          <InstallSteps steps={steps} dress={dress} tour={tour} wait={arrived ? 0 : wait} />
+          {/* which device these steps are for, and the one way to another: after the steps, so step one comes first */}
+          <button data-tour={`${tour}-device`} aria-expanded={choose} onClick={() => { haptic(6); setChoose(!choose); }}
+                  className="w-full flex items-center justify-between text-left active:opacity-60"
+                  style={{ minHeight: 44, gap: 12, marginTop: SPACE.row, animation: `insRise 480ms ${MOTION.curve} ${(arrived ? 0 : wait) + steps.length * 60}ms backwards` }}>
+            {/* each half kept whole: a narrow phone breaks the row at the dot, never inside a name */}
+            <span className="min-w-0" style={{ ...TYPE.small, color: t.sub }}><span style={{ whiteSpace: "nowrap" }}>{tabName}</span> <span style={{ whiteSpace: "nowrap" }}>· {subName}</span></span>
+            <span className="shrink-0" style={{ ...TYPE.small, fontWeight: 600, color: gold }}>{choose ? tr("Done") : tr("Change")}</span>
+          </button>
+          {choose && (
+            <div data-tour={`${tour}-choices`} style={{ paddingTop: 4 }}>
+              <Segmented tall options={INSTALL_TABS} value={tab} onChange={setTab} tour={`${tour}-platform`} />
+              <div style={{ marginTop: SPACE.tight }}>
+                <Segmented tall options={INSTALL_SUBS[tab]} value={sub} onChange={setSub} tour={`${tour}-version`} />
+              </div>
+              {INSTALL_HINT[tab] && <p data-tour={`${tour}-hint`} style={{ ...TYPE.caption, color: t.sub, marginTop: SPACE.tight }}>{tr(INSTALL_HINT[tab])}</p>}
+            </div>
+          )}
         </div>
-      )}
-      <div style={{ marginTop: SPACE.row }}>
-        <InstallSteps steps={steps} dress={dress} tour={tour} wait={arrived ? 0 : wait} />
-      </div>
+      </InsFold>
     </div>
   );
 }

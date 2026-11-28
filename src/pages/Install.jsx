@@ -1,34 +1,36 @@
 import React, { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { ThemeCtx, NEUTRAL, CLUB, tr, ui, TYPE, MOTION, Button, InstallGuide, INSTALL_CSS, haptic, openAbout } from "../Nosca";
-import { RING_L, RING_R, BRAND } from "../lib/brandmark.jsx";
+import { RING_L, RING_R } from "../lib/brandmark.jsx";
 import { registerSw } from "../lib/push";
-import { isStandalone } from "../lib/install";
+import { isStandalone, canPromptInstall, onInstallPromptChange } from "../lib/install";
 
 /* ADD TO HOME SCREEN — https://<site>/install
  *
  * The page the business card's code opens: the first thing anyone sees
- * of Nosca after being handed the card. The founder, 23 November: "it's
- * a bit anticlimactic … too much text, too much going on." So the page
- * is THE CARD LAID ON PAPER. The paper is the card's own back — white,
- * a rule in gold — and the card itself lies on it as an object, drawn
- * from the print file's numbers (scripts/business-card.py): the olive
- * ground, the two wedges of gold pinstripes, the mark and NOSCA in the
- * foil. It arrives showing the white side that was just scanned and
- * turns over once. Under it one line says what Nosca is, and then the
- * guide (InstallGuide in Nosca, in its card dress: the gold for the
- * numerals, the thread and the ring) shows this phone's steps and no
- * other. The page's one key is the card's olive, so the page and the
- * card in the hand are one object; the app's own bottle green is the
- * icon drawn in the last step, which is what lands on the Home Screen.
+ * of Nosca after being handed the card. The paper is the card's own
+ * back — white, a rule in gold — with the two cards the founder hands
+ * out lying on it, drawn from the print files' numbers. Under them one
+ * line says what Nosca is, and then the guide (InstallGuide in Nosca, in
+ * its card dress) shows this phone's steps and no other.
  *
- * The foot's quiet key, Continue in the browser, and the X go to the app
- * in this tab — a sign-up for a new person, the app for one who is
- * signed in; About Nosca opens the website beside it. It is the white
- * key, not the olive: the steps are what the page is for, and a filled
- * "Open Nosca" under "Tap Nosca on the Home Screen" read as the next step. The worker is registered here too: Chrome's
- * install criteria want one, and the app registers it only once
- * somebody is signed in. */
+ * TIDIED (28 November). The founder: "people found that very confusing.
+ * They thought that they just tapped on the buttons on it, rather than
+ * following those instructions … way too much text … really complex."
+ * So the steps draw no key any more (InstallGuide says how), there are
+ * four of them at most, the cards are smaller and lie still — they
+ * turned over and drew their foil in for two seconds — and the page has
+ * ONE key that is a key: Install Nosca where the browser offers it (the
+ * guide's), otherwise Continue in the browser, filled in the card's
+ * olive at the foot. With the browser's offer there, Continue is the
+ * quiet key under it.
+ *
+ * Continue and the X hand over to the app IN THIS PAGE (App.jsx's
+ * `leaveInstall`: the address becomes "/" and the gate swaps the page
+ * for sign-up, or the app for a member, under a cross-fade where the
+ * browser has view transitions) — no reload, no white page between. The
+ * worker is registered here too: Chrome's install criteria want one, and
+ * the app registers it only once somebody is signed in. */
 
 /* the card, in its own millimetres */
 const CARD_W = 84, CARD_H = 55;
@@ -64,54 +66,10 @@ const BAND = (() => {
   }
   return [...top, ...foot];
 })();
-/* the code on the card's back, as a pattern and nothing a camera reads:
-   the three corner squares and a scatter between them */
-const CODE = (() => {
-  const n = 29, cell = 17 / n, x0 = 61, y0 = 22.5, f = (v) => Number(v.toFixed(2));
-  const corner = (i, j, ci, cj) => { const a = Math.max(Math.abs(i - ci), Math.abs(j - cj)); return a <= 3 ? a !== 2 : null; };
-  let d = "", seed = 7;
-  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
-    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-    const near = [[3, 3], [n - 4, 3], [3, n - 4]].map(([ci, cj]) => corner(i, j, ci, cj)).find((v) => v !== null);
-    const quiet = [[3, 3], [n - 4, 3], [3, n - 4]].some(([ci, cj]) => Math.max(Math.abs(i - ci), Math.abs(j - cj)) === 4);
-    const on = near !== undefined ? near : !quiet && (seed >> 8) % 100 < 46;
-    if (on) d += `M${f(x0 + i * cell)} ${f(y0 + j * cell)}h${f(cell)}v${f(cell)}h${f(-cell)}z`;
-  }
-  return d;
-})();
-/* the back's words, where scripts/business-card.py sets them: x, the baseline, the size (pt × 0.3528 mm), the weight, the colour */
-const INK_PRINT = "#1C1C1E", GREY_PRINT = "#6B6B6B";
-const BACK_WORDS = [
-  { x: 6, y: 25.0, size: 4.23, weight: 500, fill: INK_PRINT, text: "Fionn Breathnach" },
-  { x: 6, y: 29.6, size: 2.82, weight: 400, fill: GREY_PRINT, text: "Founder" },
-  { x: 6, y: 37.1, size: 2.82, weight: 500, fill: INK_PRINT, text: "Coaching, linked." },
-  { x: 6, y: 40.8, size: 2.82, weight: 400, fill: INK_PRINT, text: "One app for coach, player and parent." },
-  { x: 78, y: 43.1, size: 2.65, weight: 500, fill: INK_PRINT, text: "Scan to start", end: true },
-  { x: 6, y: 49.0, size: 2.65, weight: 400, fill: GREY_PRINT, text: "Golf · Tennis · Rowing · Squash · Padel · Equestrian" },
-];
 /* the foil, lit from the top left as the print preview lights it */
 const FOIL = [[0, "#B08630"], [0.38, "#E2BE60"], [0.5, "#FAE6A0"], [0.62, "#DEB85A"], [1, "#A07626"]];
 const TRACK = 0.42 * 3.53;   // NOSCA at 10 pt, tracked 0.42 em, in the card's millimetres
-const face = { position: "absolute", inset: 0, overflow: "hidden", borderRadius: "4.17% / 6.36%", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" };
-const draw = (ms, delay) => ({ strokeDasharray: "1 2", animation: `insDraw ${ms}ms cubic-bezier(.4,0,.2,1) ${delay}ms backwards` });
-/* THE TURN. The card starts on its white side and comes over once, slow
-   off the mark so the side that was scanned is seen. Its shadow stays on
-   the paper, so it cannot turn with the card: it narrows as the card
-   stands on edge and widens again — the same curve, sampled, because a
-   keyframe's easing runs between two keyframes and never across them. */
-const TURN = { ms: 1250, delay: 220, curve: [0.55, 0, 0.15, 1] };
-const bezier = ([x1, y1, x2, y2], x) => {
-  const at = (a, b, k) => 3 * a * k * (1 - k) * (1 - k) + 3 * b * k * k * (1 - k) + k * k * k;
-  let lo = 0, hi = 1;
-  for (let i = 0; i < 28; i++) { const mid = (lo + hi) / 2; if (at(x1, x2, mid) < x) lo = mid; else hi = mid; }
-  return at(y1, y2, (lo + hi) / 2);
-};
-const SHADE = Array.from({ length: 26 }, (_, i) => {
-  const x = i / 25, wide = Math.abs(Math.cos(Math.PI * (1 - bezier(TURN.curve, x))));
-  return `${(x * 100).toFixed(0)}%{transform:scaleX(${Math.max(0.03, wide).toFixed(3)});opacity:${(0.35 + 0.65 * wide).toFixed(2)}}`;
-}).join("");
-/* when the green side has come round: the foil is drawn from then */
-const FRONT = TURN.delay + Math.round(TURN.ms * 0.36);
+const face = { position: "absolute", inset: 0, overflow: "hidden", borderRadius: "4.17% / 6.36%" };
 
 /* THE TWO CARDS (24 November). The founder hands out two designs, and
    each is drawn as it was printed: the deep green with the pinstripes
@@ -127,119 +85,87 @@ const FRONT = TURN.delay + Math.round(TURN.ms * 0.36);
    the press's own render of its ground (scripts/business-card.py's GREEN,
    CMYK 0.85/0.35/0.55/0.60), the olive the app's own CLUB.olive. */
 const CARD_GREEN = "#183D3A";
-const CARD_GAP = 240;   /* the second card turns this long after the first */
-function OneCard({ ground, id, design, wait, style }) {
+/* each card lies still, its front up: the stripes, the mark and NOSCA in the foil */
+function OneCard({ ground, id, design, style }) {
   const foil = `url(#ins-foil-${id})`;
   return (
-    <div data-card={id} data-design={design} className="absolute" style={{ aspectRatio: `${CARD_W} / ${CARD_H}`, perspective: 900, ...style }}>
-      {/* what the card rests on: a soft shadow that stays on the paper while the card turns */}
-      <span aria-hidden="true" className="absolute" style={{ left: "4%", right: "4%", top: "16%", bottom: "3%", borderRadius: 14, boxShadow: "0 16px 26px -6px rgba(26,32,14,0.34), 0 6px 10px -3px rgba(26,32,14,0.22)",
-                                                              animation: `insShade ${TURN.ms}ms linear ${TURN.delay + wait}ms backwards` }} />
-      <div aria-hidden="true" data-flip="" className="absolute inset-0" style={{ transformStyle: "preserve-3d", animation: `insTurn ${TURN.ms}ms cubic-bezier(${TURN.curve.join(",")}) ${TURN.delay + wait}ms backwards` }}>
-        {/* the front */}
-        <div style={{ ...face, boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.08)" }}>
-          <svg viewBox={`0 0 ${CARD_W} ${CARD_H}`} width="100%" height="100%" style={{ display: "block" }} focusable="false">
-            <defs>
-              <linearGradient id={`ins-foil-${id}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={CARD_W} y2={CARD_H}>
-                {FOIL.map(([o, c]) => <stop key={o} offset={o} stopColor={c} />)}
-              </linearGradient>
-            </defs>
-            <rect width={CARD_W} height={CARD_H} fill={ground} />
-            <g fill="none" stroke={foil}>
-              {design === "band" ? (
-                /* the stripes across the top and the foot, out from the band one after another */
-                BAND.map((d, i) => <path key={d} data-stripe="" d={d} pathLength="1" strokeWidth="0.4" style={draw(420, (FRONT + wait) + 60 + (i % (BAND.length / 2 | 0 || 1)) * 16)} />)
-              ) : (<>
-                {/* the wedges' gold edges, then the pinstripes out from them one after another */}
-                <path data-edge="" d="M39.85 0L84 30.52" pathLength="1" strokeWidth="0.5" style={draw(520, (FRONT + wait) + 20)} />
-                <path data-edge="" d="M44.15 55L0 24.48" pathLength="1" strokeWidth="0.5" style={draw(520, (FRONT + wait) + 20)} />
-                {STRIPES.map((d, i) => <path key={d} data-stripe="" d={d} pathLength="1" strokeWidth="0.4" style={draw(460, (FRONT + wait) + 150 + i * 14)} />)}
-              </>)}
-              {/* the mark, 22 mm wide and centred, arriving whole: drawn ring after ring it read for a beat as a wink */}
-              <g transform="translate(31 17.5) scale(0.55)" strokeWidth="2.75" strokeLinecap="round" style={{ animation: `insFade 640ms ease-out ${(FRONT + wait) + 260}ms backwards` }}>
-                <path d={RING_L} />
-                <path d={RING_R} />
-              </g>
-            </g>
-            <text data-tour="wordmark" x={CARD_W / 2 + TRACK / 2} y="36.72" textAnchor="middle" fill={foil}
-                  style={{ fontFamily: ui, fontSize: 3.53, fontWeight: 500, letterSpacing: TRACK, animation: `insFade 520ms ease-out ${(FRONT + wait) + 700}ms backwards` }}>NOSCA</text>
-          </svg>
-        </div>
-        {/* the back, the side that was scanned: seen only as the card turns over */}
-        <div style={{ ...face, transform: "rotateY(180deg)", boxShadow: "inset 0 0 0 1px rgba(20,24,18,0.10)" }}>
-          <svg viewBox={`0 0 ${CARD_W} ${CARD_H}`} width="100%" height="100%" style={{ display: "block" }} focusable="false">
-            <rect width={CARD_W} height={CARD_H} fill="#FFFFFF" />
-            <g transform="translate(6 6) scale(0.275)" fill="none" stroke={foil} strokeWidth="2.75" strokeLinecap="round"><path d={RING_L} /><path d={RING_R} /></g>
-            <text data-tour="wordmark" x={78 + TRACK} y="10.7" textAnchor="end" fill={foil} style={{ fontFamily: ui, fontSize: 3.53, fontWeight: 400, letterSpacing: TRACK }}>NOSCA</text>
-            <rect x="6" y="16.25" width="72" height="0.5" rx="0.25" fill={foil} />
-            {/* the card's own words, as printed (a picture of the card: its words are drawn at the card's scale, not read as the page's) */}
-            {BACK_WORDS.map((w) => (
-              <text key={w.text} data-drawn="" x={w.x} y={w.y} textAnchor={w.end ? "end" : "start"} fill={w.fill}
-                    style={{ fontFamily: ui, fontSize: w.size, fontWeight: w.weight, letterSpacing: w.text.length > 40 ? 0.05 : 0 }}>{w.text}</text>
-            ))}
-            <path d={CODE} fill={BRAND} />
-          </svg>
-        </div>
+    <div data-card={id} data-design={design} className="absolute" style={{ aspectRatio: `${CARD_W} / ${CARD_H}`, ...style }}>
+      {/* what the card rests on: a soft shadow on the paper */}
+      <span aria-hidden="true" className="absolute" style={{ left: "5%", right: "5%", top: "18%", bottom: "4%", borderRadius: 12, boxShadow: "0 12px 20px -8px rgba(26,32,14,0.32), 0 4px 8px -4px rgba(26,32,14,0.2)" }} />
+      <div aria-hidden="true" style={{ ...face, boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.08)" }}>
+        <svg viewBox={`0 0 ${CARD_W} ${CARD_H}`} width="100%" height="100%" style={{ display: "block" }} focusable="false">
+          <defs>
+            <linearGradient id={`ins-foil-${id}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={CARD_W} y2={CARD_H}>
+              {FOIL.map(([o, c]) => <stop key={o} offset={o} stopColor={c} />)}
+            </linearGradient>
+          </defs>
+          <rect width={CARD_W} height={CARD_H} fill={ground} />
+          <g fill="none" stroke={foil}>
+            {design === "band"
+              ? BAND.map((d) => <path key={d} data-stripe="" d={d} strokeWidth="0.4" />)
+              : (<>
+                  <path data-edge="" d="M39.85 0L84 30.52" strokeWidth="0.5" />
+                  <path data-edge="" d="M44.15 55L0 24.48" strokeWidth="0.5" />
+                  {STRIPES.map((d) => <path key={d} data-stripe="" d={d} strokeWidth="0.4" />)}
+                </>)}
+            {/* the mark, 22 mm wide and centred */}
+            <g transform="translate(31 17.5) scale(0.55)" strokeWidth="2.75" strokeLinecap="round"><path d={RING_L} /><path d={RING_R} /></g>
+          </g>
+          <text data-tour="wordmark" x={CARD_W / 2 + TRACK / 2} y="36.72" textAnchor="middle" fill={foil}
+                style={{ fontFamily: ui, fontSize: 3.53, fontWeight: 500, letterSpacing: TRACK }}>NOSCA</text>
+        </svg>
       </div>
     </div>
   );
 }
+/* the two, laid on the paper: the deep green in front, the olive behind with its mark in sight; they arrive in one
+   soft rise and then lie still. The box is drawn at its full size from the first frame, so nothing under it moves */
 function InstallCard() {
   return (
     <div data-tour="install-card" role="img" aria-label={tr("The two Nosca cards: two woven rings and NOSCA in gold, one on deep green with gold pinstripes across its top and foot, one on olive green with gold pinstripes in two corners")}
-         className="ins-card relative mx-auto" style={{ aspectRatio: `${CARD_W} / ${CARD_H}`, animation: "insFade 260ms ease-out backwards" }}>
-      <OneCard id="olive" ground={CLUB.olive} design="wedges" wait={0} style={{ left: 0, top: 0, width: "70%", transform: "rotate(-7deg)", zIndex: 1 }} />
-      <OneCard id="green" ground={CARD_GREEN} design="band" wait={CARD_GAP} style={{ right: 0, bottom: 0, width: "70%", transform: "rotate(2.5deg)", zIndex: 2 }} />
+         className="ins-card relative mx-auto" style={{ aspectRatio: `${CARD_W} / ${CARD_H}`, animation: `insRise 620ms ${MOTION.curve} 60ms backwards` }}>
+      <OneCard id="olive" ground={CLUB.olive} design="wedges" style={{ left: 0, top: 0, width: "70%", transform: "rotate(-6deg)", zIndex: 1 }} />
+      <OneCard id="green" ground={CARD_GREEN} design="band" style={{ right: 0, bottom: 0, width: "70%", transform: "rotate(2.5deg)", zIndex: 2 }} />
     </div>
   );
 }
 
-/* the page's own motion. Every animation here fills `backwards`: the
-   element's own style is the finished state, so what remains after the
-   arrival — and all there ever is under Reduce Motion — is the page.
+/* the page's own motion: one soft rise each, in turn, every one filling
+   `backwards`, so the element's own style is the finished page — and all
+   there ever is under Reduce Motion.
 
-   THE LAYOUT. On a phone it is one column, and its air is measured off
-   the screen's height (`vh`), so that on a 375 × 667 phone the card,
-   the line and the title leave step one — numeral, words and picture —
-   on the first screen, and a tall phone gets the room it has. From 720
-   wide (an iPad, a computer) it is two columns, composed: the card,
-   the line, the rule and the key on the left, standing still while a
-   long set of steps scrolls past on the right (`--ins-lead-h` is the
-   left column's height, so the key stands under it); the whole hung
-   from a fixed top, never centred on its own height — centred, opening
-   Change moved the very row just clicked out from under the pointer;
-   the X in the screen's corner. Installed, the right column's one line
-   stands level with the card. */
+   THE LAYOUT. On a phone it is one column: the cards, the line, the rule,
+   the title and the steps, and the key at the foot — on a 390 × 844
+   phone all of it on the first screen. From 720 wide (an iPad, a
+   computer) it is two columns, composed: the cards, the line, the rule
+   and the key on the left, standing still, the title and the steps on
+   the right; the whole hung from a fixed top, never centred on its own
+   height — centred, opening Change moved the very row just clicked out
+   from under the pointer; the X in the screen's corner. */
 const PAGE_CSS = `
-@keyframes insTurn{from{transform:translateY(16px) rotateY(-180deg)}to{transform:none}}
-@keyframes insDraw{from{stroke-dashoffset:1.02}to{stroke-dashoffset:0}}
-@keyframes insFade{from{opacity:0}to{opacity:1}}
 @keyframes insRule{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-@keyframes insShade{${SHADE}}
 .calm *, .calm *::before, .calm *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 .ins-shell{width:100%;max-width:460px;margin:0 auto;display:flex;flex-direction:column;flex:1 1 auto}
 .ins-x{position:relative;flex:none;height:44px}
-.ins-card{width:min(272px,76vw)}
-.ins-what{margin-top:clamp(18px,3vh,26px)}
-.ins-rule{margin:clamp(16px,2.6vh,24px) 0 clamp(18px,2.8vh,26px)}
-.ins-foot{margin-top:auto;padding-top:36px}
+.ins-card{width:min(212px,58vw)}
+.ins-what{margin-top:clamp(16px,2.6vh,22px)}
+.ins-rule{margin:clamp(14px,2.2vh,20px) auto clamp(16px,2.4vh,22px);width:56px}
+.ins-foot{margin-top:auto;padding-top:32px}
 @media (min-width:720px) and (min-height:520px){
-  .ins-shell{max-width:1000px;flex:none;margin:0 auto;padding:clamp(56px,11vh,128px) 0 48px;display:grid;grid-template-columns:minmax(0,340px) minmax(0,400px);grid-template-rows:auto minmax(0,1fr);column-gap:48px;justify-content:center;align-items:start}
+  .ins-shell{max-width:1000px;flex:none;margin:0 auto;padding:clamp(56px,12vh,140px) 0 48px;display:grid;grid-template-columns:minmax(0,320px) minmax(0,400px);grid-template-rows:auto minmax(0,1fr);column-gap:64px;justify-content:center;align-items:start}
   .ins-x{display:contents}
   .ins-x > button{right:20px !important;top:16px !important}
   .ins-lead{grid-column:1;grid-row:1;position:sticky;top:40px}
   .ins-foot{grid-column:1;grid-row:2;margin-top:0;padding-top:0;position:sticky;top:calc(40px + var(--ins-lead-h, 0px))}
   .ins-main{grid-column:2;grid-row:1 / span 2}
-  .ins-card{width:min(320px,100%)}
-  .ins-what{margin-top:28px}
-  .ins-rule{margin:24px 0 26px}
+  .ins-card{width:min(260px,100%)}
+  .ins-what{margin-top:26px}
+  .ins-rule{margin:22px auto 26px}
   .ins-done .ins-main{align-self:center}
 }
 @media (min-width:1000px) and (min-height:520px){
-  .ins-shell{grid-template-columns:minmax(0,420px) minmax(0,460px);column-gap:96px}
-  .ins-card{width:min(372px,100%)}
-  .ins-what{margin-top:30px}
-  .ins-rule{margin:26px 0 28px}
+  .ins-shell{grid-template-columns:minmax(0,380px) minmax(0,440px);column-gap:96px}
+  .ins-card{width:min(300px,100%)}
 }
 `;
 /* the app's own Reduce motion switch (Settings), kept on the phone; the
@@ -247,13 +173,17 @@ const PAGE_CSS = `
 const appCalm = () => { try { return window.localStorage.getItem("nosca.ui.reduceMotion") === "true"; } catch (e) { return false; } };
 /* the card's world: the paper and the greys are the app's, the one key the card's olive */
 const PAGE = { ...NEUTRAL, accent: CLUB.olive, mark: CLUB.olive, onAccent: "#FFFFFF" };
-const rise = (delay) => ({ animation: `insRise 560ms ${MOTION.curve} ${delay}ms backwards` });
+const rise = (delay) => ({ animation: `insRise 520ms ${MOTION.curve} ${delay}ms backwards` });
 
-export default function InstallPage() {
+export default function InstallPage({ onLeave }) {
   useEffect(() => { registerSw(); }, []);
-  const open = () => { haptic(10); window.location.assign("/"); };
+  /* into the app in this page (the gate's hand-over); on its own, a plain load of the app */
+  const open = () => { haptic(10); if (onLeave) onLeave(); else window.location.assign("/"); };
   /* once the app is on a Home Screen there is nothing left to add: the title goes */
-  const [done, setDone] = useState(false);
+  const [done, setDone] = useState(isStandalone);
+  /* the browser's own install, while it is offered, is the page's one key; Continue then steps back to the quiet key */
+  const [offer, setOffer] = useState(canPromptInstall);
+  useEffect(() => onInstallPromptChange((on) => setOffer(on)), []);
   /* the left column's height, for the key that stands under it on a wide screen */
   const shell = useRef(null), lead = useRef(null);
   useEffect(() => {
@@ -279,26 +209,26 @@ export default function InstallPage() {
           <div ref={lead} className="ins-lead px-6">
             <InstallCard />
             {/* what Nosca is, for somebody who has only the card */}
-            <p data-tour="install-what" className="ins-what text-center mx-auto" style={{ ...TYPE.body, color: PAGE.sub, textWrap: "balance", ...rise(300) }}>
+            <p data-tour="install-what" className="ins-what text-center mx-auto" style={{ ...TYPE.body, color: PAGE.sub, textWrap: "balance", ...rise(180) }}>
               {tr("A coaching app: lessons, video and drills.")}
             </p>
             {/* the card's own rule, in its gold */}
-            <span aria-hidden="true" className="ins-rule block" style={{ height: 2, borderRadius: 2, transformOrigin: "0 50%",
+            <span aria-hidden="true" className="ins-rule block" style={{ height: 2, borderRadius: 2,
                                                                          background: `linear-gradient(90deg, ${FOIL[0][1]}, ${FOIL[2][1]} 52%, ${CLUB.gold})`,
-                                                                         animation: `insRule 760ms ${MOTION.curve} 380ms backwards` }} />
+                                                                         animation: `insRule 640ms ${MOTION.curve} 240ms backwards` }} />
           </div>
           <div className="ins-main px-6">
-            {!done && <h1 style={{ ...TYPE.screen, color: PAGE.ink, marginBottom: 2, ...rise(440) }}>{tr("Add to Home Screen")}</h1>}
-            <div style={rise(500)}>
-              <InstallGuide dress="card" wait={560} onDone={() => setDone(true)} />
+            {!done && <h1 style={{ ...TYPE.screen, color: PAGE.ink, ...rise(280) }}>{tr("Add to Home Screen")}</h1>}
+            <div style={rise(320)}>
+              <InstallGuide dress="card" wait={340} onDone={() => setDone(true)} />
             </div>
           </div>
-          <div className="ins-foot px-6 shrink-0" style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom, 20px))" }}>
-            {/* the quiet key: the steps are what the page is for; inside the installed app it is the app */}
-            <Button tone="quiet" onClick={open} tour="install-open">{isStandalone() ? tr("Open Nosca") : tr("Continue in the browser")}</Button>
+          <div className="ins-foot px-6 shrink-0" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom, 16px))" }}>
+            {/* THE ONE KEY when the browser offers nothing: into the app, in this page; inside the installed app it is the app */}
+            <Button tone={offer && !done ? "quiet" : "accent"} onClick={open} tour="install-open">{isStandalone() ? tr("Open Nosca") : tr("Continue in the browser")}</Button>
             {/* the company's website, as the sign-in page carries it: a quiet line under the key, 44 to a finger */}
             <button data-tour="install-about" onClick={() => { haptic(6); openAbout(); }} className="w-full active:opacity-50"
-                    style={{ minHeight: 44, marginTop: 6, fontFamily: ui, fontSize: 14, fontWeight: 600, color: PAGE.sub }}>
+                    style={{ minHeight: 44, marginTop: 2, fontFamily: ui, fontSize: 14, fontWeight: 600, color: PAGE.sub }}>
               {tr("About Nosca")}
             </button>
           </div>
