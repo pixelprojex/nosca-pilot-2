@@ -15308,8 +15308,7 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
               return row(r.id || r.name, i === 0 ? "roster-row" : undefined, () => { haptic(6); push("player:" + (r.id || r.name)); },
                 <Avatar name={r.name} size={PERSON_FACE} />, r.name,
                 st ? st.text : [stage, `${r.lessons} ${r.lessons === 1 ? tr("lesson") : tr("lessons")}`].filter(Boolean).join(" · "),
-                /* the level as the file's chip, at rest (28 November) */
-                st ? st.tone : "faint", st && stage ? <StagePill small label={stage} /> : null);
+                st ? st.tone : "faint", st ? stage : null);
             })}
           </div>
           {/* ALL LESSONS IS A ROUTE, NOT A PERSON. It sat in the column

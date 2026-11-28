@@ -156,9 +156,11 @@ seeded data and no account.
     tab's badge says it (the class plan's simpler home). Supersedes
     Messages among the home's Actions below.
   - **The level is a chip**: the player file's level (`player-level`,
-    still the door to Progress), the lesson page's `StagePill` and the
-    roster's level on the right are the lead's pale with its ring and
-    the level in the lead at 700. A lesson
+    still the door to Progress) and the lesson page's `StagePill` are
+    the lead's pale with its ring and the level in the lead at 700. The
+    roster's level stays the plain value on the right: as a chip it took
+    the room the name and the grey line need at 320 (`person-row.cjs`
+    (e), (f), (i), (m) cut them). A lesson
     with nothing filmed (`Poster`) is the lead's pale with the sport's
     glyph in the lead, never the grey square. `EmptyHero`'s disc is 96,
     the lead's pale on its ledge, and its line the serif at 24/700 —
