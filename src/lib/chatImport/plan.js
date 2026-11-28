@@ -49,7 +49,8 @@ export function buildNote(day, noteRefs, tipRefs = [], drillRefs = []) {
   const drillRuns = runsOf(dedupe(drillRefs));
   const pieces = [];
   noteRuns.forEach((r) => pieces.push({ mi: r.mi, text: r.text }));
-  if (tipRuns.length) pieces.push({ mi: Infinity, text: `Tip · ${tipRuns.map((r) => r.text).join(" ")}` });
+  /* the coach's own "Tip:" is not said twice */
+  if (tipRuns.length) pieces.push({ mi: Infinity, text: `Tip · ${tipRuns.map((r) => r.text.replace(/^tip\s*[:\-\u2013]\s*/i, "")).join(" ")}` });
   if (drillRuns.length) pieces.push({ mi: Infinity, text: `Drills · ${drillRuns.map((r) => r.text).join(" · ")}` });
   /* cut at a message boundary: whole messages' runs while they fit */
   let out = "";
