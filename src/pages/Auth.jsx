@@ -3,6 +3,7 @@ import { Check, ChevronLeft, Eye } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/AuthContext";
 import { isIos, isStandalone } from "../lib/install";
+import { isNative, publicOrigin } from "../lib/native";
 import {
   ThemeCtx, NEUTRAL, BRAND, SPORTS, tr, ui, display, TYPE, R, DANGER, STEADY, SPACE, useT, lipOf, SOFT_LIP, EDGE_W,
   hapticSuccess, hapticWarn, haptic, openAbout, Mark, Choice, Button, FOIL, MicBtn, SportGrid,
@@ -602,8 +603,9 @@ function SetPassword() {
 
 /* ================================================================== */
 
-/* a Home Screen app on an iPhone keeps its own storage: whoever signed up in Safari is signed out in it */
-const homeScreenIphone = () => isStandalone() && isIos();
+/* a Home Screen app on an iPhone keeps its own storage: whoever signed up in Safari is signed out in it.
+   The App Store's app is found in the store by people who are new, and opens on the landing like a browser */
+const homeScreenIphone = () => !isNative() && isStandalone() && isIos();
 const signedInHereBefore = () => { try { return window.localStorage.getItem("nosca.here") === "1"; } catch (e) { return false; } };
 
 export default function Auth({ invite, mode, onInviteUsed, start }) {
@@ -650,7 +652,8 @@ export default function Auth({ invite, mode, onInviteUsed, start }) {
   };
 
   /* ---------- forgot password ---------- */
-  const redirectTo = typeof window !== "undefined" ? window.location.origin : undefined;
+  /* the app's public address: inside the App Store shell the page's own is localhost, which an email cannot open */
+  const redirectTo = typeof window !== "undefined" ? publicOrigin() : undefined;
   const sendReset = async (email) => {
     if (busy) return;
     setBusy(true); setErr("");
