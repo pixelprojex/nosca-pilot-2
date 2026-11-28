@@ -65,7 +65,8 @@ async function fillDetails(page, { name, email, phone, pass, dob }) {
   if (phone) await page.getByLabel("Mobile · optional", { exact: true }).fill(phone);
   await page.getByLabel("Password", { exact: true }).fill(pass);
 }
-const pickChoice = async (page, label) => { await btn(page, label).click(); await btn(page, "Continue").click(); };
+/* Join as and Main sport answer and go on with the tap (28 November): no Continue */
+const pickChoice = async (page, label) => { await btn(page, label).click(); await page.waitForTimeout(600); };
 const startCreate = async (page, who, sport) => { await page.goto(BASE, { waitUntil: "networkidle" }); await btn(page, "Create account").click(); await pickChoice(page, who); await pickChoice(page, sport); };
 const profileNamed = (db, n) => Object.values(db.profiles).find((p) => p.name === n);
 

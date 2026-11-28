@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
-import { CalendarDays, Check, Lock, Mail, Phone, User } from "lucide-react";
+import { Check, ChevronLeft, Eye } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/AuthContext";
+import { isIos, isStandalone } from "../lib/install";
 import {
-  ThemeCtx, NEUTRAL, BRAND, SPORTS, tr, ui, display, TYPE, R, DANGER, STEADY, useT,
-  hapticSuccess, hapticWarn, haptic, openAbout, Mark, Frame, SignupShell, Choice, Headline, Sub, Field, Button, FOIL,
-  CodeBoxes, DobBox, PickSport,
+  ThemeCtx, NEUTRAL, BRAND, SPORTS, tr, ui, display, TYPE, R, DANGER, STEADY, SPACE, useT, lipOf, SOFT_LIP, EDGE_W,
+  hapticSuccess, hapticWarn, haptic, openAbout, Mark, Choice, Button, FOIL, MicBtn, SportGrid,
+  CodeBoxes, DobBox,
 } from "../Nosca";
 
 /* SIGN UP AND SIGN IN
@@ -16,9 +17,9 @@ import {
  *
  * One decision per screen, cheapest first, commitment last:
  *
- *   coach    who are you → main sport → your details
- *   parent   who are you → main sport → your details
- *   player   who are you → main sport → your details (with date of
+ *   coach    join as → main sport → your details
+ *   parent   join as → main sport → your details → your family
+ *   player   join as → main sport → your details (with date of
  *            birth) → your codes
  *
  * Whether a player is under 18 comes from the date of birth — it is
@@ -29,29 +30,42 @@ import {
  * database deliberately never fails a sign-up over a code it doesn't
  * recognise — without the check a mistyped code would create the
  * account silently unlinked.
- */
+ *
+ * GREAT AND SIMPLE (28 November). The founder: the sign-in and create an
+ * account page "should also look great while not overcomplicated … cut
+ * down on text … very short lines". So every screen is one shell
+ * (`AuthShell`: Back, the brand's mark in the middle of the bar — the
+ * one green thing before a sport — the title, the body, the one key at
+ * the foot); a choice is a tap that answers and goes on (Join as, Main
+ * sport — the chosen tile shows for a beat, then the next screen), so
+ * those two screens carry no Continue; the fields are the app's own text
+ * box (the wash on its soft foot, 16px, a red ring and one plain line
+ * under it for a problem); every message the server's words become is
+ * one short line (`friendly`). A Home Screen
+ * app on an iPhone has its own storage, so somebody who signed up in
+ * Safari is signed out there: it opens on Sign in, saying so in one line,
+ * with Create account under it for the person who has no account yet. */
 
 const MIN_PASS = 8;
 const ADULT = 18;
-const FAMILY_REQUIRED = "Ask a parent — it's under Settings › Family";
-const ALREADY = "There's already an account with that email. Try signing in.";
+const FAMILY_REQUIRED = "Ask a parent: Settings › Family";
+const ALREADY = "There's already an account with that email";
 
+/* the server's words, as one short line a person can act on */
 export const friendly = (msg) => {
   const m = (msg || "").toLowerCase();
   if (m.includes("already registered") || m.includes("already exists") || m.includes("already been registered"))
     return ALREADY;
-  if (m.includes("invalid login")) return "That email and password don't match.";
-  if (m.includes("email not confirmed"))
-    return "This email hasn't been confirmed yet. Check your inbox for the link.";
-  if (m.includes("different from the old")) return "That's already your password. Choose a new one.";
+  if (m.includes("invalid login")) return "That email and password don't match";
+  if (m.includes("email not confirmed")) return "Confirm your email first. Check your inbox";
+  if (m.includes("different from the old")) return "That's already your password";
   if (m.includes("password") && (m.includes("at least") || m.includes("too short") || m.includes("characters") || m.includes("weak")))
-    return `Passwords need at least ${MIN_PASS} characters.`;
-  if (m.includes("rate limit") || m.includes("too many")) return "Too many attempts. Wait a minute and try again.";
-  if (m.includes("database error"))
-    return "Something went wrong. Try again";
+    return `Use at least ${MIN_PASS} characters`;
+  if (m.includes("rate limit") || m.includes("too many")) return "Too many tries. Wait a minute";
+  if (m.includes("database error")) return "Something went wrong. Try again";
   if (m.includes("failed to fetch") || m.includes("networkerror") || m.includes("network request failed") || m.includes("load failed"))
-    return "Couldn't reach the server. Check your connection and try again.";
-  return msg || "Something went wrong. Please try again.";
+    return "No connection. Try again";
+  return msg || "Something went wrong. Try again";
 };
 
 const emailOk = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((v || "").trim());
@@ -77,20 +91,89 @@ const Neutral = ({ children }) => (
   </ThemeCtx.Provider>
 );
 
+const rise = (delay = 0) => ({ animation: `fadeUp 480ms cubic-bezier(.22,1,.36,1) ${delay}ms backwards` });
+
+/* a problem, in one plain line */
 const ErrLine = ({ children, center }) => children ? (
-  <p className={`mb-3 ${center ? "text-center" : ""}`} style={{ fontFamily: ui, fontSize: 13.5, lineHeight: 1.5, color: DANGER }}>{children}</p>
+  <p role="alert" className={center ? "text-center" : ""} style={{ ...TYPE.small, color: DANGER, marginBottom: SPACE.tight }}>{children}</p>
 ) : null;
 
-const QuietLink = ({ children, onClick, disabled }) => {
+const QuietLink = ({ children, onClick, disabled, tour }) => {
   const t = useT();
   return (
-    <button onClick={() => { haptic(6); onClick(); }} disabled={disabled}
-            className="w-full mt-3 active:opacity-60 disabled:opacity-40"
-            style={{ minHeight: 44, fontFamily: ui, fontSize: 14.5, color: t.sub }}>
+    <button data-tour={tour} onClick={() => { haptic(6); onClick(); }} disabled={disabled}
+            className="w-full active:opacity-60 disabled:opacity-40"
+            style={{ minHeight: 44, marginTop: 4, fontFamily: ui, fontSize: 15, fontWeight: 600, color: t.sub }}>
       {children}
     </button>
   );
 };
+
+/* EVERY SCREEN OF THE FRONT DOOR. The bar: Back on the left, 44 to a
+   finger; the brand's mark in the middle, in its bottle green — the one
+   green thing before a sport, as the app's own mark stands top-left
+   inside it; `right` (Sign in, on the first question) on the right. Then
+   the title, a line under it only when it says something, the body —
+   which scrolls, so nothing is ever under the keyboard or the foot — and
+   the one key at the foot. */
+function AuthShell({ onBack, right, title, sub, children, footer }) {
+  const t = useT();
+  return (
+    /* one column, 480 at most: on a computer the front door is a phone's width in the middle, never a form stretched across the screen */
+    <div data-auth-shell="" className="flex flex-col h-full w-full mx-auto" style={{ background: t.page, maxWidth: 480 }}>
+      <div className="shrink-0" style={{ height: "env(safe-area-inset-top, 0px)" }} />
+      <div className="relative flex items-center justify-between shrink-0 px-1.5" style={{ height: 52 }}>
+        {onBack
+          ? <button onClick={() => { haptic(6); onBack(); }} aria-label={tr("Back")} className="flex items-center justify-center active:opacity-40" style={{ width: 44, height: 44 }}>
+              <ChevronLeft size={24} color={t.ink} strokeWidth={2} />
+            </button>
+          : <span style={{ width: 44 }} />}
+        <span aria-hidden="true" className="absolute left-1/2 top-1/2" style={{ transform: "translate(-50%, -50%)" }}><Mark size={30} color={t.mark} /></span>
+        {right || <span style={{ width: 44 }} />}
+      </div>
+      <div className="flex-1 overflow-y-auto min-h-0 px-7" style={{ overscrollBehavior: "contain" }}>
+        <h1 style={{ ...TYPE.screen, color: t.ink, paddingTop: SPACE.tight, ...rise(0) }}>{title}</h1>
+        {sub && <p data-auth-sub="" style={{ ...TYPE.body, color: t.sub, marginTop: 6, ...rise(40) }}>{sub}</p>}
+        <div style={{ paddingTop: SPACE.block - 4, paddingBottom: SPACE.block, ...rise(70) }}>{children}</div>
+      </div>
+      {footer && <div className="px-7 pt-2 shrink-0" style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom, 20px))" }}>{footer}</div>}
+    </div>
+  );
+}
+
+/* THE APP'S OWN TEXT BOX, with its label over it: the wash on its soft
+   foot, 54 tall, the words at 16 (under which iOS zooms the page); a
+   red ring and one plain line under it for a problem, the brand's ring
+   while it is being typed in. A name can be said (the microphone); an
+   email or a password cannot, and carries none. */
+function AuthField({ label, value, onChange, type = "text", error, onBlur, reveal, autoFocus, autoComplete, inputMode, mic }) {
+  const t = useT();
+  const [shown, setShown] = useState(false);
+  const [focus, setFocus] = useState(false);
+  const bad = !!error;
+  return (
+    <label className="block" style={{ marginBottom: SPACE.row }}>
+      <span className="block" style={{ ...TYPE.eyebrow, color: bad ? DANGER : t.sub, marginBottom: 6 }}>{label}</span>
+      <span className="flex items-center" style={{ minHeight: 54, gap: 4, paddingLeft: 16, paddingRight: reveal || mic ? 4 : 16, borderRadius: R.surface, background: t.wash,
+                                                  border: `${EDGE_W}px solid ${bad ? DANGER : focus ? t.accent : "transparent"}`, boxShadow: lipOf(SOFT_LIP(t), 2),
+                                                  transition: "border-color 160ms" }}>
+        <input type={reveal && shown ? "text" : type} value={value} autoFocus={autoFocus} autoComplete={autoComplete} inputMode={inputMode}
+               aria-label={typeof label === "string" ? label : undefined} aria-invalid={bad || undefined}
+               onFocus={() => setFocus(true)} onBlur={() => { setFocus(false); onBlur && onBlur(); }}
+               onChange={(e) => onChange(e.target.value)} className="flex-1 min-w-0 outline-none"
+               style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent", height: 50 }} />
+        {mic && <MicBtn size={40} onText={(txt) => onChange(value ? `${value} ${txt}` : txt)} />}
+        {reveal && value.length > 0 && (
+          <button type="button" onClick={(e) => { e.preventDefault(); haptic(6); setShown(!shown); }} className="shrink-0 flex items-center justify-center active:opacity-50"
+                  style={{ width: 44, height: 44 }} aria-label={shown ? tr("Hide password") : tr("Show password")}>
+            <Eye size={18} color={shown ? t.accent : t.faint} strokeWidth={1.8} />
+          </button>
+        )}
+      </span>
+      {bad && <span className="block" role="alert" style={{ ...TYPE.caption, color: DANGER, marginTop: 6 }}>{error}</span>}
+    </label>
+  );
+}
 
 /* Scrolls the first problem into view and puts the cursor in it —
    the button is never disabled, so nobody is left guessing why. */
@@ -101,6 +184,19 @@ const showProblem = (ref) => {
   const input = el.querySelector("input");
   if (input) setTimeout(() => input.focus(), 250);
 };
+
+/* a choice that answers and goes on: the chosen tile shows for a beat, then the next screen. The tile's own tap is
+   the one beat a finger feels — a buzz from the timer would fall outside the gesture, where iOS does not play it */
+const ANSWER_MS = 240;
+function useAnswer(onPick) {
+  const gone = useRef(false), timer = useRef(null);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  return (value) => {
+    if (gone.current) return;
+    gone.current = true;
+    timer.current = setTimeout(() => onPick(value), ANSWER_MS);
+  };
+}
 
 /* ---------- landing ---------- */
 function Landing({ invite, onCreate, onSignIn }) {
@@ -113,19 +209,19 @@ function Landing({ invite, onCreate, onSignIn }) {
               business card's white side carries them — the front door is the
               card in the hand. The name stays the ink: gold words on white
               would read 2.4:1 (FOIL is for a mark and a line on white, never a word) */}
-          <span data-foil="" style={{ animation: "fadeUp 700ms cubic-bezier(.22,1,.36,1) both" }}><Mark size={40} color={FOIL} /></span>
-          <span className="mt-5" style={{ fontFamily: display, fontSize: 13,
+          <span data-foil="" style={{ animation: "fadeUp 700ms cubic-bezier(.22,1,.36,1) both" }}><Mark size={48} color={FOIL} /></span>
+          <span className="mt-5" style={{ fontFamily: display, fontSize: 14, fontWeight: 500,
                          letterSpacing: "0.42em", paddingLeft: "0.42em", color: NEUTRAL.ink,
                          animation: "fadeUp 700ms cubic-bezier(.22,1,.36,1) 90ms both" }}>{BRAND}</span>
           <span aria-hidden="true" data-foil-rule="" className="mt-5" style={{ width: 56, height: 1, background: FOIL,
                          animation: "fadeUp 700ms cubic-bezier(.22,1,.36,1) 150ms both" }} />
         </div>
-        <div className="px-7" style={{ paddingBottom: "max(34px, env(safe-area-inset-bottom, 34px))",
+        <div className="px-7 w-full mx-auto" style={{ maxWidth: 480, paddingBottom: "max(28px, env(safe-area-inset-bottom, 28px))",
                                         animation: "fadeUp 640ms cubic-bezier(.22,1,.36,1) 200ms both" }}>
           {invite && (
-            <p className="text-center mb-5" style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.5, color: NEUTRAL.sub }}>
-              {tr("You've been invited.")}
-              <span className="block" style={{ color: NEUTRAL.faint, fontSize: 13 }}>
+            <p className="text-center mb-5" style={{ ...TYPE.body, color: NEUTRAL.ink }}>
+              {tr("You've been invited")}
+              <span className="block" style={{ ...TYPE.small, color: NEUTRAL.sub, marginTop: 2 }}>
                 {invite.kind === "family" ? tr("Family code") : tr("Coach code")} {invite.code}
               </span>
             </p>
@@ -136,7 +232,7 @@ function Landing({ invite, onCreate, onSignIn }) {
           <Button tone="quiet" onClick={onSignIn}>{tr("Sign in")}</Button>
           {/* the company's website, findable before an account exists: a quiet line under the two keys, 44 to a finger */}
           <button data-tour="auth-about" onClick={() => { haptic(6); openAbout(); }} className="w-full active:opacity-50"
-                  style={{ minHeight: 44, marginTop: 6, fontFamily: ui, fontSize: 14, fontWeight: 600, color: NEUTRAL.sub }}>
+                  style={{ minHeight: 44, marginTop: 4, fontFamily: ui, fontSize: 14, fontWeight: 600, color: NEUTRAL.sub }}>
             {tr("About Nosca")}
           </button>
         </div>
@@ -145,16 +241,34 @@ function Landing({ invite, onCreate, onSignIn }) {
   );
 }
 
-/* ---------- 1 · who are you ---------- */
-function WhoStep({ initial, onPick, onBack }) {
+/* ---------- 1 · join as ---------- */
+function WhoStep({ initial, onPick, onBack, onSignIn }) {
+  const t = useT();
   const [sel, setSel] = useState(initial || null);
+  const answer = useAnswer(onPick);
+  const pick = (r) => { setSel(r); answer(r); };
   return (
-    <SignupShell onBack={onBack} title={tr("Who are you?")}
-                 footer={<Button tone="ink" disabled={!sel} onClick={() => { hapticSuccess(); onPick(sel); }}>{tr("Continue")}</Button>}>
-      <Choice label={tr("Coach")}  on={sel === "coach"}  onSelect={() => setSel("coach")} />
-      <Choice label={tr("Player")} on={sel === "player"} onSelect={() => setSel("player")} delay={55} />
-      <Choice label={tr("Parent")} on={sel === "parent"} onSelect={() => setSel("parent")} delay={110} />
-    </SignupShell>
+    <AuthShell onBack={onBack} title={tr("Join as")}
+               right={onSignIn && (
+                 <button data-tour="auth-signin-instead" onClick={() => { haptic(6); onSignIn(); }} className="active:opacity-50 px-3"
+                         style={{ minHeight: 44, fontFamily: ui, fontSize: 16, fontWeight: 600, color: t.accent }}>{tr("Sign in")}</button>
+               )}>
+      <Choice label={tr("Coach")}  on={sel === "coach"}  onSelect={() => pick("coach")} />
+      <Choice label={tr("Player")} on={sel === "player"} onSelect={() => pick("player")} delay={50} />
+      <Choice label={tr("Parent")} on={sel === "parent"} onSelect={() => pick("parent")} delay={100} />
+    </AuthShell>
+  );
+}
+
+/* ---------- 2 · main sport ---------- */
+function SportStep({ initial, onPick, onBack }) {
+  const [sel, setSel] = useState(initial || null);
+  const answer = useAnswer(onPick);
+  /* each tile its own sport's colour, two across (at three "Equestrian" is cut at 320) */
+  return (
+    <AuthShell onBack={onBack} title={tr("Main sport")}>
+      <SportGrid ids={Object.keys(SPORTS)} picked={sel} onPick={(id) => { setSel(id); answer(id); }} cols={2} tour="signup-sport" />
+    </AuthShell>
   );
 }
 
@@ -179,15 +293,15 @@ function DetailsStep({ role, initial, busy, err, onBack, onDone, onSignInInstead
   const dobIssue = wantsDob && (age === null || age === "invalid");
   const show = (k) => touched[k] || tried;
 
-  const errName  = show("name")  && name.trim().length < 2 ? "Enter your name" : null;
-  const errEmail = show("email") && !emailOk(email)        ? "Enter a valid email" : null;
-  const errPass  = show("pass")  && pass.length < MIN_PASS ? `Use at least ${MIN_PASS} characters` : null;
+  const errName  = show("name")  && name.trim().length < 2 ? tr("Enter your name") : null;
+  const errEmail = show("email") && !emailOk(email)        ? tr("Enter a valid email") : null;
+  const errPass  = show("pass")  && pass.length < MIN_PASS ? `${tr("Use at least")} ${MIN_PASS} ${tr("characters")}` : null;
   const dobBad   = show("dob") && dobIssue;
-  const dobMsg   = age === "invalid" ? "That date doesn't exist" : "Enter your date of birth";
+  const dobMsg   = age === "invalid" ? tr("That date doesn't exist") : tr("Enter your date of birth");
 
   const problems = [
-    dobIssue && dobWrap,
     name.trim().length < 2 && nameWrap,
+    dobIssue && dobWrap,
     !emailOk(email) && emailWrap,
     pass.length < MIN_PASS && passWrap,
   ].filter(Boolean);
@@ -200,53 +314,40 @@ function DetailsStep({ role, initial, busy, err, onBack, onDone, onSignInInstead
              dob: wantsDob ? { d, m, y } : null, age });
   };
 
-  const sub = null;
-
   return (
-    <Frame onBack={onBack}
-           footer={<>
-             <ErrLine>{err}</ErrLine>
-             {err === ALREADY && <div className="mb-3"><Button tone="quiet" onClick={() => onSignInInstead(email.trim().toLowerCase())}>{tr("Sign in")}</Button></div>}
-             <Button tone="ink" disabled={busy} onClick={submit}>{busy ? "…" : tr(role === "coach" ? "Create account" : "Continue")}</Button>
-           </>}>
-      <div className="pt-6">
-        <Headline>{tr("Your details")}</Headline>
-        {sub && <Sub>{sub}</Sub>}
+    <AuthShell onBack={onBack} title={tr("Your details")}
+               footer={<>
+                 <ErrLine>{err}</ErrLine>
+                 {err === ALREADY && <div className="mb-3"><Button tone="quiet" onClick={() => onSignInInstead(email.trim().toLowerCase())}>{tr("Sign in")}</Button></div>}
+                 <Button tone="ink" disabled={busy} onClick={submit}>{busy ? "…" : tr(role === "coach" ? "Create account" : "Continue")}</Button>
+               </>}>
+      <div ref={nameWrap}><AuthField label={tr("Name")} value={name} onChange={setName} onBlur={() => mark("name")} error={errName} autoComplete="name" mic /></div>
 
-        {wantsDob && (
-          <div ref={dobWrap} className="mt-7 mb-1">
-            <div className="flex items-center gap-2 mb-2.5">
-              <CalendarDays size={15} color={dobBad ? DANGER : t.faint} strokeWidth={1.6} />
-              <span style={{ fontFamily: ui, fontSize: 12.5, color: dobBad ? DANGER : t.sub }}>{tr("Date of birth")}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <DobBox ref={dRef} value={d} onChange={setD} ph={tr("DD")} len={2} bad={dobBad} onDone={() => mRef.current && mRef.current.focus()} />
-              <DobBox ref={mRef} value={m} onChange={setM} ph={tr("MM")} len={2} bad={dobBad} onDone={() => yRef.current && yRef.current.focus()} />
-              <DobBox ref={yRef} value={y} onChange={setY} ph={tr("YYYY")} len={4} bad={dobBad} onDone={() => { mark("dob"); yRef.current && yRef.current.blur(); }} />
-              {typeof age === "number" && (
-                <span className="flex items-center gap-1.5 ml-1"><Check size={15} color={STEADY} strokeWidth={2.1} />
-                  <span style={{ fontFamily: ui, fontSize: 13, color: t.sub }}>{age}</span></span>
-              )}
-            </div>
-            {dobBad
-              ? <p className="mt-2" style={{ fontFamily: ui, fontSize: 12, lineHeight: 1.5, color: DANGER }}>{dobMsg}</p>
-              : typeof age === "number" && age < ADULT
-                ? <p className="mt-2" style={{ ...TYPE.caption, color: t.faint }}>{tr("A parent's family code is needed next")}</p>
-                : null}
+      {wantsDob && (
+        <div ref={dobWrap} style={{ marginBottom: SPACE.row }}>
+          <span className="block" style={{ ...TYPE.eyebrow, color: dobBad ? DANGER : t.sub, marginBottom: 6 }}>{tr("Date of birth")}</span>
+          <div className="flex items-center gap-2">
+            <DobBox ref={dRef} value={d} onChange={setD} ph={tr("DD")} len={2} bad={dobBad} onDone={() => mRef.current && mRef.current.focus()} />
+            <DobBox ref={mRef} value={m} onChange={setM} ph={tr("MM")} len={2} bad={dobBad} onDone={() => yRef.current && yRef.current.focus()} />
+            <DobBox ref={yRef} value={y} onChange={setY} ph={tr("YYYY")} len={4} bad={dobBad} onDone={() => { mark("dob"); yRef.current && yRef.current.blur(); }} />
+            {typeof age === "number" && (
+              <span className="flex items-center gap-1.5 ml-1"><Check size={16} color={STEADY} strokeWidth={2.2} />
+                <span style={{ ...TYPE.small, color: t.sub }}>{age}</span></span>
+            )}
           </div>
-        )}
-
-        <div className={wantsDob ? "mt-5" : "mt-6"}>
-          <div ref={nameWrap}><Field label={tr("Name")} value={name} onChange={setName} onBlur={() => mark("name")} error={errName} autoComplete="name" /></div>
-          <div ref={emailWrap}><Field label={tr("Email")} value={email} onChange={setEmail} onBlur={() => mark("email")} type="email" error={errEmail} autoComplete="email" inputMode="email" /></div>
-          <Field label={`${tr("Mobile")} · ${tr("optional")}`} value={phone} onChange={setPhone} type="tel" autoComplete="tel" inputMode="tel" />
-          <div ref={passWrap}><Field label={tr("Password")} value={pass} onChange={setPass} onBlur={() => mark("pass")} type="password" error={errPass} reveal autoComplete="new-password" /></div>
+          {dobBad
+            ? <p role="alert" style={{ ...TYPE.caption, color: DANGER, marginTop: 6 }}>{dobMsg}</p>
+            : typeof age === "number" && age < ADULT
+              ? <p style={{ ...TYPE.caption, color: t.sub, marginTop: 6 }}>{tr("A parent's family code comes next")}</p>
+              : null}
         </div>
-        <p className="mt-5 text-center pb-6" style={{ fontFamily: ui, fontSize: 12, lineHeight: 1.5, color: t.faint }}>
-          By continuing you accept the {BRAND} Terms and Privacy Policy.
-        </p>
-      </div>
-    </Frame>
+      )}
+
+      <div ref={emailWrap}><AuthField label={tr("Email")} value={email} onChange={setEmail} onBlur={() => mark("email")} type="email" error={errEmail} autoComplete="email" inputMode="email" /></div>
+      <AuthField label={`${tr("Mobile")} · ${tr("optional")}`} value={phone} onChange={setPhone} type="tel" autoComplete="tel" inputMode="tel" />
+      <div ref={passWrap}><AuthField label={tr("Password")} value={pass} onChange={setPass} onBlur={() => mark("pass")} type="password" error={errPass} reveal autoComplete="new-password" /></div>
+      <p style={{ ...TYPE.caption, color: t.faint, marginTop: 4 }}>{tr("By continuing you accept the Terms and Privacy Policy.")}</p>
+    </AuthShell>
   );
 }
 
@@ -275,28 +376,23 @@ function useCodeLookup(fn, value) {
   return state;
 }
 
+/* under the boxes, one line: who the code belongs to, Checking…, the problem, or the hint — and the same height
+   whichever, so the screen never moves under a code being typed */
 function CodeStatus({ look, value, issue, hint, tried }) {
   const t = useT();
   const complete = cleanCode(value).length === 6;
+  const line = (children, color) => <p className="flex items-center justify-center gap-1.5 text-center" style={{ ...TYPE.small, minHeight: 20, marginTop: 10, color }}>{children}</p>;
   if (look.status === "ok") {
-    return (
-      <p className="mt-3 flex items-center justify-center gap-1.5" style={{ fontFamily: ui, fontSize: 13.5, color: t.ink }}>
-        <Check size={15} color={STEADY} strokeWidth={2.1} />
-        <span>{look.name}{look.sport && SPORTS[look.sport] ? ` · ${SPORTS[look.sport].label}` : ""}{look.members != null ? ` · ${look.members} ${look.members === 1 ? tr("person") : tr("people")}` : ""}</span>
-      </p>
-    );
+    return line(<><Check size={15} color={STEADY} strokeWidth={2.2} />
+      <span>{look.name}{look.sport && SPORTS[look.sport] ? ` · ${SPORTS[look.sport].label}` : ""}{look.members != null ? ` · ${look.members} ${look.members === 1 ? tr("person") : tr("people")}` : ""}</span></>, t.ink);
   }
-  if (complete && (look.status === "checking" || look.status === "idle")) {
-    return <p className="mt-3 text-center" style={{ ...TYPE.caption, color: t.faint }}>{tr("Checking…")}</p>;
-  }
-  if (issue && (complete || tried)) {
-    return <p className="mt-3 text-center" style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.5, color: DANGER }}>{issue}</p>;
-  }
-  if (hint) return <p className="mt-3 text-center" style={{ ...TYPE.caption, lineHeight: 1.5, color: t.faint }}>{hint}</p>;
-  return null;
+  if (complete && (look.status === "checking" || look.status === "idle")) return line(tr("Checking…"), t.faint);
+  if (issue && (complete || tried)) return line(issue, DANGER);
+  if (hint) return line(hint, t.sub);
+  return line(null, t.sub);
 }
 
-/* ---------- 4 · your codes (players only) ---------- */
+/* ---------- 4 · your codes (players and parents) ---------- */
 function CodesStep({ junior, parent, initial, busy, err, onBack, onDone, onSkip, onSignInInstead }) {
   const t = useT();
   const [coach, setCoach] = useState(initial?.coach || "");
@@ -311,7 +407,7 @@ function CodesStep({ junior, parent, initial, busy, err, onBack, onDone, onSkip,
     const c = cleanCode(value);
     if (!c) return null;
     if (c.length < 6) return tr("Enter all six characters");
-    if (look.status === "error") return tr("Couldn't check that code. Try again.");
+    if (look.status === "error") return tr("Couldn't check that code. Try again");
     if (look.status === "miss") return noun === "coach" ? tr("No coach with that code") : tr("No family with that code");
     return null;
   };
@@ -339,41 +435,35 @@ function CodesStep({ junior, parent, initial, busy, err, onBack, onDone, onSkip,
     attempt();
   }, [pending, coachLook.status, famLook.status]);
 
-  const label = (text) => (
-    <p className="mb-3 text-center" style={{ ...TYPE.eyebrow, color: t.sub }}>{text}</p>
-  );
+  const label = (text) => <p style={{ ...TYPE.eyebrow, color: t.sub, marginBottom: 8 }}>{text}</p>;
 
   return (
-    <SignupShell onBack={onBack} title={parent ? tr("Your family") : tr("Your codes")}
-                 sub={null}
-                 footer={<>
-                   <ErrLine>{err}</ErrLine>
-                   {err === ALREADY && <div className="mb-3"><Button tone="quiet" onClick={onSignInInstead}>{tr("Sign in")}</Button></div>}
-                   <Button tone="ink" disabled={busy} onClick={submit}>{busy || pending ? "…" : tr("Create account")}</Button>
-                   {!junior && <QuietLink onClick={onSkip} disabled={busy}>{parent ? tr("Start a new family") : tr("Skip for now")}</QuietLink>}
-                 </>}>
-      <div style={{ overflowY: "auto", minHeight: 0, maxHeight: "100%" }}>
-        {!parent && (
-          <div ref={coachWrap} className="pt-1 pb-7">
-            {label(tr("Coach code"))}
-            <CodeBoxes value={coach} onChange={setCoach} bad={!!coachIssue && (cleanCode(coach).length === 6 || tried)} />
-            <CodeStatus look={coachLook} value={coach} issue={coachIssue} tried={tried}
-                        />
-          </div>
-        )}
-        <div ref={famWrap} className="pb-2">
-          {label(tr("Family code"))}
-          <CodeBoxes value={fam} onChange={setFam} bad={!!famIssue && (cleanCode(fam).length === 6 || (tried && (junior || !!cleanCode(fam))))} />
-          <CodeStatus look={famLook} value={fam} issue={famIssue} tried={tried && junior}
-                      hint={junior ? FAMILY_REQUIRED : null} />
+    <AuthShell onBack={onBack} title={parent ? tr("Your family") : tr("Your codes")}
+               footer={<>
+                 <ErrLine>{err}</ErrLine>
+                 {err === ALREADY && <div className="mb-3"><Button tone="quiet" onClick={onSignInInstead}>{tr("Sign in")}</Button></div>}
+                 <Button tone="ink" disabled={busy} onClick={submit}>{busy || pending ? "…" : tr("Create account")}</Button>
+                 {!junior && <QuietLink onClick={onSkip} disabled={busy}>{parent ? tr("Start a new family") : tr("Skip for now")}</QuietLink>}
+               </>}>
+      {!parent && (
+        <div ref={coachWrap} style={{ paddingBottom: SPACE.block - 6 }}>
+          {label(tr("Coach code"))}
+          <CodeBoxes value={coach} onChange={setCoach} bad={!!coachIssue && (cleanCode(coach).length === 6 || tried)} />
+          <CodeStatus look={coachLook} value={coach} issue={coachIssue} tried={tried} />
         </div>
+      )}
+      <div ref={famWrap}>
+        {label(tr("Family code"))}
+        <CodeBoxes value={fam} onChange={setFam} bad={!!famIssue && (cleanCode(fam).length === 6 || (tried && (junior || !!cleanCode(fam))))} />
+        <CodeStatus look={famLook} value={fam} issue={famIssue} tried={tried && junior}
+                    hint={junior ? FAMILY_REQUIRED : null} />
       </div>
-    </SignupShell>
+    </AuthShell>
   );
 }
 
 /* ---------- check your inbox ---------- */
-function InboxStep({ email, kind, note, onResend, onChangeEmail, onSignIn, onBack }) {
+function InboxStep({ email, note, onResend, onChangeEmail, onSignIn, onBack }) {
   const t = useT();
   const [wait, setWait] = useState(0);
   const [sent, setSent] = useState("");
@@ -390,64 +480,53 @@ function InboxStep({ email, kind, note, onResend, onChangeEmail, onSignIn, onBac
     hapticSuccess(); setWait(30); setSent(tr("Sent"));
   };
   return (
-    <Frame onBack={onBack}
-           footer={<>
-             {kind === "signup"
-               ? <Button tone="ink" onClick={onSignIn}>{tr("Sign in")}</Button>
-               : <Button tone="ink" onClick={onSignIn}>{tr("Sign in")}</Button>}
-             <QuietLink onClick={resend} disabled={!!wait}>{wait ? `${tr("Resend email")} · ${wait}s` : tr("Resend email")}</QuietLink>
-             <QuietLink onClick={onChangeEmail}>{tr("Use a different email")}</QuietLink>
-           </>}>
-      <div className="pt-6">
-        <Headline>{tr("Check your inbox")}</Headline>
-        <Sub>{tr("We sent a link to")}</Sub>
-        <p className="mt-7" style={{ fontFamily: display, fontSize: 19, letterSpacing: "-0.01em", color: t.ink, wordBreak: "break-all" }}>{email}</p>
-        {note && <p className="mt-4" style={{ fontFamily: ui, fontSize: 13.5, lineHeight: 1.5, color: t.sub }}>{note}</p>}
-        <p className="mt-4" style={{ fontFamily: ui, fontSize: 13.5, lineHeight: 1.5, color: t.faint }}>
-          {tr("Check spam if it's not there")}
-        </p>
-        {sent && <p className="mt-3" style={{ fontFamily: ui, fontSize: 13.5, color: sent === tr("Sent") ? STEADY : DANGER }}>{sent}</p>}
-      </div>
-    </Frame>
+    <AuthShell onBack={onBack} title={tr("Check your inbox")} sub={note || tr("Open the link we sent to")}
+               footer={<>
+                 <Button tone="ink" onClick={onSignIn}>{tr("Sign in")}</Button>
+                 <QuietLink onClick={resend} disabled={!!wait}>{wait ? `${tr("Resend email")} · ${wait}s` : tr("Resend email")}</QuietLink>
+                 <QuietLink onClick={onChangeEmail}>{tr("Use a different email")}</QuietLink>
+               </>}>
+      <p style={{ ...TYPE.title, color: t.ink, wordBreak: "break-all" }}>{email}</p>
+      <p style={{ ...TYPE.small, color: t.faint, marginTop: SPACE.tight }}>{tr("Check spam if it's not there")}</p>
+      {sent && <p role="status" style={{ ...TYPE.small, marginTop: SPACE.tight, color: sent === tr("Sent") ? STEADY : DANGER }}>{sent}</p>}
+    </AuthShell>
   );
 }
 
 /* ---------- sign in ---------- */
-function SignInStep({ initialEmail, busy, err, onBack, onSubmit, onForgot, clearErr }) {
+function SignInStep({ initialEmail, busy, err, onBack, onSubmit, onForgot, clearErr, sub, onCreate }) {
   const t = useT();
   const [email, setEmail] = useState(initialEmail || "");
   const [pass, setPass] = useState("");
   const [tried, setTried] = useState(false);
   const emailWrap = useRef(null), passWrap = useRef(null);
-  const eEmail = tried && !emailOk(email) ? "Enter your email" : null;
-  const ePass = tried && !pass ? "Enter your password" : null;
+  const eEmail = tried && !emailOk(email) ? tr("Enter your email") : null;
+  const ePass = tried && !pass ? tr("Enter your password") : null;
   const submit = () => {
     if (busy) return;
     if (!emailOk(email) || !pass) { setTried(true); hapticWarn(); showProblem(!emailOk(email) ? emailWrap : passWrap); return; }
     onSubmit(email.trim().toLowerCase(), pass);
   };
   return (
-    <Frame onBack={onBack}
-           footer={<>
-             <ErrLine>{err}</ErrLine>
-             <Button tone="ink" disabled={busy} onClick={submit}>{busy ? "…" : tr("Sign in")}</Button>
-           </>}>
-      <div className="pt-6">
-        <Headline>{tr("Sign in")}</Headline>
-        <div className="mt-8">
-          <div ref={emailWrap}><Field label={tr("Email")} value={email} onChange={(v) => { setEmail(v); clearErr(); }}
-                 type="email" autoFocus={!initialEmail} error={eEmail} autoComplete="email" inputMode="email" /></div>
-          <div ref={passWrap}><Field label={tr("Password")} value={pass} onChange={(v) => { setPass(v); clearErr(); }}
-                 type="password" ph="" reveal autoFocus={!!initialEmail} error={ePass} autoComplete="current-password" /></div>
-          {/* the least important control on the screen was the boldest
-              thing in the form, sitting under the password like a heading */}
-          <button onClick={() => { haptic(6); onForgot(email.trim().toLowerCase()); }} className="mt-4 active:opacity-50"
-                  style={{ minHeight: 40, fontFamily: ui, fontSize: 13.5, fontWeight: 500, color: t.sub }}>
-            {tr("Forgot password?")}
-          </button>
-        </div>
-      </div>
-    </Frame>
+    <AuthShell onBack={onBack} title={tr("Sign in")} sub={sub}
+               footer={<>
+                 <ErrLine>{err}</ErrLine>
+                 <Button tone="ink" disabled={busy} onClick={submit}>{busy ? "…" : tr("Sign in")}</Button>
+                 {onCreate && <QuietLink tour="auth-create-instead" onClick={onCreate}>{tr("Create account")}</QuietLink>}
+               </>}>
+      <form onSubmit={(e) => { e.preventDefault(); submit(); }}>
+        <div ref={emailWrap}><AuthField label={tr("Email")} value={email} onChange={(v) => { setEmail(v); clearErr(); }}
+               type="email" autoFocus={!initialEmail && !sub} error={eEmail} autoComplete="email" inputMode="email" /></div>
+        <div ref={passWrap}><AuthField label={tr("Password")} value={pass} onChange={(v) => { setPass(v); clearErr(); }}
+               type="password" reveal autoFocus={!!initialEmail} error={ePass} autoComplete="current-password" /></div>
+        <button type="submit" hidden aria-hidden="true" tabIndex={-1} />
+      </form>
+      {/* the least important control on the screen: a quiet line, never a heading under the password */}
+      <button onClick={() => { haptic(6); onForgot(email.trim().toLowerCase()); }} className="active:opacity-50"
+              style={{ minHeight: 44, fontFamily: ui, fontSize: 15, fontWeight: 500, color: t.sub }}>
+        {tr("Forgot password?")}
+      </button>
+    </AuthShell>
   );
 }
 
@@ -456,26 +535,23 @@ function ForgotStep({ initialEmail, busy, err, onBack, onSend }) {
   const [email, setEmail] = useState(initialEmail || "");
   const [tried, setTried] = useState(false);
   const wrap = useRef(null);
-  const eEmail = tried && !emailOk(email) ? "Enter your email" : null;
+  const eEmail = tried && !emailOk(email) ? tr("Enter your email") : null;
   const submit = () => {
     if (busy) return;
     if (!emailOk(email)) { setTried(true); hapticWarn(); showProblem(wrap); return; }
     onSend(email.trim().toLowerCase());
   };
   return (
-    <Frame onBack={onBack}
-           footer={<>
-             <ErrLine>{err}</ErrLine>
-             <Button tone="ink" disabled={busy} onClick={submit}>{busy ? "…" : tr("Send reset link")}</Button>
-           </>}>
-      <div className="pt-6">
-        <Headline>{tr("Reset password")}</Headline>
-                <div className="mt-8" ref={wrap}>
-          <Field label={tr("Email")} value={email} onChange={setEmail} type="email"
-                 autoFocus={!initialEmail} error={eEmail} autoComplete="email" inputMode="email" />
-        </div>
+    <AuthShell onBack={onBack} title={tr("Reset password")}
+               footer={<>
+                 <ErrLine>{err}</ErrLine>
+                 <Button tone="ink" disabled={busy} onClick={submit}>{busy ? "…" : tr("Send reset link")}</Button>
+               </>}>
+      <div ref={wrap}>
+        <AuthField label={tr("Email")} value={email} onChange={setEmail} type="email"
+                   autoFocus={!initialEmail} error={eEmail} autoComplete="email" inputMode="email" />
       </div>
-    </Frame>
+    </AuthShell>
   );
 }
 
@@ -490,8 +566,8 @@ function SetPassword() {
   const [busy, setBusy] = useState(false);
   const w1 = useRef(null), w2 = useRef(null);
   const mark = (k) => setTouched((x) => ({ ...x, [k]: true }));
-  const e1 = (touched.p1 || tried) && p1.length < MIN_PASS ? `Use at least ${MIN_PASS} characters` : null;
-  const e2 = (touched.p2 || tried) && p2 !== p1 ? "These don't match" : null;
+  const e1 = (touched.p1 || tried) && p1.length < MIN_PASS ? `${tr("Use at least")} ${MIN_PASS} ${tr("characters")}` : null;
+  const e2 = (touched.p2 || tried) && p2 !== p1 ? tr("These don't match") : null;
   const save = async () => {
     if (busy) return;
     if (p1.length < MIN_PASS) { setTried(true); hapticWarn(); showProblem(w1); return; }
@@ -509,30 +585,32 @@ function SetPassword() {
   const email = session?.user?.email;
   return (
     <Neutral>
-      <Frame footer={<>
-               <ErrLine>{err}</ErrLine>
-               <Button tone="ink" disabled={busy} onClick={save}>{busy ? "…" : tr("Save")}</Button>
-               <QuietLink onClick={clearRecovery} disabled={busy}>{tr("Not now")}</QuietLink>
-             </>}>
-        <div className="pt-6">
-          <Headline>{tr("New password")}</Headline>
-          {email && <Sub>{email}</Sub>}
-          <div className="mt-8">
-            <div ref={w1}><Field label={tr("New password")} value={p1} onChange={setP1} onBlur={() => mark("p1")}
-                   Icon={Lock} type="password" reveal error={e1} autoFocus autoComplete="new-password" /></div>
-            <div ref={w2}><Field label={tr("Confirm password")} value={p2} onChange={setP2} onBlur={() => mark("p2")}
-                   ph="" Icon={Lock} type="password" reveal error={e2} autoComplete="new-password" /></div>
-          </div>
-        </div>
-      </Frame>
+      <AuthShell title={tr("New password")} sub={email || null}
+                 footer={<>
+                   <ErrLine>{err}</ErrLine>
+                   <Button tone="ink" disabled={busy} onClick={save}>{busy ? "…" : tr("Save")}</Button>
+                   <QuietLink onClick={clearRecovery} disabled={busy}>{tr("Not now")}</QuietLink>
+                 </>}>
+        <div ref={w1}><AuthField label={tr("New password")} value={p1} onChange={setP1} onBlur={() => mark("p1")}
+               type="password" reveal error={e1} autoFocus autoComplete="new-password" /></div>
+        <div ref={w2}><AuthField label={tr("Confirm password")} value={p2} onChange={setP2} onBlur={() => mark("p2")}
+               type="password" reveal error={e2} autoComplete="new-password" /></div>
+      </AuthShell>
     </Neutral>
   );
 }
 
 /* ================================================================== */
 
-export default function Auth({ invite, mode, onInviteUsed }) {
-  const [stage, setStage] = useState("landing");
+/* a Home Screen app on an iPhone keeps its own storage: whoever signed up in Safari is signed out in it */
+const homeScreenIphone = () => isStandalone() && isIos();
+const signedInHereBefore = () => { try { return window.localStorage.getItem("nosca.here") === "1"; } catch (e) { return false; } };
+
+export default function Auth({ invite, mode, onInviteUsed, start }) {
+  /* where the front door opens: the question itself when the card's page handed over (`start`), Sign in inside an
+     iPhone's Home Screen app, else the landing */
+  const [first] = useState(() => start || (homeScreenIphone() ? "signin" : "landing"));
+  const [stage, setStage] = useState(first);
   const [role, setRole] = useState(null);         // coach | player | parent
   const [sport, setSport] = useState(null);
   const [details, setDetails] = useState(null);   // held while the codes step runs
@@ -558,7 +636,7 @@ export default function Auth({ invite, mode, onInviteUsed }) {
       if (error) {
         hapticWarn();
         if ((error.message || "").toLowerCase().includes("not confirmed")) {
-          setInbox({ email, kind: "signup", note: tr("This email hasn't been confirmed yet.") });
+          setInbox({ email, kind: "signup", note: tr("Confirm your email first") });
           setStage("inbox");
         } else {
           setErr(friendly(error.message));
@@ -673,10 +751,14 @@ export default function Auth({ invite, mode, onInviteUsed }) {
   }
 
   if (stage === "signin") {
+    /* opened on Sign in in an iPhone's Home Screen app: the one line that says why, and Create account under the key */
+    const opening = first === "signin";
     return (
       <Neutral>
         <SignInStep initialEmail={signinEmail} busy={busy} err={err} clearErr={() => setErr("")}
                     onBack={() => go("landing")} onSubmit={signIn}
+                    sub={opening && !signedInHereBefore() ? tr("Signed up in Safari? Sign in once here.") : null}
+                    onCreate={opening ? () => go("who") : null}
                     onForgot={(email) => { setSigninEmail(email); go("forgot"); }} />
       </Neutral>
     );
@@ -693,7 +775,7 @@ export default function Auth({ invite, mode, onInviteUsed }) {
   if (stage === "inbox" && inbox) {
     return (
       <Neutral>
-        <InboxStep email={inbox.email} kind={inbox.kind} note={inbox.note} onResend={resend}
+        <InboxStep email={inbox.email} note={inbox.note} onResend={resend}
                    onBack={() => go(inbox.kind === "reset" ? "forgot" : role ? "details" : "signin")}
                    onChangeEmail={() => go(inbox.kind === "reset" ? "forgot" : role ? "details" : "signin")}
                    onSignIn={() => { setSigninEmail(inbox.email); go("signin"); }} />
@@ -704,7 +786,7 @@ export default function Auth({ invite, mode, onInviteUsed }) {
   if (stage === "who") {
     return (
       <Neutral>
-        <WhoStep initial={role} onBack={() => go("landing")}
+        <WhoStep initial={role} onBack={() => go("landing")} onSignIn={() => go("signin")}
                  onPick={(r) => { setRole(r); go("sport"); }} />
       </Neutral>
     );
@@ -713,7 +795,7 @@ export default function Auth({ invite, mode, onInviteUsed }) {
   if (stage === "sport") {
     return (
       <Neutral>
-        <PickSport onBack={() => go("who")} onPick={(id) => { setSport(id); go("details"); }} />
+        <SportStep initial={sport} onBack={() => go("who")} onPick={(id) => { setSport(id); go("details"); }} />
       </Neutral>
     );
   }
