@@ -55,7 +55,7 @@ html.glide .op__dev{animation:op-in 1.25s .35s cubic-bezier(.16,.84,.24,1) backw
 
 /* ───────── 3. what the player keeps: the feed in use, on fog ───────── */
 .fd{position:relative;overflow:hidden;color:var(--on-green)}
-.fd__bg{--veil:.52}
+.fd__bg{--veil:.58}
 .fd__in{position:relative;display:grid;gap:clamp(36px,5vw,64px);align-items:center;padding-block:clamp(72px,10vw,140px)}
 .fd__h{font:600 clamp(38px,6.2vw,92px)/.98 var(--display);letter-spacing:-.038em;color:var(--on-green);margin:0}
 .fd__p{margin-top:clamp(16px,1.8vw,24px);max-width:24em;font:400 clamp(18px,1.6vw,23px)/1.4 var(--display);color:var(--on-green-2)}
