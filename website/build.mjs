@@ -278,7 +278,7 @@ function build() {
       header: 'paper',
       ...meta,
       page, world,
-      theme: meta.theme || (/^(dark|world|green)$/.test(meta.header || '') ? WORLD[world] : meta.header === 'rest' ? '#F6F4EE' : '#FFFFFF'),
+      theme: meta.theme || (/^(dark|world|green)$/.test(meta.header || '') ? WORLD[world] : meta.header === 'rest' ? '#F2ECE0' : '#FAF7F0'),
       worldColor: WORLD[world],
       pageCss: exists(path.join(SRC, 'css', page + '.css')) ? `<link rel="stylesheet" href="css/${page}.css">` : '',
       pageJs: exists(path.join(SRC, 'js', page + '.js')) ? `<script defer src="js/${page}.js"></script>` : '',

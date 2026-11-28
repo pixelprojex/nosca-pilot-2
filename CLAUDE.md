@@ -65,7 +65,9 @@ main.jsx → App.jsx (auth gate)
              ├── lib/install.js        the device, and the browser's own install offer
              ├── lib/useNoscaData.js   every database read and write
              └── Nosca.jsx             the entire UI (~14k lines, ~360 components)
-                   └── lib/useCapture.js
+                   ├── lib/useCapture.js
+                   ├── lib/importJob.js      whether an import is running (eager, tiny)
+                   └── lib/chatImport/       the WhatsApp import (a lazy chunk, behind its gate)
 ```
 
 `src/Nosca.jsx` is both the design prototype and the production UI.
@@ -80,7 +82,7 @@ seeded data and no account.
   November, the design render's second pass).** The orchestrator, of the
   first pass: the serif is right, "the rest is too subtle; the founder will
   say again 'it still basically looks the exact same'"; the founder, of
-  Lares, his own app: "absolutely stunning", and of Nosca: "the epitome of
+  Lares, their own app: "absolutely stunning", and of Nosca: "the epitome of
   luxury … nothing … AI-built, cheap". So the white box on the grey line
   is gone:
   - **The card.** A row of `.nsc-list`, a `.nsc-day`, `Card`, `Tile` (the
@@ -141,7 +143,7 @@ seeded data and no account.
   read it.
 - **The design render: bold serif titles, Lares's round keys, words on
   the plus, one paint chart a sport, warm neutrals, the Diary as keys
-  (24–28 November).** The founder, 24 November, of the serif titles he
+  (24–28 November).** The founder, 24 November, of the serif titles
   approved: "make it more bold"; of round keys, Lares's way; 28 November:
   "I'm not seeing that Duolingo style throughout … it still basically
   looks the exact same … completely elevating visuals. Color families …
@@ -3380,6 +3382,86 @@ seeded data and no account.
   Tennispreneur's whole product is a player's journal the coach reads
   and comments on; Ace It carries a practice log with a coach
   dashboard. `scripts/e2e/practice.cjs`; behaviour.sql 8e.
+- **A WhatsApp chat comes in as dated lessons: built, and off until the
+  founder switches it on (28 November).** The founder, 28 November: "The
+  WhatsApp import, do it." `docs/import/SPEC.md` is the whole of it
+  (revision 2: three designs, a judge, and two critics, one for privacy
+  and safeguarding, one for correctness). What a later session keeps:
+  - **Code decides every fact; the model only labels.** The phone reads
+    the export (`src/lib/chatImport/`).
+    - `source`: one .zip, one .txt, or a .txt and its loose files. It
+      checks what is inside, never a name; a zip is read an entry at a
+      time.
+    - `whatsapp`: the parser, for iPhone and Android. Each message's day
+      comes from the header's own digits. A group chat is refused by
+      WhatsApp's own system lines, never by counting authors.
+    - `days`: one calendar day is one proposed lesson. The coach's lines
+      are cut into numbered segments.
+    - `plan`: what a sorted day becomes, ticked or not, and why.
+    - `job`: the sort, the review and the upload.
+    Only the coach's own words leave the phone, one day at a time. They
+    are scrubbed first of the names Nosca knows, numbers, links, places,
+    and the common health and payment words. They go to
+    `netlify/functions/lesson-import.mjs`, which answers three things:
+    the kind of day (lesson, practice, recap, unsure, chat), which of the
+    sport's areas the words support, and which numbered lines carry the
+    coaching. The note is built on the phone from the coach's exact
+    words, and nothing the model answers is stored as text. No file, no
+    file name and no other person's words is ever sent. Nothing is
+    written until the person ticks it, and an unsure day starts unticked.
+  - **Held until done.** Lessons are written newest first, in waves
+    (`import_lessons`), each the moment its last file is up. Files go
+    under `import/<batch uuid>/<uuid>.<ext>`.
+    - A restrictive policy hides them from everyone but the importer
+      until the batch is done. Then the other side is told once
+      (`lesson_imports_notify`).
+    - `netlify/functions/import-sweep.mjs` runs hourly. It deletes every
+      file under an import folder that no `lesson_media` row names, and
+      finishes a batch left idle for seven days.
+    - `trg_import_guard` on `lessons` and `lesson_media` makes a client's
+      media row name a path in its writer's own folder. Re-running the
+      SQL closes that hole for every user, import or not.
+  - **Who.**
+    - A coach imports for a player on their roster.
+    - A player or a parent imports only once their coach has switched
+      on Imports from players (`import-allow`). Their imports read
+      "Imported by Orla" wherever a lesson's facts are printed.
+    - A junior imports nothing. A junior's lessons come in with no note
+      unless lines are added by hand.
+    - The ways in: Settings › Import (`settings-import`), the player
+      file's Import row (`player-import`), and a player's empty Lessons
+      (`lessons-import`).
+  - **The gate is `canImport` and `importReady`, both.**
+    - The hook probes the SQL (`import_targets`; PGRST202 means no) and
+      asks the function's GET once for `{ ready }`. It answers true only
+      when the site has `ANTHROPIC_API_KEY`, the database's address and
+      its service key.
+    - Until both say yes, no row, door, key or banner is drawn anywhere,
+      and nothing toasts. `ImportScreen` is never routed in the harness.
+    - `ANTHROPIC_API_KEY` lives in Netlify's Functions scope only, never
+      as a `VITE_` variable. The build stops if `sk-ant-` or the SDK
+      reaches the bundle (`NEVER_SHIPPED` in vite.config.js).
+    - `lesson_imports` is in the publication with a realtime channel of
+      its own, opened once the probe finds the table. No client can read
+      `import_usage`, so it is not published.
+    - `taxonomy.js` is the one copy of the sports' areas. `npm run check`
+      fails when the SQL's `import_areas` drifts from it
+      (`scripts/import-areas-sql.mjs`).
+    - Sync says "Importing · wait or stop it first" rather than reload
+      over a running import (`importBusy`).
+  - **Switch-on is the founder's** (the spec's "What only the founder
+    can do"):
+    - four real exports and 30–50 judged days;
+    - a DPIA, the legitimate-interests assessment and the privacy
+      paragraph;
+    - Anthropic's DPA and Netlify's;
+    - a dedicated key with a spend limit, and zero data retention asked
+      for;
+    - the Supabase plan: Pro before the first real import;
+    - the key on both sites;
+    - the SQL re-run;
+    - the product calls confirmed.
+  `scripts/e2e/import.cjs`; behaviour.sql 8i.
 - **A sent clip is answered, and the player sees where it stands.**
   The coach's reply in words lives on the clip: **Reply** is the one
   action (the accent) on the coach's page for a sent clip, with Set
