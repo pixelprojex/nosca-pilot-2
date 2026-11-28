@@ -41,6 +41,12 @@ three small items, the full verification, merge, and a dated summary in
 `docs/cycles/` that the next run reads first. Steer it with an issue
 titled "Cycle".
 
+The launch's decisions live in `docs/launch/DECISIONS.md`. When the founder decides anything about
+the launch, the prices or the marketing, write it there in the same session and update the Launch Book
+(https://claude.ai/artifact/2sK2tixQYUDmK3zG5yqDrt). The weekly task "Nosca weekly social post" (Fridays)
+keeps the Launch Book in line with that file and adds the week's post to the Nosca Social Kit
+(https://claude.ai/artifact/KoBjGQYD7vNcm7iSrUsh9Z).
+
 A deploy reaches a phone only when the app is fully relaunched: a
 home-screen app that is merely backgrounded resumes the bundle it was
 opened with. So the build stamps its time into the bundle and into
