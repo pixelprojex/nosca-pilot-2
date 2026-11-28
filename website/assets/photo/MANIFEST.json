@@ -7,7 +7,8 @@
   "use is a suggestion: hero (a full-bleed opening), chapter (a full-width picture inside a page), inline (beside or between text), loop (video).",
   "Nobody shown is a Nosca coach, player or customer, and nothing on the page may say or imply so; no picture shows a face to the camera.",
   "Legible brand marks were painted out of five pictures (CREDITS.md says which); nothing else in any picture was altered beyond the crop and the grade.",
-  "A loop is muted H.264, 1280 wide, with a keyframe every 24 frames (about a second): it plays and loops, and its currentTime can be set by the scroll, though a canvas sequence scrubs more smoothly than any video."
+  "A loop is muted H.264, 1280 wide, with a keyframe every 24 frames (about a second): it plays and loops, and its currentTime can be set by the scroll, though a canvas sequence scrubs more smoothly than any video.",
+  "The three loops added on 28 November are from Mixkit, under the Mixkit Stock Video Free License (free for commercial use, no attribution required); the rest are from Pexels."
  ],
  "grade": "One grade for all: saturation lowered to about four fifths with a ceiling on the hottest colours, a gentle S-curve with lifted blacks and held whites, a touch of warmth, shadows leaning to the card's bottle green and highlights to cream. The loops take the same grade as a 3D LUT.",
  "sports": [
@@ -143,48 +144,6 @@
      "width": 800,
      "height": 556,
      "bytes": 14790
-    }
-   ]
-  },
-  {
-   "name": "golf-grip-4",
-   "sport": "golf",
-   "subject": "A gloved hand and a bare hand on the grip of a club, grass behind",
-   "alt": "Two hands on the grip of a golf club, one in a white glove",
-   "orientation": "landscape",
-   "width": 2400,
-   "height": 1600,
-   "ratio": 1.5,
-   "focal": {
-    "x": 0.6,
-    "y": 0.5
-   },
-   "focus": "60% 50%",
-   "dominant": "#616340",
-   "headline": "left third, on the grass, in white",
-   "use": "inline",
-   "author": "Mikhail Nilov",
-   "credit": "Mikhail Nilov / Pexels",
-   "source": "https://www.pexels.com/photo/person-in-white-gloves-holding-a-golf-club-9207651/",
-   "licence": "Pexels Licence",
-   "files": [
-    {
-     "file": "golf-grip-4-2400.webp",
-     "width": 2400,
-     "height": 1600,
-     "bytes": 73962
-    },
-    {
-     "file": "golf-grip-4-1400.webp",
-     "width": 1400,
-     "height": 933,
-     "bytes": 40880
-    },
-    {
-     "file": "golf-grip-4-800.webp",
-     "width": 800,
-     "height": 533,
-     "bytes": 17290
     }
    ]
   },
@@ -1299,6 +1258,114 @@
     "height": 720,
     "bytes": 54418
    }
+  },
+  {
+   "name": "loop-golf-swing-2",
+   "sport": "golf",
+   "subject": "A golfer on a tee, filmed face-on at hip height: the top of the backswing, the strike and the held finish, trees and a green behind",
+   "alt": "A golfer swinging on a tee, a green and trees behind",
+   "focal": {
+    "x": 0.42,
+    "y": 0.5
+   },
+   "focus": "42% 50%",
+   "dominant": "#5C6B3E",
+   "headline": "right half, on the trees and the sky, in white",
+   "author": "Mixkit",
+   "credit": "Mixkit",
+   "source": "https://mixkit.co/free-stock-video/senior-female-playing-golf-4273/",
+   "orientation": "landscape",
+   "width": 1280,
+   "height": 720,
+   "ratio": 1.7778,
+   "duration": 4.28,
+   "fps": 25.0,
+   "frames": 107,
+   "keyframe_every": 24,
+   "codec": "H.264 (High), yuv420p, faststart, no audio",
+   "seam": "the tail dissolves into the head, so it loops without a cut",
+   "use": "loop",
+   "licence": "Mixkit Stock Video Free License",
+   "file": "loop-golf-swing-2.mp4",
+   "bytes": 738909,
+   "poster": {
+    "file": "loop-golf-swing-2-poster.webp",
+    "width": 1280,
+    "height": 720,
+    "bytes": 64982
+   }
+  },
+  {
+   "name": "loop-tennis-serve-3",
+   "sport": "tennis",
+   "subject": "A player serving on a hard court in low evening sun, seen from behind and to one side, the net and the far court beyond",
+   "alt": "A tennis player serving on a hard court in evening light",
+   "focal": {
+    "x": 0.4,
+    "y": 0.55
+   },
+   "focus": "40% 55%",
+   "dominant": "#3E4A4E",
+   "headline": "upper right, on the stands, in white",
+   "author": "Mixkit",
+   "credit": "Mixkit",
+   "source": "https://mixkit.co/free-stock-video/tennis-players-at-an-outdoor-court-869/",
+   "orientation": "landscape",
+   "width": 1280,
+   "height": 720,
+   "ratio": 1.7778,
+   "duration": 7.6,
+   "fps": 25.0,
+   "frames": 190,
+   "keyframe_every": 24,
+   "codec": "H.264 (High), yuv420p, faststart, no audio",
+   "seam": "the tail dissolves into the head, so it loops without a cut",
+   "use": "loop",
+   "licence": "Mixkit Stock Video Free License",
+   "file": "loop-tennis-serve-3.mp4",
+   "bytes": 1340189,
+   "poster": {
+    "file": "loop-tennis-serve-3-poster.webp",
+    "width": 1280,
+    "height": 720,
+    "bytes": 40476
+   }
+  },
+  {
+   "name": "loop-equestrian-stirrup-1",
+   "sport": "equestrian",
+   "subject": "A rider's boot in the stirrup against a chestnut horse's side as it walks on, green trees behind",
+   "alt": "A rider's boot in the stirrup as the horse walks on",
+   "focal": {
+    "x": 0.5,
+    "y": 0.6
+   },
+   "focus": "50% 60%",
+   "dominant": "#3A2A1E",
+   "headline": "left third, on the dark flank, in white",
+   "author": "Lifebds",
+   "credit": "Lifebds / Mixkit",
+   "source": "https://mixkit.co/free-stock-video/closeup-of-a-stirrup-as-a-person-rides-a-horse-45157/",
+   "orientation": "landscape",
+   "width": 1280,
+   "height": 720,
+   "ratio": 1.7778,
+   "duration": 8.0,
+   "fps": 25.0,
+   "frames": 200,
+   "keyframe_every": 24,
+   "codec": "H.264 (High), yuv420p, faststart, no audio",
+   "seam": "the tail dissolves into the head, so it loops without a cut",
+   "use": "loop",
+   "licence": "Mixkit Stock Video Free License",
+   "file": "loop-equestrian-stirrup-1.mp4",
+   "bytes": 978791,
+   "poster": {
+    "file": "loop-equestrian-stirrup-1-poster.webp",
+    "width": 1280,
+    "height": 720,
+    "bytes": 18374
+   }
   }
  ],
  "files": {
@@ -1454,57 +1521,6 @@
    "alt": "A yellow flag on a green beside a calm sea",
    "headline": "left two thirds, on the sky or the grass, in ink or white",
    "use": "chapter"
-  },
-  "golf-grip-4-2400.webp": {
-   "kind": "photo",
-   "of": "golf-grip-4",
-   "sport": "golf",
-   "subject": "A gloved hand and a bare hand on the grip of a club, grass behind",
-   "orientation": "landscape",
-   "width": 2400,
-   "height": 1600,
-   "focal": {
-    "x": 0.6,
-    "y": 0.5
-   },
-   "dominant": "#616340",
-   "alt": "Two hands on the grip of a golf club, one in a white glove",
-   "headline": "left third, on the grass, in white",
-   "use": "inline"
-  },
-  "golf-grip-4-1400.webp": {
-   "kind": "photo",
-   "of": "golf-grip-4",
-   "sport": "golf",
-   "subject": "A gloved hand and a bare hand on the grip of a club, grass behind",
-   "orientation": "landscape",
-   "width": 1400,
-   "height": 933,
-   "focal": {
-    "x": 0.6,
-    "y": 0.5
-   },
-   "dominant": "#616340",
-   "alt": "Two hands on the grip of a golf club, one in a white glove",
-   "headline": "left third, on the grass, in white",
-   "use": "inline"
-  },
-  "golf-grip-4-800.webp": {
-   "kind": "photo",
-   "of": "golf-grip-4",
-   "sport": "golf",
-   "subject": "A gloved hand and a bare hand on the grip of a club, grass behind",
-   "orientation": "landscape",
-   "width": 800,
-   "height": 533,
-   "focal": {
-    "x": 0.6,
-    "y": 0.5
-   },
-   "dominant": "#616340",
-   "alt": "Two hands on the grip of a golf club, one in a white glove",
-   "headline": "left third, on the grass, in white",
-   "use": "inline"
   },
   "tennis-grass-1-2400.webp": {
    "kind": "photo",
@@ -2814,6 +2830,51 @@
    "alt": "A rowing crew far off on a still lake at dusk",
    "headline": "lower half, on the dark water, in white",
    "use": "loop"
+  },
+  "loop-golf-swing-2.mp4": {
+   "kind": "loop",
+   "of": "loop-golf-swing-2",
+   "sport": "golf",
+   "subject": "A golfer on a tee, filmed face-on at hip height: the top of the backswing, the strike and the held finish, trees and a green behind",
+   "bytes": 738909,
+   "licence": "Mixkit Stock Video Free License",
+   "source": "https://mixkit.co/free-stock-video/senior-female-playing-golf-4273/"
+  },
+  "loop-golf-swing-2-poster.webp": {
+   "kind": "poster",
+   "of": "loop-golf-swing-2",
+   "sport": "golf",
+   "bytes": 64982
+  },
+  "loop-tennis-serve-3.mp4": {
+   "kind": "loop",
+   "of": "loop-tennis-serve-3",
+   "sport": "tennis",
+   "subject": "A player serving on a hard court in low evening sun, seen from behind and to one side, the net and the far court beyond",
+   "bytes": 1340189,
+   "licence": "Mixkit Stock Video Free License",
+   "source": "https://mixkit.co/free-stock-video/tennis-players-at-an-outdoor-court-869/"
+  },
+  "loop-tennis-serve-3-poster.webp": {
+   "kind": "poster",
+   "of": "loop-tennis-serve-3",
+   "sport": "tennis",
+   "bytes": 40476
+  },
+  "loop-equestrian-stirrup-1.mp4": {
+   "kind": "loop",
+   "of": "loop-equestrian-stirrup-1",
+   "sport": "equestrian",
+   "subject": "A rider's boot in the stirrup against a chestnut horse's side as it walks on, green trees behind",
+   "bytes": 978791,
+   "licence": "Mixkit Stock Video Free License",
+   "source": "https://mixkit.co/free-stock-video/closeup-of-a-stirrup-as-a-person-rides-a-horse-45157/"
+  },
+  "loop-equestrian-stirrup-1-poster.webp": {
+   "kind": "poster",
+   "of": "loop-equestrian-stirrup-1",
+   "sport": "equestrian",
+   "bytes": 18374
   }
  }
 }
