@@ -124,9 +124,11 @@ seeded data and no account.
   - **A Segmented's chosen side is the chosen answer** (`SEL`: the
     lead's cloth on its ledge, its ring, the word in its ink at 700),
     38 tall, on the wash; it was a white thumb.
-  - **The Diary as keys.** The List view's week is a row of keys (50 by
-    68: the weekday, the date at 19/700, a dot for a day with lessons;
-    the isolated day the lead on its deep ledge, today the lead's pale);
+  - **The Diary as keys.** The List view's week is a calm line of days
+    (50 by 68: the weekday, the date at 19/700, a dot for a day with
+    lessons) in which only two are keys — the isolated day the lead on
+    its deep ledge, today the lead's pale on its ledge — and every other
+    day its figures on the paper;
     a day's name is the serif heading and its pencil (`agenda-edit`) a
     34 round pale key reaching 44; a booked hour carries the person's
     face (34; given to the name at 350 and under, as `DayRow` does); a
@@ -142,16 +144,21 @@ seeded data and no account.
     drawn and 44 to a finger), where it was a bare word. Supersedes "the
     chosen day a solid disc", the coach's booked day's ink dot and
     Manage's "a word beside the title" above.
-  - **A count wears its colour** (`CountPill`, `HomeRow hue`): on the
-    coach's home To review purple, To log orange, Join requests teal,
-    Drifting wine, Competitions gold, All lessons brand and the folded
-    next day wine — the figure in the hue's ink on its cloth pill, the
-    label 600. **The home's Actions carry no Messages row**: the Chat
+  - **A count of what waits is a chip** (`CountPill`, `HomeRow pill`):
+    the home's Actions — To review, To log, Join requests, Drifting,
+    Competitions — carry their figure on the level's chip (the lead's
+    pale, its ring, the figure in the lead at 700) and their label at
+    600; a total (All lessons, the next day's lessons) stays the plain
+    grey figure. One tone for every count: five hues down the home
+    read as a colouring book, and the founder, 28 November: "the epitome
+    of luxury … nothing … AI-built, cheap". **The home's Actions carry no
+    Messages row**: the Chat
     tab's badge says it (the class plan's simpler home). Supersedes
     Messages among the home's Actions below.
   - **The level is a chip**: the player file's level (`player-level`,
-    still the door to Progress) and the lesson page's `StagePill` are the
-    lead's pale with its ring and the level in the lead at 700. A lesson
+    still the door to Progress), the lesson page's `StagePill` and the
+    roster's level on the right are the lead's pale with its ring and
+    the level in the lead at 700. A lesson
     with nothing filmed (`Poster`) is the lead's pale with the sport's
     glyph in the lead, never the grey square. `EmptyHero`'s disc is 96,
     the lead's pale on its ledge.

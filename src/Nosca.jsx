@@ -2950,18 +2950,22 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
           with lessons — the isolated day the sport's colour on its own deep
           ledge, today the sport's pale. It was plain figures over a disc,
           Apple Calendar's week, and the Diary read as it always had. */}
-      <div className="flex overflow-x-auto px-6 pt-1 pb-6" style={{ scrollbarWidth: "none", gap: 8 }}>
+      <div className="flex overflow-x-auto px-6 pt-1 pb-6" style={{ scrollbarWidth: "none", gap: 4 }}>
         {days.slice(0, 10).map((day) => {
           const on = focus && focus.m === day.m && focus.d === day.d;
           const isToday = day.m === T.m && day.d === T.d;
           const any = isCoach ? day.booked.length > 0 : day.mine.length > 0;
-          const face = on ? t.accent : isToday ? TINT(t) : t.surface;
+          /* only the isolated day and today are keys; every other day is its
+             figures on the paper, so the strip reads as one calm line with the
+             day that matters standing out of it */
+          const keyed = on || isToday;
+          const face = on ? t.accent : isToday ? TINT(t) : "transparent";
           return (
             <button key={key(day.m, day.d)} aria-pressed={!!on} data-today={isToday ? "1" : undefined}
                     onClick={() => { haptic(7); soft(); setFocus(on ? null : { m: day.m, d: day.d }); }}
-                    className="shrink-0 flex flex-col items-center justify-center n-key"
-                    style={{ width: 50, height: 68, borderRadius: 16, background: face, "--key-lip": on ? LIP(t.accent) : isToday ? TINT_LIP(t) : EDGE(t),
-                             border: `${EDGE_W}px solid ${on ? t.accent : isToday ? KEY_RING(t) : EDGE(t)}` }}>
+                    className={`shrink-0 flex flex-col items-center justify-center ${keyed ? "n-key" : "active:opacity-60"}`}
+                    style={{ width: 50, height: 68, borderRadius: 16, background: face, ...(keyed ? { "--key-lip": on ? LIP(t.accent) : TINT_LIP(t) } : null),
+                             border: `${EDGE_W}px solid ${on ? t.accent : isToday ? KEY_RING(t) : "transparent"}` }}>
               <span style={{ ...TYPE.caption, fontWeight: 600, color: on ? t.onAccent : t.sub }}>{DAY_NAMES[dowOf(day.m, day.d, cx)].slice(0, 3)}</span>
               <span style={{ ...TYPE.figureSm, fontSize: 19, fontWeight: 700, lineHeight: 1.15, color: on ? t.onAccent : isToday ? t.accent : t.ink }}>{day.d}</span>
               <span className="rounded-full" style={{ width: 5, height: 5, marginTop: 3, background: any ? (on ? t.onAccent : t.accent) : "transparent" }} />
@@ -9635,28 +9639,32 @@ const TileGrid = ({ children, cols = 3, stagger = 22 }) => (
    value in the sub grey, the chevron. `danger` is the one row told apart
    by colour (the Diary's call-off): the red is in its word, where it was
    in its tile. */
-/* A COUNT WEARS ITS COLOUR (28 November, the design render): where a door
-   carries how many things wait behind it (To log, To review, Drifting, All
-   lessons) the figure stands on a small pill of its function's cloth tone,
-   the figure in that hue's ink — the home's Actions read as a column of
-   colours that each mean one thing, where they were grey figures. */
-const CountPill = ({ n, hue }) => {
+/* A COUNT IS A CHIP (28 November, the design render): where a row of the
+   home's Actions carries how many things wait on the coach (To log, To
+   review, Join requests, Drifting, Competitions) the figure stands on a
+   small chip of the sport's
+   pale with its ring, the figure in the sport's colour at 700 — the level's
+   chip, the same one shape — where it was a grey figure. A total (All
+   lessons, the next day's lessons) stays the plain grey figure: a chip
+   says something waits. One tone for every count: a column of five
+   colours read as a colouring book, and the founder asked for calm,
+   confident, nothing gimmicky. */
+const CountPill = ({ n }) => {
   const t = useT();
-  const k = fillOf(t, hue);
   return (
     <span data-count-pill="" className="shrink-0 inline-flex items-center justify-center"
-          style={{ minWidth: 30, height: 26, padding: "0 9px", borderRadius: 13, background: k.face, boxShadow: `0 2px 0 ${k.lip}`,
-                   fontFamily: ui, fontSize: 14, fontWeight: 700, color: k.fg, fontVariantNumeric: "tabular-nums" }}>{n}</span>
+          style={{ minWidth: 30, height: 26, padding: "0 9px", borderRadius: 13, background: TINT(t), border: `${EDGE_W}px solid ${KEY_RING(t)}`,
+                   fontFamily: ui, fontSize: 14, fontWeight: 700, color: t.accent, fontVariantNumeric: "tabular-nums" }}>{n}</span>
   );
 };
-const HomeRow = ({ label, value, tone, onPress, tour, boxed = false, danger = false, hue }) => {
+const HomeRow = ({ label, value, tone, onPress, tour, boxed = false, danger = false, pill = false }) => {
   const t = useT();
   return (
     <button data-tour={tour} data-row-door="" onClick={() => { haptic(8); soft(); onPress && onPress(); }}
             className={`w-full flex items-center gap-3.5 text-left ${boxed ? "" : "active:opacity-50"}`}
             style={{ minHeight: 60, borderBottom: boxed ? undefined : RULE.hair(t.ink) }}>
-      <span data-row-label="" className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: hue ? 600 : 400, color: danger ? DANGER : t.ink }}>{label}</span>
-      {hue && value != null && value !== "" ? <CountPill n={value} hue={hue} />
+      <span data-row-label="" className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: pill ? 600 : 400, color: danger ? DANGER : t.ink }}>{label}</span>
+      {pill && value != null && value !== "" ? <CountPill n={value} />
         : <span className="shrink-0 truncate" style={{ ...TYPE.body, color: tone || t.sub, maxWidth: "55%" }}>{value}</span>}
       <ChevronRight size={15} color={t.trace || t.faint} />
     </button>
@@ -14241,8 +14249,8 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
           <Ruled style={{ marginBottom: SPACE.section }}>
             <button onClick={() => { haptic(6); soft(); setNextOpen(!nextOpen); }} aria-expanded={nextOpen} data-tour="today-nextday"
                     className="w-full flex items-center gap-3 text-left active:opacity-60" style={{ minHeight: 60 }}>
-              <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{nextDay}</span>
-              <CountPill n={nextRows.length} hue={HUE.wine} />
+              <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{nextDay}</span>
+              <span className="shrink-0" style={{ ...TYPE.body, color: t.faint }}>{nextRows.length}</span>
               <ChevronDown size={15} color={t.trace || t.faint} style={{ transform: nextOpen ? "rotate(180deg)" : "none", transition: "transform 200ms" }} />
             </button>
             {nextOpen && nextRows.map((l, i) => (
@@ -14264,17 +14272,17 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
         {(() => {
           const jobs = [
             /* a clip a player sent and the coach has not looked at yet */
-            toReview.length > 0 && { key: "review", hue: HUE.purple, tour: "today-review", label: tr("To review"), n: toReview.length,
+            toReview.length > 0 && { key: "review", tour: "today-review", label: tr("To review"), n: toReview.length,
               go: () => onReview && onReview() },
-            toLog.length > 0 && { key: "write", hue: HUE.orange, tour: "today-writeup", label: tr("To log"), n: toLog.length,
+            toLog.length > 0 && { key: "write", tour: "today-writeup", label: tr("To log"), n: toLog.length,
               go: () => (onWriteUp ? onWriteUp() : push("unlogged")) },
-            (requests || []).length > 0 && { key: "join", hue: HUE.teal, tour: "today-requests", label: tr("Join requests"), n: requests.length,
+            (requests || []).length > 0 && { key: "join", tour: "today-requests", label: tr("Join requests"), n: requests.length,
               go: () => push("requests") },
             /* no Messages row (28 November): the Chat tab's badge carries the
                unread count, and a row saying it again was the home repeating
                the bar under it (the class plan's simpler home) */
-            drifting > 0 && { key: "drift", hue: HUE.wine, label: tr("Drifting"), n: drifting, go: () => push("atrisk") },
-            events.length > 0 && { key: "event", hue: HUE.gold, label: tr("Competitions"), n: events.length, go: () => push("events") },
+            drifting > 0 && { key: "drift", label: tr("Drifting"), n: drifting, go: () => push("atrisk") },
+            events.length > 0 && { key: "event", label: tr("Competitions"), n: events.length, go: () => push("events") },
           ].filter(Boolean);
           if (!asks.length && !jobs.length) return null;
           /* the kinds of thing here */
@@ -14316,7 +14324,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
               ))}
               {/* the kind and its count, no glyph: the word says which (23 November) */}
               {shownJobs.map((j) => (
-                <HomeRow boxed key={j.key} tour={j.tour} label={j.label} value={String(j.n)} hue={j.hue} onPress={j.go} />
+                <HomeRow boxed key={j.key} tour={j.tour} label={j.label} value={String(j.n)} pill onPress={j.go} />
               ))}
             </Ruled>
           </>);
@@ -14326,7 +14334,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
             its own row, on its own */}
         {lessonCount > 0 && (
           <Ruled style={{ marginBottom: SPACE.section }}>
-            <HomeRow boxed tour="today-archive" label={tr("All lessons")} value={String(lessonCount)} hue={HUE.brand} onPress={() => push("archive")} />
+            <HomeRow boxed tour="today-archive" label={tr("All lessons")} value={String(lessonCount)} onPress={() => push("archive")} />
           </Ruled>
         )}
 
@@ -15300,7 +15308,8 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
               return row(r.id || r.name, i === 0 ? "roster-row" : undefined, () => { haptic(6); push("player:" + (r.id || r.name)); },
                 <Avatar name={r.name} size={PERSON_FACE} />, r.name,
                 st ? st.text : [stage, `${r.lessons} ${r.lessons === 1 ? tr("lesson") : tr("lessons")}`].filter(Boolean).join(" · "),
-                st ? st.tone : "faint", st ? stage : null);
+                /* the level as the file's chip, at rest (28 November) */
+                st ? st.tone : "faint", st && stage ? <StagePill small label={stage} /> : null);
             })}
           </div>
           {/* ALL LESSONS IS A ROUTE, NOT A PERSON. It sat in the column
