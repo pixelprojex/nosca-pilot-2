@@ -112,8 +112,12 @@ const GEN = {
     const focus = a.focus || e.focus || e.position;
     const credit = a.credit && (e.credit || e.by || e.author) ? `<p class="photo__credit">${esc(typeof (e.credit || e.by || e.author) === 'string' ? (e.credit || e.by || e.author) : '')}</p>` : '';
     const tone = /^#[0-9a-f]{3,8}$/i.test(e.dominant || e.tone || '') ? (e.dominant || e.tone) : '';
-    const fig = `<figure class="photo${a.class ? ' ' + a.class : ''}" style="${w && h ? `--ar:${w}/${h};` : ''}${focus ? `--focus:${esc(focus)};` : ''}${tone ? `--tone:${tone};` : ''}"${a.attrs ? ' ' + a.attrs : ''}>` +
-      `<img src="${src}"${srcset}${w ? ` width="${w}"` : ''}${h ? ` height="${h}"` : ''} alt="${esc(alt)}" decoding="async"${a.eager ? ' fetchpriority="high"' : ' loading="lazy"'}></figure>`;
+    const lqip = /^data:image\/webp;base64,[A-Za-z0-9+/=]+$/.test(e.lqip || '') ? e.lqip : '';
+    const avif = vars.filter((v) => v.avif);
+    const img = `<img src="${src}"${srcset}${w ? ` width="${w}"` : ''}${h ? ` height="${h}"` : ''} alt="${esc(alt)}" decoding="async"${a.eager ? ' fetchpriority="high"' : ' loading="lazy"'}>`;
+    const pic = avif.length ? `<picture><source type="image/avif" srcset="${avif.map((v) => `${file(v.avif)} ${v.w || v.width}w`).join(', ')}" sizes="${esc(a.sizes || '100vw')}">${img}</picture>` : img;
+    const fig = `<figure class="photo${a.class ? ' ' + a.class : ''}" style="${w && h ? `--ar:${w}/${h};` : ''}${focus ? `--focus:${esc(focus)};` : ''}${tone ? `--tone:${tone};` : ''}${lqip ? `--lqip:url(${lqip});` : ''}"${a.attrs ? ' ' + a.attrs : ''}>` +
+      pic + `</figure>`;
     return credit ? `<div class="photo-wrap">${fig}${credit}</div>` : fig;
   },
   /* <!-- @include loop name="loop-golf-green-1" class="…" attrs="…" alt="…" scrub="1" credit="1" -->
@@ -126,8 +130,9 @@ const GEN = {
     const tone = /^#[0-9a-f]{3,8}$/i.test(e.dominant || '') ? e.dominant : '';
     const credit = a.credit && typeof e.credit === 'string' ? `<p class="photo__credit">${esc(e.credit)}</p>` : '';
     const focus = a.focus || e.focus;
-    const fig = `<figure class="vid${a.class ? ' ' + a.class : ''}" style="--ar:${w}/${h};${focus ? `--focus:${esc(focus)};` : ''}${tone ? `--tone:${tone};` : ''}"${a.attrs ? ' ' + a.attrs : ''}>` +
-      `<video ${a.scrub ? 'data-scrub-video' : 'data-video'} muted playsinline${a.scrub ? '' : ' loop'} preload="none" width="${w}" height="${h}" poster="${dir}${e.poster.file}" src="${dir}${e.file}"${alt ? ` aria-label="${esc(alt)}"` : ' aria-hidden="true"'}></video></figure>`;
+    const lqip = /^data:image\/webp;base64,[A-Za-z0-9+/=]+$/.test(e.lqip || '') ? e.lqip : '';
+    const fig = `<figure class="vid${a.class ? ' ' + a.class : ''}" style="--ar:${w}/${h};${focus ? `--focus:${esc(focus)};` : ''}${tone ? `--tone:${tone};` : ''}${lqip ? `--lqip:url(${lqip});` : ''}"${a.attrs ? ' ' + a.attrs : ''}>` +
+      `<video ${a.scrub ? 'data-scrub-video' : 'data-video'}${a.bg ? ' data-bg' : ''} muted playsinline${a.scrub ? '' : ' loop'} preload="${a.first ? 'auto' : 'metadata'}" width="${w}" height="${h}" poster="${dir}${e.poster.file}" src="${dir}${e.file}"${alt ? ` aria-label="${esc(alt)}"` : ' aria-hidden="true"'}></video></figure>`;
     return credit ? `<div class="photo-wrap">${fig}${credit}</div>` : fig;
   },
   /* <!-- @include mark class="…" --> the woven mark, two paths that can be drawn */
@@ -175,6 +180,11 @@ const GEN = {
     const seq = a.seq ? seqOf(a.seq) : null;
     const lead = seq ? `<div class="screen seq is-on" data-sequence="assets/seq/${seq.name}/" data-frames="${seq.frames}" data-pattern="${seq.pattern}" data-w="${seq.w}" data-h="${seq.h}"${a.seqattrs ? ' ' + a.seqattrs : ''}>` +
       `<img src="assets/seq/${seq.name}/${frameName(seq, a.poster === 'last' ? seq.frames - 1 : +a.poster || 0)}" width="${seq.w}" height="${seq.h}" alt="${esc(a.seqalt || alts[0] || '')}" decoding="async"${a.eager ? ' fetchpriority="high"' : ' loading="lazy"'}></div>` : '';
+    const film = a.film && exists(path.join(ROOT, 'assets', a.film + '.mp4')) ?
+      `<video class="screen is-on" data-video muted playsinline loop preload="metadata" width="600" height="1298" poster="assets/${a.film}-poster.webp" src="assets/${a.film}.mp4"${a.alt ? ` aria-label="${esc(a.alt)}"` : ' aria-hidden="true"'}></video>` : '';
+    if (film) return `<div class="phone${a.class ? ' ' + a.class : ''}"${a.attrs ? ' ' + a.attrs : ''} data-phone>` +
+      `<div class="phone__body"><div class="phone__screen" style="background:#0B0F10 url(assets/${a.film}-poster.webp) center/cover">${film}</div>` +
+      `<i class="phone__island" aria-hidden="true"></i></div><i class="phone__floor" aria-hidden="true"></i></div>`;
     const imgs = lead + names.map((n, i) => `<img class="screen${i === 0 && !seq ? ' is-on' : ''}" src="assets/${n}.webp" width="780" height="1688" alt="${esc(seq ? '' : alts[i] || '')}"${(i > 0 || seq) && !(alts[i] && !seq) ? ' aria-hidden="true"' : ''} decoding="async"${a.eager && i === 0 ? ' fetchpriority="high"' : ' loading="lazy"'}>`).join('');
     return `<div class="phone${a.class ? ' ' + a.class : ''}"${a.attrs ? ' ' + a.attrs : ''}${a.settle ? ` data-phone="${esc(a.settle)}"` : ' data-phone'}>` +
       `<div class="phone__body"><div class="phone__screen"${names.length + (seq ? 1 : 0) > 1 || a.mode ? ` data-screens="${esc(a.mode || 'fade')}"` : ''}${a.autoplay ? ` data-autoplay="${esc(a.autoplay)}"` : ''}>${imgs}</div>` +
@@ -272,6 +282,7 @@ function build() {
       worldColor: WORLD[world],
       pageCss: exists(path.join(SRC, 'css', page + '.css')) ? `<link rel="stylesheet" href="css/${page}.css">` : '',
       pageJs: exists(path.join(SRC, 'js', page + '.js')) ? `<script defer src="js/${page}.js"></script>` : '',
+      preloadImage: meta.preloadImage && exists(path.join(ROOT, meta.preloadImage)) ? `<link rel="preload" as="image" href="${esc(meta.preloadImage)}" fetchpriority="high">` : '',
       /* preload: InstrumentSerif-Italic, … — a font the page's first screen sets large, fetched with the two the shell always preloads */
       preload: (meta.preload || '').split(',').map((n) => n.trim()).filter((n) => /^[\w-]+$/.test(n) && exists(path.join(ROOT, 'fonts', n + '.woff2')))
         .map((n) => `<link rel="preload" href="fonts/${n}.woff2" as="font" type="font/woff2" crossorigin>`).join('\n')

@@ -20,10 +20,8 @@
 
 /* ───────── 1. what it is ───────── */
 .op{position:relative;display:flex;flex-direction:column;min-height:100vh;min-height:100svh;overflow:hidden;color:var(--on-green)}
-.op__vid{position:absolute;inset:0;width:auto;height:auto;aspect-ratio:auto;--veil:.56;background:var(--ground-green-deep)}
-/* on a phone the frame is taller than the screen, so the far shore and the crew fall behind the app at the foot and
-   the words stand on open sky */
-@media (max-width:899px){.op__vid{bottom:auto;height:152%}}
+.bgv{position:absolute;inset:0;width:auto;height:auto;aspect-ratio:auto;--veil:.5;background-color:var(--ground-green-deep)}
+.op__vid{--veil:.46}
 .op__in{position:relative;flex:1;display:flex;flex-direction:column;padding-top:calc(var(--hdr-h) + clamp(36px,7vh,72px))}
 .op__sig{display:inline-flex;align-items:center;gap:12px;margin:0;color:var(--gold-text-on-green)}
 .op__mark{--mark-w:30px;color:var(--gold-pin)}
@@ -55,13 +53,24 @@ html.glide .op__dev{animation:op-in 1.25s .35s cubic-bezier(.16,.84,.24,1) backw
   .piece__phone{--phone-w:clamp(230px,18vw,280px)}
 }
 
-/* ───────── 3. for which sports ───────── */
-.sp{padding-block:clamp(72px,10vw,150px)}
-.sp__head{max-width:46em}
-.sp__pics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(6px,1.2vw,18px);margin-top:clamp(36px,5vw,64px)}
-.sp__pic{aspect-ratio:2/3;border-radius:4px;overflow:hidden}
-@media (min-width:900px){.sp__pic{aspect-ratio:4/5}}
-.sp__list{margin-top:clamp(36px,5vw,64px);border-bottom:1px solid var(--line)}
+/* ───────── 3. what the player keeps: the feed in use, on fog ───────── */
+.fd{position:relative;overflow:hidden;color:var(--on-green)}
+.fd__bg{--veil:.58}
+.fd__in{position:relative;display:grid;gap:clamp(36px,5vw,64px);align-items:center;padding-block:clamp(72px,10vw,140px)}
+.fd__h{font:600 clamp(38px,6.2vw,92px)/.98 var(--display);letter-spacing:-.038em;color:var(--on-green);margin:0}
+.fd__p{margin-top:clamp(16px,1.8vw,24px);max-width:24em;font:400 clamp(18px,1.6vw,23px)/1.4 var(--display);color:var(--on-green-2)}
+.fd__dev{justify-self:center}
+.fd__phone{--phone-w:min(64vw,300px)}
+@media (min-width:900px){.fd__in{grid-template-columns:minmax(0,5fr) minmax(0,6fr);column-gap:clamp(48px,7vw,120px)}.fd__phone{--phone-w:clamp(270px,22vw,320px)}}
+
+/* ───────── 4. for which sports ───────── */
+.sp{padding-bottom:clamp(64px,9vw,130px)}
+.sp__band{position:relative;overflow:hidden;color:var(--on-green)}
+.sp__bg{--veil:.48}
+.sp__head{position:relative;padding-block:clamp(96px,16vw,220px) clamp(48px,7vw,96px)}
+.sp__h{color:var(--on-green)}
+.sp__p{color:var(--on-green-2)}
+.sp__list{margin-top:clamp(28px,4vw,48px);border-bottom:1px solid var(--line)}
 .sp__list li{display:grid;gap:4px 24px;padding:16px 0;border-top:1px solid var(--line)}
 .sp__n{display:flex;align-items:center;gap:.5em;margin:0;font:600 clamp(21px,2vw,28px)/1.15 var(--display);letter-spacing:-.02em}
 .sp__w{font-size:16px;line-height:1.4;color:var(--fg-2)}
@@ -71,21 +80,22 @@ html.glide .op__dev{animation:op-in 1.25s .35s cubic-bezier(.16,.84,.24,1) backw
   .sp__w{font-size:17px}.sp__l{font-size:15px}
 }
 
-/* ───────── 4. who made it, and why ───────── */
-.st{position:relative;padding-top:calc(clamp(28px,4.4vh,48px) + clamp(64px,9vw,128px));overflow:hidden}
-.st__name{display:grid;justify-items:center;text-align:center}
+/* ───────── 5. who made it, and why ───────── */
+.st{position:relative;overflow:hidden}
+.st__hero{position:relative;overflow:hidden}
+.st__bg{--veil:.5}
+.st__name{position:relative;display:grid;justify-items:center;text-align:center;padding-block:clamp(96px,15vw,200px)}
 .st__rings{--mark-w:clamp(84px,8vw,112px)}
 .st__rings path{stroke-width:2.3}
 .st__h{margin-top:clamp(24px,3vw,36px);font-size:clamp(34px,5vw,76px);color:var(--on-green)}
 .st__h i[lang="ga"]{color:var(--gold-text-on-green)}
 .st__long{margin-top:18px;max-width:30em;font:400 clamp(18px,1.6vw,22px)/1.45 var(--display);color:var(--on-green-2)}
-.st__why{display:grid;gap:clamp(32px,4vw,48px);align-items:center;margin-top:clamp(72px,10vw,140px)}
-.st__pic{aspect-ratio:4/3;border-radius:4px}
+.st__why{display:grid;justify-items:center;text-align:center;padding-top:clamp(80px,11vw,150px)}
+.st__q{max-width:20em}
 .st__q{font:400 clamp(28px,3.3vw,50px)/1.12 var(--serif);letter-spacing:-.012em;font-synthesis:none;color:var(--on-green)}
 .st__qs{margin-top:16px;font:400 clamp(17px,1.5vw,21px)/1.4 var(--display);color:var(--on-green-2)}
-.st__rule{margin:clamp(28px,3.4vw,44px) 0 clamp(18px,2vw,24px);max-width:96px}
+.st__rule{margin:clamp(28px,3.4vw,44px) auto clamp(18px,2vw,24px);width:96px}
 .st__pcs{font:600 clamp(22px,2.2vw,32px)/1.15 var(--display);letter-spacing:-.02em;color:var(--on-green)}
-@media (min-width:900px){.st__why{grid-template-columns:minmax(0,5fr) minmax(0,6fr);column-gap:clamp(48px,7vw,120px)}.st__pic{aspect-ratio:4/5}}
 .st__climate{position:relative;margin-top:clamp(80px,11vw,150px)}
 .st__climate-pic{aspect-ratio:3/2;--veil:.18}
 .st__climate-in{padding-block:clamp(28px,4vw,40px) clamp(64px,9vw,104px)}
@@ -97,7 +107,7 @@ html.glide .op__dev{animation:op-in 1.25s .35s cubic-bezier(.16,.84,.24,1) backw
   .st__cp{color:var(--on-green)}
 }
 
-/* ───────── 5. how to start: the card itself, both designs as printed ───────── */
+/* ───────── 6. how to start: the card itself, both designs as printed ───────── */
 .pi{padding-block:clamp(72px,10vw,150px)}
 .pi__in{display:grid;gap:clamp(48px,6vw,72px);align-items:center}
 .pi__keys{margin-top:clamp(28px,3vw,40px)}
