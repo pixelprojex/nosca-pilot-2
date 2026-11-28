@@ -132,6 +132,96 @@ select (select count(*) from net.sent) = 1
    and (select body->>'user_id' from net.sent limit 1) = '55555555-5555-4555-8555-555555555555';
 SQL
 
+# A FINISHED IMPORT IS ONE PUSH PER PERSON TOLD. 80 lessons and 300 files
+# in two waves, then done: one request for an adult player, two for a
+# junior with one adult — never one per lesson or per file — and a
+# removal one per person told. The same stub as above counts them.
+$PU -d handmade >/dev/null 2>&1 <<'SQL'
+insert into auth.users (id, email, raw_user_meta_data) values
+ ('61616161-6161-4161-8161-616161616161', 'imp.coach@x.ie', '{"role":"coach","name":"Imp Coach","sport":"golf","account_type":"coach"}'),
+ ('62626262-6262-4262-8262-626262626262', 'imp.adult@x.ie', '{"role":"player","name":"Imp Adult","sport":"golf","account_type":"adult","date_of_birth":"1990-01-01"}'),
+ ('63636363-6363-4363-8363-636363636363', 'imp.parent@x.ie', '{"role":"player","name":"Imp Parent","sport":"golf","account_type":"parent","date_of_birth":"1980-01-01"}');
+insert into auth.users (id, email, raw_user_meta_data) values
+ ('64646464-6464-4464-8464-646464646464', 'imp.kid@x.ie', jsonb_build_object('role','player','name','Imp Kid','sport','golf','account_type','junior','date_of_birth','2014-01-01',
+   'family_code', (select f.code from public.families f join public.profiles p on p.family_id = f.id where p.id = '63636363-6363-4363-8363-636363636363')));
+update public.profiles set coach_id = '61616161-6161-4161-8161-616161616161' where id in ('62626262-6262-4262-8262-626262626262', '64646464-6464-4464-8464-646464646464');
+create table public.t_sent (k text primary key, n int);
+do $t$
+declare pl uuid; b uuid; c int; w jsonb; ls jsonb; who text;
+begin
+  foreach who in array array['adult', 'kid'] loop
+    pl := case who when 'adult' then '62626262-6262-4262-8262-626262626262'::uuid else '64646464-6464-4464-8464-646464646464'::uuid end;
+    b := gen_random_uuid();
+    perform set_config('request.jwt.claims', '{"sub":"61616161-6161-4161-8161-616161616161","role":"authenticated"}', true);
+    execute 'set local role authenticated';
+    perform public.import_begin(b, pl, 'golf');
+    execute 'reset role';
+    -- 80 days, 300 files: four a day for the first 60, three for the last 20, every one uploaded
+    select jsonb_agg(jsonb_build_object('day', (current_date - 400 + d)::text, 'focus', 'Putting', 'files',
+             (select jsonb_agg(jsonb_build_object('path', 'import/' || b || '/' || gen_random_uuid() || '.jpg', 'kind', 'photo',
+                                                  'hash', encode(sha256(convert_to(who || d || '-' || k, 'UTF8')), 'hex')))
+                from generate_series(1, case when d <= 60 then 4 else 3 end) k)) order by d) into ls
+      from generate_series(1, 80) d;
+    insert into storage.objects (bucket_id, name) select 'media', f->>'path' from jsonb_array_elements(ls) l, jsonb_array_elements(l->'files') f;
+    select count(*) into c from net.sent;
+    perform set_config('request.jwt.claims', '{"sub":"61616161-6161-4161-8161-616161616161","role":"authenticated"}', true);
+    execute 'set local role authenticated';
+    perform public.import_lessons(b, (select jsonb_agg(x) from jsonb_array_elements(ls) with ordinality t(x, i) where i <= 50), false);
+    perform public.import_lessons(b, (select jsonb_agg(x) from jsonb_array_elements(ls) with ordinality t(x, i) where i > 50), false);
+    perform public.import_lessons(b, '[]'::jsonb, true);
+    execute 'reset role';
+    insert into public.t_sent values (who, (select count(*) from net.sent) - c);
+    if who = 'adult' then
+      select count(*) into c from net.sent;
+      perform set_config('request.jwt.claims', '{"sub":"61616161-6161-4161-8161-616161616161","role":"authenticated"}', true);
+      execute 'set local role authenticated';
+      perform public.undo_import(b);
+      execute 'reset role';
+      insert into public.t_sent values ('removed', (select count(*) from net.sent) - c);
+      insert into public.t_sent values ('files', (select count(*) from public.lesson_media where storage_path like 'import/%'));
+    end if;
+  end loop;
+end $t$;
+SQL
+verdict "a finished import of 80 lessons and 300 files enqueues one push per person told (1 for an adult, 2 for a junior with one adult), and a removal one" "an import pushed per lesson or per file, or not at all" <<'SQL'
+select (select n from public.t_sent where k = 'adult') = 1 and (select n from public.t_sent where k = 'kid') = 2
+   and (select n from public.t_sent where k = 'removed') = 1
+   and (select count(*) from public.lessons where import_id is not null) = 80
+   and (select count(*) from public.lesson_media where import_id is not null) = 300
+   and (select count(*) from net.sent where body->>'title' = '80 lessons imported') = 2
+   and (select count(*) from net.sent where body->>'title' = 'Imp''s lessons imported') = 1;
+SQL
+
+echo "== upgrade path: the nosca.sql before imports, holding lessons and files, then this one"
+createdb -h "$D" -p $PORT -U super -O supa withdata; $PS -d withdata -f "$D/fixture-db.sql"
+if git -C "$ROOT" show 969a788:supabase/nosca.sql > "$D/pre-import.sql" 2>/dev/null; then
+  $PU -d withdata --single-transaction -f "$D/pre-import.sql" >/dev/null 2>&1
+  $PU -d withdata >/dev/null 2>&1 <<'SQL'
+insert into auth.users (id, email, raw_user_meta_data) values
+ ('71717171-7171-4171-8171-717171717171', 'up.coach@x.ie', '{"role":"coach","name":"Up Coach","sport":"tennis","account_type":"coach"}'),
+ ('72727272-7272-4272-8272-727272727272', 'up.player@x.ie', '{"role":"player","name":"Up Player","sport":"tennis","account_type":"adult","date_of_birth":"1991-01-01"}');
+update public.profiles set coach_id = '71717171-7171-4171-8171-717171717171' where id = '72727272-7272-4272-8272-727272727272';
+insert into public.lessons (id, coach_id, player_id, focus, lesson_date) values
+ ('73737373-7373-4373-8373-737373737373', '71717171-7171-4171-8171-717171717171', '72727272-7272-4272-8272-727272727272', 'Serve', '2026-01-10'),
+ ('74747474-7474-4474-8474-747474747474', '71717171-7171-4171-8171-717171717171', '72727272-7272-4272-8272-727272727272', 'Rally', '2026-02-10');
+insert into public.lesson_media (lesson_id, kind, storage_path) values
+ ('73737373-7373-4373-8373-737373737373', 'video', '71717171-7171-4171-8171-717171717171/73737373-7373-4373-8373-737373737373/1-a.mp4'),
+ ('74747474-7474-4474-8474-747474747474', 'photo', '71717171-7171-4171-8171-717171717171/74747474-7474-4474-8474-747474747474/2-b.jpg');
+SQL
+  $PU -d withdata --single-transaction -f "$ROOT/supabase/nosca.sql" >/dev/null
+  $PU -d withdata --single-transaction -f "$ROOT/supabase/nosca.sql" >/dev/null
+  VDB=withdata verdict "an older project with lessons and files upgrades: the lessons view ends on the import columns, every row and file kept, the guard and the hold in place" "the upgrade over lessons and files went wrong" <<'SQL'
+select (select string_agg(column_name, ',' order by ordinal_position desc) from (select column_name, ordinal_position from information_schema.columns
+          where table_schema = 'public' and table_name = 'lessons_view' order by ordinal_position desc limit 2) x) = 'import_key,import_id'
+   and (select count(*) from public.lessons_view where import_id is null) = 2
+   and (select count(*) from public.lesson_media) = 2
+   and (select count(*) from public.import_areas) > 40
+   and exists (select 1 from pg_trigger where tgname = 'lesson_media_import_guard')
+   and exists (select 1 from pg_policies where tablename = 'lessons' and policyname = 'lessons: an import is held until it is done' and permissive = 'RESTRICTIVE')
+   and public.import_lessons(null, null, null) is null;
+SQL
+else echo "NOT RUN the upgrade over lessons and files: 969a788 is not in this clone (git fetch --unshallow)"; fi
+
 # the fresh run's own FAILs, read from what it printed: running
 # behaviour.sql a second time on the same database stopped at its first
 # sign-up (the account was already there), counted nothing, and so no

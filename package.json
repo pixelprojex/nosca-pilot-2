@@ -7,10 +7,12 @@
     "dev": "vite",
     "build": "vite build && node website/build.mjs --out dist/about",
     "preview": "vite preview",
-    "check": "eslint ."
+    "check": "eslint . && node scripts/import-areas-sql.mjs --check"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "1.13.0",
     "@supabase/supabase-js": "^2.45.4",
+    "@zip.js/zip.js": "2.25.0",
     "lucide-react": "^0.383.0",
     "qrcode": "^1.5.4",
     "react": "^18.3.1",

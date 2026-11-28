@@ -138,6 +138,32 @@ function freshDb() {
     { const { ctx, page, shot, tap } = await boot("junior");
       await shot("j1-home"); await tap('[aria-label="Family"]'); await shot("j2-family");
       await ctx.close(); }
+    /* THE IMPORT (docs/import/SPEC.md): Start, the switch's sheet, Found, Review in List and Feed, and A day —
+       its own database, the player's id a real uuid as the function's validator wants one */
+    { const FX = require("./fixtures/make-chat-zip.cjs"); const CH = path.join(outDir, "chats"); FX.write(CH);
+      const idb = M.emptyDb(); const C = "c0000000-0000-4000-8000-00000000c0ac", P = "a0000000-0000-4000-8000-0000000ad017";
+      M.addUser(idb, { id: C, email: "coach@t.ie" }); M.addProfile(idb, { id: C, role: "coach", name: "Niamh Byrne", inviteCode: "QW7X2M" });
+      M.addUser(idb, { id: P, email: "cian@t.ie" }); M.addProfile(idb, { id: P, role: "player", name: "Cian Murphy", type: "adult", coachId: C, dob: "1991-04-04" });
+      M.setPrefs(idb, C, { setup_done: true }); idb.importReady = true;
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+      const page = await ctx.newPage(); await M.attach(page, idb);
+      await M.injectSession(page, M.session(Object.values(idb.users).find((x) => x.id === C), idb));
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      const shot = (n) => page.screenshot({ path: path.join(outDir, `${n}.png`) });
+      const tap = async (sel, ms = 800) => { const el = page.locator(sel).first(); if (await el.count()) { await el.dispatchEvent("click"); await page.waitForTimeout(ms); return true; } return false; };
+      await tap('[data-tour="profile-pill"]', 900); await tap('[data-tour="settings-import"]', 1200); await shot("i1-import-start");
+      await page.locator('[data-tour="import-players"] button').last().click().catch(() => {}); await page.waitForTimeout(700); await shot("i2-import-allow");
+      await tap('[data-tour="import-allow-no"]', 600);
+      await page.setInputFiles('[data-tour="import-file"]', path.join(CH, "chat-iphone.zip")); await page.waitForTimeout(2500); await shot("i3-import-found");
+      await page.locator('[data-label="Cian M"]').click().catch(() => {}); await page.waitForTimeout(500); await tap('[data-import-role="player"]', 500);
+      await tap('[data-tour="import-for"]', 500); await tap(`[data-person="${P}"]`, 500);
+      await page.locator('[data-tour="import-sort"]').click().catch(() => {});
+      for (let i = 0; i < 80; i++) { const st = await page.locator('[data-tour="import-progress"]').getAttribute("data-status").catch(() => null); if (st !== "running") break; await page.waitForTimeout(400); }
+      await page.waitForTimeout(800); await shot("i4-import-review");
+      await page.locator('[data-tour="import-view"] button', { hasText: "Feed" }).click().catch(() => {}); await page.waitForTimeout(1500); await shot("i5-import-review-feed");
+      await page.locator('[data-tour="import-feed"] [aria-label="Back"]').first().click().catch(() => {}); await page.waitForTimeout(800);
+      await page.locator('[data-tour="import-row"][data-day="2025-06-14"] button').first().click().catch(() => {}); await page.waitForTimeout(1000); await shot("i6-import-day");
+      await ctx.close(); }
   } catch (e) { notes.push(`ABORTED: ${String(e).slice(0, 220)}`); } finally { await browser.close(); M.stopServer(server); }
   console.log("polish shots written to", outDir, notes.join(" "));
 })();
