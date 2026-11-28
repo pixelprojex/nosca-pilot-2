@@ -21280,12 +21280,13 @@ function ImportScreen({ data, me, role, cfg, pop, push, say, done, openSheet, cl
                 <div className="nsc-list">
                   {r.files.map((x) => (
                     /* a tap opens the file from the zip; its tick is its own key */
-                    <div key={x.name} data-tour="import-day-file" data-file={x.name} data-on={x.ticked ? "1" : "0"} className="flex items-center gap-2" style={{ minHeight: 56 }}>
+                    <div key={x.name} data-tour="import-day-file" data-file={x.name} data-src={x.src} data-on={x.ticked ? "1" : "0"} className="flex items-center gap-2" style={{ minHeight: 56 }}>
                       <button onClick={() => { haptic(6); openSheet(<ImportFileBody lib={lib} file={x} />); }} className="flex-1 min-w-0 text-left active:opacity-60" style={{ paddingTop: 6, paddingBottom: 6 }}>
                         <span className="block" style={{ ...TYPE.body, color: t.ink }}>{x.kind === "video" ? tr("Video") : x.kind === "photo" ? tr("Photo") : tr("Voice note")}</span>
-                        <Facts parts={[x.time, firstOfName(x.who), x.reason]} style={{ ...TYPE.small, color: x.reason ? CAUTION : t.sub }} />
+                        {/* a recap day's file names the day it was sent, on the lesson it joins */}
+                        <Facts parts={[x.day, x.time, firstOfName(x.who), x.reason]} style={{ ...TYPE.small, color: x.reason ? CAUTION : t.sub }} />
                       </button>
-                      <button data-tour="import-day-file-tick" aria-label={tr("In the import")} onClick={() => { haptic(6); lib.setDayFile(r.iso, x.name, !x.ticked); }}
+                      <button data-tour="import-day-file-tick" aria-label={tr("In the import")} onClick={() => { haptic(6); lib.setDayFile(x.into || r.iso, x.name, !x.ticked); }}
                               className="shrink-0 flex items-center justify-center" style={{ width: 44, height: 44 }}><TickBox on={x.ticked} /></button>
                     </div>
                   ))}

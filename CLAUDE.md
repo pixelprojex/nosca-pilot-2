@@ -3425,6 +3425,68 @@ seeded data and no account.
     words, and nothing the model answers is stored as text. No file, no
     file name and no other person's words is ever sent. Nothing is
     written until the person ticks it, and an unsure day starts unticked.
+  - **A recap's files join the lesson it recaps, as its lines do (28
+    November, the launch).** The founder asked for "the videos and media
+    from that date": a clip the coach sends the morning after is that
+    lesson's. The recap day still reads Left out ("Recap · added to Thu
+    13 Mar"); its chosen lines join the lesson's note and its files the
+    lesson's files, each by its own day's default — the coach's ticked,
+    the player's side's and a screenshot not, a recap being neither a
+    lesson nor a practice day — naming the day it was sent ("Fri 14 Mar
+    · 9:06 am · Niamh"), following the lesson's tick and ticked in one
+    place, the lesson's, on either day's page. A file the lesson already
+    has comes in once: the upload's hash check and `import_lessons`'
+    `import_hash` both skip it. import.cjs (w10), (w11).
+  - **The opening page is the app's own (28 November, the launch).** The
+    founder asked for it "very professional, very classy", and to say how
+    the chat is kept safe. Under the serif title:
+    - the three steps on the lessons' Lares card (`import-how`): Export
+      the chat from WhatsApp · Nosca sorts it into lessons · Tick the ones
+      to keep;
+    - Privacy and security, six plain lines on the sky card
+      (`import-safe`): the chat is read on your phone; only the coach's
+      words go to the AI ("your words" to a coach), the names Nosca knows,
+      numbers and links taken out first; videos, photos and voice notes
+      never go to the AI; nothing is added until you tick it; nobody else
+      sees it until it is finished; it can be removed at any time — and
+      Privacy Policy under it (`import-start-privacy`). Each is a fact of
+      the code; a line that stops being true comes off;
+    - In WhatsApp, iPhone · Android (`import-platform`), the steps on the
+      gold card (`import-steps`), Android's three dots drawn in the
+      sentence as the Home Screen guide draws them;
+    - Choose file (`import-choose`), the one deep key, held at the foot
+      (`import-foot`) under a fade while the page scrolls; a refusal is
+      the red line under it. The coach's Imports from players is a white
+      group at the end. While an import runs or waits, its box is the
+      page. import.cjs (v) at 390 and 320.
+  - **Sorting never loses a day.** Per part, two whole calls, then each
+    half once, then "Not sorted": the day stays a row, unticked, its
+    words and files there to open and tick by hand.
+    - Retry sends a not-sorted day again. A part's spent calls are kept
+      in the manifest so a reload never bills it twice; the person's tap
+      lets the spent calls of a part with no answer go. It sent nothing
+      for a round and the day went straight back to Not sorted.
+    - The phone gives a sort request up at `IMPORT_FETCH_MS` (30 s, in
+      `useNoscaData`: past Netlify's 26-second ceiling) and reads it as
+      busy. A stalled mobile connection held one of the three places in
+      the queue for as long as the browser kept the socket.
+    - The function's own timeout is `min(NOSCA_IMPORT_TIMEOUT_MS or 7000,
+      NOSCA_FN_LIMIT_MS or 10000, less what it has spent and 1,500)`, so
+      it answers inside Netlify's 10 seconds. If support raises the limit
+      to 26, set both from the measured p95.
+    import.cjs (o2), (o5), (o6).
+  - **The legal words are filled in, on one switch.** `IMPORT_LEGAL`
+    holds the region (the United States, Netlify Functions' default) and
+    Anthropic's retention for the API: deleted within 30 days unless
+    flagged under its usage policy or kept longer by law, Anthropic a
+    processor under its data processing agreement with the European
+    Commission's standard contractual clauses. `withImportLegal` shows the
+    Import paragraph in Privacy and Messaging, the Terms' Import section
+    (took part and may share it, nothing added until ticked, marked as
+    imported, who may remove) and Data & permissions' line (only the
+    lessons chosen and their files, nothing of the chat). Empty
+    `IMPORT_LEGAL` and the import's words leave every page at once. It is
+    a draft for legal review. import.cjs (v8), (v10), (v11).
   - **Held until done.** Lessons are written newest first, in waves
     (`import_lessons`), each the moment its last file is up. Files go
     under `import/<batch uuid>/<uuid>.<ext>`.
