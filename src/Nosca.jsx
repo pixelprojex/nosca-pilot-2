@@ -4183,7 +4183,8 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
             {/* the harness writes "14 Jun" into d; a real lesson keeps
                 the day and the month apart */}
             <span className="shrink-0" style={{ width: 76, ...TYPE.caption, color: t.faint }}>{l.iso ? fmtWeekDay(localDate(l.iso)) : l.m ? `${l.d} ${l.m}` : l.d}</span>
-            <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{l.focus}</span>
+            {/* what was worked on, each area whole, as every lesson row reads it */}
+            <span className="flex-1 min-w-0"><Facts parts={String(l.focus || "").split(" · ")} style={{ ...TYPE.body, color: t.ink }} /></span>
             <ChevronRight size={15} color={t.trace || t.faint} />
           </button>
         ))}
@@ -4203,7 +4204,7 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
               {/* the day, never a countdown — "12d" was the one in the app */}
               <span className="shrink-0" style={{ width: 76, ...TYPE.caption,
                              color: c.days <= 7 ? CAUTION : t.faint }}>{c.iso ? fmtWeekDay(localDate(c.iso)) : c.when || fmtWeekDay((() => { const x = new Date(); x.setHours(12, 0, 0, 0); x.setDate(x.getDate() + (c.days || 0)); return x; })())}</span>
-              <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{c.name}</span>
+              <span className="flex-1 min-w-0" style={{ ...TYPE.body, color: t.ink, ...upTo(2) }}>{c.name}</span>
               {c.mine && <span style={{ ...TYPE.caption, color: t.faint }}>{tr("Yours")}</span>}
             </div>
           ))}
@@ -5779,9 +5780,13 @@ function Attendance({ lessons, roster, groups = [], taken, chosen, onSubmit, clo
                              animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
               <Rail>{l.time}</Rail>
               <span className="flex-1 min-w-0">
+                {/* the whole name, as every person row carries it: a second and
+                    a third line before an ellipsis, breaking at a space — two
+                    "Maximiliano Ó Súil…" are two players the coach cannot tell
+                    apart, and this is where the coach picks which register */}
                 <span className="flex items-center gap-2">
-                  <span className="truncate" style={{ ...TYPE.body, color: t.ink }}>{l.who}</span>
-                  {live && <span className="rounded-full" style={{ width: 6, height: 6, background: STEADY,
+                  <span data-name="" className="min-w-0" style={{ ...TYPE.body, color: t.ink, lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{l.who}</span>
+                  {live && <span className="rounded-full shrink-0" style={{ width: 6, height: 6, background: STEADY,
                                    animation: "pulseDot 1.6s ease-in-out infinite" }} />}
                 </span>
                 {reg && (
@@ -8500,7 +8505,7 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
             : <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 42, height: 42, background: t.wash }}>
                 <Users size={18} color={GROUP} strokeWidth={1.6} /></span>}
           <span className="flex-1 min-w-0">
-            <span className="block truncate" style={{ ...TYPE.heading, color: t.ink }}>{item.who}</span>
+            <span data-name="" style={{ ...TYPE.heading, color: t.ink, ...upTo(3) }}>{item.who}</span>
             {/* two facts, each kept whole: where the line must wrap at 320 it breaks
                 before the dot, which rides with the kind — a line never ends on it */}
             <span className="block mt-1" style={{ ...TYPE.small, color: t.faint }}>
@@ -9858,7 +9863,7 @@ const DrillPicker = ({ drills, picked, onToggle, tour, boxed = false }) => {
           <button key={name} aria-pressed={on} onClick={() => { haptic(7); soft(); onToggle(name); }}
                   className="w-full flex items-center gap-3 text-left active:opacity-60"
                   style={{ minHeight: 50, borderBottom: boxed ? undefined : hair }}>
-            <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: on ? 600 : 400, color: t.ink }}>{name}</span>
+            <span className="flex-1 min-w-0" style={{ ...TYPE.body, fontWeight: on ? 600 : 400, color: t.ink, ...upTo(2) }}>{name}</span>
             {on && <Check size={15} color={t.accent} strokeWidth={2.4} />}
           </button>
         );
@@ -10038,6 +10043,10 @@ function Facts({ parts, className = "", style, attrs }) {
     </span>
   );
 }
+/* A NAME IS NEVER CUT ON ONE LINE: a second and a third before an ellipsis,
+   breaking at a space (a word wider than its box alone breaks inside
+   itself) — the person row's rule, for a name or a title drawn by hand */
+const upTo = (n = 3) => ({ display: "-webkit-box", WebkitLineClamp: n, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" });
 function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", subAttrs, meta, value, actions, trailing, chevron, onTap, tour, bold = false, minHeight = 64, textMin = PERSON_TEXT_MIN, nameLines = 3, subLines = 2, muted = false, className = "", style, attrs }) {
   const t = useT();
   const Tag = onTap ? "button" : "div";
@@ -13564,11 +13573,14 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
             {a && (
               <div className="flex items-center gap-3.5" style={rowStyle}>
                 <Poster item={a.item} />
+                {/* a lesson's clip reads as a lesson row does (28 November): what was
+                    worked on at a name's 16/600 and the day under it, each part
+                    whole — "Custom fitting · Me…" at 320 */}
                 <span className="flex-1 min-w-0">
-                  <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{a.lesson.focus}</span>
-                  <span className="block truncate mt-0.5" style={{ ...TYPE.small, color: t.sub }}>{clipLabel(a)}</span>
+                  <Facts parts={String(a.lesson.focus || "").split(" · ")} style={{ ...TYPE.body, fontWeight: 600, color: t.ink }} />
+                  <Facts parts={clipLabel(a).split(" · ")} className="mt-0.5" style={{ ...TYPE.small, color: t.sub }} />
                 </span>
-                <span style={{ ...TYPE.small, color: t.sub }}>{tr("This clip")}</span>
+                <span className="shrink-0" style={{ ...TYPE.small, color: t.sub }}>{tr("This clip")}</span>
               </div>
             )}
             {others === null ? [0, 1, 2].map((i) => <div key={i} className="flex items-center gap-3.5" style={rowStyle}><Bone w={56} h={56} r={8} /><span className="flex-1"><Bone w="60%" h={14} /><Bone w="40%" h={12} mb={0} /></span></div>)
@@ -13579,10 +13591,10 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
                         style={{ ...rowStyle, animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                   <Poster item={x.item} />
                   <span className="flex-1 min-w-0">
-                    <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{x.lesson.focus}</span>
-                    <span className="block truncate mt-0.5" style={{ ...TYPE.small, color: t.sub }}>{clipLabel(x)}</span>
+                    <Facts parts={String(x.lesson.focus || "").split(" · ")} style={{ ...TYPE.body, fontWeight: 600, color: t.ink }} />
+                    <Facts parts={clipLabel(x).split(" · ")} className="mt-0.5" style={{ ...TYPE.small, color: t.sub }} />
                   </span>
-                  {b === x ? <Check size={16} color={t.ink} strokeWidth={2.4} /> : <ChevronRight size={14} color={t.trace || t.faint} />}
+                  {b === x ? <Check size={16} color={t.accent} strokeWidth={2.4} /> : <ChevronRight size={14} color={t.trace || t.faint} />}
                 </button>
               ))}
             </div>
@@ -17442,7 +17454,7 @@ function DrillLibrary({ cfg, sport, library, addDrill, removeDrill, pop, assign,
                   <div key={d.t + i} style={{ borderBottom: i === shown.length - 1 ? "none" : `1px solid ${t.hair}` }}>
                     <button onClick={() => { haptic(6); setOpen(isOpen ? null : d.t); }} aria-expanded={isOpen} className="w-full flex items-center gap-3.5 text-left active:opacity-50" style={{ minHeight: 60 }}>
                       <span className="flex-1 min-w-0">
-                        <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{d.t}</span>
+                        <span style={{ ...TYPE.body, color: t.ink, ...upTo(2) }}>{d.t}</span>
                         <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{focusLabel}</span>
                       </span>
                     </button>
@@ -18384,7 +18396,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                         className="w-full flex items-center gap-3 text-left active:opacity-50"
                         style={{ minHeight: 62 }}>
                   <span className="flex-1 min-w-0">
-                    <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{r.who}</span>
+                    <span data-name="" style={{ ...TYPE.body, color: t.ink, ...upTo(3) }}>{r.who}</span>
                     <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>
                       {DAY_NAMES[r.day]}s {r.time} · {r.every || r.freq}{r.total ? ` · ${r.total - r.used} of ${r.total} left` : ""}
                     </span>

@@ -176,6 +176,13 @@ const { check, results, summary } = M.checker("narrow");
       } else {
         check("(b2) at 375 Present · Absent stay beside the name", !!o && !o.nameCut && o.marks.length === 2 && o.marks.every((m) => m.top < o.nameBottom - 8), JSON.stringify(o));
       }
+      /* (b3) 28 November: the register's own list of the day's lessons — Today, under the register's way back — drew
+         the name on one truncated line, "Maximiliano Ó Súil…"; it takes a second line, as every person row does */
+      await page.locator('[data-sheet] [data-tour="register-back"]').first().click(); await page.waitForTimeout(900);
+      const pick = await page.evaluate((FIT) => { const nm = [...document.querySelectorAll("[data-sheet] .nsc-list [data-name]")].find((x) => /Maximiliano/.test(x.textContent)); return nm ? eval(FIT)(nm) : null; }, FIT);
+      await shot("02b-register-day-list");
+      check(`(b3 ${width}) the register's list of the day's lessons carries the long name whole — on a second line before any ellipsis, no word broken`,
+        !!pick && pick.name === LONG && !pick.nameCut && !pick.broken && pick.lines >= 1 && pick.lines <= 3, JSON.stringify(pick));
       await ctx.close();
     }
 
