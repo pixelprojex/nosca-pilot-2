@@ -14,23 +14,29 @@ import { Mark, BrandLoader, RING_L, RING_R, RING_LEN, BRAND as BRAND_COLOUR, BRA
    style block below at the place the rules have always held, so the
    cascade inside the app is unchanged; the comments that explain them
    are there. */
-export const LIST_CSS = `    .nsc-list { border: none !important; padding-bottom: 2px; }
-    /* WHITE CARDS (21 November): a row is Duolingo's card — white, a light
-       grey line round it and a ledge of the same under it — never a slab of
-       the sport's tint; the founder: "White background throughout" */
-    .nsc-list > * { background: var(--surface, #fff); border: 1.5px solid var(--edge, #E4E0D7) !important; border-radius: 14px;
-                    box-shadow: 0 2px 0 var(--edge, #E4E0D7);
+export const LIST_CSS = `    .nsc-list { border: none !important; padding-bottom: 4px; }
+    /* THE LARES CARD (28 November, the design render's second pass): a row
+       is a card FILLED with the pale of its function's hue (--card), a 2px
+       ring of the pale's ledge (--card-ring) and a 4px ledge a step deeper
+       in the same hue (--card-ledge), 18px corners — Lares's cards,
+       Duolingo's 3D on calm colours. A list says its hue once on the
+       container (cardOf); a row may say its own. It was white on a grey
+       line (21 November), which the founder read as "the exact same". */
+    .nsc-list > * { background: var(--card, var(--surface, #fff)); border: 2px solid var(--card-ring, var(--edge, #E4E0D7)) !important; border-radius: 18px;
+                    box-shadow: 0 4px 0 var(--card-ledge, var(--edge, #E4E0D7));
                     transition: transform .15s cubic-bezier(.2,.7,.3,1), box-shadow .15s cubic-bezier(.2,.7,.3,1), background-color .15s;
-                    margin-bottom: 10px; padding-left: 16px !important; padding-right: 16px !important; }
+                    margin-bottom: 12px; padding-left: 18px !important; padding-right: 18px !important; }
     /* a row that is one button sinks onto its ledge under the finger (the one press, data-down) */
-    .nsc-list > button[data-down]:not(:disabled) { transform: translateY(2px); box-shadow: 0 0 0 var(--edge, #E4E0D7); transition: none; opacity: 1; }
+    .nsc-list > button[data-down]:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--card-ledge, var(--edge, #E4E0D7)); transition: none; opacity: 1; }
     .nsc-list > *:last-child { margin-bottom: 0; }
     /* SETTINGS IN GROUPS (21 November): a group of rows is one soft box on
        its foot, the rows inside on a fine rule — iOS's grouped list, and
        Lares's own More sheet — where it was twenty slabs down the page */
-    .nsc-group { background: var(--surface, #fff); border: 1.5px solid var(--edge, #E4E0D7); border-radius: 16px; box-shadow: 0 2px 0 var(--edge, #E4E0D7); overflow: hidden; }
-    .nsc-group > * { background: transparent; padding-left: 16px !important; padding-right: 16px !important;
-                     border-bottom: 1.5px solid var(--edge, #E4E0D7) !important; border-radius: 0; }
+    /* Settings keeps white groups, as Lares's settings are plain, on the warm
+       ring and ledge of the white card (28 November) */
+    .nsc-group { background: var(--surface, #fff); border: 2px solid var(--white-ring, #E6E2D9); border-radius: 18px; box-shadow: 0 4px 0 var(--white-ledge, #DAD5C9); overflow: hidden; }
+    .nsc-group > * { background: transparent; padding-left: 18px !important; padding-right: 18px !important;
+                     border-bottom: 1.5px solid var(--white-ring, #E6E2D9) !important; border-radius: 0; }
     .nsc-group > *:last-child { border-bottom: 0 !important; }
     .nsc-group > .nsc-flush { padding: 0 !important; }
     /* THE MESSENGER'S LIST (21 November): Apple Messages and WhatsApp — no
@@ -45,7 +51,7 @@ export const LIST_CSS = `    .nsc-list { border: none !important; padding-bottom
        options so the open list's wash runs to the box's edge and the
        head's label lines up with every other row */
     .nsc-list > .nsc-flush { padding: 0 !important; overflow: hidden; }
-    .nsc-list > .nsc-swipe > div:last-child { background: var(--surface, #fff) !important; padding-left: 16px; padding-right: 16px; }
+    .nsc-list > .nsc-swipe > div:last-child { background: var(--card, var(--surface, #fff)) !important; padding-left: 18px; padding-right: 18px; }
 `;
 
 import {
@@ -722,7 +728,24 @@ export const redKey = (t) => { const k = RED_KEY(t); return { background: k.face
    Decline): the list's white card at rest, Duolingo's chosen answer once
    picked — the sport's colour faint on the face, its ring and ledge (the
    card's --edge), the word in the sport's colour, a tick */
-export const pickRow = (t, on) => (on ? { background: SEL(t).face, "--edge": SEL(t).ring } : null);
+export const pickRow = (t, on) => (on ? { background: SEL(t).face, "--edge": SEL(t).ring, "--card-ring": SEL(t).ring, "--card-ledge": SEL(t).lip } : null);
+/* THE LARES CARD'S COLOURS (28 November): a function's hue as a card — the
+   pale as the fill, the pale's ledge as the 2px ring, a 4px ledge a step
+   deeper in the same hue. Given as the CSS custom properties the card
+   rules read (--card, --card-ring, --card-ledge), on a list's container
+   or on one row; no hue is the white card on the warm ring. The lessons
+   are the sport's own family (HUE.green), requests and what is ahead sky
+   (HUE.blue), what waits to be logged sand (HUE.orange), a clip to review
+   heather (HUE.purple), a player drifting blush (HUE.red), the record
+   pale gold (HUE.gold), people the teal role — a calm paint chart, the
+   page itself white. */
+export const CARD_WHITE = { "--card": "#FFFFFF", "--card-ring": "#E6E2D9", "--card-ledge": "#DAD5C9" };
+export const cardOf = (t, hue) => {
+  if (darkPage(t)) return { "--card": t.surface, "--card-ring": EDGE(t), "--card-ledge": EDGE(t) };
+  if (!hue) return CARD_WHITE;
+  const [pale, ledge, cloth] = lightsOf(hueOf(t, hue));
+  return { "--card": pale, "--card-ring": ledge, "--card-ledge": MIX(ledge, cloth, 0.75) };
+};
 /* a small key chosen from a set (a day of the week): Duolingo's white
    key on its grey ledge at rest (an n-key), the chosen answer once picked */
 export const keyPick = (t, on) => ({ background: on ? SEL(t).face : TINT(t), border: `${EDGE_W}px solid ${on ? SEL(t).ring : KEY_RING(t)}`,
@@ -2416,7 +2439,10 @@ const ShimmerCSS = () => (
        the one action, cards and the sheet; a row of content sits on the
        wash, so a screen reads as paper with a few objects on it). The
        transparent border keeps the old width, so nothing moves. */
-${LIST_CSS}    .nsc-day { background: var(--surface); border: 1.5px solid var(--edge); border-radius: 16px; overflow: hidden; box-shadow: 0 2px 0 var(--edge); }
+${LIST_CSS}    .nsc-day { background: var(--card, var(--surface)); border: 2px solid var(--card-ring, var(--edge)); border-radius: 20px; overflow: hidden; box-shadow: 0 4px 0 var(--card-ledge, var(--edge)); }
+    /* a row's rule inside a card is the card's own ring, never a grey line on the colour */
+    .nsc-day:not(.nsc-chips) > * { border-bottom-color: var(--card-ring, var(--edge)) !important; }
+    .nsc-day.nsc-rows > * { padding-left: 18px; padding-right: 18px; }
     /* A KEY: an outlined control standing on a lip of its own edge, three
        points deep, that sinks two under the finger — Lares's secondary
        button, for every control that draws its own outline. --key-lip
@@ -2861,6 +2887,20 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
   const cx = now ? { ...calendar, today: now } : calendar;
   const T = cx.today;
   const narrow = useNarrow();
+  /* THE DAY'S CHIPS (28 November): a free hour the white key on the card's
+     ring and ledge; a lesson the sport's cloth, a ring and a ledge of the
+     same hue a step deeper; a request sky; the person's next lesson the
+     deep colour on its own ledge */
+  const CHIP = useMemo(() => {
+    const cloth = clothOf(t.accent), sky = cardOf(t, HUE.blue);
+    const r = 14;
+    return {
+      free: { background: "#FFFFFF", border: "2px solid var(--card-ring)", boxShadow: "0 3px 0 var(--card-ledge)", borderRadius: r },
+      booked: { background: cloth, border: `2px solid ${MIX(cloth, t.accent, 0.14)}`, boxShadow: `0 3px 0 ${MIX(cloth, t.accent, 0.42)}`, borderRadius: r },
+      ask: { background: sky["--card"], border: `2px solid ${sky["--card-ring"]}`, boxShadow: `0 3px 0 ${sky["--card-ledge"]}`, borderRadius: r },
+      lit: { border: `2px solid ${t.accent}`, boxShadow: `0 3px 0 ${LIP(t.accent)}`, borderRadius: r },
+    };
+  }, [t]);
   /* Names are stripped for anyone who is not the coach. A player has no
      business knowing who else is on the sheet, and filtering at render
      is not good enough — the data must not reach them. */
@@ -2905,6 +2945,7 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
   });
 
   const [focus, setFocus] = useState(null);   // day jumped to from the ticker
+  const [openDays, setOpenDays] = useState([]);   // the days whose free hours a tap laid out
   const shown = focus ? days.filter((x) => x.m === focus.m && x.d === focus.d) : days;
   /* The walkthrough rings a bookable hour; with the free hours back in
      the day's own column there is no grid to hang it off, so the first
@@ -2994,6 +3035,18 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
         const coachDay = [...new Set([...day.hours, ...bookedTimes])].sort((a, b) => (parseTime(a) ?? 0) - (parseTime(b) ?? 0));
         const rows = day.away ? (isCoach ? coachDay.filter((h) => bookedTimes.includes(h)) : mineTimes) : isCoach ? coachDay : ownDay;
         if (!rows.length && !day.away) return null;
+        /* a day that is only the person's next lesson is the coloured card whole */
+        const whole = rows.length === 1 && !day.away && litKey === `${day.m}-${day.d}-${rows[0]}`;
+        /* A COACH'S FREE HOURS FOLD (28 November, the class plan's S3): on
+           every day but the one holding the first bookable hour, two free
+           hours or more are one chip, "Free · 4", the plus on it — a tap
+           lays them out in their places. The day the walkthrough rings
+           stays open, so "Tap a free slot" always has its slot. A player's
+           day keeps every hour: they are here to find one. */
+        const freeHere = isCoach && !day.away ? rows.filter((h) => !day.booked.find((b) => b.time === h) && !day.blockedHere.includes(h)) : [];
+        const dk = key(day.m, day.d);
+        const folded = freeHere.length > 1 && !openDays.includes(dk) && !(firstFree && firstFree.startsWith(`${day.m}-${day.d}-`));
+        const dayRows = folded ? rows.filter((h) => !freeHere.includes(h)) : rows;
 
         return (
           <div key={`${day.m}-${day.d}`} className="mb-6">
@@ -3020,19 +3073,26 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
             {/* one box a day, its times as rows inside */}
             {/* a day that is only the person's next lesson is the coloured card
                 whole, on its own ledge, as the coach's next is on the home */}
-            <div className="nsc-day" data-away={day.away ? "1" : undefined}
-                 style={rows.length === 1 && !day.away && litKey === `${day.m}-${day.d}-${rows[0]}` ? { "--edge": t.accent, boxShadow: `0 ${LIP_H}px 0 ${LIP(t.accent)}` } : undefined}>
+            {/* THE DAY IS A LARES CARD OF CHIPS (28 November): the sport's pale
+                card, and in it each hour a chip on its own ledge — a lesson the
+                sport's cloth with the person's face, a request sky, a free hour
+                the white key with its plus, the person's next lesson the deep
+                colour; a blocked hour and Away are words on the card. It was a
+                white box of rows on hairlines. */}
+            <div className={whole ? "nsc-day" : "nsc-day nsc-chips"} data-away={day.away ? "1" : undefined}
+                 style={whole ? { "--edge": t.accent, "--card-ring": t.accent, boxShadow: `0 ${LIP_H}px 0 ${LIP(t.accent)}` } : { padding: 8, display: "flex", flexDirection: "column", gap: 8 }}>
               {day.away && (
-                <div className="flex items-center gap-3 px-4" style={{ minHeight: 48, borderBottom: rows.length ? `1px solid ${t.hair}` : "none" }}>
+                <div className="flex items-center gap-3 px-4" style={{ minHeight: 48 }}>
                   <span className="flex-1" style={{ ...TYPE.small, color: t.faint }}>{isCoach || rows.length ? tr("Away") : `${tr("Away")} · ${tr("no lessons")}`}</span>
                 </div>
               )}
-              {rows.map((h, ri) => {
+              {dayRows.map((h, ri) => {
                 const bk = day.booked.find((b) => b.time === h);
                 const isBlocked = day.blockedHere.includes(h);
                 const isGroup = bk && bk.kind && bk.kind.startsWith("Group");
-                const last = ri === rows.length - 1;
-                const line = { borderBottom: last ? "none" : `1px solid ${t.hair}` };
+                const last = ri === dayRows.length - 1 && !folded;
+                /* the chip each kind of hour stands as (none when the day is the card whole) */
+                const line = whole ? {} : CHIP.free;
 
                 /* the player's own lesson: the time, the coach's name, Requested
                    while it waits; a tap lands on the Calendar view's Your lesson
@@ -3057,14 +3117,14 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                     </span>
                     {mn.status === "requested" && <span className="shrink-0" style={{ ...TYPE.small, color: t.faint }}>{tr("Requested")}</span>}
                   </>);
-                  const litStyle = lit ? { background: t.accent, borderBottom: last ? "none" : `1px solid ${LIP(t.accent)}` } : null;
+                  const litStyle = lit ? { background: t.accent, ...(whole ? null : CHIP.lit) } : whole ? null : mn.status === "requested" ? CHIP.ask : CHIP.booked;
                   const mineRow = (juvenile || !onMine) ? (
-                    <div key={h} data-tour="agenda-mine" data-lit={lit ? "1" : undefined} className="w-full flex items-center gap-3 px-4" style={{ minHeight: 56, ...line, ...litStyle }}>{inner}</div>
+                    <div key={h} data-tour="agenda-mine" data-lit={lit ? "1" : undefined} className="w-full flex items-center gap-3 px-4" style={{ minHeight: 56, ...litStyle }}>{inner}</div>
                   ) : (
                     <button key={h} data-tour="agenda-mine" data-lit={lit ? "1" : undefined} onClick={() => { haptic(7); soft(); onMine(day); }}
-                            className="w-full flex items-center gap-3 px-4 text-left active:opacity-50" style={{ minHeight: 56, ...line, ...litStyle }}>
+                            className="w-full flex items-center gap-3 px-4 text-left active:opacity-50" style={{ minHeight: 56, ...litStyle }}>
                       {inner}
-                      <ChevronRight size={lit ? 16 : 14} color={lit ? foilOn(t.accent, t.onAccent) : t.trace || t.faint} strokeWidth={lit ? 2.2 : 2} />
+                      <ChevronRight size={lit ? 16 : 14} color={lit ? foilOn(t.accent, t.onAccent) : onCloth(t.accent)} strokeWidth={lit ? 2.2 : 2} />
                     </button>
                   );
                   return mineRow;
@@ -3080,7 +3140,7 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                    where it cannot, as Accept · Decline do on every person row */
                 if (bk && isCoach && bk.status === "requested") return (
                   <div key={h} data-tour="agenda-ask" data-ask={bk.id || ""} className="w-full flex flex-wrap items-center gap-x-3 px-4"
-                       style={{ minHeight: 56, paddingTop: 6, paddingBottom: 6, ...line }}>
+                       style={{ minHeight: 56, paddingTop: 6, paddingBottom: 6, ...CHIP.ask }}>
                     <Rail tone={t.ink} style={TIME_LEAD}>{h}</Rail>
                     <span className="min-w-0 py-1.5" style={{ flex: "1 1 120px" }}>
                       <span data-name="" className="block" style={{ ...TYPE.body, fontWeight: 600, color: t.ink, lineHeight: 1.2, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{bk.who}</span>
@@ -3098,7 +3158,7 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                 if (bk && isCoach) return (
                   <button key={h} data-tour="agenda-row" onClick={() => { haptic(7); soft(); onOpen(day, bk); }}
                           className="w-full flex items-center gap-3 px-4 text-left active:opacity-50"
-                          style={{ minHeight: 56, ...line }}>
+                          style={{ minHeight: 56, ...CHIP.booked }}>
                     <Rail tone={t.ink} style={TIME_LEAD}>{h}</Rail>
                     {/* THE ACCENT APPEARS ONCE A SCREEN. This bar spent it
                         on every booked row in the diary, and said nothing
@@ -3110,7 +3170,7 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                     {/* the person's face, as the home's day row carries it — a
                         booked hour reads as somebody, a free one as a time; at 350
                         and under the face gives its room to the name */}
-                    {!isGroup && !narrow && <Avatar name={bk.who} size={34} />}
+                    {!isGroup && !narrow && <span className="shrink-0 rounded-full" style={{ boxShadow: "0 0 0 2px #FFFFFF" }}><Avatar name={bk.who} size={34} /></span>}
                     {/* who said they will not be at the group's lesson, counted
                         under its name where the coach reads the day (beside it,
                         the name went to "Satur…" at 320); the peek names them */}
@@ -3122,12 +3182,12 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                       <span data-name="" className="block" style={{ ...TYPE.body, fontWeight: 600, color: t.ink, lineHeight: 1.2, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{bk.who}</span>
                       {isGroup && bk.outIds && bk.outIds.length > 0 && <span data-tour="agenda-out-count" className="block" style={{ ...TYPE.small, color: t.sub }}>{bk.outIds.length} {tr("not going")}</span>}
                     </span>
-                    <ChevronRight size={14} color={t.trace || t.faint} />
+                    <ChevronRight size={14} color={onCloth(t.accent)} />
                   </button>
                 );
 
                 if (isBlocked) return (
-                  <div key={h} className="flex items-center gap-3 px-4" style={{ minHeight: 56, ...line }}>
+                  <div key={h} className="flex items-center gap-3 px-4" style={{ minHeight: 56 }}>
                     <Rail style={{ width: TIME_LEAD.width }}>{h}</Rail>
                     <span className="flex-1" style={{ ...TYPE.small, color: t.faint }}>{tr("Blocked")}</span>
                   </div>
@@ -3162,6 +3222,13 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                   </button>
                 );
               })}
+              {folded && (
+                <button data-tour="agenda-free" data-free={freeHere.length} onClick={() => { haptic(7); soft(); setOpenDays((o) => [...o, dk]); }}
+                        className="w-full flex items-center gap-3 px-4 text-left active:opacity-50" style={{ minHeight: 56, ...CHIP.free }}>
+                  <span className="flex-1 min-w-0" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{tr("Free")} <span style={{ color: t.sub, fontWeight: 500 }}>· {freeHere.length}</span></span>
+                  <PlusKey />
+                </button>
+              )}
             </div>
           </div>
         );
@@ -4088,12 +4155,16 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
           chevron: it was "All 2 lessons" in the accent under the boxes, a
           second accent on a sheet whose one action is Log, and the rows
           above it opened the archive with nothing to say so */}
+      {/* ONE BOX (28 November, the class plan's S5): the last lessons and the
+          way to them all are the rows of one card of the sport's family, on
+          the card's own rules — three boxes stacked under the name read as
+          three things */}
       {(count > 0 || lessons.length > 0) && (
-      <div className="nsc-list mb-5" data-tour="peek-lessons">
+      <div className="nsc-day nsc-rows mb-5" data-tour="peek-lessons">
         {lessons.map((l, i) => (
           <button key={i} onClick={() => { haptic(7); onHistory && onHistory(); }}
                   className="w-full flex items-center gap-4 py-3 text-left active:opacity-50"
-                  style={{ minHeight: 60, animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
+                  style={{ minHeight: 60, borderBottom: i === lessons.length - 1 && !(count > 0) ? "none" : "1.5px solid", animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
             {/* the harness writes "14 Jun" into d; a real lesson keeps
                 the day and the month apart */}
             <span className="shrink-0" style={{ width: 76, ...TYPE.caption, color: t.faint }}>{l.iso ? fmtWeekDay(localDate(l.iso)) : l.m ? `${l.d} ${l.m}` : l.d}</span>
@@ -6104,7 +6175,7 @@ function Poster({ item, size = 56, radius = 8, sport }) {
        colour, ringed in its cloth: a lesson with nothing filmed is still
        the sport, never a grey square (the design render) */
     <span className="flex items-center justify-center shrink-0" aria-hidden="true" data-poster-blank=""
-          style={{ width: size, height: size, borderRadius: Math.max(radius, 12), background: TINT(t), boxShadow: `inset 0 0 0 ${EDGE_W}px ${KEY_RING(t)}` }}>
+          style={{ width: size, height: size, borderRadius: Math.max(radius, 12), background: "#FFFFFF", boxShadow: `inset 0 0 0 ${EDGE_W}px var(--card-ring, ${KEY_RING(t)})` }}>
       <SportGlyph sport={sport} size={Math.round(size * 0.42)} color={t.accent} />
     </span>
   );
@@ -7905,9 +7976,10 @@ function Tile({ children, onPress, accent, className = "", style = {}, delay = 0
              one idea per box reads calmer and more expensive. */
           /* No outline unless it is carrying meaning. Whitespace and a
              hairline do the grouping; a border is reserved for emphasis. */
-          style={{ background: accent ? `${accent}0E` : t.surface, borderRadius: R.surface,
+          /* the Lares card (28 November): the card's tokens where nothing is accented */
+          style={{ background: accent ? `${accent}0E` : "var(--card, #fff)", borderRadius: 18,
                    position: "relative", overflow: "hidden", zIndex: 1,
-                   border: accent ? `${EDGE_W}px solid ${accent}2E` : `${EDGE_W}px solid ${EDGE(t)}`, boxShadow: p.rest,
+                   border: accent ? `${EDGE_W}px solid ${accent}2E` : "2px solid var(--card-ring, #E6E2D9)", boxShadow: accent ? p.rest : "0 4px 0 var(--card-ledge, #DAD5C9)",
                    transition: "transform 140ms ease-out, box-shadow 140ms ease-out",
                    /* backwards, never both: a held end frame beats the press's own transform */
                    animation: `liftIn 420ms cubic-bezier(.22,1,.36,1) ${delay}ms backwards`, ...style }}>
@@ -8401,7 +8473,8 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
      and before that a pale accent card at 16px) — with a group marked as
      the List view marks it, the 3px bar */
   return (
-    <Tile tour="cal-block" delay={delay} className="mb-3" style={{ overflow: "hidden", borderRadius: 14, boxShadow: `0 2px 0 ${EDGE(t)}` }}>
+    /* a Lares card of the sport's own family, a group's too (its bar says which) */
+    <Tile tour="cal-block" delay={delay} className="mb-4" style={{ overflow: "hidden", ...cardOf(t, HUE.green) }}>
       <button onClick={() => { haptic(7); soft(); setOpen(!open); }} className="w-full text-left px-5 py-4">
         <div className="flex items-center gap-3.5">
           {isGroup && <span className="rounded-full shrink-0" style={{ width: 3, height: 26, background: GROUP }} />}
@@ -8506,7 +8579,8 @@ function AskBlock({ item, duration, delay = 0, onAccept, onDecline }) {
   const len = item.duration || duration;
   const key = { minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, fontFamily: ui, fontSize: 15, fontWeight: 600 };
   return (
-    <Tile tour="cal-ask" delay={delay} className="mb-3" style={{ overflow: "hidden", borderRadius: 14, boxShadow: `0 2px 0 ${EDGE(t)}` }}>
+    /* a request is sky, as every request is (28 November) */
+    <Tile tour="cal-ask" delay={delay} className="mb-4" style={{ overflow: "hidden", ...cardOf(t, HUE.blue) }}>
       <div data-ask={item.id || ""} className="px-5 py-4">
         <div className="flex items-center gap-3.5">
           <Avatar name={item.who} size={42} />
@@ -9313,8 +9387,9 @@ const TIME_LEAD = { fontSize: 17, fontWeight: 600, letterSpacing: "-0.015em", wi
 
 const Card = ({ children, className = "", style = {}, delay = 0, tour }) => {
   const t = useT();
-  return (<div data-tour={tour} className={className} style={{ background: t.surface, borderRadius: R.surface, border: `${EDGE_W}px solid ${EDGE(t)}`,
-                  boxShadow: lipOf(EDGE(t), 2),
+  /* a Lares card on the list's own tokens: the sport's pale by default, the white card where a list says so */
+  return (<div data-tour={tour} data-card="" className={className} style={{ background: "var(--card, #fff)", borderRadius: 18, border: "2px solid var(--card-ring, #E6E2D9)",
+                  boxShadow: "0 4px 0 var(--card-ledge, #DAD5C9)",
                   animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`, ...style }}>{children}</div>);
 };
 /* A label over a list of rows. Eyebrow below carries the page's own
@@ -9650,22 +9725,24 @@ const TileGrid = ({ children, cols = 3, stagger = 22 }) => (
    says something waits. One tone for every count: a column of five
    colours read as a colouring book, and the founder asked for calm,
    confident, nothing gimmicky. */
-const CountPill = ({ n }) => {
+/* on a card of its own colour since 28 November the chip is white, ringed in
+   the card's ring, the figure in the card's deep colour (Lares's "Legs 2") */
+const CountPill = ({ n, hue }) => {
   const t = useT();
   return (
     <span data-count-pill="" className="shrink-0 inline-flex items-center justify-center"
-          style={{ minWidth: 30, height: 26, padding: "0 9px", borderRadius: 13, background: TINT(t), border: `${EDGE_W}px solid ${KEY_RING(t)}`,
-                   fontFamily: ui, fontSize: 14, fontWeight: 700, color: t.accent, fontVariantNumeric: "tabular-nums" }}>{n}</span>
+          style={{ minWidth: 30, height: 26, padding: "0 9px", borderRadius: 13, background: "#FFFFFF", border: `${EDGE_W}px solid var(--card-ring, ${KEY_RING(t)})`,
+                   fontFamily: ui, fontSize: 14, fontWeight: 700, color: inkOf(hueOf(t, hue || HUE.green)), fontVariantNumeric: "tabular-nums" }}>{n}</span>
   );
 };
-const HomeRow = ({ label, value, tone, onPress, tour, boxed = false, danger = false, pill = false }) => {
+const HomeRow = ({ label, value, tone, onPress, tour, boxed = false, danger = false, pill = false, hue }) => {
   const t = useT();
   return (
-    <button data-tour={tour} data-row-door="" onClick={() => { haptic(8); soft(); onPress && onPress(); }}
+    <button data-tour={tour} data-row-door="" data-hue={hue ? hue.slice(2) : undefined} onClick={() => { haptic(8); soft(); onPress && onPress(); }}
             className={`w-full flex items-center gap-3.5 text-left ${boxed ? "" : "active:opacity-50"}`}
-            style={{ minHeight: 60, borderBottom: boxed ? undefined : RULE.hair(t.ink) }}>
+            style={{ minHeight: 60, borderBottom: boxed ? undefined : RULE.hair(t.ink), ...(hue ? cardOf(t, hue) : null) }}>
       <span data-row-label="" className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: pill ? 600 : 400, color: danger ? DANGER : t.ink }}>{label}</span>
-      {pill && value != null && value !== "" ? <CountPill n={value} />
+      {pill && value != null && value !== "" ? <CountPill n={value} hue={hue} />
         : <span className="shrink-0 truncate" style={{ ...TYPE.body, color: tone || t.sub, maxWidth: "55%" }}>{value}</span>}
       <ChevronRight size={15} color={t.trace || t.faint} />
     </button>
@@ -13779,7 +13856,7 @@ function OnAccent({ children }) {
    off than under any other list */
 const accentCard = (t, last = false) => {
   const p = press3d(LIP(t.accent), LIP_H, LIP_PRESS);
-  return { style: { background: t.accent, "--edge": t.accent, borderRadius: 16, boxShadow: p.rest, marginBottom: last ? LIP_H - 2 : 10 + LIP_H }, handlers: p.handlers };
+  return { style: { background: t.accent, "--edge": t.accent, "--card-ring": t.accent, borderRadius: 18, boxShadow: p.rest, marginBottom: last ? LIP_H - 4 : 12 + LIP_H }, handlers: p.handlers };
 };
 /* THE CARD'S CORNER: the business card's pinstripe wedge, in the top-right
    corner of the day's one coloured card — the stripes at the card's 45°,
@@ -14247,7 +14324,8 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
 
         {/* ---- THE NEXT DAY, FOLDED ---- */}
         {nextRows.length > 0 && (
-          <Ruled style={{ marginBottom: SPACE.section }}>
+          /* what is ahead is sky, as Lares's Later is (28 November) */
+          <Ruled style={{ marginBottom: SPACE.section, ...cardOf(t, HUE.blue) }}>
             <button onClick={() => { haptic(6); soft(); setNextOpen(!nextOpen); }} aria-expanded={nextOpen} data-tour="today-nextday"
                     className="w-full flex items-center gap-3 text-left active:opacity-60" style={{ minHeight: 60 }}>
               <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{nextDay}</span>
@@ -14273,17 +14351,17 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
         {(() => {
           const jobs = [
             /* a clip a player sent and the coach has not looked at yet */
-            toReview.length > 0 && { key: "review", tour: "today-review", label: tr("To review"), n: toReview.length,
+            toReview.length > 0 && { key: "review", hue: HUE.purple, tour: "today-review", label: tr("To review"), n: toReview.length,
               go: () => onReview && onReview() },
-            toLog.length > 0 && { key: "write", tour: "today-writeup", label: tr("To log"), n: toLog.length,
+            toLog.length > 0 && { key: "write", hue: HUE.orange, tour: "today-writeup", label: tr("To log"), n: toLog.length,
               go: () => (onWriteUp ? onWriteUp() : push("unlogged")) },
-            (requests || []).length > 0 && { key: "join", tour: "today-requests", label: tr("Join requests"), n: requests.length,
+            (requests || []).length > 0 && { key: "join", hue: HUE.blue, tour: "today-requests", label: tr("Join requests"), n: requests.length,
               go: () => push("requests") },
             /* no Messages row (28 November): the Chat tab's badge carries the
                unread count, and a row saying it again was the home repeating
                the bar under it (the class plan's simpler home) */
-            drifting > 0 && { key: "drift", label: tr("Drifting"), n: drifting, go: () => push("atrisk") },
-            events.length > 0 && { key: "event", label: tr("Competitions"), n: events.length, go: () => push("events") },
+            drifting > 0 && { key: "drift", hue: HUE.red, label: tr("Drifting"), n: drifting, go: () => push("atrisk") },
+            events.length > 0 && { key: "event", hue: HUE.gold, label: tr("Competitions"), n: events.length, go: () => push("events") },
           ].filter(Boolean);
           if (!asks.length && !jobs.length) return null;
           /* the kinds of thing here */
@@ -14313,7 +14391,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
             )}
             <Ruled style={{ marginBottom: SPACE.block }}>
               {showAsks && asks.slice(0, 3).map((r, i) => (
-                <PersonRow key={r.id} tour={i === 0 ? "today-asks" : undefined} className="pr-1" style={{ borderBottom: RULE.hair(t.ink) }}
+                <PersonRow key={r.id} tour={i === 0 ? "today-asks" : undefined} className="pr-1" style={{ borderBottom: RULE.hair(t.ink), ...cardOf(t, HUE.blue) }}
                            name={r.who} src={avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath)}
                            /* the player's words need the row's width: Accept · Decline drop under the name, the row's own way */
                            textMin={r.note ? 180 : undefined} subLines={r.note ? 0 : undefined}
@@ -14325,7 +14403,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
               ))}
               {/* the kind and its count, no glyph: the word says which (23 November) */}
               {shownJobs.map((j) => (
-                <HomeRow boxed key={j.key} tour={j.tour} label={j.label} value={String(j.n)} pill onPress={j.go} />
+                <HomeRow boxed key={j.key} tour={j.tour} label={j.label} value={String(j.n)} pill hue={j.hue} onPress={j.go} />
               ))}
             </Ruled>
           </>);
@@ -14335,7 +14413,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
             its own row, on its own */}
         {lessonCount > 0 && (
           <Ruled style={{ marginBottom: SPACE.section }}>
-            <HomeRow boxed tour="today-archive" label={tr("All lessons")} value={String(lessonCount)} onPress={() => push("archive")} />
+            <HomeRow boxed tour="today-archive" label={tr("All lessons")} value={String(lessonCount)} hue={HUE.gold} onPress={() => push("archive")} />
           </Ruled>
         )}
 
@@ -15292,7 +15370,7 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
           {searchable && (
             <SearchField value={q} onChange={setQ} className="mb-4" />
           )}
-          <div className="nsc-list">
+          <div className="nsc-list" style={cardOf(t, HUE.teal)}>
             {list.length === 0 ? (
               <EmptyLine>{q ? `${tr("No one called")} “${q}”` : tr("No players yet")}</EmptyLine>
             ) : list.map((r, i) => {
@@ -15321,11 +15399,11 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
               the count a step fainter) */}
           {lessonCount > 0 && (
             <div className="nsc-list" style={{ marginTop: SPACE.block }}>
-              <HomeRow boxed tour="roster-archive" label={tr("All lessons")} value={String(lessonCount)} onPress={() => push("archive")} />
+              <HomeRow boxed tour="roster-archive" label={tr("All lessons")} value={String(lessonCount)} hue={HUE.gold} onPress={() => push("archive")} />
             </div>
           )}
         </>) : (<>
-          <div className="nsc-list">
+          <div className="nsc-list" style={cardOf(t, HUE.teal)}>
             {groups.map((g) => row(g.id, "roster-group", () => { haptic(6); push("group:" + g.name); }, <Avatar name={g.name} size={PERSON_FACE} group />, g.name,
                 /* the members still on the roster — the picker's count and the
                    page's list, one number on all three; never a nought */
@@ -15484,7 +15562,12 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
   /* each block is a card as every card is — the light grey line and the ledge
      of it under it, 14px corners — under its subject as a heading (RowHead):
      they were flat 8px boxes under grey field labels */
-  const box = { background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, borderRadius: 14, boxShadow: lipOf(EDGE(t), 2), padding: "14px 16px" };
+  /* THE PROGRESS IS A PAINT CHART (28 November): each block a Lares card in
+     its subject's family — the level the sport's own, what was worked on
+     sky, the months pale gold, attendance the people's teal, practice sand,
+     drills heather — where every block was the white card on the grey line */
+  const boxOf = (hue) => { const c = cardOf(t, hue); return { background: c["--card"], border: `2px solid ${c["--card-ring"]}`, borderRadius: 18, boxShadow: `0 4px 0 ${c["--card-ledge"]}`, padding: "16px 18px" }; };
+  const box = boxOf(HUE.green);
   const firstPoint = p.points[0], lastPoint = p.points[p.points.length - 1];
   return (
     <SwipeBack onBack={pop}>
@@ -15497,7 +15580,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
             {p.points.length > 0 && (
               <div style={{ marginBottom: SPACE.block }} data-progress="level">
                 <RowHead>{p.inputStage.label}</RowHead>
-                <div style={box}>
+                <div style={boxOf(HUE.green)}>
                   {/* the level then takes a line of its own under the level now
                       where the two cannot sit apart (at 320 they touched) */}
                   <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5" style={{ marginBottom: 6 }}>
@@ -15513,7 +15596,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
             {p.reached.size > 0 && (
               <div style={{ marginBottom: SPACE.block }} data-progress="ladder">
                 <RowHead>{tr("Level")}</RowHead>
-                <div style={{ ...box, padding: "4px 16px" }}>
+                <div style={{ ...box, padding: "4px 18px" }}>
                   {p.named.map((st, i) => {
                     const on = p.reached.has(st.id), now = p.current && p.current.st.id === st.id;
                     return (
@@ -15533,7 +15616,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
             {p.areas.length > 0 && (
               <div style={{ marginBottom: SPACE.block }} data-progress="areas">
                 <RowHead>{tr("Worked on")}</RowHead>
-                <div style={{ ...box, padding: "6px 16px" }}>
+                <div style={{ ...boxOf(HUE.blue), padding: "6px 18px" }}>
                   {p.areas.map(([label, count], i) => (
                     <div key={label} style={{ padding: "9px 0", borderBottom: i === p.areas.length - 1 ? "none" : RULE.hair(t.ink) }}>
                       <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
@@ -15551,7 +15634,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
             {/* lessons a month */}
             <div style={{ marginBottom: SPACE.block }} data-progress="months">
               <RowHead>{tr("Lessons a month")}</RowHead>
-              <div style={box}>
+              <div style={boxOf(HUE.gold)}>
                 <MonthBars months={p.months} color={t.accent} ink={t.ink} sub={t.sub} faint={t.trace || t.faint} />
               </div>
             </div>
@@ -15565,7 +15648,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
               return (
                 <div style={{ marginBottom: SPACE.block }} data-progress="attendance">
                   <RowHead>{tr("Attendance")}</RowHead>
-                  <div style={box}>
+                  <div style={boxOf(HUE.teal)}>
                     <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
                       <span style={{ ...TYPE.body, color: t.ink }}>{here} {tr("of")} {attendance.length} {attendance.length === 1 ? tr("lesson") : tr("lessons")}</span>
                       <span style={{ ...TYPE.small, color: t.sub }}>{Math.round((here / attendance.length) * 100)}%</span>
@@ -15597,7 +15680,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
               return (
                 <div style={{ marginBottom: SPACE.block }} data-progress="practice">
                   <RowHead>{tr("Practice")}</RowHead>
-                  <div style={box}>
+                  <div style={boxOf(HUE.orange)}>
                     <div className="flex items-center justify-between">
                       <span style={{ ...TYPE.body, color: t.ink }}>{sorted.length} {sorted.length === 1 ? tr("session") : tr("sessions")}</span>
                       {last && last.iso && <span style={{ ...TYPE.small, color: t.sub }}>{tr("last")} {fmtWeekDay(localDate(last.iso))}</span>}
@@ -15611,7 +15694,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
             {mineDrills.length > 0 && (
               <div style={{ marginBottom: SPACE.block }} data-progress="drills">
                 <RowHead>{tr("Drills")}</RowHead>
-                <div style={box}>
+                <div style={boxOf(HUE.purple)}>
                   <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
                     <span style={{ ...TYPE.body, color: t.ink }}>{done} {tr("of")} {mineDrills.length} {tr("done")}</span>
                     <span style={{ ...TYPE.small, color: t.sub }}>{Math.round((done / mineDrills.length) * 100)}%</span>
@@ -15764,7 +15847,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               lessons is on the home and the roster — it was a button */}
           {past.length > 0 && (
             <div className="nsc-list" style={{ marginBottom: SPACE.block }}>
-              <HomeRow boxed tour="player-all-lessons" label={tr("All lessons")} value={String(live ? f.done : past.length)}
+              <HomeRow boxed tour="player-all-lessons" label={tr("All lessons")} value={String(live ? f.done : past.length)} hue={HUE.gold}
                        onPress={() => { onAllLessons ? onAllLessons() : push("history:" + (r.id || name)); }} />
             </div>
           )}
@@ -15772,7 +15855,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
 
           {/* what is live right now — three lines, no cards */}
           {f.tip && (
-            <div className="nsc-list" style={{ marginBottom: SPACE.block }}>
+            <div className="nsc-list" style={{ marginBottom: SPACE.block, ...cardOf(t, HUE.gold) }}>
               <div className="flex items-center gap-3 py-3" style={{ minHeight: 56 }}>
                 <span style={{ ...TYPE.small, fontWeight: 600, color: t.sub }}>{tr("Tip")}</span>
                 <span className="flex-1 min-w-0" style={{ ...TYPE.body, color: t.ink }}>{f.tip}</span>
@@ -15784,7 +15867,8 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               "More" hid three: one of them, Progress, went to the same
               archive the block at the top of this screen goes to, under
               a second name. */}
-          <div className="nsc-list">
+          {/* the file's doors, sky (28 November) */}
+          <div className="nsc-list" style={cardOf(t, HUE.blue)}>
             {[[tr("Progress"), () => push("progress:" + (r.id || name)), null],
               /* the coach's own note on this player — the first line as the
                  row's value, the whole of it one tap away; theirs alone */
@@ -17077,6 +17161,7 @@ function DrillRow({ x, todayIso, onToggle, tour, delay = 0 }) {
 }
 
 function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder, onLogPractice }) {
+  const t = useT();
   const calendar = useCalendar();
   const todayIso = isoDay(progressToday(calendar));
   /* THE TAB IS WHAT IS TO DO, AND THE LATEST SET. Everything not yet
@@ -17106,7 +17191,8 @@ function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder, onLo
               up, and START / FINISH in tracked caps under one drill. A
               coach sets a drill, not a length; what a player has to do
               is the rows, and the count is the subtitle. */}
-          <div className="px-6 pb-2"><div className="nsc-list">
+          {/* the drills to do are practice's heather, Lares's workouts list (28 November) */}
+          <div className="px-6 pb-2"><div className="nsc-list" style={cardOf(t, HUE.purple)}>
             {ordered.map((x, i) => (
               <div key={x.id}>
                 <DrillRow x={x} todayIso={todayIso} onToggle={tick} tour={i === 0 ? "drill-row" : undefined} delay={Math.min(i, 5) * 22} />
@@ -17122,7 +17208,7 @@ function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder, onLo
               words, under the list */}
           {onAll && (
             <div className="px-6 pt-3"><div className="nsc-list">
-              <HomeRow boxed tour="drills-all" label={tr("All drills")} value={String(items.length)} onPress={onAll} />
+              <HomeRow boxed tour="drills-all" label={tr("All drills")} value={String(items.length)} hue={HUE.gold} onPress={onAll} />
             </div></div>
           )}
         </>
@@ -17151,7 +17237,7 @@ function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder, onLo
         <div className="px-6" style={{ marginTop: SPACE.section }}>
           {/* a row of the list, as Settings' own Reminder is — it was a
               rimmed card, the one green box on a screen of stone and wash */}
-          <div className="nsc-list"><div className="nsc-flush" data-tour="drills-reminder"><FilterRow inset plain label={tr("Reminder")} value={reminder.label} options={reminder.options} onChange={reminder.onPick} /></div></div>
+          <div className="nsc-list" style={cardOf(t, HUE.blue)}><div className="nsc-flush" data-tour="drills-reminder"><FilterRow inset plain label={tr("Reminder")} value={reminder.label} options={reminder.options} onChange={reminder.onPick} /></div></div>
         </div>
       )}
     </Screen>
@@ -18042,14 +18128,14 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
           deep ledge, today the sport's pale, a day with lessons dotted in
           the sport's colour. It was Apple Calendar's bare grid of figures. */}
       <div className="px-6 mb-8">
-        <div data-tour="cal-month" className="px-3 pt-3 pb-2" style={{ background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, borderRadius: 20, boxShadow: `0 2px 0 ${EDGE(t)}` }}>
+        <div data-tour="cal-month" className="px-3 pt-3 pb-2" style={{ background: "var(--card)", border: "2px solid var(--card-ring)", borderRadius: 20, boxShadow: "0 4px 0 var(--card-ledge)" }}>
         <div className="flex items-center justify-between mb-3 pl-2">
           <span style={{ ...TYPE.head, color: t.ink }}>{mo.name}</span>
           <span className="flex items-center gap-2.5">
             {[[-1, mi === 0, tr("Previous month"), ChevronLeft], [1, mi >= months.length - 1, tr("Next month"), ChevronRight]].map(([dir, off, label, Ico]) => (
               <button key={dir} onClick={() => move(dir)} disabled={off} aria-label={label}
                       className="relative flex items-center justify-center rounded-full n-key disabled:opacity-30"
-                      style={{ width: 36, height: 36, border: `${EDGE_W}px solid ${KEY_RING(t)}`, "--key-lip": TINT_LIP(t) }}>
+                      style={{ width: 36, height: 36, background: "#FFFFFF", border: `${EDGE_W}px solid var(--card-ring)`, "--key-lip": "var(--card-ledge)" }}>
                 <span aria-hidden="true" className="absolute" style={{ inset: -6 }} />
                 <Ico size={18} color={t.accent} strokeWidth={2.4} />
               </button>
@@ -18077,9 +18163,10 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                       style={{ width: "min(38px, 100%)", height: 38, borderRadius: 12,
                                /* the chosen day a key of the sport's colour on its deep ledge,
                                   today the sport's pale, a lesson of the person's the chosen answer */
-                               background: on ? t.accent : mine ? SEL(t).face : today ? TINT(t) : "transparent",
-                               border: `${EDGE_W}px solid ${on ? t.accent : mine ? SEL(t).ring : today ? KEY_RING(t) : "transparent"}`,
-                               boxShadow: on ? `0 3px 0 ${LIP(t.accent)}` : mine ? `0 2px 0 ${SEL(t).lip}` : today ? `0 2px 0 ${TINT_LIP(t)}` : "none",
+                               /* on the month's pale card, today is the white key */
+                               background: on ? t.accent : mine ? SEL(t).face : today ? "#FFFFFF" : "transparent",
+                               border: `${EDGE_W}px solid ${on ? t.accent : mine ? SEL(t).ring : today ? "var(--card-ring)" : "transparent"}`,
+                               boxShadow: on ? `0 3px 0 ${LIP(t.accent)}` : mine ? `0 2px 0 ${SEL(t).lip}` : today ? "0 2px 0 var(--card-ledge)" : "none",
                                transition: "background 160ms, box-shadow 160ms",
                                fontFamily: ui, fontSize: 17, fontWeight: on || today ? 700 : available ? 600 : 400,
                                /* a day away is struck through, the way a diary crosses a day out */
@@ -20330,7 +20417,7 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
             {waiting.length > 0 && (
               <div style={{ marginBottom: SPACE.block }}>
                 <Eyeb>{tr("Requests")}</Eyeb>
-                <div className="nsc-list">{waiting.map((w) => <Ask key={w.id} w={w} />)}</div>
+                <div className="nsc-list" style={cardOf(t, HUE.blue)}>{waiting.map((w) => <Ask key={w.id} w={w} />)}</div>
               </div>
             )}
             {canFilter && (
@@ -23929,7 +24016,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           it has throughout design. In the product it simply fills the
           screen. */}
       <div className={demo ? "min-h-screen w-full flex flex-col items-center py-6 px-3" : "w-full"}
-           style={{ "--rule-hair": HAIR(theme.ink, 0.14), "--rule-section": HAIR(theme.ink, 0.24), "--surface": theme.surface, "--wash": theme.wash, "--edge": EDGE(theme), "--lip": SOFT_LIP(theme), "--group-rule": MIX(theme.wash, theme.mark || theme.accent || theme.ink, 0.12), "--faint": theme.faint, "--tint": TINT(theme), "--tint-lip": TINT_LIP(theme),
+           style={{ "--rule-hair": HAIR(theme.ink, 0.14), "--rule-section": HAIR(theme.ink, 0.24), "--surface": theme.surface, "--wash": theme.wash, "--edge": EDGE(theme), "--lip": SOFT_LIP(theme), "--group-rule": MIX(theme.wash, theme.mark || theme.accent || theme.ink, 0.12), "--faint": theme.faint, "--tint": TINT(theme), "--tint-lip": TINT_LIP(theme), ...cardOf(theme, HUE.green), "--white-ring": CARD_WHITE["--card-ring"], "--white-ledge": CARD_WHITE["--card-ledge"],
                     ...(demo ? { background: "#0B0F0C" } : sc ? { background: theme.page, width: 390, height: 780, overflow: "hidden" } : { background: theme.page }) }}>
         {demo && (
         <div className="flex flex-col items-center mb-4">
