@@ -2,7 +2,8 @@
    step from a fresh open. Each PNG is named for the still it becomes; stills.py turns them into assets/*.webp.
    node website/tools/shoot.cjs <dist> <port> <outDir> [step,step,...]   (a step ending in * takes every step it starts)
    Steps: home peek diary chat settings tools tools-green calloff player-golf player-tennis player-green parent
-          junior junior-green sport-<sport> (tennis rowing squash padel equestrian; golf's are home's)
+          junior junior-green import (and import-start, only when named) sport-<sport> (tennis rowing squash padel
+          equestrian; golf's are home's)
           splash-<sport> (golf tennis rowing squash padel equestrian) */
 const path = require("path"), fs = require("fs");
 const L = require("./lib.cjs");
@@ -193,6 +194,61 @@ const MARKUP = JSON.parse(fs.readFileSync(path.join(__dirname, "markup-plan.json
   await step("junior-green", async () => {
     const { ctx, page, errors } = await boot(L.D.buildDb("golf"), "saoirse", { clip: "green" });
     await L.wait(page, 1800); await shot(page, "product-junior-home");
+    await ctx.close(); return errors;
+  });
+
+  /* ---------------- the WhatsApp import, as the coach ----------------
+     A season of Niamh's chat with Cian (fixtures/import-chat.cjs: the real clips and stills, zipped as an iPhone
+     exports it) chosen in Settings › Import, the player's label and For set as a coach sets them, sorted by the
+     mock's plain reading of her words; then the Review list (the days newest first, ticked or not), A day (its
+     files, the note in her own lines, the day's messages) and the List · Feed preview (the drafts' own files, played
+     from the zip; nothing has been added yet). The import's opening page (Start) is not taken here: it is being
+     redesigned (feat/import-launch); `import-start` takes it once that lands, and only when asked by name. */
+  const CHAT = require("./fixtures/import-chat.cjs").write(path.join(outDir, "chats"));
+  const importTo = async (page) => {
+    await L.tap(page, '[data-tour="profile-pill"]', 1000);
+    await L.tap(page, '[data-tour="settings-import"]', 1400);
+    await page.setInputFiles('[data-tour="import-file"]', CHAT);
+    await page.waitForSelector('[data-tour="import-found"]', { timeout: 15000 });
+    await L.wait(page, 600);
+    return page;
+  };
+  const toReview = async (page) => {
+    if (await page.locator('[data-label="Cian M"][data-role=""]').count()) {
+      await page.locator('[data-label="Cian M"]').click(); await L.wait(page, 500);
+      await page.locator('[data-import-role="player"]').click(); await L.wait(page, 600);
+    }
+    await page.locator('[data-tour="import-for"]').click(); await L.wait(page, 600);
+    await page.locator(`[data-person="${L.D.IDS.cian}"]`).click(); await L.wait(page, 700);
+    await page.locator('[data-tour="import-sort"]').click();
+    await page.waitForFunction(() => { const p = document.querySelector('[data-tour="import-progress"]'); return !!document.querySelector('[data-tour="import-review"]') && (!p || p.dataset.status !== "running"); }, null, { timeout: 60000 });
+    await L.wait(page, 900);
+  };
+  /* every poster on the screen drawn (each row's first picture, made on the phone) */
+  const posters = (page) => page.waitForFunction(() => { const rows = [...document.querySelectorAll('[data-tour="import-row"]')].filter((r) => { const b = r.getBoundingClientRect(); return b.top < innerHeight && b.bottom > 0 && r.querySelector("img,[data-poster]"); }); return rows.every((r) => r.querySelector('[data-poster="1"]') || !r.querySelector("[data-poster]")); }, null, { timeout: 15000 }).catch(() => {});
+  await step("import", async () => {
+    const db = L.D.buildDb("golf"); db.importReady = true;
+    const { ctx, page, errors } = await boot(db, "coach");
+    await importTo(page); await toReview(page);
+    await L.scrollTo(page, 0); await posters(page); await L.wait(page, 800); await shot(page, "coach-import-review");
+    await page.locator('[data-tour="import-row"][data-day="2025-11-06"] button').first().click(); await L.wait(page, 1200);
+    await page.waitForFunction(() => [...document.querySelectorAll('[data-tour="import-day"] img')].every((i) => i.complete), null, { timeout: 10000 }).catch(() => {});
+    /* scrolled to what the day carries: her words as the note, the day's files, the messages they came from */
+    const dayAt = await page.evaluate(() => { const s = [...document.querySelectorAll('[data-scroll="screen"]')].pop(), n = document.querySelector('[data-tour="import-day-note"]'); if (!s || !n) return null; s.scrollTop += n.getBoundingClientRect().top - 126; return s.scrollTop; });
+    log.push("day scrolled to " + dayAt);
+    await L.wait(page, 900); await shot(page, "coach-import-day");
+    await page.locator('[aria-label="Back"]').first().dispatchEvent("click"); await L.wait(page, 900);
+    await page.locator('[data-tour="import-view"] button', { hasText: "Feed" }).first().click(); await L.wait(page, 1200);
+    await page.waitForFunction(() => { const v = document.querySelector('[data-tour="import-feed"] video[src^="blob:"]'); return !!v && v.readyState >= 2; }, null, { timeout: 15000 }).catch(() => {});
+    await L.wait(page, 1600); await shot(page, "coach-import-feed");
+    await ctx.close(); return errors;
+  });
+  /* the import's opening page, once feat/import-launch's redesign is in the build: `shoot.cjs … import-start` */
+  if (only && only.split(",").includes("import-start")) await step("import-start", async () => {
+    const db = L.D.buildDb("golf"); db.importReady = true;
+    const { ctx, page, errors } = await boot(db, "coach");
+    await L.tap(page, '[data-tour="profile-pill"]', 1000); await L.tap(page, '[data-tour="settings-import"]', 1600);
+    await shot(page, "coach-import-start");
     await ctx.close(); return errors;
   });
 

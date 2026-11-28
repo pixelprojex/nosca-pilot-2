@@ -324,6 +324,33 @@
   "kb": 30.8
  },
  {
+  "file": "coach-import-review.webp",
+  "what": "The WhatsApp import's Review, as the coach: Import, \"Cian will see these lessons\", 11 lessons found in a season of Niamh's chat with Cian, List · Feed, All · To check 1, the newest days first (Chipping Thu 13 Nov 2025 · 2 files, Putting Thu 6 Nov 2025 · 2 files, Full swing Thu 30 Oct 2025 · 1 file), each with its first picture made on the phone and a tick; Import 11 lessons and \"Cian is told once\". Nothing has been added yet.",
+  "role": "coach",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 42.8
+ },
+ {
+  "file": "coach-import-day.webp",
+  "what": "One day of the import opened (Thu 6 Nov 2025): the note built from the coach's own lines, word for word (\"Putting lesson today. Pace first, then line. Let the stroke swing through; never hit at it.\"), Files (the day's video and photo, each ticked, with its time and who sent it) and the Messages they came from.",
+  "role": "coach",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 42.3
+ },
+ {
+  "file": "coach-import-feed.webp",
+  "what": "The import's List · Feed preview on Feed: the Chipping day of Thu 13 Nov 2025 as a feed card, its clip playing straight from the chosen chat, the note's first line under it. A preview: nothing has been added or uploaded.",
+  "role": "coach",
+  "sport": "golf",
+  "w": 780,
+  "h": 1688,
+  "kb": 122.8
+ },
+ {
   "file": "splash-golf.webp",
   "what": "Series 'the front door' (Golf, #207A30): the opening splash caught at rest 3.35 s after launch (it lifts at 4 s): the woven rings in white with the link between them (the arc inside their overlap) in the sport's colour, on near-black with the colour's radial glow, NOSCA tracked wide, a short rule, 'GOLF · COACH', and MADE IN IRELAND at the foot.",
   "role": "brand",

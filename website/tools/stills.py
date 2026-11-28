@@ -24,6 +24,9 @@ STILLS = [
     ("player-progress", "player-progress", LIGHT), ("player-progress-attendance", "player-progress-attendance", LIGHT),
     ("player-feed-tennis", "player-feed-tennis", DARK), ("player-drills-tennis", "player-drills-tennis", LIGHT),
     ("parent-family", "parent-family", LIGHT), ("junior-home", "junior-home", DARK), ("junior-drills", "junior-drills", LIGHT),
+    # the WhatsApp import, as the coach: the Review list, A day, the List · Feed preview
+    ("coach-import-review", "coach-import-review", LIGHT), ("coach-import-day", "coach-import-day", LIGHT),
+    ("coach-import-feed", "coach-import-feed", DARK),
     # the Product page's (kept by name): the same screens, on the same real clips
     ("product-feed", "product-feed", LIGHT), ("product-lesson", "product-lesson", LIGHT), ("product-markup", "product-markup", LIGHT),
     ("product-compare", "product-compare", LIGHT), ("product-junior-home", "product-junior-home", LIGHT),
