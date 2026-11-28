@@ -1198,6 +1198,17 @@
       fontsReady.then(again);
       W.addEventListener('load', () => { again(); if (motion && location.hash) requestAnimationFrame(() => Site.toHash()); });
     }
+    /* a page opened on #somewhere (the old story.html and product.html send here): the browser jumps before the type
+       is in, and the type's arrival moves the part a little, so it lands again once the type and the pictures are in,
+       unless the visitor has already moved */
+    if (location.hash) {
+      let moved = false;
+      const mark = () => { moved = true; };
+      ['wheel', 'touchstart', 'keydown'].forEach((e) => W.addEventListener(e, mark, { once: true, passive: true }));
+      const land = () => { if (!moved) requestAnimationFrame(() => Site.toHash()); };
+      fontsReady.then(land);
+      if (D.readyState === 'complete') land(); else W.addEventListener('load', land, { once: true });
+    }
     H.classList.add('site-ready');
   }
   /* page scripts are deferred after this file, so they can queue with Site.ready before we start */
