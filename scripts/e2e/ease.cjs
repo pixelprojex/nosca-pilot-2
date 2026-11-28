@@ -12,7 +12,7 @@
    21 November, the afternoon: the founder asked for white throughout,
    Duolingo's keys and Apple's lists, and "maybe it's all the tinted
    boxes". A row is Duolingo's card now — white on one light grey line,
-   #E2E2E7, with a ledge of it, 14px corners — a day's box the same line;
+   #E4E0D7, with a ledge of it, 14px corners — a day's box the same line;
    Settings' groups white boxes; Chat Messages' plain list, a separator
    inset from the face and no box per thread. The air stays.
    Usage: node ease.cjs <distDir> <port> <outDir> */
@@ -27,7 +27,7 @@ const IDS = { coach: "00000000-0000-4000-8000-00000000c0ac", adult: "00000000-00
 const FAM = "fa000000-0000-4000-8000-00000000fa01";
 const TODAY = M.ymd(new Date());
 const dayFrom = (n) => { const x = new Date(`${TODAY}T12:00:00`); x.setDate(x.getDate() + n); return x; };
-const CARD = "rgb(255, 255, 255)", EDGE = "rgb(226, 226, 231)", NONE = "rgba(0, 0, 0, 0)";
+const CARD = "rgb(255, 255, 255)", EDGE = "rgb(228, 224, 215)", NONE = "rgba(0, 0, 0, 0)";
 
 function freshDb() {
   const db = M.emptyDb();
@@ -153,8 +153,8 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
       await tap(page, '[data-tour="quick"]', 900);
       const add = await tile(page, "Add player");
       /* the plus's eight are filled keys since 23 November (white keys with a small coloured square before): each its
-         function's light colour — Add player the olive's cloth, #ABB78D — with no rim at all */
-      check("(b) the home has no board of actions — they live on the plus, whose eight are filled keys in their functions' light colours, no rim", board === 0 && !!add && add.bg === "rgb(171, 183, 141)" && /rgba\(0, 0, 0, 0\)/.test(add.edge) && !/40, 89, 55/.test(add.edge), JSON.stringify({ board, add }));
+         function's light colour — Add player the olive's cloth, #B9C3A3 — with no rim at all */
+      check("(b) the home has no board of actions — they live on the plus, whose eight are filled keys in their functions' light colours, no rim", board === 0 && !!add && add.bg === "rgb(185, 195, 163)" && /rgba\(0, 0, 0, 0\)/.test(add.edge) && !/40, 89, 55/.test(add.edge), JSON.stringify({ board, add }));
       await page.keyboard.press("Escape"); await page.mouse.click(20, 120); await page.waitForTimeout(700);
       await tap(page, '[aria-label="Today"]', 900);
       const g1 = await gap(page, '[data-scroll="screen"] h1', "Today");
@@ -171,7 +171,7 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
       const nJobs = await page.locator('[data-scroll="screen"] .nsc-ruled > [data-row-door]').count(), jobs = [];
       for (let i = 0; i < nJobs; i++) jobs.push(await M.rowLead(page, '[data-scroll="screen"] .nsc-ruled > [data-row-door]', i));
       check("(c2b) the home's Actions rows and All lessons lead with their word: no glyph before any, the chevron after, 60 tall on the box's inset",
-        jobs.length >= 3 && jobs.every((j) => M.plainRow(j) && j.h === 60 && j.inset === 16 && j.color === "rgb(28, 28, 30)") && jobs.some((j) => j.label === "Join requests") && jobs.some((j) => j.label === "Messages") && jobs[jobs.length - 1].label === "All lessons",
+        jobs.length >= 3 && jobs.every((j) => M.plainRow(j) && j.h === 60 && j.inset === 16 && j.color === "rgb(29, 27, 23)") && jobs.some((j) => j.label === "Join requests") && jobs.some((j) => j.label === "Messages") && jobs[jobs.length - 1].label === "All lessons",
         JSON.stringify(jobs.map((j) => j && `${j.label} lead ${j.lead} before ${j.before} [${j.glyphs}] h${j.h}`)));
       {
         /* the same coach on a heavy morning: three requests, a join request, a message, a lesson to log, somebody drifting */
@@ -221,7 +221,7 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
         srows.length >= 8 && badLead.length === 0 && srows.filter((r) => r.glyphs.length === 1).length >= 6, `${srows.length} rows · ` + JSON.stringify(badLead.slice(0, 3)));
       const valued = srows.filter((r) => r && r.value), subs = await page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] .nsc-group [data-row] span')].filter((s) => s.children.length === 0 && s.textContent.trim() && getComputedStyle(s).fontSize === "13px").map((s) => s.textContent.trim()));
       check("(f3) a Settings row's value sits on the label's line at the right, whole, in the sub grey — Default view, the invite code, the build — and no row carries a small line under its label",
-        valued.length >= 3 && valued.every((r) => r.valueLine === "beside" && !r.valueCut && r.valueColor === "rgb(95, 95, 101)") && valued.some((r) => r.label === "Invite code" && r.value === "QW7X2M") && subs.length === 0, JSON.stringify({ valued: valued.map((r) => `${r.label}: ${r.value} ${r.valueLine} ${r.valueColor}`), subs }));
+        valued.length >= 3 && valued.every((r) => r.valueLine === "beside" && !r.valueCut && r.valueColor === "rgb(93, 89, 80)") && valued.some((r) => r.label === "Invite code" && r.value === "QW7X2M") && subs.length === 0, JSON.stringify({ valued: valued.map((r) => `${r.label}: ${r.value} ${r.valueLine} ${r.valueColor}`), subs }));
       const view = page.locator('[data-tour="settings-view"]');
       if (await view.count()) {
         await view.first().click(); await page.waitForTimeout(600);
@@ -292,7 +292,7 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
       const n = await page.locator('[data-scroll="screen"] .nsc-group > *').count(), rs = [];
       for (let i = 0; i < n; i++) rs.push(await M.rowLead(page, '[data-scroll="screen"] .nsc-group > *', i));
       const bad = rs.filter((r) => !r || r.lead !== 0 || r.before !== 0 || r.inset !== 16 || r.glyphs.length > 1 || r.glyphs.some((g) => g !== "chevron-right") || r.labelCut || r.valueCut
-        || (r.value && r.valueColor !== "rgb(95, 95, 101)") || (r.value ? (r.valueLine === "beside" ? r.h !== 56 : r.valueLine !== "under") : r.h !== 56));
+        || (r.value && r.valueColor !== "rgb(93, 89, 80)") || (r.value ? (r.valueLine === "beside" ? r.h !== 56 : r.valueLine !== "under") : r.h !== 56));
       if (width === 320) await shot(`09-settings-${role}-320`);
       check(`(l) ${role} at ${width}: every Settings row is label · value · chevron — nothing before the label, no glyph but the chevron, nothing cut`,
         rs.length >= 8 && bad.length === 0 && rs.some((r) => r.label === "Default view" && r.value === "Feed") && rs.some((r) => r.label === "Sign out"), `${rs.length} rows · ` + JSON.stringify(bad.slice(0, 3)));

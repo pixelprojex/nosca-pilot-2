@@ -29,17 +29,17 @@ fs.mkdirSync(outDir, { recursive: true });
 const IDS = { coach: "00000000-0000-4000-8000-00000000c0ac", adult: "00000000-0000-4000-8000-0000000adu17", parent: "00000000-0000-4000-8000-000000pa4e07", junior: "00000000-0000-4000-8000-00000000c41d", rider: "00000000-0000-4000-8000-00000000e9c0", tadhg: "00000000-0000-4000-8000-0000000ta0d6" };
 const FAM = "fa000000-0000-4000-8000-00000000fa01";
 const REC = "c0000000-0000-4000-8000-00000000ca01";
-/* 21 November: a list row is Duolingo's card — white on one light grey line, #E2E2E7, 14px corners, in every sport (the sport's
-   wash at 8px from 14 November) — a row inside a box sits on the hairline #EBEBF0, and a chosen reason is Duolingo's chosen
+/* 21 November: a list row is Duolingo's card — white on one light grey line, #E4E0D7, 14px corners, in every sport (the sport's
+   wash at 8px from 14 November) — a row inside a box sits on the hairline #ECE9E2, and a chosen reason is Duolingo's chosen
    answer: the sport's colour at a tenth over white, its ring at 55%, the word in the sport's colour a step deeper */
-const EDGE = { golf: "rgb(226, 226, 231)", equestrian: "rgb(226, 226, 231)" };
+const EDGE = { golf: "rgb(228, 224, 215)", equestrian: "rgb(228, 224, 215)" };
 const CARD = "rgb(255, 255, 255)";
-const HAIRLINE = "rgb(235, 235, 240)";
+const HAIRLINE = "rgb(236, 233, 226)";
 /* the club colours of 22 November: golf's fairway, the yard's claret; a chosen answer is the lead's cloth
    tone with the hue's ink since the 23rd, when every key was filled (it was the lead at a tenth and at 55%
    over white, then for a morning its pale) */
 const ACCENT = { golf: "#285937", equestrian: "#6B2935" };
-const CLOTH = { golf: "#94BD9E", equestrian: "#CDAEB1" };   // claret's cloth capped with the reds and blues on 24 November (#DA9FA6 before)
+const CLOTH = { golf: "#A4C9AC", equestrian: "#D7B3B7" };   // claret's cloth capped with the reds and blues on 24 November (#DA9FA6 before)
 const mixRgb = (a, b, k) => { const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); const x = p(a), y = p(b); return `rgb(${x.map((v, i) => Math.round(v + (y[i] - v) * k)).join(", ")})`; };
 const SEL = (sport) => ({ face: mixRgb(CLOTH[sport], "#000000", 0), ring: mixRgb(CLOTH[sport], ACCENT[sport], 0.5), fg: mixRgb(ACCENT[sport], "#000000", 0.45) });
 const GROUP = "rgb(110, 90, 147)";

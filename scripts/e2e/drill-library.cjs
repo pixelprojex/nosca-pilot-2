@@ -87,7 +87,7 @@ const { check, results, summary } = M.checker("drill-library");
          alarm clock on a wine one the Reminder for two days — All drills a door's 60 tall, the Reminder Settings' own 56 */
       const [dAll, dRem] = [await M.rowLead(page, '[data-tour="drills-all"]'), await M.rowLead(page, '[data-tour="drills-reminder"]')];
       check("(c2) All drills and the Reminder lead with their word — no glyph before either, a chevron after — on one left edge, 60 and 56 tall, the Reminder's hour in the sub grey",
-        M.plainRow(dAll) && dAll.h === 60 && dAll.inset === 16 && dAll.label === "All drills" && M.plainRow(dRem) && dRem.h === 56 && dRem.inset === 16 && dRem.label === "Reminder" && dRem.value === "8:00 am" && dRem.valueColor === "rgb(95, 95, 101)",
+        M.plainRow(dAll) && dAll.h === 60 && dAll.inset === 16 && dAll.label === "All drills" && M.plainRow(dRem) && dRem.h === 56 && dRem.inset === 16 && dRem.label === "Reminder" && dRem.value === "8:00 am" && dRem.valueColor === "rgb(93, 89, 80)",
         JSON.stringify({ dAll, dRem }));
 
       /* a drill ticked from an older set stays on the tab for the sitting */

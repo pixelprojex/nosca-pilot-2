@@ -17868,8 +17868,14 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                title, as the family screen's Manage is — never a glyph, never
                the accent, which is a lesson's */
             action={role === "coach" && onManage ? (
-              <button data-tour="diary-manage" onClick={() => { haptic(6); onManage(); }} className="shrink-0 active:opacity-50"
-                      style={{ minHeight: 44, ...TYPE.body, fontWeight: 500, color: t.ink }}>{tr("Manage")}</button>
+              /* a quiet key since 28 November: the lead's pale on its ledge, the
+                 word in the ink, 38 drawn and 44 to a finger */
+              <button data-tour="diary-manage" onClick={() => { haptic(6); onManage(); }} className="shrink-0 relative n-key"
+                      style={{ minHeight: 38, padding: "0 14px", marginTop: 4, borderRadius: 12, border: `${EDGE_W}px solid ${KEY_RING(t)}`, "--key-lip": TINT_LIP(t),
+                               ...TYPE.body, fontSize: 15, fontWeight: 600, color: t.ink }}>
+                <span aria-hidden="true" className="absolute" style={{ top: -3, bottom: -3, left: 0, right: 0 }} />
+                {tr("Manage")}
+              </button>
             ) : null}>
       {/* Who this is for. An adult in a family books for the children as
           well as themselves, so the person is picked first and the hours

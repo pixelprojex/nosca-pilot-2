@@ -10,7 +10,7 @@
    header: four screens drew it four ways, three with an ink plus on the
    accent under the 3:1 a glyph needs.
    21 November, the afternoon: every box is Duolingo's card — white on
-   one light grey line, #E2E2E7, in every sport, 14px corners (16 on a
+   one light grey line, #E4E0D7, in every sport, 14px corners (16 on a
    day's box) — every quiet key Duolingo's white key on its grey ledge,
    told by its word, and a chosen one the sport's colour faint.
    Usage: node boxes.cjs <distDir> <port> <outDir> */
@@ -30,10 +30,10 @@ const dayFrom = (n) => { const x = new Date(`${TODAY}T12:00:00`); x.setDate(x.ge
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const nice = (x) => `${DAYS[x.getDay()]} ${x.getDate()} ${MON[x.getMonth()]}`;
 const DAY_FORM = /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) [1-9]\d? (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)$/;
-/* EDGE(t): one light grey line, #E2E2E7, in every sport since 21 November (the sport's mark at 72% before) — and
-   the theme's hairline, #EBEBF0, for a row inside a box */
-const EDGE = { golf: "rgb(226, 226, 231)", equestrian: "rgb(226, 226, 231)" };
-const HAIRLINE = { golf: "rgb(235, 235, 240)" };
+/* EDGE(t): one light grey line, #E4E0D7, in every sport since 21 November (the sport's mark at 72% before) — and
+   the theme's hairline, #ECE9E2, for a row inside a box */
+const EDGE = { golf: "rgb(228, 224, 215)", equestrian: "rgb(228, 224, 215)" };
+const HAIRLINE = { golf: "rgb(236, 233, 226)" };
 
 function freshDb() {
   const db = M.emptyDb();
@@ -146,7 +146,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
   const db = freshDb();
   const errors = [];
     /* THE WHITE KEY (21 November, the afternoon; stone that morning): Duolingo's second kind of key — a white
-       face, a light grey ring (#E2E2E7) at 1.5px and a grey ledge (#D9D9DE) under it, the same in every sport.
+       face, a light grey ring (#E4E0D7) at 1.5px and a grey ledge (#D9D4C9) under it, the same in every sport.
        A key is told by its word, 4.5:1 and over on the face, and by its ledge. */
     /* EVERY KEY FILLED (23 November): the quiet key is the sport's own pale, ringed in the pale's ledge at 1.5px,
        on a ledge a step deeper — golf's sage, the yard's plaster — where it was the white key in every sport */
@@ -421,7 +421,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
         return { color: getComputedStyle(box).borderTopColor, w: getComputedStyle(box).borderTopWidth };
       });
       /* a tick box is the one control whose ring is all that says where it is: the strong grey, 3.3:1 on white */
-      check("(m) an undone drill's tick box is drawn on the strong grey ring, not the hairline", !!tick && tick.color === "rgb(142, 142, 147)" && parseFloat(tick.w) >= 1, JSON.stringify(tick));
+      check("(m) an undone drill's tick box is drawn on the strong grey ring, not the hairline", !!tick && tick.color === "rgb(139, 134, 123)" && parseFloat(tick.w) >= 1, JSON.stringify(tick));
       await ctx.close();
     }
 
@@ -439,7 +439,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
       const addCoach = sw.find((x) => x && x.label === "Add a coach");
       check("(n0) the switcher's Add a coach carries the chevron, as Photos, Family, Progress and Settings beside it do — it opens the next step", !!addCoach && addCoach.glyphs.includes("chevron-right"), JSON.stringify(addCoach));
       check("(n0b) no row of the switcher leads with a glyph: Add a coach · Photos · Family · Progress · Settings are the word on the card's inset and the chevron, 56 tall, on the faces' own left edge",
-        sw.length === 5 && sw.map((x) => x.label).join(" · ") === "Add a coach · Photos · Family · Progress · Settings" && sw.every((x) => M.plainRow(x) && x.h === 56 && x.color === "rgb(28, 28, 30)") && edges.face != null && edges.face === edges.word,
+        sw.length === 5 && sw.map((x) => x.label).join(" · ") === "Add a coach · Photos · Family · Progress · Settings" && sw.every((x) => M.plainRow(x) && x.h === 56 && x.color === "rgb(29, 27, 23)") && edges.face != null && edges.face === edges.word,
         JSON.stringify({ rows: sw.map((x) => x && `${x.label} lead ${x.lead} before ${x.before} [${x.glyphs}] h${x.h}`), edges }));
       await closeSheet(page);
       await tap(page, '[aria-label="Family"]', 900);
@@ -462,7 +462,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
       const door = await M.rowLead(page, '[data-scroll="screen"] [data-tour="kid-progress"]');
       const doorKey = await page.evaluate(() => { const b = document.querySelector('[data-scroll="screen"] [data-tour="kid-progress"]'); return b ? b.classList.contains("n-key") : null; });
       check("(n5) the child's Progress is a door — a row in a box of its own, the word on the box's inset and the chevron, no glyph before it, 60 tall, never a key",
-        !!door && door.boxed && doorKey === false && door.h === 60 && M.plainRow(door) && door.inset === 16 && door.label === "Progress" && door.color === "rgb(28, 28, 30)", JSON.stringify(door));
+        !!door && door.boxed && doorKey === false && door.h === 60 && M.plainRow(door) && door.inset === 16 && door.label === "Progress" && door.color === "rgb(29, 27, 23)", JSON.stringify(door));
       check("(n3) the child's lessons read the app's one day form", days.length === 2 && days.every((d) => DAY_FORM.test(d)) && days[0] === nice(dayFrom(-9)), JSON.stringify(days));
       /* Next, Drills and the lessons under them: one value column down the page */
       const vcol = await page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] .nsc-list > :not([data-tour]) > span:first-child')]
@@ -655,7 +655,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
         check("(s12) one sheet title: New group, Invite players, New message and the recurring Set up sheet carry TYPE.title's 22px (19 until 21 November; they were 24 and 25 beside the twenty-two at 19)", [sNew, sInv, sMsg, sRec].every((x) => x === "22px"), JSON.stringify({ sNew, sInv, sMsg, sRec }));
         /* since 18 November the cadence is the manager's Segmented (B20): one chosen, its thumb, never the accent */
         /* the chosen day is Duolingo's chosen answer since 21 November (the ink before): golf's colour faint, the six others white keys */
-        check("(s13) the recurring sheet's chosen day is filled with golf's light colour, as a chosen tile is, the six others the quiet key, and the cadence is the Segmented with one chosen — never the accent's fill, which is Save's", !!recDays && recDays.days.length === 7 && recDays.days.filter((d) => d.bg === "rgb(148, 189, 158)").length === 1 && recDays.days.filter((d) => d.bg === "rgb(219, 238, 223)").length === 6 && recDays.freq.length === 3 && recDays.freq.filter((d) => d.p === "true").length === 1 && ![...recDays.days, ...recDays.freq].some((d) => d.bg === "rgb(40, 89, 55)"), JSON.stringify(recDays).slice(0, 300));
+        check("(s13) the recurring sheet's chosen day is filled with golf's light colour, as a chosen tile is, the six others the quiet key, and the cadence is the Segmented with one chosen — never the accent's fill, which is Save's", !!recDays && recDays.days.length === 7 && recDays.days.filter((d) => d.bg === "rgb(164, 201, 172)").length === 1 && recDays.days.filter((d) => d.bg === "rgb(219, 238, 223)").length === 6 && recDays.freq.length === 3 && recDays.freq.filter((d) => d.p === "true").length === 1 && ![...recDays.days, ...recDays.freq].some((d) => d.bg === "rgb(40, 89, 55)"), JSON.stringify(recDays).slice(0, 300));
         await ctx.close();
       }
       /* the To log screen: person rows in one boxed list, Log as the row's action */

@@ -76,6 +76,88 @@ seeded data and no account.
 
 ## Rules — each of these cost a deploy to learn
 
+- **The design render: bold serif titles, Lares's round keys, words on
+  the plus, one paint chart a sport, warm neutrals, the Diary as keys
+  (24–28 November).** The founder, 24 November, of the serif titles he
+  approved: "make it more bold"; of round keys, Lares's way; 28 November:
+  "I'm not seeing that Duolingo style throughout … it still basically
+  looks the exact same … completely elevating visuals. Color families …
+  cohesive … classy … professional". So:
+  - **Titles in a bold narrow serif.** `TYPE.screen` (32/700) and
+    `TYPE.head` (22/700) are "Nosca Serif": Noto Serif Display at its
+    narrowest width (62.5) and 700, one static woff2 per subset in
+    `src/fonts/` (OFL beside it, Settings › Licences), preloaded in
+    index.html, hashed into the offline precache, `font-display: block`
+    with a Times Bold fallback at its measure. Instrument Serif was the
+    approved shape and has no bold; this is that shape, bold. The serif
+    is every H1, `RowHead`, every sheet's title, Settings' group names
+    and the bell's sections (20), `EmptyHero`'s line (24), the compact
+    header (20), the Diary's day names and month, the feed's title — and
+    nothing else: rows, keys, notes and figures stay the system face.
+    "Wednesday 30 September" is 336 at 32: one line at 390, two at 320.
+  - **A round key is Lares's** (`roundOf`): the hue's pale face, a 1.5px
+    ring of its cloth, the glyph and the word in the deep colour, a
+    ledge a step under the ring; Log stays the deep lead; Call off and
+    Cancel the brick's pale with `DANGER`. Supersedes, for round keys,
+    "a function key … is filled with its function's CLOTH tone".
+  - **The plus sheet's eight are words** (`ActTile wordOnly`): the word
+    centred, 16/600, on the function's cloth, 60 tall, no glyph; Call
+    off still the brick's. Supersedes "a key keeps its glyph: the plus
+    sheet's eight" (23 November) and the plus's 88-tall stacked tiles.
+  - **One paint chart a sport** (`scripts/club-palette.py`): every cloth
+    at lightness 0.80 with its chroma held to 0.03–0.046 — a sport's
+    lead a step fuller (0.056, a cool lead 0.042), the blues, violets
+    and reds capped at 0.034, the brick 0.056 — where the warm cloths
+    ran to 0.07 beside capped blues and the eight keys were a pastel
+    rainbow whose warm keys shouted. Tennis and padel take saddle for
+    orange, rowing olive for teal, squash olive for orange, so every two
+    keys stay `SEPARATE` apart. Supersedes the cloth "at 0.76" and "0.78
+    … 0.036 … 0.055" above and those sets' old colours.
+  - **Warm neutrals**, the card's not Apple's, the same in every sport
+    and the page still `#FFFFFF`: ink `#1D1B17`, sub `#5D5950` (7.0:1),
+    faint `#6C685E` (5.6:1), trace `#B2ADA3`, hair `#ECE9E2`, wash
+    `#F4F2ED`, the card's line `EDGE` and `SOFT_LIP` `#E4E0D7`, its grey
+    ledge `#D9D4C9`, `LINE_STRONG` `#8B867B` (3.6:1), the composer's
+    line `#D3CEC4`. Supersedes Apple's greys wherever they are named
+    below (`#1C1C1E`, `#5F5F65`, `#6E6E73`, `#AEAEB2`, `#EBEBF0`,
+    `#F2F2F7`, `#E2E2E7`, `#D9D9DE`, `#8E8E93`, `#D1D1D6`).
+  - **A Segmented's chosen side is the chosen answer** (`SEL`: the
+    lead's cloth on its ledge, its ring, the word in its ink at 700),
+    38 tall, on the wash; it was a white thumb.
+  - **The Diary as keys.** The List view's week is a row of keys (50 by
+    68: the weekday, the date at 19/700, a dot for a day with lessons;
+    the isolated day the lead on its deep ledge, today the lead's pale);
+    a day's name is the serif heading and its pencil (`agenda-edit`) a
+    34 round pale key reaching 44; a booked hour carries the person's
+    face (34; given to the name at 350 and under, as `DayRow` does); a
+    free hour's plus is `PlusKey`, a 30 round pale key on its ledge (the
+    Calendar view's free times too, `SEL` with a tick once picked). The
+    Calendar view's month is a white card (`cal-month`): its name the
+    serif, the arrows 36 round pale keys, each day a 38 key of 12px
+    corners — the chosen day the lead on a 3px deep ledge, today the
+    lead's pale, a lesson of the person's `SEL` — and a day with lessons
+    (the coach's booked or the person's own) dotted 5px in the lead, an
+    open one 4px in the trace. The coach's Manage (`diary-manage`) is a
+    quiet key (the lead's pale on its ledge, the word in the ink, 38
+    drawn and 44 to a finger), where it was a bare word. Supersedes "the
+    chosen day a solid disc", the coach's booked day's ink dot and
+    Manage's "a word beside the title" above.
+  - **A count wears its colour** (`CountPill`, `HomeRow hue`): on the
+    coach's home To review purple, To log orange, Join requests teal,
+    Drifting wine, Competitions gold, All lessons brand and the folded
+    next day wine — the figure in the hue's ink on its cloth pill, the
+    label 600. **The home's Actions carry no Messages row**: the Chat
+    tab's badge says it (the class plan's simpler home). Supersedes
+    Messages among the home's Actions below.
+  - **The level is a chip**: the player file's level (`player-level`,
+    still the door to Progress) and the lesson page's `StagePill` are the
+    lead's pale with its ring and the level in the lead at 700. A lesson
+    with nothing filmed (`Poster`) is the lead's pale with the sport's
+    glyph in the lead, never the grey square. `EmptyHero`'s disc is 96,
+    the lead's pale on its ledge.
+  `scripts/e2e/keys.cjs`, `boxes.cjs`, `ease.cjs`, `narrow.cjs`,
+  `type-floor.cjs`, `person-row.cjs`, `calendar-day.cjs`, `diary.cjs`,
+  `edit-day.cjs`, `lists.cjs`, `sprint-3.cjs` and `shortcuts.cjs` read it.
 - **RLS: no policy on table X may query table X.** It recurses and
   every read fails with 42P17. Lookups go in `security definer`
   functions (`my_coach_id()`, `my_family_id()`, `my_family_ids()`).

@@ -124,7 +124,7 @@ const { check, results, summary } = M.checker("progress");
         under: (() => { const h = document.querySelector('[data-scroll="screen"] h1'); return !!h && b.getBoundingClientRect().top >= h.getBoundingClientRect().bottom; })() })) : null;
       const fit = await M.fingerFit(page, '[data-tour="player-level"]');
       await shot("01c-coach-file-level");
-      check("(g2) the level under the name — HI 16.4 — is a door: the level in the sub grey, a chevron after it, under the name", !!lv && lv.text === "HI 16.4" && lv.color === "rgb(95, 95, 101)" && lv.glyphs.length === 1 && /chevron-right/.test(lv.glyphs[0]) && lv.under, JSON.stringify(lv));
+      check("(g2) the level under the name — HI 16.4 — is a door: the level in the sub grey, a chevron after it, under the name", !!lv && lv.text === "HI 16.4" && lv.color === "rgb(93, 89, 80)" && lv.glyphs.length === 1 && /chevron-right/.test(lv.glyphs[0]) && lv.under, JSON.stringify(lv));
       check("(g3) …answering a finger 44 tall", !!fit && fit.missed.length === 0, JSON.stringify(fit));
       await level.first().click(); await page.waitForTimeout(1000);
       const t1b = await text();
@@ -195,7 +195,7 @@ const { check, results, summary } = M.checker("progress");
       check("(m) a named stage is the ladder: the steps reached ticked, the current one with its date, no line", (await page.locator('[data-progress="level"]').count()) === 0 && (await page.locator('[data-progress="ladder"]').count()) === 1 && ticks === 2 && /Orange ball · U9\s*since Sun 9 Aug/.test(t5) && /Green ball/.test(t5), `${ticks} ticks · ${t5.slice(0, 200)}`);
       /* a step not yet reached is an empty ring, so its ring is all that says where it is: LINE_STRONG, 3.3:1 (on the hairline it was 1.2:1) */
       const rings = await page.locator('[data-progress="ladder"] span').evaluateAll((els) => els.filter((el) => el.getBoundingClientRect().width === 20 && !el.querySelector("svg")).map((el) => `${el.style.borderTopWidth} ${getComputedStyle(el).borderTopColor}`));   /* the written width: at a device pixel ratio of 1 the computed 1.5 snaps to 1 */
-      check("(m3) the ladder's steps not yet reached are rings of the strong line, 1.5px", rings.length >= 1 && rings.every((x) => x === "1.5px rgb(142, 142, 147)"), JSON.stringify(rings));
+      check("(m3) the ladder's steps not yet reached are rings of the strong line, 1.5px", rings.length >= 1 && rings.every((x) => x === "1.5px rgb(139, 134, 123)"), JSON.stringify(rings));
       await shot("04-tennis-ladder");
       await ctx.close();
     }

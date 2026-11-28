@@ -75,7 +75,7 @@ const built = (() => { try { return JSON.parse(fs.readFileSync(path.join(distDir
       check("(a2) Sync sits directly beneath it as the next box, one row, the word and a chevron — no glyph before it — and no sub", (await sync.count()) === 1 && !!bv && !!bs && near(bs.x, bv.x, 1) && near(bs.width, bv.width, 1) && bs.y - (bv.y + bv.height) >= 0 && bs.y - (bv.y + bv.height) <= 16 && M.norm(await sync.innerText()) === "Sync"
         && M.plainRow(ls) && ls.inset === 16 && ls.h === 56, JSON.stringify({ bv, bs, ls, t: (await sync.count()) ? await sync.innerText() : "" }));
       check("(a3) Version is the word and its value: the build whole on the right in the sub grey, nothing before the word and no chevron after",
-        M.plainRow(lv, { glyphs: [] }) && lv.inset === 16 && lv.value === value && !lv.valueCut && lv.valueColor === "rgb(95, 95, 101)" && lv.valueRight === 0, JSON.stringify(lv));
+        M.plainRow(lv, { glyphs: [] }) && lv.inset === 16 && lv.value === value && !lv.valueCut && lv.valueColor === "rgb(93, 89, 80)" && lv.valueRight === 0, JSON.stringify(lv));
       await shot("01-version-sync");
 
       /* the server has this very build: Up to date, naming it */

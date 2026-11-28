@@ -30,10 +30,10 @@ const FAM = "fa000000-0000-4000-8000-00000000fa01";
 const L = { two: "10000000-0000-4000-8000-00000000dd01", one: "10000000-0000-4000-8000-00000000dd02", drills: "10000000-0000-4000-8000-00000000dd03", grp: "10000000-0000-4000-8000-00000000dd04" };
 const TODAY = M.ymd(new Date());
 const dayFrom = (n) => { const x = new Date(`${TODAY}T12:00:00`); x.setDate(x.getDate() + n); return x; };
-/* 21 November: every card and box stands on one light grey line, #E2E2E7, in every sport — the sport's own dark tone was the edge until then —
-   and a row inside a box sits on the hairline, #EBEBF0 */
-const EDGE = { golf: "rgb(226, 226, 231)" };
-const HAIRLINE = { golf: "rgb(235, 235, 240)" };
+/* 21 November: every card and box stands on one light grey line, #E4E0D7, in every sport — the sport's own dark tone was the edge until then —
+   and a row inside a box sits on the hairline, #ECE9E2 */
+const EDGE = { golf: "rgb(228, 224, 215)" };
+const HAIRLINE = { golf: "rgb(236, 233, 226)" };
 const DAY_FORM = /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) [1-9]\d? (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)$/;
 
 function freshDb() {
@@ -336,7 +336,7 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       await shot("x-lesson-drills");
       check("(x) the lesson page's drills are boxed rows on the card's edge, the way the Drills tab draws them", boxedRows(ld, EDGE.golf) && ld.length === 2, rowSaid(ld));
       /* a tick box is the one control whose ring is all that says where it is: the strong grey, 3.3:1 on white */
-      check("(x2) an undone drill's tick on the lesson page is on the strong grey ring, not the hairline", tick === "rgb(142, 142, 147)", String(tick));
+      check("(x2) an undone drill's tick on the lesson page is on the strong grey ring, not the hairline", tick === "rgb(139, 134, 123)", String(tick));
       const drillPad = await page.evaluate(() => { const s = document.querySelector('[data-tour="lesson-drills"] .nsc-list'); return s ? [...s.children].map((r) => parseFloat(getComputedStyle(r).paddingTop)) : []; });
       check("(x3) a drill's box keeps air above its name, so a drill that wraps never touches the edge", drillPad.length === 2 && drillPad.every((x) => x >= 8), JSON.stringify(drillPad));
 
