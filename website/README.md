@@ -1,12 +1,15 @@
 # Nosca's website
 
-One page about Nosca for shareholders, partners and anyone meeting the app for the first time (`index.html`): an
-opening (the deep green card's front at the size of the screen: its stripes across the top and the foot, the gold
-mark, NOSCA, "Coaching, linked."), the product (the coach and the player and the family, each a phone that plays its
-steps once), the six sports once (each with a picture, its own words and its governing body's levels), the story (the
-name, how it was built, what we stand for, climate) and the pilot (Ireland, English; the two printed cards; Open Nosca
-and Add to Home Screen). The header's anchors (Product · Story · Pilot) reach each part. `product.html`, `story.html`
-and `partners.html` only send their old addresses on to the page (Partners is gone).
+One page about Nosca for shareholders, partners and anyone meeting the app for the first time (`index.html`), in
+five parts, each answering one question: **what it is** (a crew on a still lake at dusk under the deep green,
+"Coaching, linked.", one line, Open Nosca, and the coach's day in the app arriving once; the gold mark a small
+signature), **what it does** (two pieces, each a headline, one line and the app's own screens: the coach logs a lesson
+in seconds; every lesson is kept for the player and the family), **for which sports** (three pictures, then the six
+in their own words with their governing bodies' levels), **who made it and why** (the name, the moment every coach
+screen is judged against, "Professional. Curated. Specialist.", made in Ireland, climate) and **how to start** (in
+pilot, in Ireland; Open Nosca and Add to Home Screen; the two printed cards, the one place the card stands as an
+object). The header's anchors (Product · Story · Pilot) reach each part. `product.html`, `story.html` and
+`partners.html` only send their old addresses on to the page (Partners is gone).
 
 It is launched with the app, as a folder of the same deploy: `https://nosca.netlify.app/about/` (the old address, `nosca-pilot-2.netlify.app`, builds the same and hands a visitor on to the new one). `npm run build` builds the app and then runs `node website/build.mjs --out dist/about`. Every link is relative, and the two app links (`../`, `../install`) reach the app beside it.
 

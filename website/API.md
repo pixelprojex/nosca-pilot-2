@@ -18,6 +18,11 @@
 > green's front is the banded print (top and foot stripes, the mark and NOSCA in the clear band, no gold edge), the
 > olive's the two corner wedges; both share the white back (`partials/cardback.html`). On the deep green the site's
 > stripes are always the band; on the olive, the wedges.
+>
+> Since the second pass of 28 November the card's front no longer opens the page: the opening is a full-bleed loop
+> (`<!-- @include loop … class="op__vid vid--veil" alt="" -->`, absolutely filling the section) with the app's own
+> screen arriving once (a CSS animation with `backwards` fill, under `html.glide` only). The band is only a fine
+> detail at the top of the story, and the card as an object stands only at the pilot.
 
 Read `BRIEF.md` first (the founder's words and this round's direction). This file says how to build a page on
 the shared kit. Every piece below is on one page, working: build with `--kit` and open `_kit.html`
