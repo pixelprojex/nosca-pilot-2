@@ -497,7 +497,7 @@ const dayFiles = (j, day, d, ticked) => {
     if (entry && entry.size > maxB) return;
     n += 1; if (n > PER_DAY) return;
     const f = { name: x.file.name, kind: x.file.kind, mime: x.file.mime, ext: x.file.ext, side: x.side, who: x.who, mi, size: entry ? entry.size : 0, at: fileAt(day, x, n - 1),
-      time: `${pad(x.h % 12 || 12)}:${pad(x.min)} ${x.h < 12 ? "am" : "pm"}`, screenshot: screenshotByName({ ext: x.file.ext, name: x.file.name }) };
+      time: `${(x.h % 12) || 12}:${pad(x.min)} ${x.h < 12 ? "am" : "pm"}`, screenshot: screenshotByName({ ext: x.file.ext, name: x.file.name }) };
     const def = fileDefault({ ...f, who: x.who }, { kind: d.kind || "private", mainSide: main });
     const own = e.files && e.files[f.name];
     f.reason = def.reason; f.ticked = own !== undefined ? own : ticked && def.ticked;
