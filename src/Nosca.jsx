@@ -19207,7 +19207,7 @@ function Notifications({ role, pop, pushOn, setPushOn, live, notify, setNotify, 
 
    · ONLY THIS DEVICE'S STEPS. The device is read (`platformOf`,
      `browserOf`, `iosMajor`) and that one set is shown. Every other
-     device sits behind one quiet row under the steps, "iPhone · iOS 27 —
+     device sits behind one quiet row under the title, "iPhone · iOS 27 —
      Change" (`install-device`), which unfolds the platform and the version on
      the app's Segmented (`install-platform`, `install-version`) with
      where to look the version up. Two Segmenteds and a hint over the
@@ -19328,7 +19328,7 @@ export const INSTALL_GOLD = "#8E6E26";
    delay). */
 export const INSTALL_CSS = `
 @keyframes insRise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
-.ins-in{display:inline-flex;vertical-align:-0.22em;margin:0 -0.1em}
+.ins-in{margin:0 0.02em;white-space:nowrap}
 .ins-sr{display:inline-block;width:1px;height:1px;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .calm .ins, .calm .ins *, .calm.ins, .calm.ins * { animation-delay: 0s !important; }
 @media (prefers-reduced-motion: reduce){ .ins, .ins * { animation-delay: 0s !important; } }
@@ -19353,8 +19353,9 @@ const INS_GLYPHS = {
   compass: "M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17ZM15.4 8.6l-1.9 4.9-4.9 1.9 1.9-4.9 4.9-1.9Z",
   home: "M4.5 11 12 4.5l7.5 6.5M6.5 9.5v9.5h11V9.5",
 };
-function InsGlyph({ name, size = 26, color, sw = 1.9 }) {
-  const box = { width: size, height: size, viewBox: "0 0 24 24", "aria-hidden": "true", focusable: "false", "data-glyph": name, style: { display: "block", flexShrink: 0 } };
+function InsGlyph({ name, size = 26, color, sw = 1.9, inline }) {
+  const box = { width: size, height: size, viewBox: "0 0 24 24", "aria-hidden": "true", focusable: "false", "data-glyph": name,
+                style: inline ? { display: "inline-block", verticalAlign: "-0.24em" } : { display: "block", flexShrink: 0 } };
   if (name === "dots" || name === "dotsV") {
     const at = [5.2, 12, 18.8];
     return <svg {...box}>{at.map((p) => <circle key={p} cx={name === "dots" ? p : 12} cy={name === "dots" ? 12 : p} r={1.75} fill={color} />)}</svg>;
@@ -19373,22 +19374,26 @@ function InsGlyph({ name, size = 26, color, sw = 1.9 }) {
    loop drawn round the spot, as a ring is drawn on a screenshot. */
 /* a glyph inside a sentence; `label` is what it says to a screen reader,
    and in a copy of the words, where no word beside it says it */
-function InsIn({ name, label }) {
+function InsIn({ name, label, tight }) {
   const t = useT();
+  /* a glyph's own drawing leaves air at its sides; a comma after it is drawn in that air */
   return (
-    <span className="ins-in" data-glyph-in={name}>
+    <span className="ins-in" data-glyph-in={name} style={tight ? { marginRight: "-0.2em" } : undefined}>
       {name === "app"
-        ? <img src="/icons/apple-touch-icon.png" alt="" width={22} height={22} draggable={false} style={{ display: "block", width: 22, height: 22, borderRadius: 5 }} />
-        : <InsGlyph name={name} size={21} color={t.ink} sw={2} />}
+        ? <img src="/icons/apple-touch-icon.png" alt="" width={22} height={22} draggable={false} style={{ display: "inline-block", verticalAlign: "-0.3em", width: 22, height: 22, borderRadius: 5, margin: "0 0.16em" }} />
+        : <InsGlyph name={name} size={21} color={t.ink} sw={2} inline />}
       {label && <span className="ins-sr">{label}</span>}
     </span>
   );
 }
 /* "Tap {lines:the three lines}, then Share {share}": the words, with each {glyph} drawn in its place */
-const insSay = (s) => String(s).split(/(\{[a-zA-Z]+(?::[^}]*)?\})/).filter(Boolean).map((part, i) => {
-  const m = part.match(/^\{([a-zA-Z]+)(?::([^}]*))?\}$/);
-  return m ? <InsIn key={i} name={m[1]} label={m[2]} /> : <React.Fragment key={i}>{part}</React.Fragment>;
-});
+const insSay = (s) => {
+  const parts = String(s).split(/(\{[a-zA-Z]+(?::[^}]*)?\})/).filter(Boolean);
+  return parts.map((part, i) => {
+    const m = part.match(/^\{([a-zA-Z]+)(?::([^}]*))?\}$/);
+    return m ? <InsIn key={i} name={m[1]} label={m[2]} tight={/^[,.;:]/.test(parts[i + 1] || "")} /> : <React.Fragment key={i}>{part}</React.Fragment>;
+  });
+};
 /* a loop drawn round the spot by hand, open where the pen came back, as on a marked-up screenshot */
 const INS_LOOP = "M27 4.6C38.6 4 46.4 11 45.6 20.6 44.8 31 34.6 37 23 36.4 11.8 35.8 3.8 28.8 4.6 19.4 5.4 10.6 13.4 4.4 25.6 5.4";
 function InsSpot({ hi, children, wide }) {
@@ -19411,7 +19416,7 @@ function InsScene({ kind, alt, hi }) {
   const faint = (g) => <InsGlyph name={g} size={22} color={t.trace} sw={1.8} />;
   const spot = (g) => <InsSpot hi={hi}><InsGlyph name={g} size={22} color={t.ink} sw={2} /></InsSpot>;
   const bar = (lead, trail) => (
-    <span className="flex items-center flex-1 min-w-0" style={{ height: 38, gap: 6, padding: "0 8px", borderRadius: 999, boxShadow: `inset 0 0 0 1.5px ${t.hair}`, background: "#FFFFFF" }}>
+    <span data-ins-bar="" className="flex items-center flex-1 min-w-0" style={{ height: 38, gap: 6, padding: "0 8px", borderRadius: 999, boxShadow: `inset 0 0 0 1.5px ${t.hair}`, background: "#FFFFFF" }}>
       {lead}<span className="flex-1 min-w-0" style={{ height: 5, borderRadius: 3, background: t.hair, margin: "0 6px" }} />{trail}
     </span>
   );
@@ -19527,12 +19532,18 @@ function InstallSteps({ steps, dress, tour, wait = 0 }) {
   );
 }
 /* what unfolds and folds without a jump: its rows go from nothing to its
-   height, and while folded it is hidden from a finger and a reader */
+   height. Folded, it is not there at all — kept only while it closes */
+const INS_FOLD_MS = 340;
 function InsFold({ open, children }) {
+  const [kept, setKept] = useState(open);
+  useEffect(() => {
+    if (open) { setKept(true); return undefined; }
+    const x = setTimeout(() => setKept(false), INS_FOLD_MS);
+    return () => clearTimeout(x);
+  }, [open]);
   return (
-    <div style={{ display: "grid", gridTemplateRows: open ? "1fr" : "0fr", transition: `grid-template-rows 340ms ${MOTION.curve}` }}>
-      <div aria-hidden={open ? undefined : true} style={{ minHeight: 0, overflow: open ? "visible" : "hidden", visibility: open ? "visible" : "hidden",
-                                                       transition: open ? "visibility 0s" : "visibility 0s linear 340ms" }}>{children}</div>
+    <div style={{ display: "grid", gridTemplateRows: open ? "1fr" : "0fr", transition: `grid-template-rows ${INS_FOLD_MS}ms ${MOTION.curve}` }}>
+      <div aria-hidden={open ? undefined : true} style={{ minHeight: 0, overflow: open ? "visible" : "hidden", pointerEvents: open ? undefined : "none" }}>{(open || kept) && children}</div>
     </div>
   );
 }
@@ -19610,18 +19621,17 @@ export function InstallGuide({ tour = "install", dress = "app", wait = 0, onDone
       {/* the note outlives the button: a dismissed sheet takes the offer away on the same render that says so */}
       {note && <p className="text-center" role="status" style={{ ...TYPE.caption, color: DANGER, marginTop: SPACE.tight }}>{note}</p>}
       <InsFold open={showSteps}>
-        <div style={{ paddingTop: SPACE.row }}>
-          <InstallSteps steps={steps} dress={dress} tour={tour} wait={arrived ? 0 : wait} />
-          {/* which device these steps are for, and the one way to another: after the steps, so step one comes first */}
+        <div style={{ paddingTop: button ? 0 : 2 }}>
+          {/* which device these steps are for, and the one way to another: a quiet line under the title — above the
+              steps, so a choice changes only what is under it and never moves the row from under the finger */}
           <button data-tour={`${tour}-device`} aria-expanded={choose} onClick={() => { haptic(6); setChoose(!choose); }}
-                  className="w-full flex items-center justify-between text-left active:opacity-60"
-                  style={{ minHeight: 44, gap: 12, marginTop: SPACE.row, animation: `insRise 480ms ${MOTION.curve} ${(arrived ? 0 : wait) + steps.length * 60}ms backwards` }}>
+                  className="w-full flex items-center justify-between text-left active:opacity-60" style={{ minHeight: 44, gap: 12 }}>
             {/* each half kept whole: a narrow phone breaks the row at the dot, never inside a name */}
             <span className="min-w-0" style={{ ...TYPE.small, color: t.sub }}><span style={{ whiteSpace: "nowrap" }}>{tabName}</span> <span style={{ whiteSpace: "nowrap" }}>· {subName}</span></span>
             <span className="shrink-0" style={{ ...TYPE.small, fontWeight: 600, color: gold }}>{choose ? tr("Done") : tr("Change")}</span>
           </button>
           {choose && (
-            <div data-tour={`${tour}-choices`} style={{ paddingTop: 4 }}>
+            <div data-tour={`${tour}-choices`} style={{ paddingTop: 4, paddingBottom: SPACE.tight }}>
               <Segmented tall options={INSTALL_TABS} value={tab} onChange={setTab} tour={`${tour}-platform`} />
               <div style={{ marginTop: SPACE.tight }}>
                 <Segmented tall options={INSTALL_SUBS[tab]} value={sub} onChange={setSub} tour={`${tour}-version`} />
@@ -19629,6 +19639,9 @@ export function InstallGuide({ tour = "install", dress = "app", wait = 0, onDone
               {INSTALL_HINT[tab] && <p data-tour={`${tour}-hint`} style={{ ...TYPE.caption, color: t.sub, marginTop: SPACE.tight }}>{tr(INSTALL_HINT[tab])}</p>}
             </div>
           )}
+          <div style={{ marginTop: SPACE.tight }}>
+            <InstallSteps steps={steps} dress={dress} tour={tour} wait={arrived ? 0 : wait} />
+          </div>
         </div>
       </InsFold>
     </div>

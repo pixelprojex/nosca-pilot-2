@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { ThemeCtx, NEUTRAL, CLUB, tr, ui, TYPE, MOTION, Button, InstallGuide, INSTALL_CSS, haptic, openAbout } from "../Nosca";
 import { RING_L, RING_R } from "../lib/brandmark.jsx";
@@ -134,38 +134,30 @@ function InstallCard() {
    `backwards`, so the element's own style is the finished page — and all
    there ever is under Reduce Motion.
 
-   THE LAYOUT. On a phone it is one column: the cards, the line, the rule,
-   the title and the steps, and the key at the foot — on a 390 × 844
-   phone all of it on the first screen. From 720 wide (an iPad, a
-   computer) it is two columns, composed: the cards, the line, the rule
-   and the key on the left, standing still, the title and the steps on
-   the right; the whole hung from a fixed top, never centred on its own
-   height — centred, opening Change moved the very row just clicked out
-   from under the pointer; the X in the screen's corner. */
+   THE LAYOUT is one column everywhere: the cards, small, to say which
+   card was scanned and nothing more; the line; the rule; then the page
+   itself — the title, the steps — and the one key at the foot. On a
+   phone the key stands at the foot of the screen; from 720 wide (an iPad,
+   a computer) the column is hung from a fixed top, never centred on its
+   own height (centred, opening Change moved the very row just clicked
+   out from under the pointer), and the X stands in the screen's corner.
+   It was two columns there, the cards standing large beside the steps;
+   the founder, 28 November, asked for the focus taken off the cards. */
 const PAGE_CSS = `
 @keyframes insRule{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 .calm *, .calm *::before, .calm *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 .ins-shell{width:100%;max-width:460px;margin:0 auto;display:flex;flex-direction:column;flex:1 1 auto}
 .ins-x{position:relative;flex:none;height:44px}
-.ins-card{width:min(212px,58vw)}
-.ins-what{margin-top:clamp(16px,2.6vh,22px)}
-.ins-rule{margin:clamp(14px,2.2vh,20px) auto clamp(16px,2.4vh,22px);width:56px}
+.ins-card{width:min(168px,46vw)}
+.ins-what{margin-top:clamp(14px,2.2vh,18px)}
+.ins-rule{margin:clamp(14px,2vh,18px) auto clamp(16px,2.4vh,22px);width:48px}
 .ins-foot{margin-top:auto;padding-top:32px}
 @media (min-width:720px) and (min-height:520px){
-  .ins-shell{max-width:1000px;flex:none;margin:0 auto;padding:clamp(56px,12vh,140px) 0 48px;display:grid;grid-template-columns:minmax(0,320px) minmax(0,400px);grid-template-rows:auto minmax(0,1fr);column-gap:64px;justify-content:center;align-items:start}
+  .ins-shell{max-width:440px;flex:none;padding:clamp(48px,10vh,112px) 0 48px}
   .ins-x{display:contents}
   .ins-x > button{right:20px !important;top:16px !important}
-  .ins-lead{grid-column:1;grid-row:1;position:sticky;top:40px}
-  .ins-foot{grid-column:1;grid-row:2;margin-top:0;padding-top:0;position:sticky;top:calc(40px + var(--ins-lead-h, 0px))}
-  .ins-main{grid-column:2;grid-row:1 / span 2}
-  .ins-card{width:min(260px,100%)}
-  .ins-what{margin-top:26px}
-  .ins-rule{margin:22px auto 26px}
-  .ins-done .ins-main{align-self:center}
-}
-@media (min-width:1000px) and (min-height:520px){
-  .ins-shell{grid-template-columns:minmax(0,380px) minmax(0,440px);column-gap:96px}
-  .ins-card{width:min(300px,100%)}
+  .ins-card{width:188px}
+  .ins-foot{margin-top:0;padding-top:36px}
 }
 `;
 /* the app's own Reduce motion switch (Settings), kept on the phone; the
@@ -184,21 +176,12 @@ export default function InstallPage({ onLeave }) {
   /* the browser's own install, while it is offered, is the page's one key; Continue then steps back to the quiet key */
   const [offer, setOffer] = useState(canPromptInstall);
   useEffect(() => onInstallPromptChange((on) => setOffer(on)), []);
-  /* the left column's height, for the key that stands under it on a wide screen */
-  const shell = useRef(null), lead = useRef(null);
-  useEffect(() => {
-    const el = lead.current, box = shell.current;
-    if (!el || !box || typeof ResizeObserver === "undefined") return undefined;
-    const ro = new ResizeObserver(() => box.style.setProperty("--ins-lead-h", `${el.offsetHeight}px`));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
   return (
     <ThemeCtx.Provider value={PAGE}>
       <div className={`ins relative flex flex-col${appCalm() ? " calm" : ""}`} data-tour="install-page" style={{ minHeight: "100dvh", background: PAGE.page, overflowX: "clip" }}>
         <style>{INSTALL_CSS}{PAGE_CSS}</style>
         <div className="shrink-0" style={{ height: "env(safe-area-inset-top, 0px)" }} />
-        <div ref={shell} className={`ins-shell${done ? " ins-done" : ""}`}>
+        <div className="ins-shell">
           {/* the way out to the app — sign-up, or the app for a member */}
           <div className="ins-x">
             <button onClick={open} aria-label={tr("Close")} data-tour="install-close" className="absolute flex items-center justify-center active:opacity-60"
@@ -206,7 +189,7 @@ export default function InstallPage({ onLeave }) {
               <X size={20} color={PAGE.ink} strokeWidth={2} />
             </button>
           </div>
-          <div ref={lead} className="ins-lead px-6">
+          <div className="ins-lead px-6">
             <InstallCard />
             {/* what Nosca is, for somebody who has only the card */}
             <p data-tour="install-what" className="ins-what text-center mx-auto" style={{ ...TYPE.body, color: PAGE.sub, textWrap: "balance", ...rise(180) }}>
