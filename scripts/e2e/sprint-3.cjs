@@ -325,7 +325,8 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       const other = await page.evaluate((td) => { const b = [...document.querySelectorAll("[data-day]")].map((x) => Number(x.getAttribute("data-day"))); return b.find((d) => d > td) || null; }, today);
       if (other) await tap(page, `[data-day="${other}"]`, 600);
       const mark = await page.locator(`[data-day="${today}"] [data-mark]`).evaluate((el) => ({ m: el.getAttribute("data-mark"), bg: el.firstElementChild ? getComputedStyle(el.firstElementChild).backgroundColor : null, w: el.firstElementChild ? el.firstElementChild.getBoundingClientRect().width : 0 })).catch(() => null);
-      check("(i) the month grid marks a coach's day with lessons with the ink dot, 4px, as the List view's ticker", !!other && !!mark && mark.m === "booked" && mark.w === 4 && mark.bg !== "rgb(236, 233, 226)", JSON.stringify({ other, mark }));
+      /* 28 November, the design render: the dot is the lead's, 5px, as the List view's week marks a day with lessons */
+      check("(i) the month grid marks a coach's day with lessons with the lead's dot, 5px, as the List view's week", !!other && !!mark && mark.m === "booked" && mark.w === 5 && mark.bg === "rgb(40, 89, 55)", JSON.stringify({ other, mark }));
       if (today > 1) {
         const pastColor = await styleOf(page.locator('[data-day="1"] span').first(), "color");
         check("(i) a day gone is the trace grey, not the 1.2:1 hairline", pastColor !== "rgb(236, 233, 226)", pastColor);
