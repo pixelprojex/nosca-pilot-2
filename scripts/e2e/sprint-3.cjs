@@ -616,6 +616,37 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
         await ctx.close();
       }
     }
+    /* ---------- (n3) 28 November: a starred row's star is on the poster's corner, and the words have the width ---------- */
+    /* A starred row drew its star in a column of its own beside the words, and at 320 that left a riding coach's
+       areas 95 — under the 106 "Showjumping" needs, so the word broke inside itself ("Showjumpin" over "g"). The star
+       is the poster's badge now, in the gap before the words: every starred row whole at 320, the star on the poster's
+       top-right corner, covering none of the words */
+    {
+      const RIDER = "00000000-0000-4000-8000-0000000a1d3a", TADHG = "00000000-0000-4000-8000-0000000a7a16";
+      const J1 = "1e000000-0000-4000-8000-0000000a0f31", J2 = "1e000000-0000-4000-8000-0000000a0f32";
+      const mod = (db) => {
+        M.addUser(db, { id: RIDER, email: "rider@t.ie" }); M.addProfile(db, { id: RIDER, role: "coach", name: "Róisín Daly", sport: "equestrian", inviteCode: "RD4K9P" });
+        M.addUser(db, { id: TADHG, email: "tadhg@t.ie" }); M.addProfile(db, { id: TADHG, role: "player", name: "Tadhg Ryan", type: "adult", sport: "equestrian", coachId: RIDER, dob: "1988-08-08" });
+        const day = (n) => M.ymd(new Date(Date.now() - n * 864e5));
+        M.addLesson(db, { id: J1, coachId: RIDER, playerId: TADHG, date: day(2), focus: "Showjumping", unread: false });
+        M.addLesson(db, { id: J2, coachId: RIDER, playerId: TADHG, date: day(1), focus: "Showjumping · Flatwork", unread: false });
+        M.setPrefs(db, RIDER, { starred: [J1, J2] });
+      };
+      const { ctx, page, shot } = await boot({ width: 320, mod, as: RIDER });
+      await tap(page, '[data-tour="saved"]', 1000);
+      const saved = await M.factsFit(page, '[data-scroll="screen"]');
+      const badges = await page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] [data-star-badge]')].map((b) => {
+        const row = b.closest("button"), poster = b.parentElement.firstElementChild, words = row.querySelector("[data-facts]");
+        /* the words' column: the Facts line hangs its dot's strip to the left of it, clipped */
+        const br = b.getBoundingClientRect(), pr = poster.getBoundingClientRect(), col = words.getBoundingClientRect().left - (parseFloat(getComputedStyle(words).marginLeft) || 0);
+        return { onCorner: br.left < pr.right && br.right > pr.right && br.top < pr.top + 4 && br.bottom > pr.top, clearOfWords: br.right <= col + 0.5, label: b.getAttribute("aria-label") };
+      }));
+      await shot("n3-saved-showjumping-320");
+      check("(n3) at 320 a riding coach's starred rows are whole — Showjumping never broken inside itself — each carrying its star on the poster's top-right corner, clear of the words",
+        M.factsWhole(saved) && saved.some((f) => f.text === "Showjumping") && saved.some((f) => f.text === "Showjumping · Flatwork") && badges.length === 2 && badges.every((b) => b.onCorner && b.clearOfWords && b.label === "Starred"),
+        JSON.stringify({ saved: (saved || []).map((f) => ({ t: f.text, w: f.width, broken: f.wordBroken })), badges }));
+      await ctx.close();
+    }
 
     check("no page errors", errors.length === 0, errors.join(" | ").slice(0, 300));
   } catch (e) {

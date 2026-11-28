@@ -6369,7 +6369,22 @@ function LessonRow({ lesson: l, poster, need, onOpen, onDownload, showWho, first
       <button data-tour={first ? "log-row" : undefined} onClick={() => { haptic(8); soft(); onOpen(l); }}
               className="flex-1 min-w-0 flex items-center gap-3.5 text-left active:opacity-50"
               style={{ paddingTop: 8, paddingBottom: 8 }}>
-        <Poster item={poster} sport={sport} />
+        {/* A STARRED ROW CARRIES ITS STAR ON THE POSTER'S CORNER (28 November):
+            a column of its own beside the words took 27 of them, and at 320 a
+            starred row gave its areas 95 — under the 106 "Showjumping" needs,
+            so the word broke inside itself. On the corner it is the phone's
+            own badge: the palette's gold on a white disc, cut out of the
+            poster by a ring of the card it sits on, in the gap before the
+            words, so nothing of the poster or the words is covered */}
+        <span className="relative shrink-0 flex">
+          <Poster item={poster} sport={sport} />
+          {isStar && (
+            <span role="img" aria-label={tr("Starred")} data-star-badge="" className="absolute flex items-center justify-center rounded-full"
+                  style={{ top: -6, right: -7, width: 22, height: 22, background: "#FFFFFF", boxShadow: "0 0 0 2px var(--card, #FFFFFF)" }}>
+              <Star size={12} color={STAR} fill={STAR} strokeWidth={1.6} />
+            </span>
+          )}
+        </span>
         <span className="flex-1 min-w-0">
           <span className="flex items-start gap-2">
             {/* the mark means "not yet opened" only where opening clears it —
@@ -6384,8 +6399,6 @@ function LessonRow({ lesson: l, poster, need, onOpen, onDownload, showWho, first
           </span>
           <Facts parts={sub} attrs={{ "data-sub": "" }} className="mt-0.5" style={{ ...TYPE.small, color: t.sub }} />
         </span>
-        {/* a star is the palette's gold, wherever it is drawn */}
-        {isStar && <span role="img" aria-label={tr("Starred")} className="shrink-0 flex"><Star size={13} color={STAR} fill={STAR} strokeWidth={1.6} /></span>}
         {!onDownload && <ChevronRight size={14} color={t.trace || t.faint} />}
       </button>
       {onDownload && <DownloadDisc lesson={l} onTap={onDownload} size={38} />}
