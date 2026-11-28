@@ -1580,6 +1580,17 @@ export const ui = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
    Bold at the serif's own measure, so a face that could not load moves
    and cuts nothing. */
 export const serif = "'Nosca Serif', 'Nosca Serif Fallback', Georgia, 'Times New Roman', serif";
+/* THE SERIF'S OWN HEIGHT (28 November). Noto Serif Display stands 1.362 of
+   its size from ascent to descent (1.069 above the baseline, 0.293 under:
+   a g's tail reaches 0.236, an accent on a capital 0.931 up), so a title
+   held to a tighter line inside a clip — a line clamp, `truncate` — lost
+   the tails of its g's and y's on the last line: "Diary" in the compact
+   header, the feed's areas, the log's title. SERIF_LINE is the one line
+   that holds the whole face; serifRoom(lineHeight) is the room under a
+   clamped title's last line for the descent the line does not hold,
+   given back by a margin so nothing under it moves. */
+export const SERIF_LINE = 1.362;
+export const serifRoom = (lh) => { const r = Math.max(0, (SERIF_LINE - lh) / 2 + 0.01); return r ? { paddingBottom: `${r.toFixed(3)}em`, marginBottom: `-${r.toFixed(3)}em` } : {}; };
 
 /* ------------------------------------------------------------------
    TYPE SCALE
@@ -4126,7 +4137,7 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
           {/* the whole name, a second line before an ellipsis — "Maximiliano
               Ó Súilleab…" at 320 */}
           <span data-tour="peek-title" className="block" style={{ ...TYPE.head, color: t.ink, display: "-webkit-box", WebkitLineClamp: 2,
-                       WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{booking.who}</span>
+                       WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word", ...serifRoom(TYPE.head.lineHeight) }}>{booking.who}</span>
           <span className="block mt-0.5" style={{ ...TYPE.small, color: t.faint }}>
             {/* the booking's own length — a clinic is an hour here as on its block */}
             {booking.time} · {booking.duration || duration} {tr("min")}
@@ -6831,7 +6842,10 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
                                                      /* the titles' bold serif (28 November): the lesson is
                                                         titled as every screen is; the narrow face only ever
                                                         sets the measure the sizing allowed for, never more */
-                                                     fontFamily: serif, fontWeight: 700, fontSize: titleSize + 2, lineHeight: 1.08, letterSpacing: "0em", color: "#fff" }}>
+                                                     fontFamily: serif, fontWeight: 700, fontSize: titleSize + 2, lineHeight: 1.08, letterSpacing: "0em", color: "#fff",
+                                                     /* room under the last line for the serif's descent: held to 1.08 inside
+                                                        the clamp, "Course management · Mental game" lost the tails of its g's */
+                                                     ...serifRoom(1.08) }}>
                 {/* the dot rides inside the next area's nowrap span, so a line
                     breaks only in the space before it and never ends on a dot;
                     that space is the one place a line may break */}
@@ -9001,8 +9015,11 @@ function Screen({ title, meta, onBack, right, action, children, large = true, ba
           {/* the title is never cut: at 320 the pill on the right drops its
               name (`useNarrow`) rather than the title its letters; `truncate`
               stays only as the backstop narrow.cjs proves is never reached */}
+          {/* the serif's own height (its ascent and descent, 1.36 of its size): a
+              line held to 1.1 cut the tail off the y of "Diary" inside the clip
+              `truncate` draws (28 November) */}
           <span data-tour="screen-title" className="flex-1 min-w-0 text-center truncate px-1.5"
-                style={{ ...TYPE.head, fontSize: 20, lineHeight: 1.1, color: t.ink,
+                style={{ ...TYPE.head, fontSize: 20, lineHeight: SERIF_LINE, color: t.ink,
                          opacity: shrunk ? 1 : 0, transition: "opacity 180ms" }}>{title}</span>
           <span className="flex items-center justify-end gap-2.5 pr-3" style={{ minWidth: 41 }}>{right}</span>
         </div>
@@ -15172,7 +15189,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
             <div className="flex items-center gap-3">
               <button onClick={() => { haptic(6); setAdding(false); setView("who"); }} className="flex-1 min-w-0 text-left active:opacity-60" style={{ minHeight: 44 }}>
                 <span className="flex items-end gap-1.5">
-                  <span className="min-w-0" style={{ ...TYPE.screen, color: t.ink, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{heroText}</span>
+                  <span className="min-w-0" style={{ ...TYPE.screen, color: t.ink, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word", ...serifRoom(TYPE.screen.lineHeight) }}>{heroText}</span>
                   <ChevronDown size={14} color={t.trace || t.faint} strokeWidth={2} style={{ marginBottom: 6, flexShrink: 0 }} />
                 </span>
               </button>
