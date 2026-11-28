@@ -25,9 +25,10 @@ export const LIST_CSS = `    .nsc-list { border: none !important; padding-bottom
     .nsc-list > * { background: var(--card, var(--surface, #fff)); border: 2px solid var(--card-ring, var(--edge, #E4E0D7)) !important; border-radius: 18px;
                     box-shadow: 0 4px 0 var(--card-ledge, var(--edge, #E4E0D7));
                     transition: transform .15s cubic-bezier(.2,.7,.3,1), box-shadow .15s cubic-bezier(.2,.7,.3,1), background-color .15s;
-                    margin-bottom: 12px; padding-left: 15.5px !important; padding-right: 15.5px !important; }
-    /* 15.5 inside the 2px ring: the row's words keep the width they had inside the 1.5px line and 16 (a long name
-       took a fourth line and was cut at 320 with a half point less) */
+                    margin-bottom: 12px; padding-left: 15px !important; padding-right: 15px !important; }
+    /* 15 inside the 2px ring: the row's words keep the width they had inside the 1.5px line and 16, which a
+       phone at one pixel a point draws as 1 and 16 (a long name took a fourth line and was cut at 320 with a
+       point less) */
     /* a row that is one button sinks onto its ledge under the finger (the one press, data-down) */
     .nsc-list > button[data-down]:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--card-ledge, var(--edge, #E4E0D7)); transition: none; opacity: 1; }
     .nsc-list > *:last-child { margin-bottom: 0; }
@@ -53,7 +54,7 @@ export const LIST_CSS = `    .nsc-list { border: none !important; padding-bottom
        options so the open list's wash runs to the box's edge and the
        head's label lines up with every other row */
     .nsc-list > .nsc-flush { padding: 0 !important; overflow: hidden; }
-    .nsc-list > .nsc-swipe > div:last-child { background: var(--card, var(--surface, #fff)) !important; padding-left: 15.5px; padding-right: 15.5px; }
+    .nsc-list > .nsc-swipe > div:last-child { background: var(--card, var(--surface, #fff)) !important; padding-left: 15px; padding-right: 15px; }
 `;
 
 import {

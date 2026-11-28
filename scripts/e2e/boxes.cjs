@@ -308,7 +308,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
          chevron, 60 tall, and no glyph (it was drawn here by hand at 56, the count a step fainter) */
       const rosAll = await M.rowLead(page, '[data-tour="roster-archive"]');
       check("(f1) the roster's All lessons is the home's own door: the word, the count in the sub grey, the chevron, 60 tall, no glyph before the word",
-        M.plainRow(rosAll) && rosAll.h === 60 && rosAll.inset === 16 && rosAll.label === "All lessons" && /All lessons\s*\d+$/.test(M.norm(await page.locator('[data-tour="roster-archive"]').innerText())), JSON.stringify(rosAll));
+        M.plainRow(rosAll) && rosAll.h === 60 && rosAll.inset === 15 && rosAll.label === "All lessons" && /All lessons\s*\d+$/.test(M.norm(await page.locator('[data-tour="roster-archive"]').innerText())), JSON.stringify(rosAll));
       await page.locator('[data-scroll="screen"] button', { hasText: /^Groups$/ }).first().click(); await page.waitForTimeout(700);
       const grp = await audit(page, '[data-scroll="screen"]', EDGE.golf);
       const gr = await holder(page, '[data-tour="roster-group"]');
@@ -339,7 +339,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
       const doors = [];
       for (const sel of ['[data-tour="player-all-lessons"]', '[data-tour="player-progress"]', '[data-tour="player-notes"]', '[data-tour="player-recurring"]']) doors.push(await M.rowLead(page, sel));
       check("(g1) the player file's doors lead with their word: All lessons · Progress · Notes · Recurring lessons, no glyph before any, the chevron after, 60 tall on one left edge",
-        doors.every((d) => M.plainRow(d) && d.h === 60 && d.inset === 16 && d.boxed) && doors.map((d) => d.label).join(" · ") === "All lessons · Progress · Notes · Recurring lessons", JSON.stringify(doors.map((d) => d && `${d.label} lead ${d.lead} before ${d.before} [${d.glyphs}] h${d.h}`)));
+        doors.every((d) => M.plainRow(d) && d.h === 60 && d.inset === 15 && d.boxed) && doors.map((d) => d.label).join(" · ") === "All lessons · Progress · Notes · Recurring lessons", JSON.stringify(doors.map((d) => d && `${d.label} lead ${d.lead} before ${d.before} [${d.glyphs}] h${d.h}`)));
       check("(g2) the tip's label and its words sit on one centre line, in the middle of the box", !!tip && Math.abs(tip.label - tip.value) <= 2 && Math.abs(tip.label - tip.box) <= 2, JSON.stringify(tip));
       await M.back(page);
       /* a player with no lessons: the empty line is a line, not a box */
@@ -469,7 +469,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
       const door = await M.rowLead(page, '[data-scroll="screen"] [data-tour="kid-progress"]');
       const doorKey = await page.evaluate(() => { const b = document.querySelector('[data-scroll="screen"] [data-tour="kid-progress"]'); return b ? b.classList.contains("n-key") : null; });
       check("(n5) the child's Progress is a door — a row in a box of its own, the word on the box's inset and the chevron, no glyph before it, 60 tall, never a key",
-        !!door && door.boxed && doorKey === false && door.h === 60 && M.plainRow(door) && door.inset === 16 && door.label === "Progress" && door.color === "rgb(29, 27, 23)", JSON.stringify(door));
+        !!door && door.boxed && doorKey === false && door.h === 60 && M.plainRow(door) && door.inset === 15 && door.label === "Progress" && door.color === "rgb(29, 27, 23)", JSON.stringify(door));
       check("(n3) the child's lessons read the app's one day form", days.length === 2 && days.every((d) => DAY_FORM.test(d)) && days[0] === nice(dayFrom(-9)), JSON.stringify(days));
       /* Next, Drills and the lessons under them: one value column down the page */
       const vcol = await page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] .nsc-list > :not([data-tour]) > span:first-child')]

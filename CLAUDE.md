@@ -88,7 +88,7 @@ seeded data and no account.
     of a colour family (`--card`), on a 2px ring of the pale's ledge
     (`--card-ring`) and a 4px ledge a step deeper in the same hue
     (`--card-ledge`: the ledge mixed three quarters to the cloth), 18px
-    corners (20 on a `.nsc-day`), 15.5px inside the 2px ring (the width the old 1.5px line and 16 gave: 18 cut long names at 375, 16 at 320); a row that is one button
+    corners (20 on a `.nsc-day`), 15px inside the 2px ring (the width the old 1.5px line and 16 gave at one pixel a point: 18 cut long names at 375, 15.5 at 320); a row that is one button
     sinks 3px onto it. `cardOf(t, hue)` gives the three on a list or on one
     row; the sport's own family (`HUE.green`) is every list's default, set
     on the app's root. **Settings keeps white groups** (`.nsc-group`) on

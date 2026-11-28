@@ -176,7 +176,7 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
       const nJobs = await page.locator('[data-scroll="screen"] .nsc-ruled > [data-row-door]').count(), jobs = [];
       for (let i = 0; i < nJobs; i++) jobs.push(await M.rowLead(page, '[data-scroll="screen"] .nsc-ruled > [data-row-door]', i));
       check("(c2b) the home's Actions rows and All lessons lead with their word: no glyph before any, the chevron after, 60 tall on the box's inset",
-        jobs.length >= 3 && jobs.every((j) => M.plainRow(j) && j.h === 60 && j.inset === 16 && j.color === "rgb(29, 27, 23)") && jobs.some((j) => j.label === "Join requests") && !jobs.some((j) => j.label === "Messages") && jobs[jobs.length - 1].label === "All lessons",
+        jobs.length >= 3 && jobs.every((j) => M.plainRow(j) && j.h === 60 && j.inset === 15 && j.color === "rgb(29, 27, 23)") && jobs.some((j) => j.label === "Join requests") && !jobs.some((j) => j.label === "Messages") && jobs[jobs.length - 1].label === "All lessons",
         JSON.stringify(jobs.map((j) => j && `${j.label} lead ${j.lead} before ${j.before} [${j.glyphs}] h${j.h}`)));
       {
         /* the same coach on a heavy morning: three requests, a join request, a message, a lesson to log, somebody drifting */

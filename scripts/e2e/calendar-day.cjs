@@ -152,7 +152,7 @@ const lum = (c) => { const v = String(c).match(/[\d.]+/g); if (!v) return 1; con
       const calloff = await M.rowLead(page, '[data-tour="cal-weather"]');
       check("(c6) the call-off row is the blush card at 18px: the word in the family's red on the card's inset and the chevron, no glyph before it — never the rain, never a tile",
         !!weather && weather.bg === BLUSH && weather.border === BLUSH_RING && weather.radius === "18px" && !/cloud-rain|calendar-x/.test(weather.cls)
-        && M.plainRow(calloff) && calloff.inset === 16 && calloff.h === 60 && calloff.color === "rgb(154, 50, 42)" && /^Call (today off|off (Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{1,2})$/.test(calloff.label), `${JSON.stringify(weather)} · ${JSON.stringify(calloff)}`);
+        && M.plainRow(calloff) && calloff.inset === 15 && calloff.h === 60 && calloff.color === "rgb(154, 50, 42)" && /^Call (today off|off (Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{1,2})$/.test(calloff.label), `${JSON.stringify(weather)} · ${JSON.stringify(calloff)}`);
       /* (w2) Call off, from that row */
       await tap(page, '[data-tour="cal-weather"]', 1000);
       await reasonChecks(page, "w2", "calloff-why", "Weather", "golf"); await shot("03-calloff-why");
