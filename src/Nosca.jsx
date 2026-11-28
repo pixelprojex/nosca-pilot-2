@@ -19985,10 +19985,28 @@ function InstallScreen({ pop }) {
 }
 /* THE IMPORT'S PARAGRAPH (docs/import/SPEC.md), a draft for legal review: Privacy and
    Messaging gain it, and the EU-servers sentence its exception — only once the region and
-   the confirmed retention are filled in at switch-on, so nothing reads a placeholder */
-const IMPORT_LEGAL = { region: null, retention: null };
+   the confirmed retention are filled in at switch-on, so nothing reads a placeholder.
+   Filled for the launch (28 November): the region is Netlify Functions' default, which the
+   founder has not changed; the retention is Anthropic's privacy centre's for the API (inputs
+   and outputs deleted within 30 days unless flagged under its usage policy or kept longer by
+   law, never used for training — the paragraph says that part itself), and its DPA with the
+   SCCs is part of its Commercial Terms, so Anthropic is a processor under it. The Terms gain
+   their Import section and Data & permissions its line on the same switch, so the import's
+   words are on every page or none */
+const IMPORT_LEGAL = {
+  region: "the United States",
+  retention: "Anthropic acts as Nosca's processor, under a data processing agreement that includes the European Commission's standard contractual clauses. It deletes the messages and its answers within 30 days, unless they are flagged under its usage policy or the law requires them to be kept longer.",
+};
+const IMPORT_TERMS = "You may import a chat into Nosca only if you took part in it and are free to share it, and by importing one you confirm both. The chat is sorted into lessons automatically and the sorting can be wrong, so nothing is added until you tick it. Every imported lesson says it was imported, and by whom. The coach, the player if they are 16 or over, and an adult who looks after the player can remove an import at any time, and its files are removed with it.";
+const IMPORT_DATA = "A chat you import is read on your phone. Nosca keeps only the lessons you choose and their files, nothing of the chat.";
 const withImportLegal = (d, key) => {
-  if (!IMPORT_LEGAL.region || !IMPORT_LEGAL.retention || (key !== "privacy" && key !== "messaging")) return d;
+  if (!IMPORT_LEGAL.region || !IMPORT_LEGAL.retention) return d;
+  /* the Terms' section sits after Content, the line after the other lines of what is kept, before Your data */
+  const put = (at, after, row) => { const i = d.body.findIndex(([h]) => h === at); const k = i < 0 ? d.body.length : i + (after ? 1 : 0);
+    return { ...d, body: [...d.body.slice(0, k), row, ...d.body.slice(k)] }; };
+  if (key === "terms") return put("Content", true, ["Import", IMPORT_TERMS]);
+  if (key === "data") return put("Your data", false, ["Import", IMPORT_DATA]);
+  if (key !== "privacy" && key !== "messaging") return d;
   const para = `If you import a chat, it is read on your phone. To sort it into lessons, only the coach's messages from it are sent, through Nosca's server (Netlify, ${IMPORT_LEGAL.region}), to Anthropic, which processes them in the United States. Before they leave your phone, names Nosca can recognise, phone numbers, email addresses, links and places are taken out, and lines with common health and payment words are held back. No other person's messages and no video, photo or voice note is sent. ${IMPORT_LEGAL.retention} Anthropic does not use them to train its models. Nosca keeps none of the chat, only the lessons you choose to import. A player or parent can import a chat with their coach only if the coach allows it, and every lesson they import is marked as theirs. We do this in our legitimate interest in keeping the coaching record the coach and the family asked for. Anyone an import is about can remove it, which also removes its files from Nosca.`;
   return { ...d, body: [...d.body.map(([h, p]) => [h, p.replace("on servers in the European Union.", "on servers in the European Union, except as described under Import.")]), ["Import", para]] };
 };
@@ -20524,11 +20542,56 @@ const useImportLib = () => {
 /* the player file opens on Feed once, after an import has landed the coach there */
 let IMPORT_FEED_FOR = null;
 const importFeedFirst = (id) => { if (id && IMPORT_FEED_FOR === id) { IMPORT_FEED_FOR = null; return "feed"; } return null; };
-/* the steps, in each phone's own words (rewritten from the founder's own phones before ship) */
+/* the steps, in each phone's own words (rewritten from the founder's own phones before ship); a control
+   with no name of its own is drawn in the sentence, as the Home Screen guide draws it ({dotsV}) */
 const IMPORT_STEPS = {
-  iPhone: ["Open the chat in WhatsApp", "Tap the name at the top", "Export Chat", "Attach Media", "Save to Files"],
-  Android: ["Open the chat in WhatsApp", "⋮ › More › Export chat", "Include media", "Save the file"],
+  iPhone: ["Open the chat in WhatsApp", "Tap the name at the top", "Tap Export Chat", "Tap Attach Media", "Tap Save to Files"],
+  Android: ["Open the chat in WhatsApp", "Tap {dotsV:the three dots}, then More", "Tap Export chat", "Tap Include media", "Save the file"],
 };
+/* THE OPENING PAGE (28 November, the launch). The founder asked for it "very professional, very classy", and to
+   say how the chat is kept safe. So it is the app's own page: the titles' serif, a Lares card a subject — what
+   happens in three steps in the lessons' own family, what keeps the chat private in the sky of what is sent,
+   WhatsApp's own steps in the record's gold — and one deep key, Choose file, held at the foot where the thumb is
+   while the page above it scrolls. Each safeguard is a plain fact of the code: the chat is read on the phone
+   (lib/chatImport/source.js); only the coach's lines are sent, with the names Nosca knows, numbers and links
+   taken out (scrub in the shared rules); no file is ever sent to be sorted; a day is added only once ticked; the
+   other side reads nothing until the batch is done; whoever the import is about can remove it */
+const IMPORT_HOW = [
+  ["Export the chat from WhatsApp", "With its media"],
+  ["Nosca sorts it into lessons", "Day by day, with what was worked on and that day's clips"],
+  ["Tick the ones to keep", "Each is filed on its own day"],
+];
+const importSafe = (coachSide) => [
+  ["The chat is read on your phone"],
+  [coachSide ? "Only your words go to the AI" : "Only the coach's words go to the AI", "Names Nosca knows, numbers and links are taken out first"],
+  ["Videos, photos and voice notes never go to the AI"],
+  ["Nothing is added until you tick it"],
+  ["Nobody else sees it until it is finished"],
+  ["It can be removed at any time"],
+];
+/* one card of lines: a numeral on a white chip in the card's own ink where the lines are steps; the words wrap,
+   never cut, at any width */
+function ImportLines({ hue, tour, rows, numbered = false, strong = false }) {
+  const t = useT();
+  const ink = inkOf(hueOf(t, hue));
+  return (
+    <div className="nsc-day nsc-rows" data-tour={tour} style={cardOf(t, hue)}>
+      {rows.map(([head, sub], i) => (
+        <div key={head} data-import-line="" className={`flex ${numbered ? "items-start" : "items-center"}`}
+             style={{ gap: 14, padding: "14px 16px", minHeight: 56, borderBottom: i === rows.length - 1 ? "none" : "1.5px solid" }}>
+          {numbered && (
+            <span className="shrink-0 flex items-center justify-center"
+                  style={{ width: 28, height: 28, borderRadius: 14, background: "#FFFFFF", border: "1.5px solid var(--card-ring)", fontFamily: ui, fontSize: 14, fontWeight: 700, color: ink, fontVariantNumeric: "tabular-nums" }}>{i + 1}</span>
+          )}
+          <span className="flex-1 min-w-0" style={{ paddingTop: numbered ? 2 : 0 }}>
+            <span className="block" style={{ ...TYPE.body, fontWeight: strong ? 600 : 400, color: t.ink }}>{insSay(tr(head))}</span>
+            {sub && <span className="block" style={{ ...TYPE.small, color: t.sub, marginTop: 2 }}>{tr(sub)}</span>}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
 const importMonYear = (iso) => { const [y, m] = String(iso || "").split("-").map(Number); return y && m ? `${WIZ_MONTHS[m - 1]} ${y}` : ""; };
 const importSpanOf = (a, b) => (!a ? "" : importMonYear(a) === importMonYear(b || a) ? importMonYear(a) : `${importMonYear(a)} – ${importMonYear(b)}`);
 const nOf = (n, one, more) => `${n} ${n === 1 ? tr(one) : tr(more)}`;
@@ -20849,23 +20912,14 @@ function ImportScreen({ data, me, role, cfg, pop, push, say, done, openSheet, cl
     const running = mine && mine.phase === "uploading";
     const rs = paused ? mine.resume || {} : null;
     const who = paused ? ((people.find((p) => p.id === (rs.forId || mine.forId)) || {}).name || "") : "";
+    const idle = !running && !paused;
     return (
       <SwipeBack onBack={pop}>
         <Screen title={tr("Import")} onBack={pop}>
+          <style>{INSTALL_CSS}</style>
           <div className="px-6 pb-8">
-            {coachSide && (
-              <div className="nsc-list" style={{ marginBottom: SPACE.block }}>
-                <div className="flex items-center justify-between gap-3" data-tour="import-players" style={{ minHeight: 56 }}>
-                  <span style={{ ...TYPE.body, color: t.ink }}>{tr("Imports from players")}</span>
-                  <Toggle on={!!(data.prefs && data.prefs.player_imports)} onChange={(v) => {
-                    if (v) openSheet(<ImportAllowBody close={closeSheet} onAllow={async () => { const r = await data.setPlayerImports(true); if (r && r.error) { say(r.error.message || tr("That didn't save")); return r; } done(tr("Allowed")); return {}; }} />);
-                    else data.setPlayerImports(false);
-                  }} />
-                </div>
-              </div>
-            )}
             {running && (
-              <div className="nsc-day px-4 py-4" data-tour="import-running" style={{ marginBottom: SPACE.block }}>
+              <div className="nsc-day px-4 py-4" data-tour="import-running">
                 <ImportBanner pill={false} />
                 <p className="mt-2" style={{ ...TYPE.small, color: t.sub }}>{tr("Keep Nosca open until this is done")}</p>
                 <div className="mt-3"><Button tone="dangerQuiet" tour="import-stop" onClick={() => {
@@ -20876,7 +20930,7 @@ function ImportScreen({ data, me, role, cfg, pop, push, say, done, openSheet, cl
               </div>
             )}
             {paused && (
-              <div className="nsc-day px-4 py-4" data-tour="import-resume" style={{ marginBottom: SPACE.block }}>
+              <div className="nsc-day px-4 py-4" data-tour="import-resume">
                 <p style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{who}</p>
                 <p className="mt-0.5" style={{ ...TYPE.small, color: t.sub }}>{`${rs.lessonsIn || 0} ${tr("of")} ${nOf(rs.lessons || 0, "lesson", "lessons")} · ${rs.filesUp || 0} ${tr("of")} ${nOf(rs.files || 0, "file", "files")}`}</p>
                 <div className="mt-3"><Button tour="import-choose-same" onClick={pick}>{mine.reading ? tr("Reading…") : tr("Choose the same file")}</Button></div>
@@ -20891,8 +20945,30 @@ function ImportScreen({ data, me, role, cfg, pop, push, say, done, openSheet, cl
                 )}
               </div>
             )}
+            {idle && (
+              <>
+                <ImportLines hue={HUE.green} tour="import-how" rows={IMPORT_HOW} numbered strong />
+                <div style={{ marginTop: SPACE.section }}>
+                  <RowHead>{tr("Privacy and security")}</RowHead>
+                  <ImportLines hue={HUE.blue} tour="import-safe" rows={importSafe(coachSide)} />
+                  <div className="mt-3"><TextBtn tour="import-start-privacy" color={t.accent} onClick={() => push("legal:privacy")}>{tr("Privacy Policy")}</TextBtn></div>
+                </div>
+                <div style={{ marginTop: SPACE.section }}>
+                  <RowHead>{tr("In WhatsApp")}</RowHead>
+                  <Segmented tour="import-platform" options={["iPhone", "Android"]} value={platform} onChange={setPlatform} />
+                  <div style={{ marginTop: SPACE.row }}><ImportLines hue={HUE.gold} tour="import-steps" rows={IMPORT_STEPS[platform].map((s) => [s])} numbered /></div>
+                </div>
+                {/* the one deep key, at the foot where the thumb is while the page scrolls above it; a refusal is one red line under it */}
+                <div className="sticky bottom-0 -mx-6 px-6" data-tour="import-foot" style={{ background: t.page, paddingTop: 14, paddingBottom: 16, marginTop: SPACE.block, zIndex: 2 }}>
+                  {/* what scrolls under the key fades into the page, never a hard cut through a card */}
+                  <span aria-hidden="true" className="absolute left-0 right-0 pointer-events-none" style={{ top: -20, height: 20, background: `linear-gradient(to bottom, ${t.page}00, ${t.page})` }} />
+                  <Button tour="import-choose" disabled={!lib || (mine && mine.reading)} onClick={pick}>{mine && mine.reading ? tr("Reading…") : tr("Choose file")}</Button>
+                  {mine && mine.error && <p className="mt-3" data-tour="import-error" style={{ ...TYPE.small, color: DANGER }}>{mine.error}</p>}
+                </div>
+              </>
+            )}
             {batches.length > 0 && (
-              <div style={{ marginBottom: SPACE.block }}>
+              <div style={{ marginTop: SPACE.section }}>
                 <RowHead>{tr("Imported")}</RowHead>
                 <div className="nsc-list">
                   {batches.map((b) => {
@@ -20907,20 +20983,16 @@ function ImportScreen({ data, me, role, cfg, pop, push, say, done, openSheet, cl
                 </div>
               </div>
             )}
-            {!running && !paused && (
-              <>
-                <Segmented tour="import-platform" options={["iPhone", "Android"]} value={platform} onChange={setPlatform} />
-                <div className="nsc-list" style={{ marginTop: SPACE.tight, marginBottom: SPACE.block }}>
-                  {IMPORT_STEPS[platform].map((s, i) => (
-                    <div key={s} className="flex items-center gap-3" style={{ minHeight: 52 }}>
-                      <span className="shrink-0 flex items-center justify-center rounded-full" style={{ width: 26, height: 26, background: t.wash, ...TYPE.caption, fontWeight: 600, color: t.sub }}>{i + 1}</span>
-                      <span style={{ ...TYPE.body, color: t.ink }}>{tr(s)}</span>
-                    </div>
-                  ))}
+            {coachSide && (
+              <div className="nsc-group" style={{ marginTop: SPACE.section }}>
+                <div className="flex items-center justify-between gap-3" data-tour="import-players" style={{ minHeight: 56 }}>
+                  <span className="flex-1 min-w-0" style={{ ...TYPE.body, color: t.ink }}>{tr("Imports from players")}</span>
+                  <Toggle on={!!(data.prefs && data.prefs.player_imports)} onChange={(v) => {
+                    if (v) openSheet(<ImportAllowBody close={closeSheet} onAllow={async () => { const r = await data.setPlayerImports(true); if (r && r.error) { say(r.error.message || tr("That didn't save")); return r; } done(tr("Allowed")); return {}; }} />);
+                    else data.setPlayerImports(false);
+                  }} />
                 </div>
-                <Button tour="import-choose" disabled={!lib || (mine && mine.reading)} onClick={pick}>{mine && mine.reading ? tr("Reading…") : tr("Choose file")}</Button>
-                {mine && mine.error && <p className="mt-3" data-tour="import-error" style={{ ...TYPE.small, color: DANGER }}>{mine.error}</p>}
-              </>
+              </div>
             )}
             <input ref={input} type="file" multiple className="hidden" data-tour="import-file" onChange={(e) => onFiles(e.target.files)} />
           </div>
@@ -21032,7 +21104,7 @@ function ImportScreen({ data, me, role, cfg, pop, push, say, done, openSheet, cl
               {showFor && <ImportDoor label={tr("For")} tour="import-day-for" value={forP ? forP.name : null}
                                       onTap={() => openSheet(<ImportWhoBody people={coachImport ? people : people.filter((p) => kids.some((k) => k.id === p.id))} label={lib.mainSide(mine) || ""} close={closeSheet} onPick={(id) => lib.setDayFor(r.iso, id)} />)} />}
             </div>
-            <div style={{ marginTop: SPACE.block }}>
+            <div style={{ marginTop: SPACE.block }} data-focus-ids={(r.focusIds || []).join(",")}>
               <RowHead>{tr("Worked on")}</RowHead>
               <FocusGrid areas={areas} picked={r.focusIds} cols={2} h={46} tour="import-day-focus"
                          onToggle={(id) => lib.setDayFocus(r.iso, r.focusIds.includes(id) ? r.focusIds.filter((x) => x !== id) : [...r.focusIds, id])} />
